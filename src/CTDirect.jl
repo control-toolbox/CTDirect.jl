@@ -33,7 +33,7 @@ include("solution.jl")
 include("plot.jl")
 
 # export functions only for user
-export direct_solve
+export solve
 export plot
 
 end

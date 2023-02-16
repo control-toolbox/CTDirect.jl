@@ -1,6 +1,5 @@
-function direct_solve(ocp::OptimalControlModel, 
-  #algo::DirectAlgorithm, 
-  method::Description;
+function solve(ocp::OptimalControlModel, 
+  description...;
   grid_size::Integer=__grid_size_direct(),
   print_level::Integer=__print_level_ipopt(),
   mu_strategy::String=__mu_strategy_ipopt(),
@@ -19,6 +18,8 @@ function direct_solve(ocp::OptimalControlModel,
     sol : solution of the discretized problem
           (time, X, U, n, m, N)
   """
+
+  # description... is unused here. See OptimalControl.jl/src/solve.jl for an example of usage.
 
   # no display
   print_level = display ?  print_level : 0
