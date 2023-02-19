@@ -12,12 +12,6 @@ import Plots: plot, plot! # import instead of using to overload the plot and plo
 # nlp modeling and resolution
 using NLPModelsIpopt, ADNLPModels
 
-# tools: Descriptions, callbacks, exceptions, functions and more
-using ControlToolboxTools
-
-# Types
-const MyNumber, MyVector, Time, Times, TimesDisc, States, Adjoints, Controls, State, Adjoint, Dimension = CTBase.types()
-
 # Other declarations
 const nlp_constraints = CTBase.nlp_constraints
 const __grid_size_direct = CTBase.__grid_size_direct
