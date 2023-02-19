@@ -3,7 +3,7 @@ prob = Problem(:integrator, :dim2, :energy)
 ocp = prob.model
 
 # solve
-sol = solve(ocp, print_level=0)
+sol = solve(ocp, print_level=5)
 
 # solution
 u_sol(t) = 6.0-12.0*t

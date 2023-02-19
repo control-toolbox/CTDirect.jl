@@ -32,7 +32,8 @@ function solve(ocp::OptimalControlModel,
   # https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/main/src/NLPModelsIpopt.jl#L119
   # options of ipopt: https://coin-or.github.io/Ipopt/OPTIONS.html
   # callback: https://github.com/jump-dev/Ipopt.jl#solver-specific-callback
-  ipopt_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy; kwargs...)
+  # sb="yes": remove ipopt header
+  ipopt_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
 
   # from IPOPT solution to DirectSolution
   sol = DirectSolution(ocp, grid_size, ipopt_solution)
