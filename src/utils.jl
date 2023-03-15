@@ -38,17 +38,17 @@ function direct_infos(ocp::OptimalControlModel, N::Integer)
     # dynamics
     f = ocp.dynamics
     # constraints
-    ξ, ψ, ϕ = nlp_constraints(ocp)
-    dim_ξ = length(ξ[1])      # dimension of the boundary constraints
-    dim_ψ = length(ψ[1])
-    dim_ϕ = length(ϕ[1])
-    has_ξ = !isempty(ξ[1])
-    has_ψ = !isempty(ψ[1])
-    has_ϕ = !isempty(ϕ[1])
+    control_constraints, mixed_constraints, boundary_conditions = nlp_constraints(ocp)
+    dim_control_constraints = length(control_constraints[1])      # dimension of the boundary constraints
+    dim_mixed_constraints = length(mixed_constraints[1])
+    dim_boundary_conditions = length(boundary_conditions[1])
+    has_control_constraints = !isempty(control_constraints[1])
+    has_mixed_constraints = !isempty(mixed_constraints[1])
+    has_boundary_conditions = !isempty(boundary_conditions[1])
 
-    #println("has_ξ = ", has_ξ)
-    #println("has_ψ = ", has_ψ)
-    #println("has_ϕ = ", has_ϕ)
+    #println("has_control_constraints = ", has_control_constraints)
+    #println("has_mixed_constraints = ", has_mixed_constraints)
+    #println("has_boundary_conditions = ", has_boundary_conditions)
 
     hasLagrangeCost = !isnothing(ocp.lagrange)
     L = ocp.lagrange
@@ -68,10 +68,10 @@ function direct_infos(ocp::OptimalControlModel, N::Integer)
 
     if hasLagrangeCost
         dim_x = n_x + 1  
-        nc = N*(dim_x+dim_ξ+dim_ψ) + (dim_ξ + dim_ψ) + dim_ϕ + 1       # dimension of the constraints            
+        nc = N*(dim_x+dim_control_constraints+dim_mixed_constraints) + (dim_control_constraints + dim_mixed_constraints) + dim_boundary_conditions + 1       # dimension of the constraints            
       else
         dim_x = n_x  
-        nc = N*(dim_x+dim_ξ+dim_ψ) + (dim_ξ + dim_ψ) + dim_ϕ       # dimension of the constraints
+        nc = N*(dim_x+dim_control_constraints+dim_mixed_constraints) + (dim_control_constraints + dim_mixed_constraints) + dim_boundary_conditions       # dimension of the constraints
     end
 
     dim_xu = (N+1)*(dim_x+m)  # dimension the the unknown xu
@@ -82,8 +82,8 @@ function direct_infos(ocp::OptimalControlModel, N::Integer)
 
     criterion = ocp.criterion
 
-    return t0, tf, n_x, m, f, ξ, ψ, ϕ, dim_ξ, dim_ψ, dim_ϕ, 
-    has_ξ, has_ψ, has_ϕ, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, 
+    return t0, tf, n_x, m, f, control_constraints, mixed_constraints, boundary_conditions, dim_control_constraints, dim_mixed_constraints, dim_boundary_conditions, 
+    has_control_constraints, has_mixed_constraints, has_boundary_conditions, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, 
     g, f_Mayer, has_free_final_time, criterion
 
 end
