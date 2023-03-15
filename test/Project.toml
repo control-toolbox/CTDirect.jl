@@ -1,4 +1,4 @@
 [deps]
 CTBase = "54762871-cc72-4466-b8e8-f6c8b58076cd"
-CTProblemLibrary = "0649932a-8c77-4f67-b1e4-c19ddd080280"
+CTProblems = "45d9ea3f-a92f-411f-833f-222dd4fb9cd8"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
