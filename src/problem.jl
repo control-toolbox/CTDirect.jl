@@ -46,18 +46,22 @@ function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
         #
 
         # state equation
+        ti = t0
+        xi = get_state_at_time_step(xu, 0, dim_x, N)
+        ui = get_control_at_time_step(xu, 0, dim_x, N, m)
+        fi = f_Mayer(ti, xi, ui)
         index = 1 # counter for the constraints
         for i in 0:N-1
-            ti = t0 + i*h
-            tip1 = t0 + i*h + h
-            # state and control at the current state
-            xi = get_state_at_time_step(xu, i, dim_x, N)
+            tip1 = t0 + (i+1)*h
+            # state and control at t_{i+1}
             xip1 = get_state_at_time_step(xu, i+1, dim_x, N)
-            ui = get_control_at_time_step(xu, i, dim_x, N, m)
             uip1 = get_control_at_time_step(xu, i+1, dim_x, N, m)
+            fip1 = f_Mayer(tip1, xip1, uip1)
             # state equation
-            c[index:index+dim_x-1] = xip1 - (xi + 0.5*h*(f_Mayer(ti, xi, ui)+f_Mayer(tip1, xip1, uip1)))
+            c[index:index+dim_x-1] = xip1 - (xi + 0.5*h*(fi + fip1))
             index = index + dim_x
+
+            # control and mixed constraints
             if has_ξ
                 c[index:index+dim_ξ-1] = ξ[2](ti, ui)        # ui vector
                 index = index + dim_ξ
@@ -66,6 +70,9 @@ function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
                 c[index:index+dim_ψ-1] = ψ[2](ti, xi[1:n_x], ui)        # ui vector
                 index = index + dim_ψ
             end
+            xi = xip1
+            ui = uip1
+            fi = fip1
         end
         if has_ξ
             uf = get_control_at_time_step(xu, N, dim_x, N, m)

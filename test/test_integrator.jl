@@ -1,9 +1,10 @@
 # double integrator - energy min
+println("Double integrator test")
 prob = Problem(:integrator, :dim2, :energy); ocp = prob.model
 u_sol(t) = prob.solution.control(t)[1]
 
 # solve
-sol = solve(ocp, print_level=5)
+sol = solve(ocp, print_level=0)
 
 # solution
 u = t -> sol.control(t)[1]
