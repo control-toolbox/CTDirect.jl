@@ -1,5 +1,5 @@
 using CTDirect
-using CTProblemLibrary
+using CTProblems
 using CTBase # for plot
 
 # double integrator - energy min

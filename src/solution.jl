@@ -53,9 +53,7 @@ iterations(sol::DirectSolution) = sol.iterations =#
 function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
 
     # direct_infos
-    t0, tf_, n_x, m, f, control_constraints, mixed_constraints, boundary_conditions, dim_control_constraints, dim_mixed_constraints, dim_boundary_conditions, 
-    has_control_constraints, has_mixed_constraints, has_boundary_conditions, hasLagrangeCost, hasMayerCost, 
-    dim_x, nc, dim_xu, g, f_Mayer, has_free_final_time, criterion = direct_infos(ocp, N)
+    t0, tf, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, g, f_Mayer, has_free_final_time, criterion = direct_infos(ocp, N)
 
     function parse_ipopt_sol(stats)
         
@@ -72,6 +70,7 @@ function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
         P = zeros(N, dim_x)
         lambda = stats.multipliers
         P_control_constraints = zeros(N+1,dim_control_constraints)
+        P_state_constraints = zeros(N+1,dim_state_constraints)
         P_mixed_constraints = zeros(N+1,dim_mixed_constraints)
         index = 1 # counter for the constraints
         for i ∈ 1:N
@@ -79,17 +78,25 @@ function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
             P[i,:] = lambda[index:index+dim_x-1]            # use getter
             index = index + dim_x
             if has_control_constraints
-                P_control_constraints[i,:] =  lambda[index:index+dim_control_constraints-1]      # use getter
+                P_control_constraints[i,:] = lambda[index:index+dim_control_constraints-1]      # use getter
                 index = index + dim_control_constraints
             end
+            if has_state_constraints
+                P_state_constraints[i,:] = lambda[index:index+dim_state_constraints-1]      # use getter
+                index = index + dim_state_constraints
+            end
             if has_mixed_constraints
-                P_mixed_constraints[i,:] =  lambda[index:index+dim_mixed_constraints-1]      # use getter
+                P_mixed_constraints[i,:] = lambda[index:index+dim_mixed_constraints-1]      # use getter
                 index = index + dim_mixed_constraints
             end
         end
         if has_control_constraints
-            P_control_constraints[N+1,:] =  lambda[index:index+dim_control_constraints-1]        # use getter
+            P_control_constraints[N+1,:] = lambda[index:index+dim_control_constraints-1]        # use getter
             index = index + dim_control_constraints
+        end
+        if has_state_constraints
+            P_state_constraints[N+1,:] = lambda[index:index+dim_state_constraints-1]      # use getter
+            index = index + dim_state_constraints
         end
         if has_mixed_constraints
             P_mixed_constraints[N+1,:] =  lambda[index:index+dim_mixed_constraints-1]         # use getter
@@ -99,7 +106,7 @@ function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
     end
 
     # state, control, adjoint
-    X, U, P, P_control_constraints, P_mixed_constraints = parse_ipopt_sol(ipopt_solution)
+    X, U, P, P_control_constraints, P_state_constraints, P_mixed_constraints = parse_ipopt_sol(ipopt_solution)
     
     # times
     tf = get_final_time(ipopt_solution.solution, tf_, has_free_final_time)
@@ -112,6 +119,8 @@ function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
     #status = ipopt_solution.status this is a 'Symbol' not an int...
         
     # DirectSolution
+    # To do add P_state_constraints to DirectSolution
+    # and quid constraints and Lagrange multiplayers of the constraints
     dsol  = DirectSolution(T, X, U, P, P_control_constraints, P_mixed_constraints, n_x, m, N, 
         objective, constraints_violation, iterations, ipopt_solution)     
 
