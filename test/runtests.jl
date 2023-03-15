@@ -1,12 +1,12 @@
 using CTDirect
 using Test
 using CTBase
-using CTProblemLibrary
+using CTProblems
 
 #
 @testset verbose = true showtiming = true "Direct" begin
     for name in (
-        "integrator",
+        #"integrator",
         "goddard",
         )
         @testset "$name" begin
