@@ -49,6 +49,8 @@ function direct_infos(ocp::OptimalControlModel, N::Integer)
     has_state_constraints = !isempty(state_constraints[1])
     has_mixed_constraints = !isempty(mixed_constraints[1])
     has_boundary_conditions = !isempty(boundary_conditions[1])
+    has_control_box = !isempty(control_box[1])
+    has_state_box = !isempty(state_box[1])
 
     #println("has_control_constraints = ", has_control_constraints)
     #println("has_mixed_constraints = ", has_mixed_constraints)
@@ -91,6 +93,7 @@ function direct_infos(ocp::OptimalControlModel, N::Integer)
     return t0, tf, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, 
     dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, 
     has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions,
+    has_control_box, has_state_box,
     hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, 
     g, f_Mayer, has_free_final_time, criterion
 

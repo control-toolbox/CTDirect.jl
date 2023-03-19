@@ -1,7 +1,7 @@
 function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
 
     # direct_infos
-    t0, tf, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, g, f_Mayer, has_free_final_time, criterion = direct_infos(ocp, N)
+    t0, tf_, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions, has_control_box, has_state_box, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, g, f_Mayer, has_free_final_time, criterion = direct_infos(ocp, N)
 
     # IPOPT objective
     function ipopt_objective(xu)
@@ -169,16 +169,24 @@ function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
         u_var = Inf*ones(dim_xu)
         index = 1
         # state box
-        for i in 0:N
-            l_var[index:index+n_x-1] = state_box[1][state_box[2]]
-            u_var[index:index+n_x-1] = state_box[3][state_box[2]]
-            index = index + dim_x
+        if has_state_box
+            for i in 0:N
+                for j in 1:dim_state_box
+                    l_var[index] = state_box[1][state_box[2][j]]
+                    u_var[index] = state_box[3][state_box[2][j]]
+                    index = index + 1
+                end
+            end
         end
         # control box
-        for i in 0:N
-            l_var[index:index+m-1] = control_box[1][state_box[2]]
-            u_var[index:index+m-1] = control_box[3][state_box[2]]
-            index = index + m
+        if has_control_box
+            for i in 0:N
+                for j in 1:dim_control_box
+                    l_var[index] = control_box[1][control_box[2][j]]
+                    u_var[index] = control_box[3][control_box[2][j]]
+                    index = index + 1
+                end
+            end
         end
         return l_var, u_var
     end

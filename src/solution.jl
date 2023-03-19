@@ -53,7 +53,7 @@ iterations(sol::DirectSolution) = sol.iterations =#
 function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
 
     # direct_infos
-    t0, tf, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, g, f_Mayer, has_free_final_time, criterion = direct_infos(ocp, N)
+    t0, tf_, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions, has_control_box, has_state_box, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, g, f_Mayer, has_free_final_time, criterion = direct_infos(ocp, N)
 
     function parse_ipopt_sol(stats)
         
@@ -102,7 +102,7 @@ function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
             P_mixed_constraints[N+1,:] =  lambda[index:index+dim_mixed_constraints-1]         # use getter
             index = index + dim_mixed_constraints
         end
-        return X, U, P, P_control_constraints, P_mixed_constraints
+        return X, U, P, P_control_constraints, P_state_constraints, P_mixed_constraints
     end
 
     # state, control, adjoint
