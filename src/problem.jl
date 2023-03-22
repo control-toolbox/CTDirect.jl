@@ -1,7 +1,7 @@
 function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
 
     # direct_infos
-    t0, tf_, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions, has_control_box, has_state_box, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, g, f_Mayer, has_free_final_time, criterion = direct_infos(ocp, N)
+    t0, tf_, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, dim_control_box, dim_state_box,has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions, has_control_box, has_state_box, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, g, f_Mayer, has_free_final_time, criterion = direct_infos(ocp, N)
 
     # IPOPT objective
     function ipopt_objective(xu)
@@ -167,25 +167,29 @@ function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
         # unbounded case
         l_var = -Inf*ones(dim_xu)
         u_var = Inf*ones(dim_xu)
-        index = 1
+        
         # state box
         if has_state_box
+            index = 0
             for i in 0:N
                 for j in 1:dim_state_box
-                    l_var[index] = state_box[1][state_box[2][j]]
-                    u_var[index] = state_box[3][state_box[2][j]]
-                    index = index + 1
+                    indice = state_box[2][j]
+                    l_var[index+indice] = state_box[1][indice]
+                    u_var[index+indice] = state_box[3][indice]
                 end
+                index = index + dim_x
             end
         end
         # control box
         if has_control_box
+            index = (N+1)*dim_x # the control is at the  end of xu
             for i in 0:N
                 for j in 1:dim_control_box
-                    l_var[index] = control_box[1][control_box[2][j]]
-                    u_var[index] = control_box[3][control_box[2][j]]
-                    index = index + 1
+                    indice = control_box[2][j]
+                    l_var[index+indice] = control_box[1][indice]
+                    u_var[index+indice] = control_box[3][control_box[2][j]]
                 end
+                index = index + m
             end
         end
         return l_var, u_var
@@ -241,7 +245,8 @@ function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
 
     # variables bounds   
     l_var, u_var = variables_bounds()
-
+    println("lvar = ", l_var)
+    println("uvar = ", u_var)
     # initial guess
     xu0 = initial_guess()
 

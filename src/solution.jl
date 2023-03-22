@@ -53,7 +53,8 @@ iterations(sol::DirectSolution) = sol.iterations =#
 function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
 
     # direct_infos
-    t0, tf_, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions, has_control_box, has_state_box, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, g, f_Mayer, has_free_final_time, criterion = direct_infos(ocp, N)
+    t0, tf_, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, 
+    dim_control_box, dim_state_box,has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions, has_control_box, has_state_box, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, g, f_Mayer, has_free_final_time, criterion = direct_infos(ocp, N)
 
     function parse_ipopt_sol(stats)
         
@@ -136,6 +137,7 @@ function _OptimalControlSolution(ocp::OptimalControlModel, dsol::DirectSolution)
     sol.state_dimension = dsol.n
     sol.control_dimension = dsol.m
     sol.times = dsol.T
+    sol.time_label = ocp.time_label
     sol.state = t -> x(t)
     sol.state_labels = ocp.state_labels # update CTBase to have a getter
     sol.adjoint = t -> p(t)

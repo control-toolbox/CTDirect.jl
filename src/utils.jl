@@ -38,7 +38,9 @@ function direct_infos(ocp::OptimalControlModel, N::Integer)
     # dynamics
     f = ocp.dynamics
     # constraints
+
     control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box = nlp_constraints(ocp)
+    println("control_box = ", control_box)
     dim_control_constraints = length(control_constraints[1])      # dimension of the constraints
     dim_state_constraints = length(state_constraints[1])
     dim_mixed_constraints = length(mixed_constraints[1])
@@ -76,7 +78,7 @@ function direct_infos(ocp::OptimalControlModel, N::Integer)
         dim_x = n_x + 1  
         nc = N*(dim_x + dim_control_constraints + dim_state_constraints + dim_mixed_constraints) +
         (dim_control_constraints +  dim_state_constraints + dim_mixed_constraints) + dim_boundary_conditions + 1       # dimension of the constraints            
-      else
+    else
         dim_x = n_x  
         nc = N*(dim_x + dim_control_constraints + dim_state_constraints + dim_mixed_constraints) +
         (dim_control_constraints + dim_state_constraints + dim_mixed_constraints) + dim_boundary_conditions       # dimension of the constraints
@@ -91,7 +93,7 @@ function direct_infos(ocp::OptimalControlModel, N::Integer)
     criterion = ocp.criterion
 
     return t0, tf, n_x, m, f, control_constraints, state_constraints, mixed_constraints, boundary_conditions, control_box, state_box, 
-    dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, 
+    dim_control_constraints, dim_state_constraints, dim_mixed_constraints, dim_boundary_conditions, dim_control_box, dim_state_box,
     has_control_constraints, has_state_constraints, has_mixed_constraints, has_boundary_conditions,
     has_control_box, has_state_box,
     hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, 

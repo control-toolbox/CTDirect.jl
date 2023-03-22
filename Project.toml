@@ -10,6 +10,6 @@ NLPModelsIpopt = "f4238b75-b362-5c4c-b852-0801c9a21d71"
 
 [compat]
 ADNLPModels = "0.5"
-CTBase = "0.4"
+CTBase = "0.5"
 NLPModelsIpopt = "0.10"
 julia = "1.8"

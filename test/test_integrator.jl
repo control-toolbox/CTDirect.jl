@@ -3,8 +3,11 @@ println("Double integrator test")
 prob = Problem(:integrator, :dim2, :energy); ocp = prob.model
 u_sol(t) = prob.solution.control(t)[1]
 
+N = 10
+res = CTDirect.direct_infos(ocp, N)
+
 # solve
-sol = solve(ocp, print_level=0)
+sol = solve(ocp, grid_size=100, print_level=0)
 
 # solution
 u = t -> sol.control(t)[1]
