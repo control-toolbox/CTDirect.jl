@@ -1,6 +1,7 @@
 using CTDirect
+using CTBase
 using CTProblems
-using CTBase # for plot
+
 
 # double integrator - energy min
 prob = Problem(:integrator, :dim2, :energy)
@@ -11,7 +12,16 @@ init = [1., 0.5, 0.3]
 
 # solve
 #sol = solve(ocp, grid_size=10, print_level=5)
-sol = solve(ocp, grid_size=200, print_level=5, tol=1e-12, mu_strategy="adaptive", init=init)
+sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, mu_strategy="adaptive", init=init)
+
+p1 = plot(sol)
+
+
+# control box
+constraint!(ocp, :control, -4.01, 4.01, :control_con1)
+sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, mu_strategy="adaptive", init=init)
 
 # plot
-plot(sol)
+p2 =  plot(sol)
+
+plot(p1,p2)

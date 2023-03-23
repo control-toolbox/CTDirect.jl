@@ -247,6 +247,9 @@ function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
     l_var, u_var = variables_bounds()
     println("lvar = ", l_var)
     println("uvar = ", u_var)
+
+
+
     # initial guess
     xu0 = initial_guess()
 

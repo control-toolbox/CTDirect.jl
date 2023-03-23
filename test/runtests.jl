@@ -5,6 +5,7 @@ using CTProblems
 
 # direct_infos funtion tests
 include("test_direct_infos.jl")
+include("test_constraints.jl")
 
 prob = Problem(:integrator, :dim2, :energy); 
 ocp = prob.model
