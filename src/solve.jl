@@ -1,3 +1,21 @@
+"""
+
+Solve the optimal control problem
+
+Input : 
+ocp : functional description of the optimal control problem (cf. ocp.jl)
+N   : number of time steps for the discretization
+      Int
+
+Output
+sol : solution of the discretized problem
+      ...
+# Examples
+```jldoctest
+julia> solve(ocp, 100)
+```
+"""
+
 function solve(ocp::OptimalControlModel, 
   description...;
   grid_size::Integer=__grid_size_direct(),
@@ -6,18 +24,6 @@ function solve(ocp::OptimalControlModel,
   display::Bool=__display(),
   init=nothing,  #NB. for now, can be nothing or (n+m) vector
   kwargs...)
-  """
-    Solve the optimal control problem
-
-    Input : 
-    ocp : functional description of the optimal control problem (cf. ocp.jl)
-    N   : number of time steps for the discretization
-          Int
-
-    Output
-    sol : solution of the discretized problem
-          (time, X, U, n, m, N)
-  """
 
   # description... is unused here. See OptimalControl.jl/src/solve.jl for an example of use
 
