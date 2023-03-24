@@ -149,6 +149,17 @@ mutable struct CTDirect_data
 
 end
 
+function is_solvable(ocp)
+    solvable = true
+
+    # free initial time
+    if isnothing(ocp.initial_time)
+        solvable = false
+    end
+    
+    return solvable
+end
+
 # export functions only for user
 export solve
 
