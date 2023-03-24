@@ -67,10 +67,12 @@ mutable struct CTDirect_data
     dim_NLP_state
     dim_NLP_constraints
     dim_NLP_variables
+    dim_NLP_steps
     dynamics_lagrange_to_mayer
+    NLP_init
 
     # put this constructor in CTDirect.jl or in utils.jl ?
-    function CTDirect_data(ocp::OptimalControlModel, N::Integer)
+    function CTDirect_data(ocp::OptimalControlModel, N::Integer, init=nothing)
 
         ctd = new()
 
@@ -106,6 +108,9 @@ mutable struct CTDirect_data
         ctd.has_state_box = !isempty(ctd.state_box[1])
 
         ## Non Linear Programming NLP
+        ctd.dim_NLP_steps = N
+        ctd.NLP_init = init
+
         # Mayer to Lagrange reformulation: 
         # additional state with Lagrange cost as dynamics and null initial condition
         if ctd.has_lagrange_cost

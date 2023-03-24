@@ -52,6 +52,8 @@ iterations(sol::DirectSolution) = sol.iterations =#
 
 function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
 
+    # NB. currently we lost the initial point here since it is not saved in ipopt_solution
+    # +++TODO: save init using the info field and pass it to the constructor here
     ctd = CTDirect_data(ocp, N)
 
     function parse_ipopt_sol(stats)
