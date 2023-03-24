@@ -1,89 +1,71 @@
-function get_state_at_time_step(xu, i, dim_x, N)
+function get_state_at_time_step(xu, i, nx, N)
     """
         return
         x(t_i)
     """
-    if i > N
-        error("trying to get x(t_i) for i > N")
-    end  
-    return xu[1+i*dim_x:(i+1)*dim_x]
+    @assert i <= N "trying to get x(t_i) for i > N"
+    return xu[i*nx + 1 : (i+1)*nx]
 end
 
-function get_control_at_time_step(xu, i, dim_x, N, m)
+function get_control_at_time_step(xu, i, nx, N, m)
     """
         return
         u(t_i)
     """
-    if i > N
-        error("trying to get (t_i) for i > N")
-    end
-    return xu[1+(N+1)*dim_x+i*m:m+(N+1)*dim_x+i*m]
+    @assert i <= N "trying to get u(t_i) for i > N"
+    return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
 end
 
-get_final_time(xu, tf_, has_free_final_time) = has_free_final_time ? xu[end] : tf_
+get_final_time(xu, fixed_final_time, has_free_final_time) = has_free_final_time ? xu[end] : fixed_final_time
 
-function direct_infos(ocp::OptimalControlModel, N::Integer)
+## Initialization for the NLP problem
 
-    # Parameters of the Optimal Control Problem
-    # times
-    t0 = ocp.initial_time
-    tf = ocp.final_time
-    has_free_final_time = isnothing(tf)
-        # multiplier la dynamique par (tf-t0)
-        # travailler avec le nouveau temps s dans (0., 1.)
-        # une fonction t(s)
-    # dimensions
-    n_x = ocp.state_dimension
-    m = ocp.control_dimension
-    # dynamics
-    f = ocp.dynamics
-    # constraints
-    control_constraints, mixed_constraints, boundary_conditions = nlp_constraints(ocp)
-    dim_control_constraints = length(control_constraints[1])      # dimension of the boundary constraints
-    dim_mixed_constraints = length(mixed_constraints[1])
-    dim_boundary_conditions = length(boundary_conditions[1])
-    has_control_constraints = !isempty(control_constraints[1])
-    has_mixed_constraints = !isempty(mixed_constraints[1])
-    has_boundary_conditions = !isempty(boundary_conditions[1])
+function set_state_at_time_step!(x, i, nx, N, xu)
+    @assert i <= N "trying to set init for x(t_i) with i > N"
+    xu[1+i*nx:(i+1)*nx] = x[1:nx]
+end
+    
+function set_control_at_time_step!(u, i, nx, N, m, xu)
+    @assert i <= N "trying to set init for u(t_i) with i > N"
+    xu[1+(N+1)*nx+i*m:m+(N+1)*nx+i*m] = u[1:m]
+end
 
-    #println("has_control_constraints = ", has_control_constraints)
-    #println("has_mixed_constraints = ", has_mixed_constraints)
-    #println("has_boundary_conditions = ", has_boundary_conditions)
+function initial_guess(ctd)
 
-    hasLagrangeCost = !isnothing(ocp.lagrange)
-    L = ocp.lagrange
+    N = ctd.dim_NLP_steps
+    init = ctd.NLP_init
 
-    hasMayerCost = !isnothing(ocp.mayer)
-    g = ocp.mayer
-    #println("hasLagrange : ", hasLagrangeCost)
-    #println("Mayer = ", hasMayerCost)
+    if init === nothing
+        # default initialization (put back O.1 here ?)
+        xu0 = 1.1*ones(ctd.dim_NLP_variables)
+    else
+        if length(init) != (ctd.state_dimension + ctd.control_dimension)
+            error("vector for initialization should be of size n+m",ctd.state_dimension+ctd.control_dimension)
+        end
+        # split state / control init values
+        x_init = zeros(ctd.dim_NLP_state)
+        x_init[1:ctd.state_dimension] = init[1:ctd.state_dimension]
+        u_init = zeros(ctd.control_dimension)
+        u_init[1:ctd.control_dimension] = init[ctd.state_dimension+1:ctd.state_dimension+ctd.control_dimension]
+        
+        # mayer -> lagrange additional state
+        if ctd.has_lagrange_cost
+            x_init[ctd.dim_NLP_state] = 0.1
+        end
 
-    # Mayer formulation
-    # use an additional state for the Lagrange cost
-    #
-    # remark : we pass u[1] because in our case ocp.dynamics and ocp.lagrange are defined with a scalar u
-    # and we consider vectors for x and u in the discretized problem. Note that the same would apply for a scalar x.
-    # question : how determine if u and x are scalar or vector ?
-    # second member of the ode for the Mayer formulation
-
-    if hasLagrangeCost
-        dim_x = n_x + 1  
-        nc = N*(dim_x+dim_control_constraints+dim_mixed_constraints) + (dim_control_constraints + dim_mixed_constraints) + dim_boundary_conditions + 1       # dimension of the constraints            
-      else
-        dim_x = n_x  
-        nc = N*(dim_x+dim_control_constraints+dim_mixed_constraints) + (dim_control_constraints + dim_mixed_constraints) + dim_boundary_conditions       # dimension of the constraints
+        # set constant initialization for state / control variables
+        xu0 = zeros(ctd.dim_NLP_variables)
+        for i in 0:N
+            set_state_at_time_step!(x_init, i, ctd.dim_NLP_state, N, xu0)
+            set_control_at_time_step!(u_init, i, ctd.dim_NLP_state, N, ctd.control_dimension, xu0)
+        end
     end
 
-    dim_xu = (N+1)*(dim_x+m)  # dimension the the unknown xu
-    has_free_final_time ? dim_xu = dim_xu + 1 : nothing
+    # free final time case, put back 0.1 here ?
+    # +++todo: add a component in init vector for tf and put this part in main if/then above
+    if ctd.has_free_final_time
+        xu0[end] = 1.0
+    end
 
-    # todo: cas vectoriel sur u a ajouter
-    f_Mayer(t, x, u) = hasLagrangeCost ? [f(t, x[1:n_x], u); L(t, x[1:n_x], u)] : f(t, x, u)
-
-    criterion = ocp.criterion
-
-    return t0, tf, n_x, m, f, control_constraints, mixed_constraints, boundary_conditions, dim_control_constraints, dim_mixed_constraints, dim_boundary_conditions, 
-    has_control_constraints, has_mixed_constraints, has_boundary_conditions, hasLagrangeCost, hasMayerCost, dim_x, nc, dim_xu, 
-    g, f_Mayer, has_free_final_time, criterion
-
+    return xu0
 end
