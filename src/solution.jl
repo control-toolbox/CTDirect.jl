@@ -14,7 +14,7 @@ struct DirectSolution <: AbstractOptimalControlSolution
     objective::MyNumber
     constraints_violation::MyNumber
     iterations::Integer
-    stats       # remove later 
+    stats       # remove later ?
     #type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
 end
 
@@ -50,67 +50,68 @@ objective(sol::DirectSolution) = sol.objective
 constraints_violation(sol::DirectSolution) = sol.constraints_violation  
 iterations(sol::DirectSolution) = sol.iterations =#
 
-function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
+function parse_ipopt_sol(stats, ctd)
+    
+    N = ctd.dim_NLP_steps
 
-    # NB. currently we lost the initial point here since it is not saved in ipopt_solution
-    # +++TODO: save init using the info field and pass it to the constructor here
-    ctd = CTDirect_data(ocp, N)
+    # states and controls
+    xu = stats.solution
+    X = zeros(N+1,ctd.dim_NLP_state)
+    U = zeros(N+1,ctd.control_dimension)
+    for i in 1:N+1
+        X[i,:] = get_state_at_time_step(xu, i-1, ctd.dim_NLP_state, N)
+        U[i,:] = get_control_at_time_step(xu, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+    end
 
-    function parse_ipopt_sol(stats)
-        
-        # states and controls
-        xu = stats.solution
-        X = zeros(N+1,ctd.dim_NLP_state)
-        U = zeros(N+1,ctd.control_dimension)
-        for i in 1:N+1
-            X[i,:] = get_state_at_time_step(xu, i-1, ctd.dim_NLP_state, N)
-            U[i,:] = get_control_at_time_step(xu, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
-        end
-
-        # adjoints
-        P = zeros(N, ctd.dim_NLP_state)
-        lambda = stats.multipliers
-        P_control_constraints = zeros(N+1,ctd.dim_control_constraints)
-        P_state_constraints = zeros(N+1,ctd.dim_state_constraints)
-        P_mixed_constraints = zeros(N+1,ctd.dim_mixed_constraints)
-        index = 1
-        for i in 1:N
-            # state equation
-            P[i,:] = lambda[index:index+ctd.dim_NLP_state-1]
-            index = index + ctd.dim_NLP_state
-            # path constraints
-            if ctd.has_control_constraints
-                P_control_constraints[i,:] = lambda[index:index+ctd.dim_control_constraints-1]
-                index = index + ctd.dim_control_constraints
-            end
-            if ctd.has_state_constraints
-                P_state_constraints[i,:] = lambda[index:index+ctd.dim_state_constraints-1]
-                index = index + ctd.dim_state_constraints
-            end
-            if ctd.has_mixed_constraints
-                P_mixed_constraints[i,:] = lambda[index:index+ctd.dim_mixed_constraints-1]
-                index = index + ctd.dim_mixed_constraints
-            end
-        end
-        # path constraints at final time
+    # adjoints
+    P = zeros(N, ctd.dim_NLP_state)
+    lambda = stats.multipliers
+    P_control_constraints = zeros(N+1,ctd.dim_control_constraints)
+    P_state_constraints = zeros(N+1,ctd.dim_state_constraints)
+    P_mixed_constraints = zeros(N+1,ctd.dim_mixed_constraints)
+    index = 1
+    for i in 1:N
+        # state equation
+        P[i,:] = lambda[index:index+ctd.dim_NLP_state-1]
+        index = index + ctd.dim_NLP_state
+        # path constraints
         if ctd.has_control_constraints
-            P_control_constraints[N+1,:] = lambda[index:index+ctd.dim_control_constraints-1]
+            P_control_constraints[i,:] = lambda[index:index+ctd.dim_control_constraints-1]
             index = index + ctd.dim_control_constraints
         end
         if ctd.has_state_constraints
-            P_state_constraints[N+1,:] = lambda[index:index+ctd.dim_state_constraints-1]
+            P_state_constraints[i,:] = lambda[index:index+ctd.dim_state_constraints-1]
             index = index + ctd.dim_state_constraints
         end
         if ctd.has_mixed_constraints
-            P_mixed_constraints[N+1,:] =  lambda[index:index+ctd.dim_mixed_constraints-1]
+            P_mixed_constraints[i,:] = lambda[index:index+ctd.dim_mixed_constraints-1]
             index = index + ctd.dim_mixed_constraints
         end
-
-        return X, U, P, P_control_constraints, P_state_constraints, P_mixed_constraints
+    end
+    # path constraints at final time
+    if ctd.has_control_constraints
+        P_control_constraints[N+1,:] = lambda[index:index+ctd.dim_control_constraints-1]
+        index = index + ctd.dim_control_constraints
+    end
+    if ctd.has_state_constraints
+        P_state_constraints[N+1,:] = lambda[index:index+ctd.dim_state_constraints-1]
+        index = index + ctd.dim_state_constraints
+    end
+    if ctd.has_mixed_constraints
+        P_mixed_constraints[N+1,:] =  lambda[index:index+ctd.dim_mixed_constraints-1]
+        index = index + ctd.dim_mixed_constraints
     end
 
+    return X, U, P, P_control_constraints, P_state_constraints, P_mixed_constraints
+end
+
+
+function DirectSolution(ocp, N, ipopt_solution, init)
+
+    ctd = CTDirect_data(ocp, N, init)
+
     # state, control, adjoint
-    X, U, P, P_control_constraints, P_state_constraints, P_mixed_constraints = parse_ipopt_sol(ipopt_solution)
+    X, U, P, P_control_constraints, P_state_constraints, P_mixed_constraints = parse_ipopt_sol(ipopt_solution, ctd)
     
     # times
     t0 = ctd.initial_time
@@ -131,27 +132,31 @@ function DirectSolution(ocp::OptimalControlModel, N::Integer, ipopt_solution)
     return _OptimalControlSolution(ocp, dsol)
 end
 
+
 function _OptimalControlSolution(ocp::OptimalControlModel, dsol::DirectSolution)
-    x = ctinterpolate(dsol.T, matrix2vec(dsol.X, 1)) # je ne peux pas donner directement la sortie de 
-    # ctinterpolate car ce n'est pas une Function. CTBase doit etre mis a jour.
-    u = ctinterpolate(dsol.T, matrix2vec(dsol.U, 1)) # pour l'interpolation il faut les mêmes tailles
-    p = ctinterpolate(dsol.T[1:end-1], matrix2vec(dsol.P, 1)) # matrix2vec est dans CTBase/src/utils.jl
+
+    # je ne peux pas donner directement la sortie de ctinterpolate car ce n'est pas une Function. CTBase doit etre mis a jour (?)
+    # matrix2vec is in CTBase/src/utils.jl
+    x = ctinterpolate(dsol.T, matrix2vec(dsol.X, 1))
+    u = ctinterpolate(dsol.T, matrix2vec(dsol.U, 1))
+    p = ctinterpolate(dsol.T[1:end-1], matrix2vec(dsol.P, 1)) 
     sol = OptimalControlSolution()
     sol.state_dimension = dsol.n
     sol.control_dimension = dsol.m
     sol.times = dsol.T
     sol.time_label = ocp.time_label
     sol.state = t -> x(t)
-    sol.state_labels = ocp.state_labels # update CTBase to have a getter
+    sol.state_labels = ocp.state_labels # update CTBase to have a getter ?
     sol.adjoint = t -> p(t)
     sol.control = t -> u(t)
     sol.control_labels = ocp.control_labels
     sol.objective = dsol.objective
     sol.iterations = dsol.iterations
-    sol.stopping = :dummy  # harmoniser avec CTDirectShooting: :optimality, :stagnation, :iterations
-    sol.message = "no message" # voir CTDirectShooting/src/solve.jl : textsStopping
+    # sync with CTDirectShooting: :optimality, :stagnation, :iterations
+    sol.stopping = :dummy 
+    # see CTDirectShooting/src/solve.jl : textsStopping
+    sol.message = "no message" 
     sol.success = false #
-    # remarque : il y a un champ "infos" dans OptimalControlSolution qui est un Dict{Symbol, Any}
-    # pour stocker des choses en plus que l'on veut être accessibles.
+    # field "infos" in OptimalControlSolution is Dict{Symbol, Any}, for misc data
     return sol
 end

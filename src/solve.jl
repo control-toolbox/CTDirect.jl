@@ -19,14 +19,13 @@ function solve(ocp::OptimalControlModel,
           (time, X, U, n, m, N)
   """
 
-  # description... is unused here. See OptimalControl.jl/src/solve.jl for an example of usage.
+  # description... is unused here. See OptimalControl.jl/src/solve.jl for an example of use
 
   # no display
   print_level = display ?  print_level : 0
 
   # from OCP to NLP
   nlp = ADNLProblem(ocp, grid_size, init)
-  #println("nlp x0:", nlp.meta.x0)
 
   # solve by IPOPT: more info at 
   # https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/main/src/NLPModelsIpopt.jl#L119
@@ -35,8 +34,8 @@ function solve(ocp::OptimalControlModel,
   # sb="yes": remove ipopt header
   ipopt_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
 
-  # from IPOPT solution to DirectSolution
-  sol = DirectSolution(ocp, grid_size, ipopt_solution)
+  # Parse solution from NLP to OCP variables and constraints
+  sol = DirectSolution(ocp, grid_size, ipopt_solution, init)
 
   return sol
 
