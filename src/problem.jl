@@ -1,6 +1,7 @@
 # struct for ocop/nlp info
 mutable struct CTDirect_data
 
+    ## OCP
     # OCP variables and functions
     initial_time
     final_time
@@ -40,13 +41,30 @@ mutable struct CTDirect_data
     control_box
     state_box
 
-    # NLP
+    ## NLP
+    # NLP problem
     dim_NLP_state
     dim_NLP_constraints
     dim_NLP_variables
     dim_NLP_steps
     dynamics_lagrange_to_mayer
     NLP_init
+
+    # NLP solution
+    T::Vector{<:MyNumber}
+    X::Matrix{<:MyNumber}
+    U::Matrix{<:MyNumber}
+    P::Matrix{<:MyNumber}
+    P_control_constraints::Matrix{<:MyNumber}
+    P_mixed_constraints::Matrix{<:MyNumber}
+    n::Integer
+    m::Integer
+    N::Integer
+    objective::MyNumber
+    constraints_violation::MyNumber
+    iterations::Integer
+    stats       # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
+
 
     # put this constructor in CTDirect.jl or in utils.jl ?
     function CTDirect_data(ocp::OptimalControlModel, N::Integer, init=nothing)
