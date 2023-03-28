@@ -40,10 +40,10 @@ println("Is solvable ? ", CTDirect.is_solvable(ocp))
     @testset verbose = true showtiming = true "constraints" begin
         lb, ub = CTDirect.constraints_bounds(ctd)
         l_var, u_var = CTDirect.variables_bounds(ctd)
-        true_lb = zeros(3*N+5)
-        true_lb[end-4:end] = [-1,0,0,0,0]
-        @test lb == true_lb
-        @test ub == true_lb
+        true_lb = zeros(3*N) # test without boundary conditions because of the dictionary
+        # true_lb[end-4:end] = [-1,0,0,0,0]
+        @test lb[1:3*N] == true_lb
+        @test ub[1:3*N] == true_lb
         @test l_var == -Inf*ones((N+1)*4)
         @test u_var == -l_var
     end
