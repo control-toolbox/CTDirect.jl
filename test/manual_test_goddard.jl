@@ -15,11 +15,11 @@ sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, mu_strategy="adaptive"
 # plot
 p1 = plot(sol)
 
-remove_constraint!(ocp, :state_con2)
+#= remove_constraint!(ocp, :state_con2)
 vmax = 0.1
 constraint!(ocp, :state, Index(2), 0, vmax, :state_con4)
 sol = solve(ocp, grid_size=100, print_level=5, init=init)
 
-p2 = plot(sol)
+p2 = plot(sol) =#
 
-plot(p1,p2)
+plot(p1, size=(700,900))
