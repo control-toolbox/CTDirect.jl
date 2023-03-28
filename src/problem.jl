@@ -228,8 +228,10 @@ function variables_bounds(ctd)
         for i in 0:N
             for j in 1:ctd.dim_state_box
                 indice = ctd.state_box[2][j]
-                l_var[index+indice] = ctd.state_box[1][indice]
-                u_var[index+indice] = ctd.state_box[3][indice]
+                #= l_var[index+indice] = ctd.state_box[1][indice]
+                u_var[index+indice] = ctd.state_box[3][indice] =#
+                l_var[index+indice] = ctd.state_box[1][j]
+                u_var[index+indice] = ctd.state_box[3][j]
             end
             index = index + ctd.dim_NLP_state
         end
@@ -241,8 +243,8 @@ function variables_bounds(ctd)
         for i in 0:N
             for j in 1:ctd.dim_control_box
                 indice = ctd.control_box[2][j]
-                l_var[index+indice] = ctd.control_box[1][indice]
-                u_var[index+indice] = ctd.control_box[3][indice]
+                l_var[index+indice] = ctd.control_box[1][j]
+                u_var[index+indice] = ctd.control_box[3][j]
             end
             index = index + ctd.control_dimension
         end
@@ -274,7 +276,7 @@ function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
         if ctd.has_lagrange_cost
             obj = obj + xu[(N+1)*ctd.dim_NLP_state]
         end
-        return ismin(ocp) ? obj : -obj
+        return ismin(ocp) ? obj : -obj  # +++try to use obj_factor for ipopt
     end
 
     # IPOPT constraints

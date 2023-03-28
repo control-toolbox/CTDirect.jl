@@ -2,10 +2,9 @@ using CTDirect
 using Test
 using CTBase
 using CTProblems
+using LinearAlgebra
 
-# direct_infos funtion tests
-#include("test_direct_infos.jl")
-#include("test_constraints.jl")
+include("test_utils.jl")
 
 prob = Problem(:integrator, :dim2, :energy); 
 ocp = prob.model
@@ -13,7 +12,9 @@ ocp = prob.model
 # test of optimal control problem from CTProblems
 @testset verbose = true showtiming = true "Direct" begin
     for name in (
+        #"simple_integrator_energy",
         "integrator",
+        "integrator_constraints",
         "goddard",
         )
         @testset "$name" begin
@@ -21,3 +22,5 @@ ocp = prob.model
         end
     end
 end
+
+#generate_coverage(; run_test = true)
