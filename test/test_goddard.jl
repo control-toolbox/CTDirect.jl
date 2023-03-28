@@ -2,21 +2,40 @@
 println("Goddard test")
 prob = Problem(:goddard, :state_constraint)
 ocp = prob.model
-
-# solve
 println("Is solvable ? ", CTDirect.is_solvable(ocp))
+
 init = [1.01, 0.25, 0.5, 0.4]
+
+#= # state constraint formulation
+println("State constraint formulation")
 sol = solve(ocp, grid_size=10, print_level=0, init=init)
+@testset verbose = true showtiming = true ":goddard :state_constraint" begin
+    @test sol.objective ≈ prob.solution.objective atol=1e-1
+end =#
 
-# check solution
-@test sol.objective ≈ -1.0 atol=1e-1
-# @test constraints_violation(sol) < 1e-6 # n'existe pas pour une OptimalControlSolution
-
-remove_constraint!(ocp, :state_con2)
-vmax = 0.1
-constraint!(ocp, :state, 0, vmax, :control_con4)
+#= # mixed constraint formulation
+println("Mixed constraint formulation")
+#remove_constraint!(ocp,+++)
+constraint!(ocp, :mixed, (x,u)->x[2], 0, vmax, :mixed_con1)
 sol = solve(ocp, grid_size=10, print_level=0, init=init)
+@testset verbose = true showtiming = true ":goddard :mixed_constraint" begin
+    @test sol.objective ≈ prob.solution.objective atol=1e-1
+end =#
 
-# check solution
-@test sol.objective ≈ -1.0 atol=1e-1
+# box constraint formulation
+println("Box constraint formulation")
+println(constraints(ocp))
+remove_constraint!(ocp, :state_constraint_1)
+remove_constraint!(ocp, :state_constraint_2)
+remove_constraint!(ocp, :state_constraint_3)
+remove_constraint!(ocp, :control_constraint_1)
+constraint!(ocp, :state, 1:3, [1,0,0.6], [Inf,0.1,1], :box_state)
+constraint!(ocp, :control, Index(1), 0, 1, :box_control)
+println(constraints(ocp))
+#display(constraints(ocp))
+sol = solve(ocp, grid_size=10, print_level=0, init=init)
+println(sol.objective)
+@testset verbose = true showtiming = true ":goddard :box_constraint" begin
+    @test sol.objective ≈ prob.solution.objective atol=1e-2
+end
 

@@ -67,7 +67,12 @@ function DirectSolution(ocp, N, ipopt_solution, init)
     T = collect(LinRange(t0, tf, N+1))
     
     # misc info
-    objective = ipopt_solution.objective
+    if ismin(ocp) # +++ remove this once obj_factor s used instead of changing the sign of obj
+        objective = ipopt_solution.objective
+    else
+        objective = - ipopt_solution.objective
+    end
+
     constraints_violation = ipopt_solution.primal_feas
     iterations = ipopt_solution.iter
     #status = ipopt_solution.status this is a 'Symbol' not an int...

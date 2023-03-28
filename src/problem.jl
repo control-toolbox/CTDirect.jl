@@ -276,7 +276,7 @@ function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
         if ctd.has_lagrange_cost
             obj = obj + xu[(N+1)*ctd.dim_NLP_state]
         end
-        return ismin(ocp) ? obj : -obj
+        return ismin(ocp) ? obj : -obj  # +++try to use obj_factor for ipopt
     end
 
     # IPOPT constraints
