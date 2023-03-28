@@ -11,3 +11,12 @@ sol = solve(ocp, grid_size=10, print_level=0, init=init)
 # check solution
 @test sol.objective ≈ -1.0 atol=1e-1
 # @test constraints_violation(sol) < 1e-6 # n'existe pas pour une OptimalControlSolution
+
+remove_constraint!(ocp, :state_con2)
+vmax = 0.1
+constraint!(ocp, :state, 0, vmax, :control_con4)
+sol = solve(ocp, grid_size=10, print_level=0, init=init)
+
+# check solution
+@test sol.objective ≈ -1.0 atol=1e-1
+
