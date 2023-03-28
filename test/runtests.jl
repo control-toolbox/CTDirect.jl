@@ -15,8 +15,8 @@ ocp = prob.model
 # test of optimal control problem from CTProblems
 @testset verbose = true showtiming = true "Direct" begin
     for name in (
-        "integrator",
-        #"goddard",
+        #"integrator",
+        "goddard",
         #"simple_integrator_energy",
         )
         @testset "$name" begin
