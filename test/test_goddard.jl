@@ -24,15 +24,17 @@ end =#
 
 # box constraint formulation
 println("Box constraint formulation")
-println(ocp.constraints)
+println(constraints(ocp))
 remove_constraint!(ocp, :state_constraint_1)
 remove_constraint!(ocp, :state_constraint_2)
 remove_constraint!(ocp, :state_constraint_3)
 remove_constraint!(ocp, :control_constraint_1)
 constraint!(ocp, :state, 1:3, [1,0,0.6], [Inf,0.1,1], :box_state)
 constraint!(ocp, :control, Index(1), 0, 1, :box_control)
-println(ocp.constraints)
+println(constraints(ocp))
+#display(constraints(ocp))
 sol = solve(ocp, grid_size=10, print_level=0, init=init)
+println(sol.objective)
 @testset verbose = true showtiming = true ":goddard :box_constraint" begin
     @test sol.objective ≈ prob.solution.objective atol=1e-2
 end
