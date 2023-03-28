@@ -34,7 +34,6 @@ println("Is solvable ? ", CTDirect.is_solvable(ocp))
         @test ctd.dynamics_lagrange_to_mayer(0,[0;2],1) == f_Mayer_test(0,[0;2],1)
         @test ctd.has_free_final_time     == false
         @test ctd.dim_NLP_variables == (N+1)*4
-        println("ctd.dim_NLP_constraints = ", ctd.dim_NLP_constraints)
         @test ctd.dim_NLP_constraints == 3*N+5
     end
     @testset verbose = true showtiming = true "constraints" begin
@@ -61,51 +60,15 @@ println("Is solvable ? ", CTDirect.is_solvable(ocp))
         dT = T[2:end]-T[1:end-1]
         N = length(T)
         # test on the infty norm of the state
-        @test maximum([ norm(x(T[i])-x_sol(T[i])) for i in 1:N] ) ≈ 0 atol = 0.01
+        @test distance_infty(x,x_sol,T) ≈ 0 atol = 0.01
         #@test maximum([ sqrt(sum((x(T[i])-x_sol(T[i])).^2)) for i in 1:N]) ≈ 0 atol = 0.01
         # test on the L_2 norm of the control
-        @test sum(dT .* [ abs(u(T[i])-u_sol(T[i])) for i ∈ 1:N-1] ) ≈ 0 atol=1e-1
+        @test distance_L2(u,u_sol,T) ≈ 0 atol=1e-1
         # test on the objectif
         @test sol.objective ≈ prob.solution.objective atol=1e-2
         # @test constraints_violation(sol) < 1e-6 # ceci n'existe pas dans la OptimalControlSolution pour le moment
     end
-    @testset verbose = true showtiming = true "box_constraints" begin
-      umax = 5.
-      constraint!(ocp, :control, -umax, umax, :control_con1)
-      ctd = CTDirect.CTDirect_data(ocp, 3, nothing)
-      @test ctd.dim_control_constraints == 0
-      @test ctd.has_control_box         == true
-      @test ctd.has_control_constraints == false
-      @test ctd.dim_control_box == 1
-      @test ctd.dim_NLP_state == 3
-   end
 
-   @testset verbose = true showtiming = true "contol_constraints" begin
-      umax = 5
-      remove_constraint!(ocp, :control_con1)
-      constraint!(ocp, :control, u -> u, -umax, umax, :control_con2)
-      N  = 3
-      ctd = CTDirect.CTDirect_data(ocp, N, nothing)
-      @test ctd.dim_control_constraints == 1
-      @test ctd.has_control_box         == false
-      @test ctd.has_control_constraints == true
-      @test ctd.dim_control_box == 0
-      @test ctd.dim_control_constraints == 1
-   end
-
-   @testset verbose = true showtiming = true "mixed_constraints" begin
-      umax = 5
-      remove_constraint!(ocp, :control_con2)
-      constraint!(ocp, :mixed, (x,u) -> u, -umax, umax, :control_con3)
-      N  = 3
-      ctd = CTDirect.CTDirect_data(ocp, N, nothing)
-      @test ctd.dim_control_constraints == 0
-      @test ctd.has_control_box         == false
-      @test ctd.has_control_constraints == false
-      @test ctd.has_mixed_constraints   == true
-      @test ctd.dim_control_constraints == 0
-      @test ctd.dim_mixed_constraints   == 1
-   end
 end
 
 

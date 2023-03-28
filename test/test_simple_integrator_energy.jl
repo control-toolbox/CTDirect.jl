@@ -1,6 +1,6 @@
-# double integrator - energy min
-println("Double integrator test")
-prob = Problem(:integrator, :dim1, :energy) 
+# exponential, dim1, energy
+println(":exponential, :dim1, :energy problem")
+prob = Problem(:exponential, :dim1, :energy) 
 ocp = prob.model
 u_sol(t) = prob.solution.control(t)[1]
 

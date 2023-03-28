@@ -4,9 +4,10 @@ using CTProblems
 
 
 # double integrator - energy min
-println("toto")
-prob = Problem(:integrator, :dim1, :energy)
-println("titi")
+
+println(":exponential, :dim1, :energy problem")
+prob = Problem(:exponential, :dim1, :energy)
+
 ocp = prob.model
 
 # initial guess (constant state and control functions)
