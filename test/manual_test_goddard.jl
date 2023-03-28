@@ -1,6 +1,7 @@
 using CTDirect
 using CTProblems
 using CTBase # for plot
+using ADNLPModels
 
 # goddard with state constraint - maximize altitude
 prob = Problem(:goddard, :state_constraint)

@@ -55,7 +55,12 @@ mutable struct CTDirect_data
     X::Matrix{<:MyNumber}
     U::Matrix{<:MyNumber}
     P::Matrix{<:MyNumber}
+    sol_constraints::Vector{<:MyNumber}
+    sol_control_constraints::Matrix{<:MyNumber}
+    sol_state_constraints::Matrix{<:MyNumber}
+    sol_mixed_constraints::Matrix{<:MyNumber}
     P_control_constraints::Matrix{<:MyNumber}
+    P_state_constraints::Matrix{<:MyNumber}
     P_mixed_constraints::Matrix{<:MyNumber}
     n::Integer
     m::Integer

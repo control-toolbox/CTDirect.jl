@@ -30,18 +30,18 @@ function solve(ocp::OptimalControlModel,
   # no display
   print_level = display ?  print_level : 0
 
-  # from OCP to NLP
-  nlp = ADNLProblem(ocp, grid_size, init)
+  # from OCP to NLP # maybe flatten this function here so obj and const are toplvel ?
+  +++nlp = ADNLProblem(ocp, grid_size, init)
 
   # solve by IPOPT: more info at 
   # https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/main/src/NLPModelsIpopt.jl#L119
   # options of ipopt: https://coin-or.github.io/Ipopt/OPTIONS.html
   # callback: https://github.com/jump-dev/Ipopt.jl#solver-specific-callback
   # sb="yes": remove ipopt header
-  ipopt_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
+  #ipopt_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
 
   # Parse solution from NLP to OCP variables and constraints
-  sol = DirectSolution(ocp, grid_size, ipopt_solution, init)
+  sol = DirectSolution(ocp, grid_size, ipopt_solution, init, constraints)
 
   return sol
 

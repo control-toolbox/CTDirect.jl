@@ -11,9 +11,10 @@ function parse_ipopt_sol(stats, ctd)
         U[i,:] = get_control_at_time_step(xu, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
     end
 
-    # adjoints
+    # constraints, costate and constraints multipliers
     P = zeros(N, ctd.dim_NLP_state)
     lambda = stats.multipliers
+    c = ctd.sol_constraints
     P_control_constraints = zeros(N+1,ctd.dim_control_constraints)
     P_state_constraints = zeros(N+1,ctd.dim_state_constraints)
     P_mixed_constraints = zeros(N+1,ctd.dim_mixed_constraints)
@@ -24,42 +25,49 @@ function parse_ipopt_sol(stats, ctd)
         index = index + ctd.dim_NLP_state
         # path constraints
         if ctd.has_control_constraints
+            sol_control_constraints[i,:] = c[index:index+ctd.dim_control_constraints-1]
             P_control_constraints[i,:] = lambda[index:index+ctd.dim_control_constraints-1]
             index = index + ctd.dim_control_constraints
         end
         if ctd.has_state_constraints
+            sol_state_constraints[i,:] = c[index:index+ctd.dim_state_constraints-1]
             P_state_constraints[i,:] = lambda[index:index+ctd.dim_state_constraints-1]
             index = index + ctd.dim_state_constraints
         end
         if ctd.has_mixed_constraints
+            sol_mixed_constraints[i,:] = c[index:index+ctd.dim_mixed_constraints-1]
             P_mixed_constraints[i,:] = lambda[index:index+ctd.dim_mixed_constraints-1]
             index = index + ctd.dim_mixed_constraints
         end
     end
     # path constraints at final time
     if ctd.has_control_constraints
+        sol_control_constraints[N+1,:] = c[index:index+ctd.dim_control_constraints-1]
         P_control_constraints[N+1,:] = lambda[index:index+ctd.dim_control_constraints-1]
         index = index + ctd.dim_control_constraints
     end
     if ctd.has_state_constraints
+        sol_state_constraints[N+1,:] = c[index:index+ctd.dim_state_constraints-1] 
         P_state_constraints[N+1,:] = lambda[index:index+ctd.dim_state_constraints-1]
         index = index + ctd.dim_state_constraints
     end
     if ctd.has_mixed_constraints
+        sol_mixed_constraints[N+1,:] = c[index:index+ctd.dim_mixed_constraints-1]        
         P_mixed_constraints[N+1,:] =  lambda[index:index+ctd.dim_mixed_constraints-1]
         index = index + ctd.dim_mixed_constraints
     end
 
-    return X, U, P, P_control_constraints, P_state_constraints, P_mixed_constraints
+    return X, U, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, P_control_constraints, P_state_constraints, P_mixed_constraints
 end
 
 
-function DirectSolution(ocp, N, ipopt_solution, init)
+function DirectSolution(ocp, N, ipopt_solution, init, constraints)
 
     ctd = CTDirect_data(ocp, N, init)
+    ctd.sol_constraints = constraints
 
     # state, control, adjoint
-    X, U, P, P_control_constraints, P_state_constraints, P_mixed_constraints = parse_ipopt_sol(ipopt_solution, ctd)
+    X, U, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, P_control_constraints, P_state_constraints, P_mixed_constraints = parse_ipopt_sol(ipopt_solution, ctd)
     
     # times
     t0 = ctd.initial_time
@@ -70,19 +78,18 @@ function DirectSolution(ocp, N, ipopt_solution, init)
     objective = ipopt_solution.objective
     constraints_violation = ipopt_solution.primal_feas
     iterations = ipopt_solution.iter
-    #status = ipopt_solution.status this is a 'Symbol' not an int...
-        
-    # DirectSolution
-    # To do add P_state_constraints to DirectSolution
-    # and quid constraints and Lagrange multiplayers of the constraints
-    #dsol  = DirectSolution(T, X, U, P, P_control_constraints, P_mixed_constraints, ctd.state_dimension, ctd.control_dimension, N, objective, constraints_violation, iterations, ipopt_solution)     
+    #status = ipopt_solution.status this is a 'Symbol' not an int... 
 
     # save solution data
     ctd.T = T 
     ctd.X = X
     ctd.U = U 
-    ctd.P = P 
+    ctd.P = P
+    ctd.sol_control_constraints = sol_control_constraints
+    ctd.sol_state_constraints = sol_state_constraints
+    ctd.sol_mixed_constraints = sol_mixed_constraints    
     ctd.P_control_constraints = P_control_constraints
+    ctd.P_state_constraints = P_state_constraints
     ctd.P_mixed_constraints = P_mixed_constraints
     ctd.objective = objective
     ctd.constraints_violation = constraints_violation
@@ -118,5 +125,6 @@ function _OptimalControlSolution(ocp, ctd)
     sol.message = "no message" 
     sol.success = false #
     # field "infos" in OptimalControlSolution is Dict{Symbol, Any}, for misc data
+    # +++ constraints and multipliers 
     return sol
 end
