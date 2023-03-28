@@ -6,7 +6,6 @@ Compute the infty norm : Max_{t_i}(||x(t_i)||_2)
 """
 function distance_infty(x::Function, x_sol::Function, T::TimesDisc)    
     N = length(T)
-    println("titi")
     return  maximum([ norm(x(T[i])-x_sol(T[i])) for i in 1:N] )
 end
 
