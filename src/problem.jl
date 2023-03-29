@@ -95,6 +95,29 @@ mutable struct CTDirect_data
         ctd.has_control_box = !isempty(ctd.control_box[1])
         ctd.has_state_box = !isempty(ctd.state_box[1])
 
+#=         println("ctd constructor after call to nlp_constraints")
+        println("state constraints")
+        println(ctd.state_constraints)
+        println(ctd.state_constraints[1])
+        println(ctd.dim_state_constraints)
+        println("control constraints")
+        println(ctd.control_constraints)
+        println(ctd.control_constraints[1])
+        println(ctd.dim_control_constraints)
+        println("mixed constraints")
+        println(ctd.mixed_constraints)
+        println(ctd.mixed_constraints[1])
+        println(ctd.dim_mixed_constraints)
+        println("control box")
+        println(ctd.control_box)
+        println(ctd.control_box[1])
+        println(ctd.dim_control_box)
+        println("state box")
+        println(ctd.state_box)
+        println(ctd.state_box[1])
+        println(ctd.dim_state_box) =#
+
+
         ## Non Linear Programming NLP
         ctd.dim_NLP_steps = N
         ctd.NLP_init = init

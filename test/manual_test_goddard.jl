@@ -7,6 +7,12 @@ using Plots;
 prob = Problem(:goddard, :state_constraint)
 ocp = prob.model
 
+# explicitely add a state constraint for plot
+#println(constraints(ocp))
+remove_constraint!(ocp,:state_constraint_v)
+constraint!(ocp, :state, x->x[2], 0, 0.1, :state_con_v)
+#println(constraints(ocp))
+
 # initial guess (constant state and control functions)
 init = [1.01, 0.05, 0.8, 0.1]
 
@@ -18,11 +24,9 @@ plot(sol)
 
 # additional plots for constraint and multipliers (use info field from sol)
 # +++todo: retrieve individual labels for constraints
-println(constraints(ocp))
 t0 = sol.times[1]
 tf = last(sol.times)
 ncx = sol.infos[:dim_state_constraints]
-println(ncx)
 PCX = Array{Plots.Plot, 1}(undef, ncx);
 for i in 1:ncx
     PCX[i] = plot(t -> sol.infos[:state_constraints](t)[i], t0, tf, label="constraint", legend=:topleft)

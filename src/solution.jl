@@ -15,7 +15,9 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     ctd.NLP_sol_constraints = ipopt_constraint(ipopt_solution.solution, ctd)
 
     # parse NLP variables, constraints and multipliers
-    X, U, P, CU, CX, CXU, mult_CU, mult_CX, mult_CXU = parse_ipopt_sol(ctd)
+    X, U, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints = parse_ipopt_sol(ctd)
+
+    #println(ctd.dim_state_constraints, " ", length(sol_state_constraints))
 
     # interpolations to build functions of time
     N = ctd.dim_NLP_steps
@@ -25,8 +27,8 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     x = ctinterpolate(T, matrix2vec(X, 1))
     u = ctinterpolate(T, matrix2vec(U, 1))
     p = ctinterpolate(T[1:end-1], matrix2vec(P, 1))
-    cx = ctinterpolate(T, matrix2vec(CX, 1))
-    mcx = ctinterpolate(T, matrix2vec(mult_CX, 1))
+    cx = ctinterpolate(T, matrix2vec(sol_state_constraints, 1))
+    mcx = ctinterpolate(T, matrix2vec(mult_state_constraints, 1))
 
     # build OptimalControlSolution struct
     sol = OptimalControlSolution()
