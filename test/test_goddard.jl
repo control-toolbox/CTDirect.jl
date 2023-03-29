@@ -3,11 +3,11 @@ println("Goddard test")
 prob = Problem(:goddard, :state_constraint)
 ocp = prob.model
 
-# solve
-println("Is solvable ? ", CTDirect.is_solvable(ocp))
-init = [1.01, 0.25, 0.5, 0.4]
-sol = solve(ocp, grid_size=10, print_level=0, init=init)
+# initial guess (constant state and control functions)
+init = [1.01, 0.05, 0.8, 0.1]
+
+# solve problem
+sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, mu_strategy="adaptive", init=init)
 
 # check solution
-@test sol.objective ≈ -1.0 atol=1e-1
-# @test constraints_violation(sol) < 1e-6 # n'existe pas pour une OptimalControlSolution
+@test sol.objective ≈ prob.solution.objective atol=5e-3

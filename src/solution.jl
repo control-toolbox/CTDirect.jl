@@ -4,7 +4,11 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
 
     # save general solution data
     ctd.NLP_stats = ipopt_solution
-    ctd.NLP_objective = ipopt_solution.objective
+    if ismin(ocp)
+        ctd.NLP_objective = ipopt_solution.objective
+    else
+        ctd.NLP_objective = - ipopt_solution.objective
+    end
     ctd.NLP_constraints_violation = ipopt_solution.primal_feas
     ctd.NLP_iterations = ipopt_solution.iter
     ctd.NLP_solution = ipopt_solution.solution
