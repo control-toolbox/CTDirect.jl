@@ -1,4 +1,5 @@
 """
+$(TYPEDSIGNATURES)
 
 Solve the optimal control problem
 
@@ -10,9 +11,11 @@ N   : number of time steps for the discretization
 Output
 sol : solution of the discretized problem
       ...
-# Examples
-```jldoctest
-julia> solve(ocp, 100)
+```@examples
+julia> using CTDirect
+julia> using CTProblems
+julia> ocp =  Problem((:integrator, :dim2, :energy)
+julia> solve(ocp)
 ```
 """
 

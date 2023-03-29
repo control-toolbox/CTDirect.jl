@@ -45,10 +45,12 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     sol.message = "no message" 
     sol.success = false #
     # field "infos" in OptimalControlSolution is Dict{Symbol, Any}, for misc data
-    # +++ todo: labels for costraints
+    # +++ todo: labels for constraints
     sol.infos[:dim_state_constraints] = ctd.dim_state_constraints    
     sol.infos[:state_constraints] = t -> cx(t)
     sol.infos[:mult_state_constraints] = t -> mcx(t)
+    # +++ add control and mixed constraints
+    # +++ then add box multipliers
 
 
     return sol

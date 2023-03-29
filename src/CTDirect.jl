@@ -1,4 +1,5 @@
 module CTDirect
+using DocStringExtensions
 
 # using
 #

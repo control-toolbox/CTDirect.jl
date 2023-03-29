@@ -18,9 +18,11 @@ plot(sol)
 
 # additional plots for constraint and multipliers (use info field from sol)
 # +++todo: retrieve individual labels for constraints
+println(constraints(ocp))
 t0 = sol.times[1]
 tf = last(sol.times)
 ncx = sol.infos[:dim_state_constraints]
+println(ncx)
 PCX = Array{Plots.Plot, 1}(undef, ncx);
 for i in 1:ncx
     PCX[i] = plot(t -> sol.infos[:state_constraints](t)[i], t0, tf, label="constraint", legend=:topleft)
