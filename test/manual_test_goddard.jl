@@ -7,11 +7,23 @@ using Plots;
 prob = Problem(:goddard, :state_constraint)
 ocp = prob.model
 
-# explicitely add a state constraint for plot
-#println(constraints(ocp))
+# explicitely set specific constraints for plot
+# println(constraints(ocp))
+remove_constraint!(ocp,:state_constraint_r)
 remove_constraint!(ocp,:state_constraint_v)
-constraint!(ocp, :state, x->x[2], 0, 0.1, :state_con_v)
-#println(constraints(ocp))
+remove_constraint!(ocp,:control_constraint)
+# state constraint
+constraint!(ocp, :state, x->x[2], -Inf, 0.1, :state_con_vmax)
+# control constraint
+constraint!(ocp, :control, u->u, -Inf, 1, :control_con_umax)
+# mixed constraint
+constraint!(ocp, :mixed, (x,u)->x[3], 0.6, Inf, :mixed_con_mmin)
+# state box
+constraint!(ocp, :state, Index(1), 1, Inf, :state_box_rmin)
+constraint!(ocp, :state, Index(2), 0, Inf, :state_box_vmin)
+# control box
+constraint!(ocp, :control, Index(1), 0, Inf, :control_box_umin)
+# println(constraints(ocp))
 
 # initial guess (constant state and control functions)
 init = [1.01, 0.05, 0.8, 0.1]
@@ -22,15 +34,50 @@ sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, mu_strategy="adaptive"
 # plot
 plot(sol)
 
-# additional plots for constraint and multipliers (use info field from sol)
-# +++todo: retrieve individual labels for constraints
+# test plots for constraint and multipliers
 t0 = sol.times[1]
 tf = last(sol.times)
+
+# state constraints
 ncx = sol.infos[:dim_state_constraints]
-PCX = Array{Plots.Plot, 1}(undef, ncx);
-for i in 1:ncx
-    PCX[i] = plot(t -> sol.infos[:state_constraints](t)[i], t0, tf, label="constraint", legend=:topleft)
-    PCX[i] = plot!(twinx(), t -> sol.infos[:mult_state_constraints](t)[i], t0, tf, color=:red, label="multiplier", xticks=:none) #2nd scale
-    #PCX[i] = plot!(t -> sol.infos[:mult_state_constraints](t)[i], t0, tf, color=:red, label="multiplier")
+println("state contraints: ", ncx)
+if ncx > 0
+    PCX = Array{Plots.Plot, 1}(undef, ncx);
+    for i in 1:ncx
+        PCX[i] = plot(t -> sol.infos[:state_constraints](t)[i], t0, tf, label="state_constraint v <= 0.1", legend=:topleft)
+        PCX[i] = plot!(twinx(), t -> sol.infos[:mult_state_constraints](t)[i], t0, tf, color=:red, label="multiplier", xticks=:none) #2nd scale
+    end
+    P1 = plot(PCX..., layout = (ncx,1));
+else
+    P1 = nothing
 end
-plot(PCX..., layout = (ncx,1));
+
+# control constraints
+ncu = sol.infos[:dim_control_constraints]
+println("control contraints: ", ncu)
+if ncu > 0
+    PCU = Array{Plots.Plot, 1}(undef, ncu);
+    for i in 1:ncu
+        PCU[i] = plot(t -> sol.infos[:control_constraints](t)[i], t0, tf, label="control_constraint u <= 1", legend=:topleft)
+        PCU[i] = plot!(twinx(), t -> sol.infos[:mult_control_constraints](t)[i], t0, tf, color=:red, label="multiplier", xticks=:none) #2nd scale
+    end
+    P2 = plot(PCU..., layout = (ncu,1));
+else
+    P2 = nothing
+end
+
+# mixed constraints
+ncxu = sol.infos[:dim_mixed_constraints]
+println("mixed contraints: ", ncxu)
+if ncxu > 0
+    PCXU = Array{Plots.Plot, 1}(undef, ncxu);
+    for i in 1:ncxu
+        PCXU[i] = plot(t -> sol.infos[:mixed_constraints](t)[i], t0, tf, label="mixed_constraint m >= 0.6", legend=:topleft)
+        PCXU[i] = plot!(twinx(), t -> sol.infos[:mult_mixed_constraints](t)[i], t0, tf, color=:red, label="multiplier", xticks=:none) #2nd scale
+    end
+    P3 = plot(PCXU..., layout = (ncxu,1));
+else
+    P3 = nothing
+end
+
+plot(P1, P2, P3, layout = (3,1))
