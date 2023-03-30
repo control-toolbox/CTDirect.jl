@@ -82,18 +82,18 @@ plot(P1, P2, P3, layout = (3,1))
 =#
 
 # state box with multipliers
-n = sol.state_dimension
-PX = Array{Plots.Plot, 1}(undef, n);
-for i in 1:n
-    PX[i] = plot(t -> sol.state(t)[i], t0, tf, label="state with box mult (green: LB, red: UB)", legend=:topleft);
-    PX[i] = plot!(twinx(),t -> sol.infos[:mult_state_box_lower](t)[i], t0, tf, color=:green, xticks=:none, label=:none, linestyle=:dash);
-    PX[i] = plot!(twinx(),t -> sol.infos[:mult_state_box_upper](t)[i], t0, tf, color=:red, xticks=:none, label=:none, linestyle=:dash);
+PX = Array{Plots.Plot, 1}(undef, 2); # only boxes on r, v
+for i in 1:2
+    PX[i] = plot(t -> sol.state(t)[i], t0, tf, label="state with box mult (green: LB, red: UB)", legend=:topleft)
+    PX[i] = plot!(twinx(),t -> sol.infos[:mult_state_box_lower](t)[i], t0, tf, color=:green, xticks=:none, label=:none, linestyle=:dash)
+    PX[i] = plot!(twinx(),t -> sol.infos[:mult_state_box_upper](t)[i], t0, tf, color=:red, xticks=:none, label=:none, linestyle=:dash)
 end
-PPX = plot(PX..., layout = (n, 1));
+PPX = plot(PX..., layout = (2, 1))
 
+#=
 # control box with multipliers
-PU = plot(t -> sol.control(t)[1], t0, tf, label="control with box mult (green: LB u>=0, red: UB unused)", legend=:topleft);
-PU = plot!(twinx(),t -> sol.infos[:mult_control_box_lower](t)[1], t0, tf, color=:green, xticks=:none, label=:none, linestyle=:dash);
-PU = plot!(twinx(),t -> sol.infos[:mult_control_box_upper](t)[1], t0, tf, color=:red, xticks=:none, label=:none, linestyle=:dash);
-
-plot(PPX, PU, layout = (2,1))
+PU = plot(t -> sol.control(t)[1], t0, tf, label="control with box mult (green: LB u>=0, red: UB unused)", legend=:topleft)
+PU = plot!(twinx(),t -> sol.infos[:mult_control_box_lower](t)[1], t0, tf, color=:green, xticks=:none, label=:none, linestyle=:dash)
+PU = plot!(twinx(),t -> sol.infos[:mult_control_box_upper](t)[1], t0, tf, color=:red, xticks=:none, label=:none, linestyle=:dash)
+plot(PU)
+=#

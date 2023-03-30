@@ -8,7 +8,7 @@ init = [1.01, 0.05, 0.8, 0.1]
 
 # state constraint formulation
 println("State constraint formulation")
-println(constraints(ocp))
+#println(constraints(ocp))
 sol = solve(ocp, grid_size=10, print_level=0, init=init)
 @testset verbose = true showtiming = true ":goddard :state_constraint" begin
     @test sol.objective ≈ prob.solution.objective atol=5e-3

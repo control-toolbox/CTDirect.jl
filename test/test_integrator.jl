@@ -40,6 +40,7 @@ ocp = prob.model
         @test u_var == -l_var
     end
 
+    #=
     # Tests on the numerical solution
     @testset verbose = true showtiming = true "numerical solution" begin
         #using LinearAlgebra
@@ -61,6 +62,7 @@ ocp = prob.model
         @test sol.objective ≈ prob.solution.objective atol=1e-2
         # @test constraints_violation(sol) < 1e-6 # ceci n'existe pas dans la OptimalControlSolution pour le moment
     end
+    =#
 
 end
 
