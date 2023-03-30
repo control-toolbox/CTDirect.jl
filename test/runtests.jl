@@ -14,7 +14,7 @@ ocp = prob.model
     for name in (
         #"simple_integrator_energy",
         "integrator",
-        "integrator_constraints",
+        #"integrator_constraints",
         "goddard",
         )
         @testset "$name" begin

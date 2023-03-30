@@ -3,13 +3,6 @@ println("Double integrator test")
 prob = Problem(:integrator, :dim2, :energy) 
 ocp = prob.model
 
-
-# solve
-println("Is solvable ? ", CTDirect.is_solvable(ocp))
-
-
-
-
 @testset verbose = true showtiming = true ":integrator :dim2 :energy" begin
     N = 1
     ctd = CTDirect.CTDirect_data(ocp, N, nothing)

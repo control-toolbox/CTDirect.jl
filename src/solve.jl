@@ -25,26 +25,27 @@ function solve(ocp::OptimalControlModel,
   print_level::Integer=__print_level_ipopt(),
   mu_strategy::String=__mu_strategy_ipopt(),
   display::Bool=__display(),
-  init=nothing,  #NB. for now, can be nothing or (n+m) vector
+  init=nothing,
   kwargs...)
 
-  # description... is unused here. See OptimalControl.jl/src/solve.jl for an example of use
-
-  # no display
-  print_level = display ?  print_level : 0
-
-  # from OCP to NLP
-  nlp = ADNLProblem(ocp, grid_size, init)
+  # from OCP to NLP: call ADNLPModel constructor
+  ctd = CTDirect_data(ocp, grid_size, init)
+  xu0 = initial_guess(ctd)
+  l_var, u_var = variables_bounds(ctd)
+  lb, ub = constraints_bounds(ctd)
+  nlp = ADNLPModel(xu -> ipopt_objective(xu, ctd), xu0, l_var, u_var, xu -> ipopt_constraint(xu, ctd), lb, ub) 
 
   # solve by IPOPT: more info at 
   # https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/main/src/NLPModelsIpopt.jl#L119
   # options of ipopt: https://coin-or.github.io/Ipopt/OPTIONS.html
   # callback: https://github.com/jump-dev/Ipopt.jl#solver-specific-callback
   # sb="yes": remove ipopt header
+  print_level = display ?  print_level : 0
   ipopt_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
 
-  # Parse solution from NLP to OCP variables and constraints
-  sol = DirectSolution(ocp, grid_size, ipopt_solution, init)
+  # from NLP to OCP: call OptimaControlSolution constructor
+  # +++ put ocp inside ctd ?
+  sol = _OptimalControlSolution(ocp, ipopt_solution, ctd)
 
   return sol
 

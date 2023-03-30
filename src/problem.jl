@@ -51,19 +51,12 @@ mutable struct CTDirect_data
     NLP_init
 
     # NLP solution
-    T::Vector{<:MyNumber}
-    X::Matrix{<:MyNumber}
-    U::Matrix{<:MyNumber}
-    P::Matrix{<:MyNumber}
-    P_control_constraints::Matrix{<:MyNumber}
-    P_mixed_constraints::Matrix{<:MyNumber}
-    n::Integer
-    m::Integer
-    N::Integer
-    objective::MyNumber
-    constraints_violation::MyNumber
-    iterations::Integer
-    stats       # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
+    NLP_solution
+    NLP_objective
+    NLP_sol_constraints
+    NLP_constraints_violation
+    NLP_iterations
+    NLP_stats       # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
 
 
     # put this constructor in CTDirect.jl or in utils.jl ?
@@ -101,6 +94,29 @@ mutable struct CTDirect_data
         ctd.has_boundary_conditions = !isempty(ctd.boundary_conditions[1])
         ctd.has_control_box = !isempty(ctd.control_box[1])
         ctd.has_state_box = !isempty(ctd.state_box[1])
+
+#=         println("ctd constructor after call to nlp_constraints")
+        println("state constraints")
+        println(ctd.state_constraints)
+        println(ctd.state_constraints[1])
+        println(ctd.dim_state_constraints)
+        println("control constraints")
+        println(ctd.control_constraints)
+        println(ctd.control_constraints[1])
+        println(ctd.dim_control_constraints)
+        println("mixed constraints")
+        println(ctd.mixed_constraints)
+        println(ctd.mixed_constraints[1])
+        println(ctd.dim_mixed_constraints)
+        println("control box")
+        println(ctd.control_box)
+        println(ctd.control_box[1])
+        println(ctd.dim_control_box)
+        println("state box")
+        println(ctd.state_box)
+        println(ctd.state_box[1])
+        println(ctd.dim_state_box) =#
+
 
         ## Non Linear Programming NLP
         ctd.dim_NLP_steps = N
@@ -259,123 +275,120 @@ function variables_bounds(ctd)
 end
 
 
-function ADNLProblem(ocp::OptimalControlModel, N::Integer, init=nothing)
+# IPOPT objective
+function ipopt_objective(xu, ctd)
 
-    ctd = CTDirect_data(ocp, N, init)
-
-    # IPOPT objective
-    function ipopt_objective(xu)
-        t0 = ctd.initial_time
-        tf = get_final_time(xu, ctd.final_time, ctd.has_free_final_time)
-        obj = 0
-        if ctd.has_mayer_cost
-            x0 = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, N)
-            xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
-            obj = obj + ctd.mayer(t0, x0[1:ctd.state_dimension], tf, xf[1:ctd.state_dimension])
-        end
-        if ctd.has_lagrange_cost
-            obj = obj + xu[(N+1)*ctd.dim_NLP_state]
-        end
-        return ismin(ocp) ? obj : -obj  # +++try to use obj_factor for ipopt
-    end
-
-    # IPOPT constraints
-    function ipopt_constraint(xu)
-        """
-        compute the constraints for the NLP : 
-            - discretization of the dynamics via the trapeze method
-            - boundary conditions
-        inputs
-        ocp :: ocp model
-        xu :: 
-            layout of the nlp unknown xu for trapeze discretization 
-            additional state variable x_{n+1}(t) for the objective (Lagrange to Mayer formulation)
-            [x_1(t_0), ... , x_{n+1}(t_0),
-            ... , 
-            x_{1}(t_N), ... , x_{n+1}(t_N),
-            u_1(t_0), ... , u_m(t_0), 
-            ... , 
-            u_m(t_N), ..., u_m(t_N)]
-        return
-        c :: 
-        """
-        t0 = ctd.initial_time
-        tf = get_final_time(xu, ctd.final_time, ctd.has_free_final_time)
-        h = (tf - t0) / N
-        c = zeros(eltype(xu), ctd.dim_NLP_constraints)
-
-        # state equation
-        ti = t0
-        xi = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, N)
-        ui = get_control_at_time_step(xu, 0, ctd.dim_NLP_state, N, ctd.control_dimension)
-        fi = ctd.dynamics_lagrange_to_mayer(ti, xi, ui)
-        index = 1 # counter for the constraints
-        for i in 0:N-1
-            tip1 = t0 + (i+1)*h
-            # state and control at t_{i+1}
-            xip1 = get_state_at_time_step(xu, i+1, ctd.dim_NLP_state, N)
-            uip1 = get_control_at_time_step(xu, i+1, ctd.dim_NLP_state, N, ctd.control_dimension)
-            fip1 = ctd.dynamics_lagrange_to_mayer(tip1, xip1, uip1)
-            # state equation
-            c[index:index+ctd.dim_NLP_state-1] = xip1 - (xi + 0.5*h*(fi + fip1))
-            index = index + ctd.dim_NLP_state
-
-            # path constraints
-            if ctd.has_control_constraints
-                c[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[2](ti, ui)        # ui vector
-                index = index + ctd.dim_control_constraints
-            end
-            if ctd.has_state_constraints
-                c[index:index+ctd.dim_state_constraints-1] = ctd.state_constraints[2](ti, xi[1:ctd.state_dimension])
-                index = index + ctd.dim_state_constraints
-            end
-            if ctd.has_mixed_constraints
-                c[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[2](ti, xi[1:ctd.state_dimension], ui)
-                index = index + ctd.dim_mixed_constraints
-            end
-            xi = xip1
-            ui = uip1
-            fi = fip1
-        end
-
-        # path constraints at final time
-        if ctd.has_control_constraints
-            uf = get_control_at_time_step(xu, N, ctd.dim_NLP_state, N, ctd.control_dimension)
-            c[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[2](tf, uf)      
-            index = index + ctd.dim_control_constraints
-        end  
-        if ctd.has_state_constraints
-            xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
-            c[index:index+ctd.dim_state_constraints-1] = ctd.state_constraints[2](tf, xf[1:ctd.state_dimension])      
-            index = index + ctd.dim_state_constraints
-        end 
-        if ctd.has_mixed_constraints
-            xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
-            uf = get_control_at_time_step(xu, N-1, ctd.dim_NLP_state, N, ctd.control_dimension)
-            c[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[2](tf, xf[1:ctd.state_dimension], uf)
-            index = index + ctd.dim_mixed_constraints
-        end
-
-        # boundary conditions
+    t0 = ctd.initial_time
+    tf = get_final_time(xu, ctd.final_time, ctd.has_free_final_time)
+    N = ctd.dim_NLP_steps
+    obj = 0
+    
+    if ctd.has_mayer_cost
         x0 = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, N)
         xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
-        c[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[2](t0, x0[1:ctd.state_dimension], tf, xf[1:ctd.state_dimension])
-        index = index + ctd.dim_boundary_conditions
-        # null initial condition for augmented state (reformulated lagrangian cost)
-        if ctd.has_lagrange_cost
-            c[index] = xu[ctd.dim_NLP_state]
-            index = index + 1
-        end
-
-        return c
+        obj = obj + ctd.mayer(t0, x0[1:ctd.state_dimension], tf, xf[1:ctd.state_dimension])
+    end
+    
+    if ctd.has_lagrange_cost
+        obj = obj + xu[(N+1)*ctd.dim_NLP_state]
     end
 
-    # call ADNLPModel constructor
-    xu0 = initial_guess(ctd)
-    l_var, u_var = variables_bounds(ctd)
-    lb, ub = constraints_bounds(ctd)
-    nlp = ADNLPModel(ipopt_objective, xu0, l_var, u_var, ipopt_constraint, lb, ub)    
+    if ctd.criterion_min_max == :min
+        return obj
+    else
+        return -obj
+    end
+end
 
-    return nlp
 
+# IPOPT constraints +++ add bounds computation here at first call
+function ipopt_constraint(xu, ctd)
+    """
+    compute the constraints for the NLP : 
+        - discretization of the dynamics via the trapeze method
+        - boundary conditions
+    inputs
+    ocp :: ocp model
+    xu :: 
+        layout of the nlp unknown xu for trapeze discretization 
+        additional state variable x_{n+1}(t) for the objective (Lagrange to Mayer formulation)
+        [x_1(t_0), ... , x_{n+1}(t_0),
+        ... , 
+        x_{1}(t_N), ... , x_{n+1}(t_N),
+        u_1(t_0), ... , u_m(t_0), 
+        ... , 
+        u_m(t_N), ..., u_m(t_N)]
+    return
+    c :: 
+    """
+    t0 = ctd.initial_time
+    tf = get_final_time(xu, ctd.final_time, ctd.has_free_final_time)
+    N = ctd.dim_NLP_steps
+    h = (tf - t0) / N
+    c = zeros(eltype(xu), ctd.dim_NLP_constraints)
+
+    # state equation
+    ti = t0
+    xi = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, N)
+    ui = get_control_at_time_step(xu, 0, ctd.dim_NLP_state, N, ctd.control_dimension)
+    fi = ctd.dynamics_lagrange_to_mayer(ti, xi, ui)
+    index = 1 # counter for the constraints
+    for i in 0:N-1
+        tip1 = t0 + (i+1)*h
+        # state and control at t_{i+1}
+        xip1 = get_state_at_time_step(xu, i+1, ctd.dim_NLP_state, N)
+        uip1 = get_control_at_time_step(xu, i+1, ctd.dim_NLP_state, N, ctd.control_dimension)
+        fip1 = ctd.dynamics_lagrange_to_mayer(tip1, xip1, uip1)
+        # state equation
+        c[index:index+ctd.dim_NLP_state-1] = xip1 - (xi + 0.5*h*(fi + fip1))
+        index = index + ctd.dim_NLP_state
+
+        # path constraints
+        if ctd.has_control_constraints
+            c[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[2](ti, ui)        # ui vector
+            index = index + ctd.dim_control_constraints
+        end
+        if ctd.has_state_constraints
+            c[index:index+ctd.dim_state_constraints-1] = ctd.state_constraints[2](ti, xi[1:ctd.state_dimension])
+            index = index + ctd.dim_state_constraints
+        end
+        if ctd.has_mixed_constraints
+            c[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[2](ti, xi[1:ctd.state_dimension], ui)
+            index = index + ctd.dim_mixed_constraints
+        end
+        xi = xip1
+        ui = uip1
+        fi = fip1
+    end
+
+    # path constraints at final time
+    if ctd.has_control_constraints
+        uf = get_control_at_time_step(xu, N, ctd.dim_NLP_state, N, ctd.control_dimension)
+        c[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[2](tf, uf)      
+        index = index + ctd.dim_control_constraints
+    end  
+    if ctd.has_state_constraints
+        xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
+        c[index:index+ctd.dim_state_constraints-1] = ctd.state_constraints[2](tf, xf[1:ctd.state_dimension])      
+        index = index + ctd.dim_state_constraints
+    end 
+    if ctd.has_mixed_constraints
+        xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
+        uf = get_control_at_time_step(xu, N-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+        c[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[2](tf, xf[1:ctd.state_dimension], uf)
+        index = index + ctd.dim_mixed_constraints
+    end
+
+    # boundary conditions
+    x0 = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, N)
+    xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
+    c[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[2](t0, x0[1:ctd.state_dimension], tf, xf[1:ctd.state_dimension])
+    index = index + ctd.dim_boundary_conditions
+    # null initial condition for augmented state (reformulated lagrangian cost)
+    if ctd.has_lagrange_cost
+        c[index] = xu[ctd.dim_NLP_state]
+        index = index + 1
+    end
+
+    return c
 end
