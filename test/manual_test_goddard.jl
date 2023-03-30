@@ -1,7 +1,7 @@
 using CTDirect
 using CTProblems
 using CTBase # for plot
-using Plots;
+using Plots
 
 # goddard with state constraint - maximize altitude
 prob = Problem(:goddard, :state_constraint)
@@ -32,15 +32,15 @@ init = [1.01, 0.05, 0.8, 0.1]
 sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, mu_strategy="adaptive", init=init)
 
 # plot
-plot(sol)
+#plot(sol)
 
 # test plots for constraint and multipliers
 t0 = sol.times[1]
 tf = last(sol.times)
 
+#=
 # state constraints
 ncx = sol.infos[:dim_state_constraints]
-println("state contraints: ", ncx)
 if ncx > 0
     PCX = Array{Plots.Plot, 1}(undef, ncx);
     for i in 1:ncx
@@ -54,7 +54,6 @@ end
 
 # control constraints
 ncu = sol.infos[:dim_control_constraints]
-println("control contraints: ", ncu)
 if ncu > 0
     PCU = Array{Plots.Plot, 1}(undef, ncu);
     for i in 1:ncu
@@ -68,7 +67,6 @@ end
 
 # mixed constraints
 ncxu = sol.infos[:dim_mixed_constraints]
-println("mixed contraints: ", ncxu)
 if ncxu > 0
     PCXU = Array{Plots.Plot, 1}(undef, ncxu);
     for i in 1:ncxu
@@ -81,3 +79,21 @@ else
 end
 
 plot(P1, P2, P3, layout = (3,1))
+=#
+
+# state box with multipliers
+n = sol.state_dimension
+PX = Array{Plots.Plot, 1}(undef, n);
+for i in 1:n
+    PX[i] = plot(t -> sol.state(t)[i], t0, tf, label="state with box mult (green: LB, red: UB)", legend=:topleft);
+    PX[i] = plot!(twinx(),t -> sol.infos[:mult_state_box_lower](t)[i], t0, tf, color=:green, xticks=:none, label=:none, linestyle=:dash);
+    PX[i] = plot!(twinx(),t -> sol.infos[:mult_state_box_upper](t)[i], t0, tf, color=:red, xticks=:none, label=:none, linestyle=:dash);
+end
+PPX = plot(PX..., layout = (n, 1));
+
+# control box with multipliers
+PU = plot(t -> sol.control(t)[1], t0, tf, label="control with box mult (green: LB u>=0, red: UB unused)", legend=:topleft);
+PU = plot!(twinx(),t -> sol.infos[:mult_control_box_lower](t)[1], t0, tf, color=:green, xticks=:none, label=:none, linestyle=:dash);
+PU = plot!(twinx(),t -> sol.infos[:mult_control_box_upper](t)[1], t0, tf, color=:red, xticks=:none, label=:none, linestyle=:dash);
+
+plot(PPX, PU, layout = (2,1))
