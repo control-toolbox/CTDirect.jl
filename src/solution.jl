@@ -28,7 +28,11 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     u = ctinterpolate(T, matrix2vec(U, 1))
     p = ctinterpolate(T[1:end-1], matrix2vec(P, 1))
     cx = ctinterpolate(T, matrix2vec(sol_state_constraints, 1))
+    cu = ctinterpolate(T, matrix2vec(sol_control_constraints, 1))
+    cxu = ctinterpolate(T, matrix2vec(sol_mixed_constraints, 1))
     mcx = ctinterpolate(T, matrix2vec(mult_state_constraints, 1))
+    mcu = ctinterpolate(T, matrix2vec(mult_control_constraints, 1))
+    mcxu = ctinterpolate(T, matrix2vec(mult_mixed_constraints, 1))
 
     # build OptimalControlSolution struct
     sol = OptimalControlSolution()
@@ -47,11 +51,15 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     sol.message = "no message" 
     sol.success = false #
     # field "infos" in OptimalControlSolution is Dict{Symbol, Any}, for misc data
-    # +++ todo: labels for constraints
     sol.infos[:dim_state_constraints] = ctd.dim_state_constraints    
     sol.infos[:state_constraints] = t -> cx(t)
     sol.infos[:mult_state_constraints] = t -> mcx(t)
-    # +++ add control and mixed constraints
+    sol.infos[:dim_control_constraints] = ctd.dim_control_constraints    
+    sol.infos[:control_constraints] = t -> cu(t)
+    sol.infos[:mult_control_constraints] = t -> mcu(t)
+    sol.infos[:dim_mixed_constraints] = ctd.dim_mixed_constraints    
+    sol.infos[:mixed_constraints] = t -> cxu(t)
+    sol.infos[:mult_mixed_constraints] = t -> mcxu(t)
     # +++ then add box multipliers
 
 
