@@ -31,7 +31,7 @@ println("Is solvable ? ", CTDirect.is_solvable(ocp))
       @test u_var == -l_var
    end
 
-   @testset verbose = true showtiming = true "contol_constraints" begin
+   @testset verbose = true showtiming = true "control_constraints" begin
       umax = 5
       remove_constraint!(ocp, :control_con1)
       constraint!(ocp, :control, u -> u, -umax, umax, :control_con2)
