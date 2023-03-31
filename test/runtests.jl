@@ -2,7 +2,7 @@ using CTDirect
 using Test
 using CTBase
 using CTProblems
-using LinearAlgebra
+using LinearAlgebra # +++?
 
 include("test_utils.jl")
 
@@ -12,9 +12,7 @@ ocp = prob.model
 # test of optimal control problem from CTProblems
 @testset verbose = true showtiming = true "Direct" begin
     for name in (
-        #"simple_integrator_energy",
         "integrator",
-        #"integrator_constraints",
         "goddard",
         )
         @testset "$name" begin

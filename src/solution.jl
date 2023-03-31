@@ -92,10 +92,14 @@ function parse_ipopt_sol(ctd)
         X[i,:] = get_state_at_time_step(xu, i-1, ctd.dim_NLP_state, N)
         U[i,:] = get_control_at_time_step(xu, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
         # box multipliers (same layout as variables !)
-        mult_state_box_lower[i,:] = get_state_at_time_step(mult_L, i-1, ctd.dim_NLP_state, N)
-        mult_state_box_upper[i,:] = get_state_at_time_step(mult_U, i-1, ctd.dim_NLP_state, N)
-        mult_control_box_lower[i,:] = get_control_at_time_step(mult_L, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
-        mult_control_box_upper[i,:] = get_control_at_time_step(mult_U, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+        if length(mult_L) > 0
+            mult_state_box_lower[i,:] = get_state_at_time_step(mult_L, i-1, ctd.dim_NLP_state, N)
+            mult_control_box_lower[i,:] = get_control_at_time_step(mult_L, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+        end
+        if length(mult_U) > 0
+            mult_state_box_upper[i,:] = get_state_at_time_step(mult_U, i-1, ctd.dim_NLP_state, N)
+            mult_control_box_upper[i,:] = get_control_at_time_step(mult_U, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+        end
     end
 
     # constraints, costate and constraints multipliers
