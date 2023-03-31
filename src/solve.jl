@@ -44,7 +44,6 @@ function solve(ocp::OptimalControlModel,
   ipopt_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
 
   # from NLP to OCP: call OptimaControlSolution constructor
-  # +++ put ocp inside ctd ?
   sol = _OptimalControlSolution(ocp, ipopt_solution, ctd)
 
   return sol
