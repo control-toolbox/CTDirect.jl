@@ -12,7 +12,7 @@
 [gh-doc-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [gh-doc-stable-url]: http://control-toolbox.github.io/CTDirect.jl/stable
 
-The `CTBase.jl` package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
+The `CTDirect.jl` package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
 
 | **Documentation**                                                               | **Build Status**                                                                                |
 |:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
