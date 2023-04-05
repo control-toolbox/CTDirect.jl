@@ -39,12 +39,14 @@ constraint!(ocp, :dynamics, f)
 
 # settings
 init = [1.01, 0.05, 0.8, 0.1]
-N = 50
+N = 150
 
-# dummy run
-sol = solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
+# dummy run then 2 runs
+@time sol = solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
 println("N=",N, " Obj ",sol.objective," Iter ", sol.iterations)
+@time sol = solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
+@time sol = solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
 
-# benchmark
-BenchmarkTools.DEFAULT_PARAMETERS.samples = 2
-@benchmark solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
+# benchmark. Not very practical -_-
+#BenchmarkTools.DEFAULT_PARAMETERS.samples = 2
+#@benchmark solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
