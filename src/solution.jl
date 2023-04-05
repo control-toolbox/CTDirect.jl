@@ -40,12 +40,12 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     sol.state_dimension = ctd.state_dimension
     sol.control_dimension = ctd.control_dimension
     sol.times = T
-    sol.time_label = ocp.time_label
+    sol.time_name = ocp.time_name
     sol.state = t -> x(t)
-    sol.state_labels = ocp.state_labels
+    sol.state_names = ocp.state_names
     sol.adjoint = t -> p(t)
     sol.control = t -> u(t)
-    sol.control_labels = ocp.control_labels
+    sol.control_names = ocp.control_names
     sol.objective = ctd.NLP_objective
     sol.iterations = ctd.NLP_iterations
     sol.stopping = :dummy 
