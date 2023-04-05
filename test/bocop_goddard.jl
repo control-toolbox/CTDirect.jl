@@ -37,28 +37,14 @@ end
 f(x, u) = F0(x) + u*F1(x)
 constraint!(ocp, :dynamics, f)
 
-# dummy run
+# settings
 init = [1.01, 0.05, 0.8, 0.1]
-solve(ocp, grid_size=10, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
+N = 50
 
-# benchmark for different grid sizes
+# dummy run
+sol = solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
+println("N=",N, " Obj ",sol.objective," Iter ", sol.iterations)
+
+# benchmark
 BenchmarkTools.DEFAULT_PARAMETERS.samples = 2
-println("Benchmark N=10")
-@btime sol = solve(ocp, grid_size=10, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
-println("Obj ",sol.objective," Iter ", sol.iterations)
-
-println("Benchmark N=50")
-@btime sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
-println("Obj ",sol.objective," Iter ", sol.iterations)
-
-println("Benchmark N=100")
-@btime sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
-println("Obj ",sol.objective," Iter ", sol.iterations)
-
-println("Benchmark N=150")
-@btime sol = solve(ocp, grid_size=150, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
-println("Obj ",sol.objective," Iter ", sol.iterations)
-
-println("Benchmark N=200")
-@btime sol = solve(ocp, grid_size=200, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
-println("Obj ",sol.objective," Iter ", sol.iterations)
+@benchmark solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
