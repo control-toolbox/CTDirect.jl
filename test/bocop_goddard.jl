@@ -1,5 +1,6 @@
 using CTDirect
 using CTBase
+using BenchmarkTools
 
 # Goddard with same formulation as bocop3
 # max altitude, speed limit, only box constraints
@@ -36,11 +37,28 @@ end
 f(x, u) = F0(x) + u*F1(x)
 constraint!(ocp, :dynamics, f)
 
-# dummy solve
+# dummy run
 init = [1.01, 0.05, 0.8, 0.1]
-sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, mu_strategy="adaptive", init=init)
-println(sol.objective)
+solve(ocp, grid_size=10, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
 
-# run twice and take average time
-sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, mu_strategy="adaptive", init=init)
-sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, mu_strategy="adaptive", init=init)
+# benchmark for different grid sizes
+BenchmarkTools.DEFAULT_PARAMETERS.samples = 2
+println("Benchmark N=10")
+@btime sol = solve(ocp, grid_size=10, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
+println("Obj ",sol.objective," Iter ", sol.iterations)
+
+println("Benchmark N=50")
+@btime sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
+println("Obj ",sol.objective," Iter ", sol.iterations)
+
+println("Benchmark N=100")
+@btime sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
+println("Obj ",sol.objective," Iter ", sol.iterations)
+
+println("Benchmark N=150")
+@btime sol = solve(ocp, grid_size=150, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
+println("Obj ",sol.objective," Iter ", sol.iterations)
+
+println("Benchmark N=200")
+@btime sol = solve(ocp, grid_size=200, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
+println("Obj ",sol.objective," Iter ", sol.iterations)
