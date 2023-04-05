@@ -50,7 +50,6 @@ function solve(ocp::OptimalControlModel,
     end
 
     # solve
-
     if :ipopt ∈ method
         # https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/main/src/NLPModelsIpopt.jl#L119
         # options of ipopt: https://coin-or.github.io/Ipopt/OPTIONS.html

@@ -1,6 +1,5 @@
 [deps]
 CTBase = "54762871-cc72-4466-b8e8-f6c8b58076cd"
 CTProblems = "45d9ea3f-a92f-411f-833f-222dd4fb9cd8"
-DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
