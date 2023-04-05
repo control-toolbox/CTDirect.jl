@@ -2,7 +2,7 @@ using CTDirect
 using Test
 using CTBase
 using CTProblems
-using LinearAlgebra # +++?
+using LinearAlgebra
 
 include("test_utils.jl")
 

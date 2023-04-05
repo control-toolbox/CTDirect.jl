@@ -1,46 +1,10 @@
-# goddard with state constraint - maximize altitude
+# goddard with state constraint - maximize altitude  +++ use newer one in CTProblems
 println("Goddard test")
 prob = Problem(:goddard, :state_constraint)
 ocp = prob.model
 
 # initial guess (constant state and control functions)
 init = [1.01, 0.05, 0.8, 0.1]
-
-#=
-# state constraint formulation
-println("State constraint formulation")
-#println(constraints(ocp))
-sol = solve(ocp, grid_size=10, print_level=0, init=init)
-@testset verbose = true showtiming = true ":goddard :state_constraint" begin
-    @test sol.objective ≈ prob.solution.objective atol=5e-3
-end
-=#
-
-#= # mixed constraint formulation
-println("Mixed constraint formulation")
-#remove_constraint!(ocp,+++)
-constraint!(ocp, :mixed, (x,u)->x[2], 0, vmax, :mixed_con1)
-sol = solve(ocp, grid_size=10, print_level=0, init=init)
-@testset verbose = true showtiming = true ":goddard :mixed_constraint" begin
-    @test sol.objective ≈ prob.solution.objective atol=5e-3
-end =#
-
-#=
-# box constraint formulation
-println("Box constraint formulation")
-#println(constraints(ocp))
-remove_constraint!(ocp, :state_constraint_r)
-remove_constraint!(ocp, :state_constraint_v)
-remove_constraint!(ocp, :control_constraint)
-constraint!(ocp, :state, 1:3, [1,0,0.6], [Inf,0.1,1], :box_state)
-constraint!(ocp, :control, Index(1), 0, 1, :box_control)
-#println(constraints(ocp)) #display(constraints(ocp))
-sol = solve(ocp, grid_size=10, print_level=0, init=init)
-println(sol.objective)
-@testset verbose = true showtiming = true ":goddard :box_constraint" begin
-    @test sol.objective ≈ prob.solution.objective atol=5e-3
-end
-=#
 
 # all constraints formulation
 remove_constraint!(ocp,:state_constraint_r)
@@ -61,3 +25,21 @@ sol = solve(ocp, grid_size=10, print_level=0, init=init)
 @testset verbose = true showtiming = true ":goddard :all_constraints" begin
     @test sol.objective ≈ prob.solution.objective atol=5e-3
 end
+
+# +++ add automatic tests for multipliers, ie sign and complementarity with constraints ?
+t = sol.times
+# state constraint v <= 0.1
+a = sol.infos[:mult_state_constraints](t)[1]
+println(a)
+println(all(>=(0), a) )
+b = sol.infos[:state_constraints](t)[1]
+println(b)
+println(a.*b)
+println(norm(a.*b))
+
+# control constraint u <= 1
+
+# mixed constraint m >= 0.6
+
+# state box r >= 1 and v >= 0
+# control box u >= 0 
