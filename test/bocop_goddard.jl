@@ -39,7 +39,7 @@ constraint!(ocp, :dynamics, f)
 
 # settings
 init = [1.01, 0.05, 0.8, 0.1]
-N = 150
+N = 10
 
 # dummy run then 2 runs
 @time sol = solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
