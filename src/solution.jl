@@ -16,7 +16,7 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     # parse NLP variables, constraints and multipliers
     X, U, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper = parse_ipopt_sol(ctd)
 
-    # interpolations to build functions of time
+    # variables and misc infos
     N = ctd.dim_NLP_steps
     t0 = ctd.initial_time
     tf = get_final_time(ctd.NLP_solution, ctd.final_time, ctd.has_free_final_time)
@@ -24,49 +24,57 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     x = ctinterpolate(T, matrix2vec(X, 1))
     u = ctinterpolate(T, matrix2vec(U, 1))
     p = ctinterpolate(T[1:end-1], matrix2vec(P, 1))
-    cx = ctinterpolate(T, matrix2vec(sol_state_constraints, 1))
-    cu = ctinterpolate(T, matrix2vec(sol_control_constraints, 1))
-    cxu = ctinterpolate(T, matrix2vec(sol_mixed_constraints, 1))
-    mcx = ctinterpolate(T, matrix2vec(mult_state_constraints, 1))
-    mcu = ctinterpolate(T, matrix2vec(mult_control_constraints, 1))
-    mcxu = ctinterpolate(T, matrix2vec(mult_mixed_constraints, 1))
-    mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower, 1))
-    mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper, 1))
-    mbox_u_l = ctinterpolate(T, matrix2vec(mult_control_box_lower, 1))
-    mbox_u_u = ctinterpolate(T, matrix2vec(mult_control_box_upper, 1))
-
-    # build OptimalControlSolution struct
     sol = OptimalControlSolution()
     sol.state_dimension = ctd.state_dimension
     sol.control_dimension = ctd.control_dimension
     sol.times = T
-    sol.time_label = ocp.time_label
+    sol.time_name = ocp.time_name
     sol.state = t -> x(t)
-    sol.state_labels = ocp.state_labels
+    sol.state_names = ocp.state_names
     sol.adjoint = t -> p(t)
     sol.control = t -> u(t)
-    sol.control_labels = ocp.control_labels
+    sol.control_names = ocp.control_names
     sol.objective = ctd.NLP_objective
     sol.iterations = ctd.NLP_iterations
     sol.stopping = :dummy 
     sol.message = "no message" 
     sol.success = false #
-    # field "infos" in OptimalControlSolution is Dict{Symbol, Any}, for misc data
-    sol.infos[:dim_state_constraints] = ctd.dim_state_constraints    
-    sol.infos[:state_constraints] = t -> cx(t)
-    sol.infos[:mult_state_constraints] = t -> mcx(t)
-    sol.infos[:dim_control_constraints] = ctd.dim_control_constraints    
-    sol.infos[:control_constraints] = t -> cu(t)
-    sol.infos[:mult_control_constraints] = t -> mcu(t)
-    sol.infos[:dim_mixed_constraints] = ctd.dim_mixed_constraints    
-    sol.infos[:mixed_constraints] = t -> cxu(t)
-    sol.infos[:mult_mixed_constraints] = t -> mcxu(t)
-    # +++ then add box multipliers
-    sol.infos[:mult_state_box_lower] = t -> mbox_x_l(t)
-    sol.infos[:mult_state_box_upper] = t -> mbox_x_u(t)
-    sol.infos[:mult_control_box_lower] = t -> mbox_u_l(t)
-    sol.infos[:mult_control_box_upper] = t -> mbox_u_u(t)
 
+    # constraints and multipliers
+    if ctd.has_state_constraints
+        cx = ctinterpolate(T, matrix2vec(sol_state_constraints, 1))
+        mcx = ctinterpolate(T, matrix2vec(mult_state_constraints, 1))
+        sol.infos[:dim_state_constraints] = ctd.dim_state_constraints    
+        sol.infos[:state_constraints] = t -> cx(t)
+        sol.infos[:mult_state_constraints] = t -> mcx(t)
+    end
+    if ctd.has_control_constraints
+        cu = ctinterpolate(T, matrix2vec(sol_control_constraints, 1))
+        mcu = ctinterpolate(T, matrix2vec(mult_control_constraints, 1))
+        sol.infos[:dim_control_constraints] = ctd.dim_control_constraints  
+        sol.infos[:control_constraints] = t -> cu(t)
+        sol.infos[:mult_control_constraints] = t -> mcu(t)
+    end
+    if ctd.has_mixed_constraints
+        cxu = ctinterpolate(T, matrix2vec(sol_mixed_constraints, 1))
+        mcxu = ctinterpolate(T, matrix2vec(mult_mixed_constraints, 1))
+        sol.infos[:dim_mixed_constraints] = ctd.dim_mixed_constraints    
+        sol.infos[:mixed_constraints] = t -> cxu(t)
+        sol.infos[:mult_mixed_constraints] = t -> mcxu(t)
+    end
+    if ctd.has_state_box
+        mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower, 1))
+        mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper, 1))
+        sol.infos[:mult_state_box_lower] = t -> mbox_x_l(t)
+        sol.infos[:mult_state_box_upper] = t -> mbox_x_u(t)    
+    end
+    if ctd.has_control_box
+        mbox_u_l = ctinterpolate(T, matrix2vec(mult_control_box_lower, 1))
+        mbox_u_u = ctinterpolate(T, matrix2vec(mult_control_box_upper, 1))
+        sol.infos[:mult_control_box_lower] = t -> mbox_u_l(t)
+        sol.infos[:mult_control_box_upper] = t -> mbox_u_u(t)
+    end
+    
     return sol
 
 end

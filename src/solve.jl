@@ -55,6 +55,7 @@ function solve(ocp::OptimalControlModel,
         # options of ipopt: https://coin-or.github.io/Ipopt/OPTIONS.html
         # callback: https://github.com/jump-dev/Ipopt.jl#solver-specific-callback
         # sb="yes": remove ipopt header
+        # solve by IPOPT: +++ later use more advanced call for callback use
         print_level = display ?  print_level : 0
         ipopt_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
     end
