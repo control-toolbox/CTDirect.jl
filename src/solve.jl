@@ -41,7 +41,7 @@ function solve(ocp::OptimalControlModel,
     method = getFullDescription(makeDescription(description...), algorithmes)
 
     # Model: from ocp to nlp
-    if :adnlp ∈ method
+    if :adnlp in method
         ctd = CTDirect_data(ocp, grid_size, init)
         xu0 = initial_guess(ctd)
         l_var, u_var = variables_bounds(ctd)
@@ -50,11 +50,11 @@ function solve(ocp::OptimalControlModel,
     end
 
     # solve
-    if :ipopt ∈ method
+    if :ipopt in method
         # https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/main/src/NLPModelsIpopt.jl#L119
         # options of ipopt: https://coin-or.github.io/Ipopt/OPTIONS.html
         # callback: https://github.com/jump-dev/Ipopt.jl#solver-specific-callback
-        # sb="yes": remove ipopt header
+        # sb="yes": remove ipopt header +++ make that default
         # solve by IPOPT: +++ later use more advanced call for callback use
         print_level = display ?  print_level : 0
         ipopt_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
