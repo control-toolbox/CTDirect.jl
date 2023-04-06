@@ -58,8 +58,6 @@ mutable struct CTDirect_data
     NLP_iterations
     NLP_stats       # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
 
-
-    # put this constructor in CTDirect.jl or in utils.jl ?
     function CTDirect_data(ocp::OptimalControlModel, N::Integer, init=nothing)
 
         ctd = new()
@@ -94,29 +92,6 @@ mutable struct CTDirect_data
         ctd.has_boundary_conditions = !isempty(ctd.boundary_conditions[1])
         ctd.has_control_box = !isempty(ctd.control_box[1])
         ctd.has_state_box = !isempty(ctd.state_box[1])
-
-#=         println("ctd constructor after call to nlp_constraints")
-        println("state constraints")
-        println(ctd.state_constraints)
-        println(ctd.state_constraints[1])
-        println(ctd.dim_state_constraints)
-        println("control constraints")
-        println(ctd.control_constraints)
-        println(ctd.control_constraints[1])
-        println(ctd.dim_control_constraints)
-        println("mixed constraints")
-        println(ctd.mixed_constraints)
-        println(ctd.mixed_constraints[1])
-        println(ctd.dim_mixed_constraints)
-        println("control box")
-        println(ctd.control_box)
-        println(ctd.control_box[1])
-        println(ctd.dim_control_box)
-        println("state box")
-        println(ctd.state_box)
-        println(ctd.state_box[1])
-        println(ctd.dim_state_box) =#
-
 
         ## Non Linear Programming NLP
         ctd.dim_NLP_steps = N
