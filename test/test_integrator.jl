@@ -29,6 +29,7 @@ ocp = prob.model
         @test ctd.dim_NLP_variables == (N+1)*4
         @test ctd.dim_NLP_constraints == 3*N+5
     end
+
     @testset verbose = true showtiming = true "constraints" begin
         lb, ub = CTDirect.constraints_bounds(ctd)
         l_var, u_var = CTDirect.variables_bounds(ctd)
@@ -61,5 +62,3 @@ ocp = prob.model
 
 
 end
-
-
