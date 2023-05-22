@@ -3,7 +3,7 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
 
     # save general solution data
     ctd.NLP_stats = ipopt_solution
-    if ismin(ocp)
+    if is_min(ocp)
         ctd.NLP_objective = ipopt_solution.objective
     else
         ctd.NLP_objective = - ipopt_solution.objective
@@ -13,27 +13,24 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     ctd.NLP_solution = ipopt_solution.solution
     ctd.NLP_sol_constraints = ipopt_constraint(ipopt_solution.solution, ctd)
 
-    # parse NLP variables, constraints and multipliers
+    # parse NLP variables, constraints and multipliers +++ add variables
     X, U, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper = parse_ipopt_sol(ctd)
 
     # variables and misc infos
     N = ctd.dim_NLP_steps
-    t0 = ctd.initial_time
-    tf = get_final_time(ctd.NLP_solution, ctd.final_time, ctd.has_free_final_time)
+    t0 = get_initial_time(ctd.NLP_solution, ctd)
+    tf = get_final_time(ctd.NLP_solution, ctd)
     T = collect(LinRange(t0, tf, N+1))
     x = ctinterpolate(T, matrix2vec(X, 1))
     u = ctinterpolate(T, matrix2vec(U, 1))
     p = ctinterpolate(T[1:end-1], matrix2vec(P, 1))
-    sol = OptimalControlSolution()
-    sol.state_dimension = ctd.state_dimension
-    sol.control_dimension = ctd.control_dimension
+    sol = OptimalControlSolution() # +++ constructor with ocp as argument ?
+    copy!(sol,ocp)
     sol.times = T
-    sol.time_name = ocp.time_name
     sol.state = t -> x(t)
-    sol.state_names = ocp.state_names
-    sol.adjoint = t -> p(t)
+    sol.costate = t -> p(t)
     sol.control = t -> u(t)
-    sol.control_names = ocp.control_names
+    #sol.variable = get_variable(ctd.NLP_solution, ctd) +++no field ?
     sol.objective = ctd.NLP_objective
     sol.iterations = ctd.NLP_iterations
     sol.stopping = :dummy 

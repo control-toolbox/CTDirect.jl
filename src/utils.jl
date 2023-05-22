@@ -1,5 +1,5 @@
-function get_variables(xu, ctd)
-    # put variables at the end of NLP unknown ?
+function get_variable(xu, ctd)
+    # put variable at the end of NLP unknown ?
     if ctd.has_variable
         v = xu[end - ctd.variable_dimension + 1 : end]
     else
@@ -38,7 +38,7 @@ end
 
 function get_initial_time(xu, ctd)
     if ctd.has_free_initial_time
-        v = get_variables(xu, ctd.variable_dimension)
+        v = get_variable(xu, ctd.variable_dimension)
         return v[ctd.initial_time]
     else
         return ctd.initial_time
@@ -47,7 +47,7 @@ end
 
 function get_final_time(xu, ctd)
     if ctd.has_free_final_time
-        v = get_variables(xu, ctd.variable_dimension)
+        v = get_variable(xu, ctd.variable_dimension)
         return v[ctd.final_time]
     else
         return ctd.final_time
@@ -71,6 +71,8 @@ function initial_guess(ctd)
 
     N = ctd.dim_NLP_steps
     init = ctd.NLP_init
+
+    # +++ variables
 
     if init === nothing
         # default initialization (put back O.1 here ?)
