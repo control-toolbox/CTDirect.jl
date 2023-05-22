@@ -1,3 +1,13 @@
+function get_variables(xu, ctd)
+    # put variables at the end of NLP unknown ?
+    if ctd.has_variable
+        v = xu[end - ctd.variable_dimension + 1 : end]
+    else
+        v = Real[]
+    end
+    return v
+end
+
 function get_state_at_time_step(xu, i, nx, N)
     """
         return
@@ -5,6 +15,8 @@ function get_state_at_time_step(xu, i, nx, N)
     """
     @assert i <= N "trying to get x(t_i) for i > N"
     return xu[i*nx + 1 : (i+1)*nx]
+
+    # as control below, and also, cut optional additional state for lagrange objective ?
 end
 
 function get_control_at_time_step(xu, i, nx, N, m)
@@ -14,9 +26,34 @@ function get_control_at_time_step(xu, i, nx, N, m)
     """
     @assert i <= N "trying to get u(t_i) for i > N"
     return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
+
+    # scalar / vector case
+    # u = xu[]
+    # if m == 1
+    # return u[1]
+    # else
+    # return u
+    # end ?
 end
 
-get_final_time(xu, fixed_final_time, has_free_final_time) = has_free_final_time ? xu[end] : fixed_final_time
+function get_initial_time(xu, ctd)
+    if ctd.has_free_initial_time
+        v = get_variables(xu, ctd.variable_dimension)
+        return v[ctd.initial_time]
+    else
+        return ctd.initial_time
+    end
+end
+
+function get_final_time(xu, ctd)
+    if ctd.has_free_final_time
+        v = get_variables(xu, ctd.variable_dimension)
+        return v[ctd.final_time]
+    else
+        return ctd.final_time
+    end
+end
+
 
 ## Initialization for the NLP problem
 
