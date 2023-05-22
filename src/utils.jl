@@ -14,9 +14,16 @@ function get_state_at_time_step(xu, i, nx, N)
         x(t_i)
     """
     @assert i <= N "trying to get x(t_i) for i > N"
-    return xu[i*nx + 1 : (i+1)*nx]
+    if nx == 1
+        return xu[i*nx + 1]
+    else
+        return xu[i*nx + 1 : (i+1)*nx]
+    end
+end
 
-    # as control below, and also, cut optional additional state for lagrange objective ?
+function vget_state_at_time_step(xu, i, nx, N)
+    @assert i <= N "trying to get x(t_i) for i > N"
+    return xu[i*nx + 1 : (i+1)*nx]
 end
 
 function get_control_at_time_step(xu, i, nx, N, m)
@@ -25,15 +32,16 @@ function get_control_at_time_step(xu, i, nx, N, m)
         u(t_i)
     """
     @assert i <= N "trying to get u(t_i) for i > N"
-    return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
+    if m == 1
+        return xu[(N+1)*nx + i*m + 1]
+    else
+        return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
+    end
+end
 
-    # scalar / vector case
-    # u = xu[]
-    # if m == 1
-    # return u[1]
-    # else
-    # return u
-    # end ?
+function vget_control_at_time_step(xu, i, nx, N, m)
+    @assert i <= N "trying to get u(t_i) for i > N"
+    return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
 end
 
 function get_initial_time(xu, ctd)

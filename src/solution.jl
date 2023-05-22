@@ -94,16 +94,16 @@ function parse_ipopt_sol(ctd)
     mult_control_box_upper = zeros(N+1,ctd.control_dimension)
     for i in 1:N+1
         # variables
-        X[i,:] = get_state_at_time_step(xu, i-1, ctd.dim_NLP_state, N)
-        U[i,:] = get_control_at_time_step(xu, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+        X[i,:] = vget_state_at_time_step(xu, i-1, ctd.dim_NLP_state, N)
+        U[i,:] = vget_control_at_time_step(xu, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
         # box multipliers (same layout as variables !)
         if length(mult_L) > 0
-            mult_state_box_lower[i,:] = get_state_at_time_step(mult_L, i-1, ctd.dim_NLP_state, N)
-            mult_control_box_lower[i,:] = get_control_at_time_step(mult_L, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+            mult_state_box_lower[i,:] = vget_state_at_time_step(mult_L, i-1, ctd.dim_NLP_state, N)
+            mult_control_box_lower[i,:] = vget_control_at_time_step(mult_L, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
         end
         if length(mult_U) > 0
-            mult_state_box_upper[i,:] = get_state_at_time_step(mult_U, i-1, ctd.dim_NLP_state, N)
-            mult_control_box_upper[i,:] = get_control_at_time_step(mult_U, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+            mult_state_box_upper[i,:] = vget_state_at_time_step(mult_U, i-1, ctd.dim_NLP_state, N)
+            mult_control_box_upper[i,:] = vget_control_at_time_step(mult_U, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
         end
     end
 
@@ -155,6 +155,8 @@ function parse_ipopt_sol(ctd)
         mult_mixed_constraints[N+1,:] =  lambda[index:index+ctd.dim_mixed_constraints-1]
         index = index + ctd.dim_mixed_constraints
     end
+
+    # +++ variables, constraints, box, mult...
 
     return X, U, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper
 end

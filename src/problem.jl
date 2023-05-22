@@ -28,6 +28,11 @@ mutable struct CTDirect_data
     has_control_box
     has_state_box
     has_variable_box
+    # use booleans instead of dimension check in getters
+    # set booleans by testing ocp function calls ?
+    # Q. already in ocp ? if not, add ?
+    has_scalar_state   
+    has_scalar_control
 
     # dimensions
     dim_control_constraints
@@ -140,7 +145,12 @@ mutable struct CTDirect_data
         #ctd.dynamics_lagrange_to_mayer(t, x, u) = ctd.has_lagrange_cost ? [ctd.dynamics(t, x[1:ctd.state_dimension], u); ctd.lagrange(t, x[1:ctd.state_dimension], u)] : ctd.dynamics(t, x, u) DOES NOT COMPILE
         function f(t, x, u, v)
             if ctd.has_lagrange_cost
-                return [ctd.dynamics(t, x[1:ctd.state_dimension], u, v); ctd.lagrange(t, x[1:ctd.state_dimension], u, v)]
+                if ctd.state_dimension == 1
+                    x_ocp = x[1]
+                else
+                    x_ocp = x[1:ctd.state_dimension]
+                end
+                return [ctd.dynamics(t, x_ocp, u, v); ctd.lagrange(t, x_ocp, u, v)]
             else
                 return ctd.dynamics(t, x, u, v)
             end
