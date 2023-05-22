@@ -8,7 +8,8 @@ function get_variable(xu, ctd)
     return v
 end
 
-function get_state_at_time_step(xu, i, nx, N)
+# return augmented state including potential component for lagrange objective
+function get_augmented_state_at_time_step(xu, i, nx, N)
     """
         return
         x(t_i)
@@ -20,6 +21,21 @@ function get_state_at_time_step(xu, i, nx, N)
         return xu[i*nx + 1 : (i+1)*nx]
     end
 end
+
+# return original ocp state
+function get_state_at_time_step(xu, i, nx, n, N)
+    """
+        return
+        x(t_i)
+    """
+    @assert i <= N "trying to get x(t_i) for i > N"
+    if n == 1
+        return xu[i*nx + 1]
+    else
+        return xu[i*nx + 1 : i*nx + n]
+    end
+end
+
 
 function vget_state_at_time_step(xu, i, nx, N)
     @assert i <= N "trying to get x(t_i) for i > N"

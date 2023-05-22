@@ -299,9 +299,10 @@ function ipopt_objective(xu, ctd)
     obj = 0
     
     if ctd.has_mayer_cost
-        x0 = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, N)
-        xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
-        obj = obj + ctd.mayer(t0, x0[1:ctd.state_dimension], tf, xf[1:ctd.state_dimension])
+        v = get_variable(xu, ctd)
+        x0 = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, ctd.state_dimension, N)
+        xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, ctd.state_dimension, N)
+        obj = obj + ctd.mayer(x0, xf, v)
     end
     
     if ctd.has_lagrange_cost
@@ -345,31 +346,36 @@ function ipopt_constraint(xu, ctd)
 
     # state equation
     ti = t0
-    xi = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, N)
+    xi = get_augmented_state_at_time_step(xu, 0, ctd.dim_NLP_state, N)
     ui = get_control_at_time_step(xu, 0, ctd.dim_NLP_state, N, ctd.control_dimension)
     fi = ctd.dynamics_lagrange_to_mayer(ti, xi, ui, v)
     index = 1 # counter for the constraints
     for i in 0:N-1
         tip1 = t0 + (i+1)*h
         # state and control at t_{i+1}
-        xip1 = get_state_at_time_step(xu, i+1, ctd.dim_NLP_state, N)
+        xip1 = get_augmented_state_at_time_step(xu, i+1, ctd.dim_NLP_state, N)
         uip1 = get_control_at_time_step(xu, i+1, ctd.dim_NLP_state, N, ctd.control_dimension)
         fip1 = ctd.dynamics_lagrange_to_mayer(tip1, xip1, uip1, v)
         # state equation
-        c[index:index+ctd.dim_NLP_state-1] = xip1 - (xi + 0.5*h*(fi + fip1))
+        if ctd.dim_NLP_state == 1
+            c[index] = xip1 - (xi + 0.5*h*(fi + fip1))            
+        else
+            c[index:index+ctd.dim_NLP_state-1] = xip1 - (xi + 0.5*h*(fi + fip1))
+        end
         index = index + ctd.dim_NLP_state
 
         # path constraints
+        xxi = get_state_at_time_step(xu, i, ctd.dim_NLP_state, ctd.state_dimension, N)
         if ctd.has_control_constraints
             c[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[2](ti, ui, v)
             index = index + ctd.dim_control_constraints
         end
         if ctd.has_state_constraints
-            c[index:index+ctd.dim_state_constraints-1] = ctd.state_constraints[2](ti, xi[1:ctd.state_dimension] ,v)
+            c[index:index+ctd.dim_state_constraints-1] = ctd.state_constraints[2](ti, xxi ,v)
             index = index + ctd.dim_state_constraints
         end
         if ctd.has_mixed_constraints
-            c[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[2](ti, xi[1:ctd.state_dimension], ui, v)
+            c[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[2](ti, xxi, ui, v)
             index = index + ctd.dim_mixed_constraints
         end
         xi = xip1
@@ -378,28 +384,26 @@ function ipopt_constraint(xu, ctd)
     end
 
     # path constraints at final time
+    xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, ctd.state_dimension, N)
+    uf = get_control_at_time_step(xu, N, ctd.dim_NLP_state, N, ctd.control_dimension)
     if ctd.has_control_constraints
-        uf = get_control_at_time_step(xu, N, ctd.dim_NLP_state, N, ctd.control_dimension)
+
         c[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[2](tf, uf, v)      
         index = index + ctd.dim_control_constraints
     end  
     if ctd.has_state_constraints
-        xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
-        c[index:index+ctd.dim_state_constraints-1] = ctd.state_constraints[2](tf, xf[1:ctd.state_dimension], v)      
+        c[index:index+ctd.dim_state_constraints-1] = ctd.state_constraints[2](tf, xf, v)      
         index = index + ctd.dim_state_constraints
     end 
     if ctd.has_mixed_constraints
-        xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
-        uf = get_control_at_time_step(xu, N-1, ctd.dim_NLP_state, N, ctd.control_dimension)
-        c[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[2](tf, xf[1:ctd.state_dimension], uf, v)
+        c[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[2](tf, xf, uf, v)
         index = index + ctd.dim_mixed_constraints
     end
 
     # boundary conditions
     # +++ use boolean
-    x0 = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, N)
-    xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, N)
-    c[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[2](x0[1:ctd.state_dimension], xf[1:ctd.state_dimension], v)
+    x0 = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, ctd.state_dimension, N)
+    c[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[2](x0, xf, v)
     index = index + ctd.dim_boundary_conditions
     # null initial condition for augmented state (reformulated lagrangian cost)
     if ctd.has_lagrange_cost
