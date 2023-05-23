@@ -13,7 +13,8 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     ctd.NLP_solution = ipopt_solution.solution
     ctd.NLP_sol_constraints = ipopt_constraint(ipopt_solution.solution, ctd)
 
-    # parse NLP variables, constraints and multipliers +++ add variables
+    # +++ add variables
+    # parse NLP variables, constraints and multipliers 
     X, U, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper = parse_ipopt_sol(ctd)
 
     # variables and misc infos
@@ -59,6 +60,7 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
         sol.infos[:mixed_constraints] = t -> cxu(t)
         sol.infos[:mult_mixed_constraints] = t -> mcxu(t)
     end
+    # +++ variable constraints cv mcv
     if ctd.has_state_box
         mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower, 1))
         mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper, 1))
@@ -71,7 +73,8 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
         sol.infos[:mult_control_box_lower] = t -> mbox_u_l(t)
         sol.infos[:mult_control_box_upper] = t -> mbox_u_u(t)
     end
-    
+    # +++ variable box 
+
     return sol
 
 end
@@ -88,10 +91,12 @@ function parse_ipopt_sol(ctd)
     mult_U = ctd.NLP_stats.multipliers_U
     X = zeros(N+1,ctd.dim_NLP_state)
     U = zeros(N+1,ctd.control_dimension)
+    # +++ v = get variables
     mult_state_box_lower = zeros(N+1,ctd.dim_NLP_state)
     mult_state_box_upper = zeros(N+1,ctd.dim_NLP_state)
     mult_control_box_lower = zeros(N+1,ctd.control_dimension)
     mult_control_box_upper = zeros(N+1,ctd.control_dimension)
+    # +++ v box + get
     for i in 1:N+1
         # variables
         X[i,:] = vget_state_at_time_step(xu, i-1, ctd.dim_NLP_state, N)
@@ -113,10 +118,12 @@ function parse_ipopt_sol(ctd)
     c = ctd.NLP_sol_constraints
     sol_control_constraints = zeros(N+1,ctd.dim_control_constraints)
     sol_state_constraints = zeros(N+1,ctd.dim_state_constraints)
-    sol_mixed_constraints = zeros(N+1,ctd.dim_mixed_constraints)    
+    sol_mixed_constraints = zeros(N+1,ctd.dim_mixed_constraints) 
+    # +++ v   
     mult_control_constraints = zeros(N+1,ctd.dim_control_constraints)
     mult_state_constraints = zeros(N+1,ctd.dim_state_constraints)
     mult_mixed_constraints = zeros(N+1,ctd.dim_mixed_constraints)
+    # ++++ m v
     index = 1
     for i in 1:N
         # state equation
@@ -156,7 +163,9 @@ function parse_ipopt_sol(ctd)
         index = index + ctd.dim_mixed_constraints
     end
 
-    # +++ variables, constraints, box, mult...
+    # boundary + mult
+
+    # v + mult
 
     return X, U, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper
 end

@@ -91,6 +91,8 @@ function set_control_at_time_step!(u, i, nx, N, m, xu)
     xu[1+(N+1)*nx+i*m:m+(N+1)*nx+i*m] = u[1:m]
 end
 
+# +++ set variables
+
 function initial_guess(ctd)
 
     N = ctd.dim_NLP_steps
@@ -110,7 +112,8 @@ function initial_guess(ctd)
         x_init[1:ctd.state_dimension] = init[1:ctd.state_dimension]
         u_init = zeros(ctd.control_dimension)
         u_init[1:ctd.control_dimension] = init[ctd.state_dimension+1:ctd.state_dimension+ctd.control_dimension]
-        
+        # v_init
+
         # mayer -> lagrange additional state
         if ctd.has_lagrange_cost
             x_init[ctd.dim_NLP_state] = 0.1
@@ -122,10 +125,12 @@ function initial_guess(ctd)
             set_state_at_time_step!(x_init, i, ctd.dim_NLP_state, N, xu0)
             set_control_at_time_step!(u_init, i, ctd.dim_NLP_state, N, ctd.control_dimension, xu0)
         end
+
+        # set variables
     end
 
     # free final time case, put back 0.1 here ?
-    # +++todo: add a component in init vector for tf and put this part in main if/then above
+    # +++ remove 
     if ctd.has_free_final_time
         xu0[end] = 1.0
     end

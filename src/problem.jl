@@ -57,7 +57,7 @@ mutable struct CTDirect_data
 
     ## NLP
     # NLP problem
-    dim_NLP_state
+    dim_NLP_state  # 'augmented state'
     dim_NLP_constraints
     dim_NLP_variables
     dim_NLP_steps
@@ -177,6 +177,7 @@ end
 function is_solvable(ocp)
     solvable = true
 
+    # +++ remove
     # free initial time
     if isnothing(ocp.initial_time)
         solvable = false
@@ -253,7 +254,7 @@ function variables_bounds(ctd)
     l_var = -Inf*ones(ctd.dim_NLP_variables)
     u_var = Inf*ones(ctd.dim_NLP_variables)
     
-    # NLP variables layout: [X0, X1 .. XN, U0, U1 .. UN]
+    # NLP variables layout: [X0, X1 .. XN, U0, U1 .. UN, V]
 
     # state box
     if ctd.has_state_box
@@ -281,7 +282,7 @@ function variables_bounds(ctd)
         end
     end
 
-    # free final time case +++ variables instead
+    # free final time case +++ variable box instead
     if ctd.has_free_final_time
         l_var[end] = 1.e-3
     end
@@ -333,7 +334,8 @@ function ipopt_constraint(xu, ctd)
         x_{1}(t_N), ... , x_{n+1}(t_N),
         u_1(t_0), ... , u_m(t_0), 
         ... , 
-        u_m(t_N), ..., u_m(t_N)]
+        u_m(t_N), ..., u_m(t_N),
+        v]
     return
     c :: 
     """
@@ -387,7 +389,6 @@ function ipopt_constraint(xu, ctd)
     xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, ctd.state_dimension, N)
     uf = get_control_at_time_step(xu, N, ctd.dim_NLP_state, N, ctd.control_dimension)
     if ctd.has_control_constraints
-
         c[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[2](tf, uf, v)      
         index = index + ctd.dim_control_constraints
     end  
