@@ -14,7 +14,7 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     ctd.NLP_sol_constraints = ipopt_constraint(ipopt_solution.solution, ctd)
 
     # parse NLP variables, constraints and multipliers 
-    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, variable_box_upper = parse_ipopt_sol(ctd)
+    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_ipopt_sol(ctd)
 
     # variables and misc infos
     N = ctd.dim_NLP_steps
@@ -100,7 +100,7 @@ function parse_ipopt_sol(ctd)
     mult_U = ctd.NLP_stats.multipliers_U
     X = zeros(N+1,ctd.dim_NLP_state)
     U = zeros(N+1,ctd.control_dimension)
-    v = get variables(xu, ctd)
+    v = get_variable(xu, ctd)
     mult_state_box_lower = zeros(N+1,ctd.dim_NLP_state)
     mult_state_box_upper = zeros(N+1,ctd.dim_NLP_state)
     mult_control_box_lower = zeros(N+1,ctd.control_dimension)
@@ -108,7 +108,6 @@ function parse_ipopt_sol(ctd)
     mult_variable_box_lower = zeros(N+1,ctd.variable_dimension)
     mult_variable_box_upper = zeros(N+1,ctd.variable_dimension)
 
-    # +++ v box + get
     for i in 1:N+1
         # variables
         X[i,:] = vget_state_at_time_step(xu, ctd, i-1)
@@ -198,7 +197,6 @@ function parse_ipopt_sol(ctd)
         mult_variable_constraints = lambda[index:index+ctd.dim_variable_constraints-1]
         index = index + ctd.dim_variable_constraints
     end
-
 
     return X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper
 end

@@ -1,11 +1,10 @@
 function get_variable(xu, ctd)
-    # put variable at the end of NLP unknown ?
     if ctd.has_variable
-        v = xu[end - ctd.variable_dimension + 1 : end]
+        # do we need to handle the scalar case here too ?
+        return xu[end-ctd.variable_dimension+1:end]
     else
-        v = Real[]
+        return Real[]
     end
-    return v
 end
 
 # return augmented state including potential component for lagrange objective
@@ -74,7 +73,7 @@ end
 
 function get_initial_time(xu, ctd)
     if ctd.has_free_initial_time
-        v = get_variable(xu, ctd.variable_dimension)
+        v = get_variable(xu, ctd)
         return v[ctd.initial_time]
     else
         return ctd.initial_time
@@ -83,7 +82,10 @@ end
 
 function get_final_time(xu, ctd)
     if ctd.has_free_final_time
-        v = get_variable(xu, ctd.variable_dimension)
+        v = get_variable(xu, ctd)
+        #println("v: ",v)
+        #println("ctd.final_time: ",ctd.final_time)
+        #println("v[ctd.final_time]: ", v[ctd.final_time])
         return v[ctd.final_time]
     else
         return ctd.final_time

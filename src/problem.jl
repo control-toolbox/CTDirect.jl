@@ -77,15 +77,9 @@ mutable struct CTDirect_data
         # time
         ctd.initial_time = ocp.initial_time
         ctd.final_time = ocp.final_time
-        ctd.has_free_initial_time = @match ocp.initial_time begin
-            Time => false
-            Index => true
-        end
-        ctd.has_free_final_time = @match ocp.final_time begin
-            Time => false
-            Index => true
-        end
-
+        ctd.has_free_initial_time = (typeof(ocp.initial_time)==Index)
+        ctd.has_free_final_time = (typeof(ocp.final_time)==Index)
+        
         # dimensions and functions
         ctd.state_dimension = ocp.state_dimension
         ctd.has_scalar_state = (ctd.state_dimension == 1)    
@@ -219,14 +213,14 @@ function constraints_bounds(ctd)
     end
     
     # boundary conditions
-    if has_boundary_conditions
+    if ctd.has_boundary_conditions
         lb[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[1]
         ub[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[3]
         index = index + ctd.dim_boundary_conditions
     end
 
     # variable constraints
-    if has_variable_constraints
+    if ctd.has_variable_constraints
         lb[index:index+ctd.dim_variable_constraints-1] = ctd.variable_constraints[1]
         ub[index:index+ctd.dim_variable_constraints-1] = ctd.variable_constraints[3]
         index = index + ctd.dim_variable_constraints
@@ -248,40 +242,43 @@ function variables_bounds(ctd)
     N = ctd.dim_NLP_steps
     l_var = -Inf*ones(ctd.dim_NLP_variables)
     u_var = Inf*ones(ctd.dim_NLP_variables)
-    index = 0
 
     # NLP variables layout: [X0, X1 .. XN, U0, U1 .. UN, V]
+    # NB. keep offset for each block since blocks are optional !
 
     # state box
+    offset = 0
     if ctd.has_state_box
         for i in 0:N
             for j in 1:ctd.dim_state_box
                 indice = ctd.state_box[2][j]
-                l_var[index+indice] = ctd.state_box[1][j]
-                u_var[index+indice] = ctd.state_box[3][j]
+                l_var[offset+indice] = ctd.state_box[1][j]
+                u_var[offset+indice] = ctd.state_box[3][j]
             end
-            index = index + ctd.dim_NLP_state
+            offset = offset + ctd.dim_NLP_state
         end
     end
 
     # control box
+    offset = (N+1) * ctd.dim_NLP_state
     if ctd.has_control_box
         for i in 0:N
             for j in 1:ctd.dim_control_box
                 indice = ctd.control_box[2][j]
-                l_var[index+indice] = ctd.control_box[1][j]
-                u_var[index+indice] = ctd.control_box[3][j]
+                l_var[offset+indice] = ctd.control_box[1][j]
+                u_var[offset+indice] = ctd.control_box[3][j]
             end
-            index = index + ctd.control_dimension
+            offset = offset + ctd.control_dimension
         end
     end
 
     # variable box
+    offset = (N+1) * (ctd.dim_NLP_state + ctd.control_dimension)
     if ctd.has_variable_box
         for j in 1:ctd.dim_variable_box
             indice = ctd.variable_box[2][j]
-            l_var[index+indice] = ctd.variable_box[1][j]
-            u_var[index+indice] = ctd.variable_box[3][j]
+            l_var[offset+indice] = ctd.variable_box[1][j]
+            u_var[offset+indice] = ctd.variable_box[3][j]
         end
     end
 
