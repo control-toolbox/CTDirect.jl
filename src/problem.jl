@@ -28,9 +28,6 @@ mutable struct CTDirect_data
     has_control_box
     has_state_box
     has_variable_box
-    # use booleans instead of dimension check in getters
-    # set booleans by testing ocp function calls ?
-    # Q. already in ocp ? if not, add ?
     has_scalar_state   
     has_scalar_control
 
@@ -91,14 +88,16 @@ mutable struct CTDirect_data
 
         # dimensions and functions
         ctd.state_dimension = ocp.state_dimension
+        ctd.has_scalar_state = (ctd.state_dimension == 1)    
         ctd.control_dimension = ocp.control_dimension
+        ctd.has_scalar_control = (ctd.control_dimension == 1)   
         ctd.has_variable = !isnothing(ocp.variable_dimension)
         if ctd.has_variable
             ctd.variable_dimension = ocp.variable_dimension
         else
             ctd.variable_dimension = 0
         end
-        println("Free t0: ", ctd.has_free_initial_time, " Free tf: ", ctd.has_free_final_time, " Variable dim: ", ctd.variable_dimension)
+        println("Free t0: ", ctd.has_free_initial_time, " Free tf: ", ctd.has_free_final_time, " Variable dim: ", ctd.variable_dimension, " has scalar state: ", ctd.has_scalar_state, " has scalar control: ", ctd.has_scalar_control)
         ctd.dynamics = ocp.dynamics
         ctd.has_lagrange_cost = !isnothing(ocp.lagrange)
         ctd.lagrange = ocp.lagrange
@@ -131,21 +130,18 @@ mutable struct CTDirect_data
 
         # Mayer to Lagrange reformulation: 
         # additional state with Lagrange cost as dynamics and null initial condition
-        # +++ add variables constraints
         if ctd.has_lagrange_cost
             ctd.dim_NLP_state = ctd.state_dimension + 1  
-            ctd.dim_NLP_constraints = N * (ctd.dim_NLP_state + ctd.dim_path_constraints) +
-            ctd.dim_path_constraints + ctd.dim_boundary_conditions + 1           
+            ctd.dim_NLP_constraints = N * (ctd.dim_NLP_state + ctd.dim_path_constraints) + ctd.dim_path_constraints + ctd.dim_boundary_conditions + ctd.dim_variable_constraints + 1           
         else
             ctd.dim_NLP_state = ctd.state_dimension  
-            ctd.dim_NLP_constraints = N * (ctd.dim_NLP_state + ctd.dim_path_constraints) +
-            ctd.dim_path_constraints + ctd.dim_boundary_conditions
+            ctd.dim_NLP_constraints = N * (ctd.dim_NLP_state + ctd.dim_path_constraints) + ctd.dim_path_constraints + ctd.dim_boundary_conditions + ctd.dim_variable_constraints
         end
         # augmented dynamics (+++try to evaluate the condition only once cf below)
         #ctd.dynamics_lagrange_to_mayer(t, x, u) = ctd.has_lagrange_cost ? [ctd.dynamics(t, x[1:ctd.state_dimension], u); ctd.lagrange(t, x[1:ctd.state_dimension], u)] : ctd.dynamics(t, x, u) DOES NOT COMPILE
         function f(t, x, u, v)
             if ctd.has_lagrange_cost
-                if ctd.state_dimension == 1
+                if ctd.has_scalar_state
                     x_ocp = x[1]
                 else
                     x_ocp = x[1:ctd.state_dimension]
@@ -160,13 +156,8 @@ mutable struct CTDirect_data
         # min or max problem (unused ?)
         ctd.criterion_min_max = ocp.criterion
 
-        # +++ to be removed, add variable dim instead
-        # additional variable for free final time
-        if ctd.has_free_final_time
-            ctd.dim_NLP_variables = (N + 1) * (ctd.dim_NLP_state + ctd.control_dimension) + 1
-        else
-            ctd.dim_NLP_variables = (N + 1) * (ctd.dim_NLP_state + ctd.control_dimension)
-        end
+        # set dimension for NLP unknown (state + control + variable)
+        ctd.dim_NLP_variables = (N + 1) * (ctd.dim_NLP_state + ctd.control_dimension) + ctd.variable_dimension
 
         return ctd
 
@@ -174,21 +165,15 @@ mutable struct CTDirect_data
 
 end
 
+
 function is_solvable(ocp)
     solvable = true
-
-    # +++ remove
-    # free initial time
-    if isnothing(ocp.initial_time)
-        solvable = false
-    end
-    
     return solvable
 end
 
 
 # bounds for the constraints
-function  constraints_bounds(ctd)
+function constraints_bounds(ctd)
 
     N = ctd.dim_NLP_steps
     lb = zeros(ctd.dim_NLP_constraints)
@@ -215,6 +200,7 @@ function  constraints_bounds(ctd)
             index = index + ctd.dim_mixed_constraints
         end
     end
+    
     # path constraints at final time
     if ctd.has_control_constraints
         lb[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[1]
@@ -231,18 +217,27 @@ function  constraints_bounds(ctd)
         ub[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[3]
         index = index + ctd.dim_mixed_constraints
     end
+    
     # boundary conditions
-    # +++ use boolean
-    lb[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[1]
-    ub[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[3]
-    index = index + ctd.dim_boundary_conditions
+    if has_boundary_conditions
+        lb[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[1]
+        ub[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[3]
+        index = index + ctd.dim_boundary_conditions
+    end
+
+    # variable constraints
+    if has_variable_constraints
+        lb[index:index+ctd.dim_variable_constraints-1] = ctd.variable_constraints[1]
+        ub[index:index+ctd.dim_variable_constraints-1] = ctd.variable_constraints[3]
+        index = index + ctd.dim_variable_constraints
+    end 
+
+    # lagrange cost (set integral to 0 at t0)
     if ctd.has_lagrange_cost
         lb[index] = 0.
         ub[index] = 0.
         index = index + 1
     end
-
-    # +++ variable, use boolean
 
     return lb, ub
 end
@@ -253,12 +248,12 @@ function variables_bounds(ctd)
     N = ctd.dim_NLP_steps
     l_var = -Inf*ones(ctd.dim_NLP_variables)
     u_var = Inf*ones(ctd.dim_NLP_variables)
-    
+    index = 0
+
     # NLP variables layout: [X0, X1 .. XN, U0, U1 .. UN, V]
 
     # state box
     if ctd.has_state_box
-        index = 0
         for i in 0:N
             for j in 1:ctd.dim_state_box
                 indice = ctd.state_box[2][j]
@@ -271,7 +266,6 @@ function variables_bounds(ctd)
 
     # control box
     if ctd.has_control_box
-        index = (N+1)*ctd.dim_NLP_state 
         for i in 0:N
             for j in 1:ctd.dim_control_box
                 indice = ctd.control_box[2][j]
@@ -282,9 +276,13 @@ function variables_bounds(ctd)
         end
     end
 
-    # free final time case +++ variable box instead
-    if ctd.has_free_final_time
-        l_var[end] = 1.e-3
+    # variable box
+    if ctd.has_variable_box
+        for j in 1:ctd.dim_variable_box
+            indice = ctd.variable_box[2][j]
+            l_var[index+indice] = ctd.variable_box[1][j]
+            u_var[index+indice] = ctd.variable_box[3][j]
+        end
     end
 
     return l_var, u_var
@@ -301,8 +299,8 @@ function ipopt_objective(xu, ctd)
     
     if ctd.has_mayer_cost
         v = get_variable(xu, ctd)
-        x0 = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, ctd.state_dimension, N)
-        xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, ctd.state_dimension, N)
+        x0 = get_state_at_time_step(xu, ctd, 0)
+        xf = get_state_at_time_step(xu, ctd, N)
         obj = obj + ctd.mayer(x0, xf, v)
     end
     
@@ -318,7 +316,7 @@ function ipopt_objective(xu, ctd)
 end
 
 
-# IPOPT constraints +++ add bounds computation here at first call
+# IPOPT constraints  (add bounds computation here at first call ?)
 function ipopt_constraint(xu, ctd)
     """
     compute the constraints for the NLP : 
@@ -348,15 +346,15 @@ function ipopt_constraint(xu, ctd)
 
     # state equation
     ti = t0
-    xi = get_augmented_state_at_time_step(xu, 0, ctd.dim_NLP_state, N)
-    ui = get_control_at_time_step(xu, 0, ctd.dim_NLP_state, N, ctd.control_dimension)
+    xi = get_augmented_state_at_time_step(xu, ctd, 0)
+    ui = get_control_at_time_step(xu, ctd, 0)
     fi = ctd.dynamics_lagrange_to_mayer(ti, xi, ui, v)
     index = 1 # counter for the constraints
     for i in 0:N-1
         tip1 = t0 + (i+1)*h
         # state and control at t_{i+1}
-        xip1 = get_augmented_state_at_time_step(xu, i+1, ctd.dim_NLP_state, N)
-        uip1 = get_control_at_time_step(xu, i+1, ctd.dim_NLP_state, N, ctd.control_dimension)
+        xip1 = get_augmented_state_at_time_step(xu, ctd, i+1)
+        uip1 = get_control_at_time_step(xu, ctd, i+1)
         fip1 = ctd.dynamics_lagrange_to_mayer(tip1, xip1, uip1, v)
         # state equation
         if ctd.dim_NLP_state == 1
@@ -367,7 +365,7 @@ function ipopt_constraint(xu, ctd)
         index = index + ctd.dim_NLP_state
 
         # path constraints
-        xxi = get_state_at_time_step(xu, i, ctd.dim_NLP_state, ctd.state_dimension, N)
+        xxi = get_state_at_time_step(xu, ctd, i)
         if ctd.has_control_constraints
             c[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[2](ti, ui, v)
             index = index + ctd.dim_control_constraints
@@ -386,8 +384,8 @@ function ipopt_constraint(xu, ctd)
     end
 
     # path constraints at final time
-    xf = get_state_at_time_step(xu, N, ctd.dim_NLP_state, ctd.state_dimension, N)
-    uf = get_control_at_time_step(xu, N, ctd.dim_NLP_state, N, ctd.control_dimension)
+    xf = get_state_at_time_step(xu, ctd, N)
+    uf = get_control_at_time_step(xu, ctd, N)
     if ctd.has_control_constraints
         c[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[2](tf, uf, v)      
         index = index + ctd.dim_control_constraints
@@ -402,17 +400,23 @@ function ipopt_constraint(xu, ctd)
     end
 
     # boundary conditions
-    # +++ use boolean
-    x0 = get_state_at_time_step(xu, 0, ctd.dim_NLP_state, ctd.state_dimension, N)
-    c[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[2](x0, xf, v)
-    index = index + ctd.dim_boundary_conditions
+    if ctd.has_boundary_conditions
+        x0 = get_state_at_time_step(xu, ctd, 0)
+        c[index:index+ctd.dim_boundary_conditions-1] = ctd.boundary_conditions[2](x0, xf, v)
+        index = index + ctd.dim_boundary_conditions
+    end
+
+    # variable constraints
+    if ctd.has_variable_constraints
+        c[index:index+ctd.dim_variable_constraints-1] = ctd.variable_constraints[2](v)
+        index = index + ctd.dim_variable_constraints
+    end
+
     # null initial condition for augmented state (reformulated lagrangian cost)
     if ctd.has_lagrange_cost
         c[index] = xu[ctd.dim_NLP_state]
         index = index + 1
     end
-
-    # +++ variable constraints, use boolean
 
     return c
 end

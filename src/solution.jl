@@ -13,9 +13,8 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     ctd.NLP_solution = ipopt_solution.solution
     ctd.NLP_sol_constraints = ipopt_constraint(ipopt_solution.solution, ctd)
 
-    # +++ add variables
     # parse NLP variables, constraints and multipliers 
-    X, U, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper = parse_ipopt_sol(ctd)
+    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, variable_box_upper = parse_ipopt_sol(ctd)
 
     # variables and misc infos
     N = ctd.dim_NLP_steps
@@ -31,14 +30,15 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     sol.state = t -> x(t)
     sol.costate = t -> p(t)
     sol.control = t -> u(t)
-    #sol.variable = get_variable(ctd.NLP_solution, ctd) +++no field ?
+    #sol.variable = v +++no field variable?
+    sol.infos[:variable] = v
     sol.objective = ctd.NLP_objective
     sol.iterations = ctd.NLP_iterations
     sol.stopping = :dummy 
     sol.message = "no message" 
     sol.success = false #
 
-    # constraints and multipliers
+    # nonlinear constraints and multipliers
     if ctd.has_state_constraints
         cx = ctinterpolate(T, matrix2vec(sol_state_constraints, 1))
         mcx = ctinterpolate(T, matrix2vec(mult_state_constraints, 1))
@@ -60,7 +60,13 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
         sol.infos[:mixed_constraints] = t -> cxu(t)
         sol.infos[:mult_mixed_constraints] = t -> mcxu(t)
     end
-    # +++ variable constraints cv mcv
+    if ctd.has_variable_constraints
+        sol.infos[:dim_variable_constraints] = ctd.dim_variable_constraints
+        sol.infos[:variable_constraints] = sol_variable_constraints
+        sol.infos[:mult_variable_constraints] = mult_variable_constraints
+    end
+
+    # box constraints multipliers
     if ctd.has_state_box
         mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower, 1))
         mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper, 1))
@@ -73,7 +79,10 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
         sol.infos[:mult_control_box_lower] = t -> mbox_u_l(t)
         sol.infos[:mult_control_box_upper] = t -> mbox_u_u(t)
     end
-    # +++ variable box 
+    if ctd.has_variable_box
+        sol.infos[:mult_variable_box_lower] = mult_variable_box_lower
+        sol.infos[:mult_variable_box_upper] = mult_variable_box_upper 
+    end
 
     return sol
 
@@ -91,24 +100,36 @@ function parse_ipopt_sol(ctd)
     mult_U = ctd.NLP_stats.multipliers_U
     X = zeros(N+1,ctd.dim_NLP_state)
     U = zeros(N+1,ctd.control_dimension)
-    # +++ v = get variables
+    v = get variables(xu, ctd)
     mult_state_box_lower = zeros(N+1,ctd.dim_NLP_state)
     mult_state_box_upper = zeros(N+1,ctd.dim_NLP_state)
     mult_control_box_lower = zeros(N+1,ctd.control_dimension)
     mult_control_box_upper = zeros(N+1,ctd.control_dimension)
+    mult_variable_box_lower = zeros(N+1,ctd.variable_dimension)
+    mult_variable_box_upper = zeros(N+1,ctd.variable_dimension)
+
     # +++ v box + get
     for i in 1:N+1
         # variables
-        X[i,:] = vget_state_at_time_step(xu, i-1, ctd.dim_NLP_state, N)
-        U[i,:] = vget_control_at_time_step(xu, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+        X[i,:] = vget_state_at_time_step(xu, ctd, i-1)
+        U[i,:] = vget_control_at_time_step(xu, ctd, i-1)
         # box multipliers (same layout as variables !)
+        # +++ fix mult vectors instead to always be full size (todo in return from solve)
         if length(mult_L) > 0
-            mult_state_box_lower[i,:] = vget_state_at_time_step(mult_L, i-1, ctd.dim_NLP_state, N)
-            mult_control_box_lower[i,:] = vget_control_at_time_step(mult_L, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+            mult_state_box_lower[i,:] = vget_state_at_time_step(mult_L, ctd, i-1)
+            mult_control_box_lower[i,:] = vget_control_at_time_step(mult_L, ctd, i-1)
         end
         if length(mult_U) > 0
-            mult_state_box_upper[i,:] = vget_state_at_time_step(mult_U, i-1, ctd.dim_NLP_state, N)
-            mult_control_box_upper[i,:] = vget_control_at_time_step(mult_U, i-1, ctd.dim_NLP_state, N, ctd.control_dimension)
+            mult_state_box_upper[i,:] = vget_state_at_time_step(mult_U, ctd, i-1)
+            mult_control_box_upper[i,:] = vget_control_at_time_step(mult_U, ctd, i-1)
+        end
+    end
+    if ctd.has_variable_box
+        if length(mult_L) > 0
+            mult_variable_box_lower = get_variable(mult_L, ctd)
+        end
+        if length(mult_U) > 0
+            mult_variable_box_upper = get_variable(mult_U, ctd)
         end
     end
 
@@ -119,11 +140,12 @@ function parse_ipopt_sol(ctd)
     sol_control_constraints = zeros(N+1,ctd.dim_control_constraints)
     sol_state_constraints = zeros(N+1,ctd.dim_state_constraints)
     sol_mixed_constraints = zeros(N+1,ctd.dim_mixed_constraints) 
-    # +++ v   
+    sol_variable_constraints = zeros(ctd.dim_variable_constraints)
     mult_control_constraints = zeros(N+1,ctd.dim_control_constraints)
     mult_state_constraints = zeros(N+1,ctd.dim_state_constraints)
     mult_mixed_constraints = zeros(N+1,ctd.dim_mixed_constraints)
-    # ++++ m v
+    mult_variable_constraints = zeros(ctd.dim_variable_constraints)
+
     index = 1
     for i in 1:N
         # state equation
@@ -163,9 +185,20 @@ function parse_ipopt_sol(ctd)
         index = index + ctd.dim_mixed_constraints
     end
 
-    # boundary + mult
+    # boundary conditions and multipliers
+    if ctd.has_boundary_conditions
+        sol_boundary_conditions = c[index:index+ctd.dim_boundary_conditions-1]
+        mult_boundary_conditions = lambda[index:index+ctd.dim_boundary_conditions-1]
+        index = index + ctd.dim_boundary_conditions
+    end
 
-    # v + mult
+    # variable constraints and multipliers
+    if ctd.has_variable_constraints
+        sol_variable_constraints = c[index:index+ctd.dim_variable_constraints-1]
+        mult_variable_constraints = lambda[index:index+ctd.dim_variable_constraints-1]
+        index = index + ctd.dim_variable_constraints
+    end
 
-    return X, U, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper
+
+    return X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper
 end
