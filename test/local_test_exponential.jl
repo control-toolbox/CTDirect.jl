@@ -62,6 +62,7 @@ sol = solve(ocp, grid_size=20, print_level=3)
 
 =#
 
+#=
 # try energy with free tf in [0.5, 2]
 ocp2 = Model(variable=true)
 state!(ocp2, 1)
@@ -75,8 +76,22 @@ constraint!(ocp2, :variable, 0.5, 2, :variable_constraint)
 dynamics!(ocp2, (x, u, v) ->  -x[1] + u[1])
 objective!(ocp2, :lagrange, (x, u, v) -> u[1]*u[1])
 sol = solve(ocp2, grid_size=100, print_level=5, tol=1e-12)
+=#
 
 # try min tf lagrange and mayer
+ocp3 = Model(variable=true)
+state!(ocp3, 2)
+control!(ocp3, 1)
+variable!(ocp3, 1)
+time!(ocp3, 0, Index(1))
+constraint!(ocp3, :initial, [0,0], :initial_constraint)
+constraint!(ocp3, :final, [1,0], :final_constraint)
+constraint!(ocp3, :control, -1, 1, :control_constraint)
+constraint!(ocp3, :variable, 0.1, 10, :variable_constraint)
+dynamics!(ocp3, (x, u, v) ->  [x[2], u])
+#objective!(ocp3, :lagrange, (x, u, v) -> u[1]*u[1])
+objective!(ocp3, :mayer, (x0, xf, v) -> v[1]) 
+sol = solve(ocp3, grid_size=100, print_level=5, tol=1e-12)
 
 
 plot(sol)
