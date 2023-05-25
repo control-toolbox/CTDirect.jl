@@ -96,8 +96,30 @@ objective!(ocp3, :lagrange, (x, u, v) -> 1) # min free tf ok
 #objective!(ocp3, :mayer, (x0, xf, v) -> v[1]) # min free tf ok
 #objective!(ocp3, :mayer, (x0, xf, v) -> - v[1]) # max t0 free to and tf ok
 #objective!(ocp3, :mayer, (x0, xf, v) -> v[1], :max) # max t0 free to and tf ok
-sol = solve(ocp3, grid_size=100, print_level=5, tol=1e-12)
 
+sol3 = solve(ocp3, grid_size=100, print_level=5, tol=1e-12)
 
-plot(sol)
+plot(sol3)
 
+# try min tf, abstract definition
+@def ocp4 begin
+    tf ∈ R, variable
+    t ∈ [ 0, tf ], time
+    x ∈ R², state
+    q = x₁
+    v = x₂
+    u ∈ R, control
+    -1 ≤ u(t) ≤ 1
+    q(0) == 0
+    v(0) == 0
+    q(tf) == 1
+    v(tf) == 0
+    0.1 ≤ tf ≤ 10
+    ẋ(t) == [ v(t), u(t) ] 
+    #tf → min
+    ∫( 1 ) → min
+end
+
+sol4 = solve(ocp4, grid_size=100, print_level=5, tol=1e-12)
+
+plot(sol4)
