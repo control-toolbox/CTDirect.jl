@@ -58,7 +58,6 @@ mutable struct CTDirect_data
     dim_NLP_constraints
     dim_NLP_variables
     dim_NLP_steps
-    dynamics_lagrange_to_mayer
     NLP_init
 
     # NLP solution
@@ -131,21 +130,6 @@ mutable struct CTDirect_data
             ctd.dim_NLP_state = ctd.state_dimension  
             ctd.dim_NLP_constraints = N * (ctd.dim_NLP_state + ctd.dim_path_constraints) + ctd.dim_path_constraints + ctd.dim_boundary_conditions + ctd.dim_variable_constraints
         end
-        # augmented dynamics (+++try to evaluate the condition only once cf below)
-        #ctd.dynamics_lagrange_to_mayer(t, x, u) = ctd.has_lagrange_cost ? [ctd.dynamics(t, x[1:ctd.state_dimension], u); ctd.lagrange(t, x[1:ctd.state_dimension], u)] : ctd.dynamics(t, x, u) DOES NOT COMPILE
-        function f(t, x, u, v)
-            if ctd.has_lagrange_cost
-                if ctd.has_scalar_state
-                    x_ocp = x[1]
-                else
-                    x_ocp = x[1:ctd.state_dimension]
-                end
-                return [ctd.dynamics(t, x_ocp, u, v); ctd.lagrange(t, x_ocp, u, v)]
-            else
-                return ctd.dynamics(t, x, u, v)
-            end
-        end
-        ctd.dynamics_lagrange_to_mayer = f
 
         # min or max problem (unused ?)
         ctd.criterion_min_max = ocp.criterion
@@ -343,36 +327,49 @@ function ipopt_constraint(xu, ctd)
 
     # state equation
     ti = t0
-    xi = get_augmented_state_at_time_step(xu, ctd, 0)
+    xi = get_state_at_time_step(xu, ctd, 0)
     ui = get_control_at_time_step(xu, ctd, 0)
-    fi = ctd.dynamics_lagrange_to_mayer(ti, xi, ui, v)
+    fi = ctd.dynamics(ti, xi, ui, v)
+    if ctd.has_lagrange_cost
+        xli = get_lagrange_cost_at_time_step(xu, ctd, 0)
+        li = ctd.lagrange(ti, xi, ui, v)
+    end
+
     index = 1 # counter for the constraints
     for i in 0:N-1
         tip1 = t0 + (i+1)*h
+        
         # state and control at t_{i+1}
-        xip1 = get_augmented_state_at_time_step(xu, ctd, i+1)
+        xip1 = get_state_at_time_step(xu, ctd, i+1)
         uip1 = get_control_at_time_step(xu, ctd, i+1)
-        fip1 = ctd.dynamics_lagrange_to_mayer(tip1, xip1, uip1, v)
+        fip1 = ctd.dynamics(tip1, xip1, uip1, v)
+
         # state equation
-        if ctd.dim_NLP_state == 1
+        if ctd.state_dimension == 1
             c[index] = xip1 - (xi + 0.5*h*(fi + fip1))            
         else
-            c[index:index+ctd.dim_NLP_state-1] = xip1 - (xi + 0.5*h*(fi + fip1))
+            c[index:index+ctd.state_dimension-1] = xip1 - (xi + 0.5*h*(fi + fip1))
+        end
+        if ctd.has_lagrange_cost
+            xlip1 = get_lagrange_cost_at_time_step(xu, ctd, i+1)
+            lip1 = ctd.lagrange(tip1, xip1, uip1, v)
+            c[index+ctd.state_dimension] = xlip1 - (xli + 0.5*h*(li + lip1))
+            xli = xlip1
+            li = lip1
         end
         index = index + ctd.dim_NLP_state
 
         # path constraints
-        xxi = get_state_at_time_step(xu, ctd, i)
         if ctd.has_control_constraints
             c[index:index+ctd.dim_control_constraints-1] = ctd.control_constraints[2](ti, ui, v)
             index = index + ctd.dim_control_constraints
         end
         if ctd.has_state_constraints
-            c[index:index+ctd.dim_state_constraints-1] = ctd.state_constraints[2](ti, xxi ,v)
+            c[index:index+ctd.dim_state_constraints-1] = ctd.state_constraints[2](ti, xi ,v)
             index = index + ctd.dim_state_constraints
         end
         if ctd.has_mixed_constraints
-            c[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[2](ti, xxi, ui, v)
+            c[index:index+ctd.dim_mixed_constraints-1] = ctd.mixed_constraints[2](ti, xi, ui, v)
             index = index + ctd.dim_mixed_constraints
         end
         xi = xip1
@@ -411,7 +408,7 @@ function ipopt_constraint(xu, ctd)
 
     # null initial condition for augmented state (reformulated lagrangian cost)
     if ctd.has_lagrange_cost
-        c[index] = xu[ctd.dim_NLP_state]
+        c[index] = get_lagrange_cost_at_time_step(xu, ctd, 0)
         index = index + 1
     end
 
