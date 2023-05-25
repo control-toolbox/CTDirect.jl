@@ -106,18 +106,15 @@ plot(sol3)
     tf ∈ R, variable
     t ∈ [ 0, tf ], time
     x ∈ R², state
-    q = x₁
-    v = x₂
     u ∈ R, control
     -1 ≤ u(t) ≤ 1
-    q(0) == 0
-    v(0) == 0
-    q(tf) == 1
-    v(tf) == 0
+    x(0) == [ 0, 0 ]
+    x(tf) == [ 1, 0 ]
     0.1 ≤ tf ≤ 10
-    ẋ(t) == [ v(t), u(t) ] 
+    ẋ(t) == [ x₂(t), u(t) ] 
     #tf → min
-    ∫( 1 ) → min
+    tf[1] → min
+    #∫( 1 ) → min
 end
 
 sol4 = solve(ocp4, grid_size=100, print_level=5, tol=1e-12)
