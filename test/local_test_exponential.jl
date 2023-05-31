@@ -100,7 +100,7 @@ objective!(ocp3, :mayer, (x0, xf, v) -> v) # scalar variable
 sol3 = solve(ocp3, grid_size=100, print_level=5, tol=1e-12)
 plot(sol3)
 
-# try min tf, abstract definition: seems ok !
+# min tf, abstract definition
 @def ocp4 begin
     tf ∈ R, variable
     t ∈ [ 0, tf ], time
@@ -109,11 +109,9 @@ plot(sol3)
     -1 ≤ u(t) ≤ 1
     x(0) == [ 0, 0 ]
     x(tf) == [ 1, 0 ]
-    0.1 ≤ tf ≤ 10
+    0.1 ≤ tf ≤ Inf 
     ẋ(t) == [ x₂(t), u(t) ] 
     tf → min
-    #tf[1] → min
-    #∫( 1 ) → min
 end
 sol4 = solve(ocp4, grid_size=100, print_level=5, tol=1e-12)
 plot(sol4)
