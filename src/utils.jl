@@ -1,7 +1,10 @@
 function get_variable(xu, ctd)
     if ctd.has_variable
-        # do we need to handle the scalar case here too ?
-        return xu[end-ctd.variable_dimension+1:end]
+        if ctd.variable_dimension == 1
+            return xu[end]
+        else
+            return xu[end-ctd.variable_dimension+1:end]
+        end
     else
         return Real[]
     end

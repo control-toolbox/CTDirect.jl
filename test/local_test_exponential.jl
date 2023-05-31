@@ -94,14 +94,13 @@ constraint!(ocp3, :variable, 0.1, 10, :variable_constraint)
 dynamics!(ocp3, (x, u, v) ->  [x[2], u])
 objective!(ocp3, :lagrange, (x, u, v) -> 1) # min free tf ok
 #objective!(ocp3, :mayer, (x0, xf, v) -> v[1]) # min free tf ok
+objective!(ocp3, :mayer, (x0, xf, v) -> v) # scalar variable
 #objective!(ocp3, :mayer, (x0, xf, v) -> - v[1]) # max t0 free to and tf ok
 #objective!(ocp3, :mayer, (x0, xf, v) -> v[1], :max) # max t0 free to and tf ok
-
 sol3 = solve(ocp3, grid_size=100, print_level=5, tol=1e-12)
-
 plot(sol3)
 
-# try min tf, abstract definition
+# try min tf, abstract definition: seems ok !
 @def ocp4 begin
     tf ∈ R, variable
     t ∈ [ 0, tf ], time
@@ -112,11 +111,9 @@ plot(sol3)
     x(tf) == [ 1, 0 ]
     0.1 ≤ tf ≤ 10
     ẋ(t) == [ x₂(t), u(t) ] 
-    #tf → min
-    tf[1] → min
+    tf → min
+    #tf[1] → min
     #∫( 1 ) → min
 end
-
 sol4 = solve(ocp4, grid_size=100, print_level=5, tol=1e-12)
-
 plot(sol4)
