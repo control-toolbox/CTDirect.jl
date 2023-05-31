@@ -15,7 +15,7 @@ ocp = prob.model
 
 # solve
 #sol = solve(ocp, grid_size=10, print_level=5)
-sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, mu_strategy="adaptive", init=nothing)
+sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12, init=nothing)
 
 p1 = plot(sol)
 

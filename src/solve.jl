@@ -38,7 +38,7 @@ function solve(ocp::OptimalControlModel,
     # get full description from partial
     # throw error if description is not valid
     # thus, no else is needed below
-    method = getFullDescription(makeDescription(description...), algorithmes)
+    method = getFullDescription(description, algorithmes)
 
     # Model: from ocp to nlp
     if :adnlp in method
