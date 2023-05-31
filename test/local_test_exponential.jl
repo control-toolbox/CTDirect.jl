@@ -92,7 +92,7 @@ constraint!(ocp3, :control, -1, 1, :control_constraint)
 constraint!(ocp3, :variable, 0.1, 10, :variable_constraint)
 #constraint!(ocp3, :variable, [0.1, 0.1], [10, 10], :variable_constraint)
 dynamics!(ocp3, (x, u, v) ->  [x[2], u])
-objective!(ocp3, :lagrange, (x, u, v) -> 1) # min free tf ok
+#objective!(ocp3, :lagrange, (x, u, v) -> 1) # min free tf ok
 #objective!(ocp3, :mayer, (x0, xf, v) -> v[1]) # min free tf ok
 objective!(ocp3, :mayer, (x0, xf, v) -> v) # scalar variable
 #objective!(ocp3, :mayer, (x0, xf, v) -> - v[1]) # max t0 free to and tf ok

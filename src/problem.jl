@@ -90,7 +90,7 @@ mutable struct CTDirect_data
         else
             ctd.variable_dimension = 0
         end
-        println("Free t0: ", ctd.has_free_initial_time, " Free tf: ", ctd.has_free_final_time, " Variable dim: ", ctd.variable_dimension, " has scalar state: ", ctd.has_scalar_state, " has scalar control: ", ctd.has_scalar_control)
+        #println("Free t0: ", ctd.has_free_initial_time, " Free tf: ", ctd.has_free_final_time, " Variable dim: ", ctd.variable_dimension, " has scalar state: ", ctd.has_scalar_state, " has scalar control: ", ctd.has_scalar_control)
         ctd.dynamics = ocp.dynamics
         ctd.has_lagrange_cost = !isnothing(ocp.lagrange)
         ctd.lagrange = ocp.lagrange
