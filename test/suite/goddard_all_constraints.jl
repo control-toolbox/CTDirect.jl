@@ -2,6 +2,7 @@ using CTDirect
 using CTBase
 
 println("Test: goddard all constraints")
+
 # goddard max final altitue (all constraint types formulation)
 ocp = Model(variable=true)
 Cd = 310
@@ -24,11 +25,11 @@ constraint!(ocp, :initial, x0, :initial_constraint)
 # final condition
 constraint!(ocp, :final, Index(3), mf, :final_constraint)
 # state constraint
-constraint!(ocp, :state, x->x[2], -Inf, vmax, :state_con_v_ub)
+constraint!(ocp, :state, (x,v)->x[2], -Inf, vmax, :state_con_v_ub)
 # control constraint
-constraint!(ocp, :control, u->u, -Inf, 1, :control_con_u_ub)
+constraint!(ocp, :control, (u,v)->u, -Inf, 1, :control_con_u_ub)
 # mixed constraint
-constraint!(ocp, :mixed, (x,u)->x[3], mf, Inf, :mixed_con_m_lb)
+constraint!(ocp, :mixed, (x,u,v)->x[3], mf, Inf, :mixed_con_m_lb)
 # variable constraint
 constraint!(ocp, :variable, v->v, -Inf, 10, :variable_con_tf_ubx)
 # state box
@@ -49,10 +50,10 @@ function F1(x)
     return [ 0, Tmax/m, -b*Tmax ]
 end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
-
 init_constant = [1.05, 0.1, 0.8, 0.5, 0.1]
-sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12, init=init_constant)
-println(sol.objective)
-#@testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types" begin
-#    @test sol.objective ≈  rtol=1e-2
-#end
+sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_constant)
+#println(sol.objective)
+#plot(sol)
+@testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types" begin
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end

@@ -104,7 +104,7 @@ constraint!(ocp5, :final, [1,0], :final_constraint)
 constraint!(ocp5, :control, 1:2, [0,0], [1,1], :control_box) # [u_, u+]
 dynamics!(ocp5, (x, u) ->  [x[2], -u[1] + u[2]])
 objective!(ocp5, :lagrange, (x, u) -> u[1]*u[1] + u[2]*u[2])
-sol5 = solve(ocp5, grid_size=100, print_level=0, tol=1e-12)
+sol5 = solve(ocp5, grid_size=50, print_level=0, tol=1e-12)
 @testset verbose = true showtiming = true ":double_integrator :min_energy" begin
     @test sol5.objective ≈ 9.6e-2 rtol=1e-2
 end
