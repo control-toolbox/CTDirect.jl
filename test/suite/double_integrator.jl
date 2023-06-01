@@ -39,7 +39,7 @@ sol2 = solve(ocp2, grid_size=100, print_level=0, tol=1e-12)
 end
 
 
-# min tf (vectorial)
+# min tf (vector)
 ocp3 = Model(variable=true)
 state!(ocp3, 2)
 control!(ocp3, 1)
@@ -90,6 +90,7 @@ end
 end
 sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
 @testset verbose = true showtiming = true ":double_integrator :min_tf :abstract" begin
+    @test is_solvable(ocp)
     @test sol.objective ≈ 2.0 rtol=1e-2
 end
 

@@ -20,5 +20,6 @@ include("solve.jl")
 
 # export functions only for user
 export solve
+export is_solvable
 
 end
