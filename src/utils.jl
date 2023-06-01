@@ -140,7 +140,7 @@ function initial_guess(ctd)
 
         # set variables
         if (ctd.variable_dimension > 0)
-            v_init = zeros(ctd.control_variable)
+            v_init = zeros(ctd.variable_dimension)
             v_init[1:ctd.variable_dimension] = init[ctd.state_dimension+ctd.control_dimension+1:ctd.state_dimension+ctd.control_dimension+ctd.variable_dimension]    
             set_variable!(xu0, v_init, ctd)
         end
