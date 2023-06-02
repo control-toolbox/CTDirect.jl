@@ -55,12 +55,21 @@ sol1 = solve(ocp, grid_size=30, print_level=0, tol=1e-8)
     @test sol1.objective ≈ 1.0125 rtol=1e-2
 end
 
-# with initial guess
+
+# with constant initial guess
 x_init = [1.05, 0.1, 0.8]
 u_init = 0.5
 v_init = 0.1
 init_constant = OptimalControlInit(x_init, u_init, v_init)
 sol2 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_constant)
-@testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init" begin
+@testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_constant" begin
     @test sol2.objective ≈ 1.0125 rtol=1e-2
+end
+
+
+# with initial guess from solution
+init_sol = OptimalControlInit(sol2)
+sol3 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_sol)
+@testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_sol" begin
+    @test sol3.objective ≈ 1.0125 rtol=1e-2
 end

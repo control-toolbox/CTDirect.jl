@@ -44,9 +44,9 @@ mutable struct OptimalControlInit
         init.state_dimension = sol.state_dimension
         init.control_dimension = sol.control_dimension
         init.variable_dimension = sol.variable_dimension
-        init.state_init = sol.state
+        init.state_init = t-> sol.state(t)[1:sol.state_dimension]
         init.control_init = sol.control
-        init.variable_init = sol.infos(:variable)  #+++ need proper variable field in ocp solution !
+        init.variable_init = sol.infos[:variable]  #+++ need proper variable field in ocp solution !
         return init
     end
 end
