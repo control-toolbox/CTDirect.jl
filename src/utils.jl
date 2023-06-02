@@ -100,8 +100,12 @@ function set_state_at_time_step!(xu, x_init, ctd, i)
     n = ctd.state_dimension
     N = ctd.dim_NLP_steps
     @assert i <= N "trying to set init for x(t_i) with i > N"
-    #xu[1+i*nx:(i+1)*nx] = x_init[1:nx]
-    xu[1+i*nx:1+i*nx+n] = x_init
+    # NB. only set first n components of state variable (nx = n+1 for lagrange cost)
+    if n == 1
+        xu[i*nx + 1] = x_init[]
+    else
+        xu[i*nx + 1 : i*nx + n] = x_init
+    end
 end
     
 function set_control_at_time_step!(xu, u_init, ctd, i)
@@ -109,11 +113,20 @@ function set_control_at_time_step!(xu, u_init, ctd, i)
     m = ctd.control_dimension
     N = ctd.dim_NLP_steps
     @assert i <= N "trying to set init for u(t_i) with i > N"
-    xu[1+(N+1)*nx+i*m:m+(N+1)*nx+i*m] = u_init
+    offset = (N+1)*nx
+    if m == 1
+        xu[offset + i*m + 1] = u_init[]
+    else        
+        xu[offset + i*m + 1 : offset + i*m + m] = u_init
+    end
 end
 
 function set_variable!(xu, v_init, ctd)
-    xu[end-ctd.variable_dimension+1:end] = v_init
+    if ctd.variable_dimension == 1
+        xu[end] = v_init[]
+    else
+        xu[end-ctd.variable_dimension+1 : end] = v_init
+    end
 end
 
 function initial_guess(ctd)
@@ -125,8 +138,8 @@ function initial_guess(ctd)
     init = ctd.NLP_init
     if init.info != :undefined
         N = ctd.dim_NLP_steps
-        t0 = get_initial_time(xu, ctd)
-        tf = get_final_time(xu, ctd)
+        t0 = get_initial_time(xu0, ctd)
+        tf = get_final_time(xu0, ctd)
         h = (tf - t0) / N 
 
         # set state / control variables

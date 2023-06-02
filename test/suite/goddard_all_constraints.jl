@@ -50,10 +50,17 @@ function F1(x)
     return [ 0, Tmax/m, -b*Tmax ]
 end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
-init_constant = [1.05, 0.1, 0.8, 0.5, 0.1]
-sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_constant)
-#println(sol.objective)
-#plot(sol)
+sol1 = solve(ocp, grid_size=30, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types" begin
-    @test sol.objective ≈ 1.0125 rtol=1e-2
+    @test sol1.objective ≈ 1.0125 rtol=1e-2
+end
+
+# with initial guess
+x_init = [1.05, 0.1, 0.8]
+u_init = 0.5
+v_init = 0.1
+init_constant = OptimalControlInit(x_init, u_init, v_init)
+sol2 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_constant)
+@testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init" begin
+    @test sol2.objective ≈ 1.0125 rtol=1e-2
 end

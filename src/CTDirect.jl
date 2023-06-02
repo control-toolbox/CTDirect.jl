@@ -13,11 +13,11 @@ const __display = CTBase.__display
 const matrix2vec = CTBase.matrix2vec
 
 # includes
+include("init.jl")
 include("utils.jl")
 include("problem.jl")
 include("solution.jl")
 include("solve.jl")
-include("init.jl")
 
 # export functions only for user
 export solve
