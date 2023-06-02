@@ -32,7 +32,7 @@ function solve(ocp::OptimalControlModel,
     print_level::Integer=__print_level_ipopt(),
     mu_strategy::String=__mu_strategy_ipopt(),
     display::Bool=__display(),
-    init=nothing,
+    init::OptimalControlInit=OptimalControlInit(),
     kwargs...)
 
     # get full description from partial
