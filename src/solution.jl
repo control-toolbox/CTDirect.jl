@@ -30,7 +30,7 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     sol.state = t -> x(t)
     sol.costate = t -> p(t)
     sol.control = t -> u(t)
-    #sol.variable = v +++no field variable?
+    #sol.variable = v +++need proper field variable
     sol.infos[:variable] = v
     sol.objective = ctd.NLP_objective
     sol.iterations = ctd.NLP_iterations

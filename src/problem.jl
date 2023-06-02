@@ -54,10 +54,12 @@ mutable struct CTDirect_data
 
     ## NLP
     # NLP problem
-    dim_NLP_state  # 'augmented state'
+    dim_NLP_state  # 'augmented state' with possible additional component for lagrange cost
     dim_NLP_constraints
     dim_NLP_variables
     dim_NLP_steps
+
+    # initialization
     NLP_init
 
     # NLP solution
@@ -68,7 +70,8 @@ mutable struct CTDirect_data
     NLP_iterations
     NLP_stats       # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
 
-    function CTDirect_data(ocp::OptimalControlModel, N::Integer, init=nothing)
+
+    function CTDirect_data(ocp::OptimalControlModel, N::Integer, init::OptimalControlInit)       
 
         ctd = new()
 
@@ -224,11 +227,13 @@ end
 function variables_bounds(ctd)
 
     N = ctd.dim_NLP_steps
-    l_var = -Inf*ones(ctd.dim_NLP_variables)
-    u_var = Inf*ones(ctd.dim_NLP_variables)
+    l_var = -Inf * ones(ctd.dim_NLP_variables)
+    u_var = Inf * ones(ctd.dim_NLP_variables)
 
     # NLP variables layout: [X0, X1 .. XN, U0, U1 .. UN, V]
     # NB. keep offset for each block since blocks are optional !
+
+    # +++ we could use the setters here (build local vectors then call setter ?!)
 
     # state box
     offset = 0
