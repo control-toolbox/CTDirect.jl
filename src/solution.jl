@@ -26,6 +26,7 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     p = ctinterpolate(T[1:end-1], matrix2vec(P, 1))
     sol = OptimalControlSolution() # +++ constructor with ocp as argument ?
     copy!(sol,ocp)
+    sol.variable_dimension = ctd.variable_dimension # +++ the one from ocp is 'nothing' -_-
     sol.times = T
     sol.state = t -> x(t)
     sol.costate = t -> p(t)

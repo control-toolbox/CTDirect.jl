@@ -144,15 +144,15 @@ function initial_guess(ctd)
     # set state / control variables if provided
     for i in 0:N
         ti = t0 + i * h
-        if (init.state_dimension > 0)
+        if !isnothing(init.state_init(ti))
             set_state_at_time_step!(xu0, init.state_init(ti), ctd, i)
         end
-        if (init.control_dimension > 0)
+        if !isnothing(init.control_init(ti))
             set_control_at_time_step!(xu0, init.control_init(ti), ctd, i)
         end
 
         # set variables if provided
-        if (init.variable_dimension > 0)
+        if !isnothing(init.variable_init)
             set_variable!(xu0, init.variable_init, ctd)
         end
     end
