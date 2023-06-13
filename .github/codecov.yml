@@ -3,5 +3,6 @@ coverage:
     project:
       default:
         informational: true
-        target: 90%
-        threshold: 5%
+    patch:
+      default:
+        informational: true
