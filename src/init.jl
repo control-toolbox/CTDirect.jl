@@ -19,19 +19,22 @@ mutable struct OptimalControlInit
     variable_init
     info
 
+    # to be removed
+    #=
     function OptimalControlInit()
         init = new()
         init.info = :undefined
         return init
     end
+    =#
 
-    function OptimalControlInit(x_init, u_init, v_init=Real[])
+    function OptimalControlInit(x_init=Real[], u_init=Real[], v_init=Real[])
         init = new()
         init.info = :constant
         init.state_dimension = length(x_init)
         init.control_dimension = length(u_init)
         init.variable_dimension = length(v_init)
-        #println("Init dims x u v: ",init.state_dimension," ",init.control_dimension," ",init.variable_dimension)
+        println("Init dims x u v: ",init.state_dimension," ",init.control_dimension," ",init.variable_dimension)
         init.state_init = t -> x_init
         init.control_init = t -> u_init
         init.variable_init = v_init

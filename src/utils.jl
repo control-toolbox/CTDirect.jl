@@ -136,21 +136,23 @@ function initial_guess(ctd)
     xu0 = 0.1 * ones(ctd.dim_NLP_variables)
 
     init = ctd.NLP_init
-    if init.info != :undefined
-        N = ctd.dim_NLP_steps
-        t0 = get_initial_time(xu0, ctd)
-        tf = get_final_time(xu0, ctd)
-        h = (tf - t0) / N 
+    N = ctd.dim_NLP_steps
+    t0 = get_initial_time(xu0, ctd)
+    tf = get_final_time(xu0, ctd)
+    h = (tf - t0) / N 
 
-        # set state / control variables
-        for i in 0:N
-            ti = t0 + i * h
+    # set state / control variables if provided
+    for i in 0:N
+        ti = t0 + i * h
+        if (init.state_dimension > 0)
             set_state_at_time_step!(xu0, init.state_init(ti), ctd, i)
+        end
+        if (init.control_dimension > 0)
             set_control_at_time_step!(xu0, init.control_init(ti), ctd, i)
         end
 
-        # set variables
-        if (ctd.variable_dimension > 0)
+        # set variables if provided
+        if (init.variable_dimension > 0)
             set_variable!(xu0, init.variable_init, ctd)
         end
     end
