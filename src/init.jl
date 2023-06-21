@@ -28,7 +28,7 @@ mutable struct OptimalControlInit
     function OptimalControlInit(sol::OptimalControlSolution)
         init = new()
         init.info = :solution
-        init.state_init = t-> sol.state(t)[1:sol.state_dimension]
+        init.state_init = t-> sol.state(t)[1:sol.state_dimension]     # remove possible additional state for Lagrange cost
         init.control_init = sol.control
         init.variable_init = sol.infos[:variable]  #+++ need proper variable field in ocp solution !
         return init
