@@ -27,6 +27,18 @@ function get_state_at_time_step(xu, ctd, i)
     end
 end
 
+function get_state_at_time_step!(x, xu, ctd, i)
+    nx = ctd.dim_NLP_state
+    n = ctd.state_dimension
+    N = ctd.dim_NLP_steps
+    @assert i <= N "trying to get x(t_i) for i > N"
+    if n == 1
+        x = xu[i*nx + 1]
+    else
+        x = xu[i*nx + 1 : i*nx + n]
+    end
+end
+
 function get_lagrange_cost_at_time_step(xu, ctd, i)
     nx = ctd.dim_NLP_state
     N = ctd.dim_NLP_steps
@@ -56,6 +68,23 @@ function get_control_at_time_step(xu, ctd, i)
         return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
     end
 end
+
+function get_control_at_time_step!(u, xu, ctd, i)
+    """
+        return
+        u(t_i)
+    """
+    nx = ctd.dim_NLP_state
+    m = ctd.control_dimension
+    N = ctd.dim_NLP_steps
+    @assert i <= N "trying to get u(t_i) for i > N"
+    if m == 1
+        u = xu[(N+1)*nx + i*m + 1]
+    else
+        u = xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
+    end
+end
+
 
 function vget_control_at_time_step(xu, ctd, i)
     nx = ctd.dim_NLP_state

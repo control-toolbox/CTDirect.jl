@@ -329,11 +329,17 @@ function ipopt_constraint(xu, ctd)
     h = (tf - t0) / N
     c = zeros(eltype(xu), ctd.dim_NLP_constraints)
     v = get_variable(xu, ctd)
+    #xi = zeros(eltype(xu), ctd.state_dimension)
+    #xip1 = zeros(eltype(xu), ctd.state_dimension)
+    #ui = 0
+    #uip1 = 0
 
     # state equation
     ti = t0
     xi = get_state_at_time_step(xu, ctd, 0)
     ui = get_control_at_time_step(xu, ctd, 0)
+    #get_state_at_time_step!(xi, xu, ctd, 0)
+    #get_control_at_time_step!(ui, xu, ctd, 0)
     fi = ctd.dynamics(ti, xi, ui, v)
     if ctd.has_lagrange_cost
         xli = get_lagrange_cost_at_time_step(xu, ctd, 0)
@@ -347,6 +353,8 @@ function ipopt_constraint(xu, ctd)
         # state and control at t_{i+1}
         xip1 = get_state_at_time_step(xu, ctd, i+1)
         uip1 = get_control_at_time_step(xu, ctd, i+1)
+        #get_state_at_time_step!(xip1, xu, ctd, i+1)
+        #get_control_at_time_step!(uip1, xu, ctd, i+1)
         fip1 = ctd.dynamics(tip1, xip1, uip1, v)
 
         # state equation
