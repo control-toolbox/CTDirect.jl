@@ -1,0 +1,118 @@
+        - #using BenchmarkTools
+        - #using Traceur
+        - using Profile
+        - #using PProf
+        - #using ProfileView
+        - 
+        - using CTDirect
+        - using CTBase
+        - 
+        - println("Test: profiling")
+        - 
+        - # define OCP
+        - ocp = Model(variable=true)
+        - Cd = 310
+        - Tmax = 3.5
+        - β = 500
+        - b = 2
+        - r0 = 1
+        - v0 = 0
+        - vmax = 0.1
+        - m0 = 1
+        - mf = 0.6
+        - x0 = [ r0, v0, m0 ]
+        - state!(ocp, 3)
+        - control!(ocp, 1)
+        - variable!(ocp, 1)
+        - time!(ocp, 0, Index(1))
+        - constraint!(ocp, :initial, x0, :initial_constraint)
+        - constraint!(ocp, :final, Index(3), mf, :final_constraint)
+        0 constraint!(ocp, :state, (x,v)->x[2], -Inf, vmax, :state_con_v_ub)
+        0 constraint!(ocp, :control, (u,v)->u, -Inf, 1, :control_con_u_ub)
+        0 constraint!(ocp, :mixed, (x,u,v)->x[3], mf, Inf, :mixed_con_m_lb)
+        0 constraint!(ocp, :variable, v->v, -Inf, 10, :variable_con_tf_ubx)
+        - constraint!(ocp, :state, 1:2, [r0,v0], [r0+0.2, Inf], :state_box_rv)
+        - constraint!(ocp, :control, Index(1), 0, Inf, :control_box_lb)
+        - constraint!(ocp, :variable, Index(1), 0.01, Inf, :variable_box_tfmin)
+        - objective!(ocp, :mayer,  (x0, xf, v) -> xf[1], :max)
+        - function F0(x)
+        0     r, v, m = x
+     1056     D = Cd * v^2 * exp(-β*(r - 1))
+     1408     return [ v, -D/m - 1/r^2, 0 ]
+        - end
+        - function F1(x)
+        0     r, v, m = x
+      880     return [ 0, Tmax/m, -b*Tmax ]
+        - end
+      176 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
+        - 
+        - # create NLP functions
+        - grid_size = 10
+        - init = OptimalControlInit()
+        - ctd = CTDirect.CTDirect_data(ocp, grid_size, init)
+        - xu = CTDirect.initial_guess(ctd)
+        - l_var, u_var = CTDirect.variables_bounds(ctd)
+        - lb, ub = CTDirect.constraints_bounds(ctd)
+        - 
+        - #=
+        - # profile objective function
+        - println("Objective")
+        - println("compilation")
+        - @time CTDirect.ipopt_objective(xu, ctd)
+        - println("basic cpu / allocs")
+        - @time CTDirect.ipopt_objective(xu, ctd)
+        - Profile.clear_malloc_data()
+        - CTDirect.ipopt_objective(xu, ctd);
+        - =#
+        - #println("basic cpu / allocs")
+        - #@time CTDirect.ipopt_objective(xu, ctd)
+        - #println("benchmarktools")
+        - #@btime CTDirect.ipopt_objective(xu, ctd)
+        - #println("traceur") not very useful
+        - #@trace CTDirect.ipopt_objective(xu, ctd)
+        - 
+        - #= Slice version
+        - Objective
+        - compilation
+        -   0.004582 seconds (691 allocations: 41.600 KiB, 99.13% compilation time)
+        - basic cpu / allocs
+        -   0.000019 seconds (10 allocations: 320 bytes)
+        - benchmarktools
+        -   647.589 ns (10 allocations: 320 bytes)
+        - =#
+        - #= Slice version Julia 1.9
+        - Objective
+        - compilation
+        -   0.062225 seconds (30.95 k allocations: 1.701 MiB, 99.80% compilation time)
+        - basic cpu / allocs
+        -   0.000027 seconds (10 allocations: 320 bytes)
+        - benchmarktools
+        -   668.711 ns (10 allocations: 320 bytes)
+        - 
+        - 
+        - Notes
+        - - les return xu[i] et xu[i:j] generent effectivement des allocations (cf fichiers .mem avec julia --track-allocation=user)
+        - - utiliser la macro @views (@view ne compile pas) devant chaque appel de getter ne change rien
+        - - dans getter, return view(xu,i:i+2) alloue en fait davantage que return xu[i:i+2] (160 vs 64) ! 
+        - - la version inplace des getters semble faire autant d'allocations... wtf
+        - =#
+        - 
+        - println("Constraints")
+        - println("compilation")
+        - @time CTDirect.ipopt_constraint(xu, ctd)
+        - println("basic cpu / allocs")
+        - @time CTDirect.ipopt_constraint(xu, ctd)
+        - Profile.clear_malloc_data()
+        - CTDirect.ipopt_constraint(xu, ctd);
+        - println("stfu julia")
+        - 
+        - 
+        - #=
+        - Constraints
+        - compilation
+        -   0.702492 seconds (345.64 k allocations: 22.222 MiB, 1.85% gc time)
+        - basic cpu / allocs
+        -   0.001207 seconds (8.26 k allocations: 244.641 KiB)
+        - dans utils: 32 pour v, 3296 pour x, 1632 pour u
+        - dans constraints: 3200 et 3680 pour trapeze (ti et tip1) + 20k sur les affectations de contraintes !!!
+        - =#
