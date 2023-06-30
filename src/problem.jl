@@ -57,7 +57,7 @@ mutable struct CTDirect_data
     dim_NLP_state  # 'augmented state' with possible additional component for lagrange cost
     dim_NLP_constraints
     dim_NLP_variables
-    dim_NLP_steps
+    dim_NLP_steps :: Int64
 
     # initialization
     NLP_init
@@ -323,10 +323,11 @@ function ipopt_constraint(xu, ctd)
     return
     c :: 
     """
-    t0 = get_initial_time(xu, ctd)
-    tf = get_final_time(xu, ctd)
+
+    t0::eltype(xu) = get_initial_time(xu, ctd)
+    tf::eltype(xu) = get_final_time(xu, ctd)
     N = ctd.dim_NLP_steps
-    h = (tf - t0) / N
+    h::eltype(xu) = (tf - t0) / N
     c = zeros(eltype(xu), ctd.dim_NLP_constraints)
     v = get_variable(xu, ctd)
     #xi = zeros(eltype(xu), ctd.state_dimension)
@@ -336,6 +337,7 @@ function ipopt_constraint(xu, ctd)
 
     # state equation
     ti = t0
+    #tip1::Real = t0
     xi = get_state_at_time_step(xu, ctd, 0)
     ui = get_control_at_time_step(xu, ctd, 0)
     #get_state_at_time_step!(xi, xu, ctd, 0)

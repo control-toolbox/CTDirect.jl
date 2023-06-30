@@ -121,3 +121,6 @@ basic cpu / allocs
 dans utils: 32 pour v, 3296 pour x, 1632 pour u
 dans constraints: 3200 et 3680 pour trapeze (ti et tip1) + 20k sur les affectations de contraintes !!!
 =#
+
+# Solver
+sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
