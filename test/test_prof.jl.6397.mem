@@ -37,17 +37,17 @@
         - objective!(ocp, :mayer,  (x0, xf, v) -> xf[1], :max)
         - function F0(x)
         0     r, v, m = x
-     1040     D = Cd * v^2 * exp(-β*(r - 1))
-     1408     return [ v, -D/m - 1/r^2, 0 ]
+    96176     D = Cd * v^2 * exp(-β*(r - 1))
+   128256     return [ v, -D/m - 1/r^2, 0 ]
         - end
         - function F1(x)
         0     r, v, m = x
-      880     return [ 0, Tmax/m, -b*Tmax ]
+    80160     return [ 0, Tmax/m, -b*Tmax ]
         - end
-      176 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
+    16032 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
         - 
         - # create NLP functions
-        - grid_size = 10
+        - grid_size = 1000
         - init = OptimalControlInit()
         - ctd = CTDirect.CTDirect_data(ocp, grid_size, init)
         - xu = CTDirect.initial_guess(ctd)
@@ -112,12 +112,21 @@
         - println("stfu julia")
         - 
         - 
-        - #=
+        - #= SANS TYPAGE SUR LES GETTERS
         - Constraints
         - compilation
-        -   0.702492 seconds (345.64 k allocations: 22.222 MiB, 1.85% gc time)
+        -   0.469292 seconds (422.76 k allocations: 23.478 MiB, 98.11% compilation time)
         - basic cpu / allocs
-        -   0.001207 seconds (8.26 k allocations: 244.641 KiB)
-        - dans utils: 32 pour v, 3296 pour x, 1632 pour u
-        - dans constraints: 3200 et 3680 pour trapeze (ti et tip1) + 20k sur les affectations de contraintes !!!
+        -   0.007670 seconds (104.15 k allocations: 2.689 MiB)
         - =#
+        - 
+        - #= AVEC ELTYPE XU SUR LES XI, UI: idem -_-
+        - 
+        - +++ todo: encapsuler fonctions ocp pour forcer le vectoriel (et le type xu ?)
+        - 
+        - =#
+        - 
+        - 
+        - 
+        - # Solver
+        - #sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)

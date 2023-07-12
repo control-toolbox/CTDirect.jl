@@ -112,15 +112,28 @@ CTDirect.ipopt_constraint(xu, ctd);
 println("stfu julia")
 
 
-#=
+#= SANS TYPAGE SUR LES GETTERS
 Constraints
 compilation
-  0.702492 seconds (345.64 k allocations: 22.222 MiB, 1.85% gc time)
+  0.469292 seconds (422.76 k allocations: 23.478 MiB, 98.11% compilation time)
 basic cpu / allocs
-  0.001207 seconds (8.26 k allocations: 244.641 KiB)
-dans utils: 32 pour v, 3296 pour x, 1632 pour u
-dans constraints: 3200 et 3680 pour trapeze (ti et tip1) + 20k sur les affectations de contraintes !!!
+  0.007670 seconds (104.15 k allocations: 2.689 MiB)
 =#
 
+#= AVEC ELTYPE XU SUR LES XI, UI: idem -_-
+
++++ todo: encapsuler fonctions ocp pour forcer le vectoriel (et le type xu ?)
+
++++ le getter de x et les appels a dynamics refont des allocs (le controle est ok mais il est ici scalaire, c'est la difference ?)
++++ rq: declarer c en champ de ctd pour ne pas reallouer a chaque eval des contraintes ? idem pour xi, xip1, ui, uip1, fi, fip1 ???
+PROBLEME DE TYPE ?
+
++++ nb: on voit des allocs dans les fonctions ocp ! (cf test_prof.jl.mem)
+
+
+=#
+
+
+
 # Solver
-sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
+#sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
