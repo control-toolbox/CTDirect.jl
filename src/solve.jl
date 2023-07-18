@@ -46,7 +46,7 @@ function solve(ocp::OptimalControlModel,
         xu0 = initial_guess(ctd)
         l_var, u_var = variables_bounds(ctd)
         lb, ub = constraints_bounds(ctd)
-        nlp = ADNLPModel(xu -> ipopt_objective(xu, ctd), xu0, l_var, u_var, xu -> ipopt_constraint(xu, ctd), lb, ub) 
+        nlp = ADNLPModel(xu -> ipopt_objective(xu, ctd), xu0, l_var, u_var, xu -> ipopt_constraint(xu, ctd), lb, ub, backend = :optimized) 
     end
 
     # solve

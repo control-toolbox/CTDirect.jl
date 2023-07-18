@@ -2,6 +2,7 @@ module CTDirect
 
 using CTBase
 using DocStringExtensions
+using Symbolics
 using NLPModelsIpopt, ADNLPModels # nlp modeling and resolution
 
 # Other declarations
