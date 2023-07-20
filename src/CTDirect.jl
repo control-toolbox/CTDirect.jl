@@ -2,7 +2,7 @@ module CTDirect
 
 using CTBase
 using DocStringExtensions
-using Symbolics
+using Symbolics                   # for optimized auto diff
 using NLPModelsIpopt, ADNLPModels # nlp modeling and resolution
 
 # Other declarations

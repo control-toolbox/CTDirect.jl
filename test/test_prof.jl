@@ -46,113 +46,18 @@ function F1(x)
 end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
-# create NLP functions
-grid_size = 1000
-init = OptimalControlInit()
-ctd = CTDirect.CTDirect_data(ocp, grid_size, init)
-xu = CTDirect.initial_guess(ctd)
-l_var, u_var = CTDirect.variables_bounds(ctd)
-lb, ub = CTDirect.constraints_bounds(ctd)
-
-#=
-# profile objective function
-println("Objective")
-println("compilation")
-@time CTDirect.ipopt_objective(xu, ctd)
-println("basic cpu / allocs")
-@time CTDirect.ipopt_objective(xu, ctd)
-Profile.clear_malloc_data()
-CTDirect.ipopt_objective(xu, ctd);
-=#
-#println("basic cpu / allocs")
-#@time CTDirect.ipopt_objective(xu, ctd)
-#println("benchmarktools")
-#@btime CTDirect.ipopt_objective(xu, ctd)
-#println("traceur") not very useful
-#@trace CTDirect.ipopt_objective(xu, ctd)
-
-#= Slice version
-Objective
-compilation
-  0.004582 seconds (691 allocations: 41.600 KiB, 99.13% compilation time)
-basic cpu / allocs
-  0.000019 seconds (10 allocations: 320 bytes)
-benchmarktools
-  647.589 ns (10 allocations: 320 bytes)
-=#
-#= Slice version Julia 1.9
-Objective
-compilation
-  0.062225 seconds (30.95 k allocations: 1.701 MiB, 99.80% compilation time)
-basic cpu / allocs
-  0.000027 seconds (10 allocations: 320 bytes)
-benchmarktools
-  668.711 ns (10 allocations: 320 bytes)
-
-
-Notes
-- les return xu[i] et xu[i:j] generent effectivement des allocations (cf fichiers .mem avec julia --track-allocation=user)
-- utiliser la macro @views (@view ne compile pas) devant chaque appel de getter ne change rien
-- dans getter, return view(xu,i:i+2) alloue en fait davantage que return xu[i:i+2] (160 vs 64) ! 
-- la version inplace des getters semble faire autant d'allocations... wtf
-- attention a la tres petite taille des vecteurs, qui provoque des comportements parfois non lineaires (registres etc ?)
-- dans les constraintes, on a une allocation (32) pour le pas de temps h et pour chaque tip1, pourquoi ? A cause du free tf ?
-=#
-
-println("Constraints")
-println("compilation")
-@time CTDirect.ipopt_constraint(xu, ctd)
-println("basic cpu / allocs")
-@timev CTDirect.ipopt_constraint(xu, ctd)
-#println("code warntype")
-#@code_warntype CTDirect.ipopt_constraint(xu, ctd)
-#println("trace allocs")
-#Profile.clear_malloc_data()
-#CTDirect.ipopt_constraint(xu, ctd);
-
-# ProfileView. Pas vraiment lisible non plus -_-
-#@profview for i in 1:100 
-#  CTDirect.ipopt_constraint(xu, ctd)
-#end
-
-# PProf. bof, pas lisible
-#Profile.clear()
-#@profile CTDirect.ipopt_constraint(xu, ctd)
-#pprof()
-
-# Jet
-#@report_opt CTDirect.ipopt_constraint(xu, ctd)
-
-#println("stfu julia")
-
-
-#= SANS TYPAGE SUR LES GETTERS
-Constraints
-compilation
-  0.469292 seconds (422.76 k allocations: 23.478 MiB, 98.11% compilation time)
-basic cpu / allocs
-  0.007670 seconds (104.15 k allocations: 2.689 MiB)
-=#
-
-#= AVEC ELTYPE XU SUR LES XI, UI: idem -_-
-
-REGLER EN PRIORITE LES INSTABILITES DE TYPES ET DYNAMIC DISPATCH 
-
-+++ todo: encapsuler fonctions ocp pour forcer le vectoriel (et le type xu ?)
-
-+++ le getter de x et les appels a dynamics refont des allocs (le controle est ok mais il est ici scalaire, c'est la difference ?)
-+++ rq: declarer c en champ de ctd pour ne pas reallouer a chaque eval des contraintes ? idem pour xi, xip1, ui, uip1, fi, fip1 ???
-PROBLEME DE TYPE ? ou bien retrouver le type utilise par adnlpmodels !
-+++ a l'inverse declarer ctd en non mutable, quitte a splitter ??
-
-+++ nb: on voit des allocs dans les fonctions ocp ! (cf test_prof.jl.mem)
-
-
-=#
-
-
-
 # Solver
-@time sol = solve(ocp, grid_size=50, print_level=5, tol=1e-12)
+println("First run for compilation")
+@time sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
+println("Second run for benchmark")
 @timev sol = solve(ocp, grid_size=50, print_level=5, tol=1e-12)
-# solve a 50 steps: 192GB allocs :D
+
+#= basic benchmark: solve with 50 steps (second run, 30% compilation time on first one)
+NLP stats: 
+205var, 154const eq, 154 const ineq 
+31570 nnz jac eq/ineq, 21115 nnz hess (non sparse matrices)
+
+base:                               50iter / 89GB / 64s
+inplace constraints:                50iter / 77GB / 58s
+AD optimized backend:
+=#

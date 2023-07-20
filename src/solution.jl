@@ -11,7 +11,9 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     ctd.NLP_constraints_violation = ipopt_solution.primal_feas
     ctd.NLP_iterations = ipopt_solution.iter
     ctd.NLP_solution = ipopt_solution.solution
-    ctd.NLP_sol_constraints = ipopt_constraint(ipopt_solution.solution, ctd)
+    #ctd.NLP_sol_constraints = ipopt_constraint(ipopt_solution.solution, ctd)
+    ctd.NLP_sol_constraints = zeros(ctd.dim_NLP_constraints)
+    ipopt_constraint!(ctd.NLP_sol_constraints, ipopt_solution.solution, ctd)
 
     # parse NLP variables, constraints and multipliers 
     X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_ipopt_sol(ctd)

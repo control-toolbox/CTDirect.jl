@@ -303,7 +303,8 @@ end
 
 
 # IPOPT constraints  (add bounds computation here at first call ?)
-function ipopt_constraint(xu, ctd)
+#function ipopt_constraint(xu, ctd)
+function ipopt_constraint!(c, xu, ctd)    
     """
     compute the constraints for the NLP : 
         - discretization of the dynamics via the trapeze method
@@ -327,7 +328,7 @@ function ipopt_constraint(xu, ctd)
     tf = get_final_time(xu, ctd)
     N = ctd.dim_NLP_steps
     h = (tf - t0) / N
-    c = zeros(eltype(xu), ctd.dim_NLP_constraints)
+    #c = zeros(eltype(xu), ctd.dim_NLP_constraints)
     v = get_variable(xu, ctd)
 
     # state equation
