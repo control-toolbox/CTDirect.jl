@@ -303,7 +303,6 @@ end
 
 
 # IPOPT constraints  (add bounds computation here at first call ?)
-#function ipopt_constraint(xu, ctd)
 function ipopt_constraint!(c, xu, ctd)    
     """
     compute the constraints for the NLP : 
@@ -328,7 +327,6 @@ function ipopt_constraint!(c, xu, ctd)
     tf = get_final_time(xu, ctd)
     N = ctd.dim_NLP_steps
     h = (tf - t0) / N
-    #c = zeros(eltype(xu), ctd.dim_NLP_constraints)
     v = get_variable(xu, ctd)
 
     # state equation
@@ -418,5 +416,5 @@ function ipopt_constraint!(c, xu, ctd)
         index = index + 1
     end
 
-    return c
+    return c # needed even for inplace version, AD error otherwise oO
 end

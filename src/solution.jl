@@ -11,7 +11,6 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     ctd.NLP_constraints_violation = ipopt_solution.primal_feas
     ctd.NLP_iterations = ipopt_solution.iter
     ctd.NLP_solution = ipopt_solution.solution
-    #ctd.NLP_sol_constraints = ipopt_constraint(ipopt_solution.solution, ctd)
     ctd.NLP_sol_constraints = zeros(ctd.dim_NLP_constraints)
     ipopt_constraint!(ctd.NLP_sol_constraints, ipopt_solution.solution, ctd)
 

@@ -60,5 +60,6 @@ NLP stats:
 
 base:                               50iter / 89GB / 64s
 inplace constraints:                50iter / 77GB / 58s
-AD optimized backend:               50iter / 387MB / 2s
+AD optimized backend*:              50iter / 387MB / 2.5s
+(*slightly worse without inplace)
 =#
