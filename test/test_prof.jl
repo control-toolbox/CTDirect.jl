@@ -52,12 +52,13 @@ println("First run for compilation")
 println("Second run for benchmark")
 @timev sol = solve(ocp, grid_size=50, print_level=5, tol=1e-12)
 
-#= basic benchmark: solve with 50 steps (second run, 30% compilation time on first one)
+#= basic benchmark: goddard with 50 steps (second run, 30% compilation time on first one)
 NLP stats: 
 205var, 154const eq, 154 const ineq 
 31570 nnz jac eq/ineq, 21115 nnz hess (non sparse matrices)
+954 nnz jac eq, 154 nnz jac ineq, 561 nnz hess (sparse)
 
 base:                               50iter / 89GB / 64s
 inplace constraints:                50iter / 77GB / 58s
-AD optimized backend:
+AD optimized backend:               50iter / 387MB / 2s
 =#
