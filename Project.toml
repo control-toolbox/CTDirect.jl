@@ -10,8 +10,7 @@ DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 NLPModelsIpopt = "f4238b75-b362-5c4c-b852-0801c9a21d71"
 
 [compat]
-ADNLPModels = "0.5"
+ADNLPModels = "0.7"
 CTBase = "0.7"
 DocStringExtensions = "0.9"
-NLPModelsIpopt = "0.10"
-julia = "1.8"
+julia = "1.9"
