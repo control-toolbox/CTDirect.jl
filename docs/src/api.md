@@ -5,7 +5,7 @@
 ```@index
 Pages   = ["api.md"]
 Modules = [CTDirect]
-Order = [:module, :type, :function, :macro]
+Order = [:module, :constant, :type, :function, :macro]
 Private = false
 ```
 
@@ -20,6 +20,6 @@ Methods()
 
 ```@autodocs
 Modules = [CTDirect]
-Order = [:module, :type, :function, :macro]
+Order = [:module, :constant, :type, :function, :macro]
 Private = false
 ```
