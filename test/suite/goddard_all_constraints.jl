@@ -67,6 +67,24 @@ sol2 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_constant)
     @test sol2.objective ≈ 1.0125 rtol=1e-2
 end
 
+init_function_x = OptimalControlInit(x_init=t->x_init, u_init=u_init, v_init=v_init)
+sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_x)
+@testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_function_x" begin
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+
+init_function_u = OptimalControlInit(x_init=x_init, u_init=t->u_init, v_init=v_init)
+sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_u)
+@testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_function_u" begin
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+
+init_function_xu = OptimalControlInit(x_init=t->x_init, u_init=t->u_init, v_init=v_init)
+sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_xu)
+@testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_function_xu" begin
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+
 sol3 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init))
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_constant (x)" begin
     @test sol3.objective ≈ 1.0125 rtol=1e-2
