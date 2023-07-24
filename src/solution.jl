@@ -26,19 +26,17 @@ function _OptimalControlSolution(ocp, ipopt_solution, ctd)
     u = ctinterpolate(T, matrix2vec(U, 1))
     p = ctinterpolate(T[1:end-1], matrix2vec(P, 1))
     sol = OptimalControlSolution() # +++ constructor with ocp as argument ?
-    copy!(sol,ocp)
-    sol.variable_dimension = ctd.variable_dimension # +++ the one from ocp is 'nothing' -_-
-    sol.times = T
-    sol.state = t -> x(t)
-    sol.costate = t -> p(t)
-    sol.control = t -> u(t)
-    #sol.variable = v +++need proper field variable
-    sol.infos[:variable] = v
-    sol.objective = ctd.NLP_objective
+    copy!(sol, ocp)
+    sol.times      = T
+    sol.state      = (sol.state_dimension==1)    ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t)) # scalar output if dim=1
+    sol.costate    = (sol.state_dimension==1)    ? deepcopy(t -> p(t)[1]) : deepcopy(t -> p(t)) # scalar output if dim=1
+    sol.control    = (sol.control_dimension==1)  ? deepcopy(t -> u(t)[1]) : deepcopy(t -> u(t)) # scalar output if dim=1
+    sol.variable   = (sol.variable_dimension==1) ? v[1] : v # scalar output if dim=1
+    sol.objective  = ctd.NLP_objective
     sol.iterations = ctd.NLP_iterations
-    sol.stopping = :dummy 
-    sol.message = "no message" 
-    sol.success = false #
+    sol.stopping   = :dummy
+    sol.message    = "no message"
+    sol.success    = false #
 
     # nonlinear constraints and multipliers
     if ctd.has_state_constraints
