@@ -5,9 +5,9 @@ makedocs(
     sitename = "CTDirect.jl",
     format = Documenter.HTML(prettyurls = false),
     pages = [
-        "Introduction" => "index.md",
-        "API" => "api.md",
-        "Developers" => "dev-api.md",
+        "Introduction"  => "index.md",
+        "Documentation" => "api.md",
+        "Developers"    => "dev-api.md",
     ]
 )
 
