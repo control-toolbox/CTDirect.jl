@@ -9,6 +9,13 @@ Order = [:module, :type, :function, :macro]
 Private = false
 ```
 
+## Available methods
+
+```@example
+using CTDirect
+Methods()
+```
+
 ## Documentation
 
 ```@autodocs

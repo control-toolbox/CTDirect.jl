@@ -146,7 +146,11 @@ mutable struct CTDirect_data
 
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Return if the optimal control problem `ocp` is solvable or not by the method [`solve`](@ref).
+"""
 function is_solvable(ocp)
     solvable = true
     return solvable
