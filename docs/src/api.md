@@ -1,8 +1,15 @@
-# API
+# CTDirect API
 
-```@meta
-CurrentModule = CTDirect 
+## Index
+
+```@index
+Pages   = ["api.md"]
+Modules = [CTDirect]
+Order = [:module, :type, :function, :macro]
+Private = false
 ```
+
+## Documentation
 
 ```@autodocs
 Modules = [CTDirect]
