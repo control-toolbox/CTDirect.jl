@@ -50,7 +50,7 @@ function F1(x)
     return [ 0, Tmax/m, -b*Tmax ]
 end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
-sol1 = solve(ocp, grid_size=30, print_level=0, tol=1e-8)
+sol1 = solve(ocp, grid_size=100, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types" begin
     @test sol1.objective ≈ 1.0125 rtol=1e-2
 end

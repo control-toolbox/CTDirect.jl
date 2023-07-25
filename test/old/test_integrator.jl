@@ -22,7 +22,7 @@ ocp = prob.model
         @test ctd.has_lagrange_cost         == true
         @test ctd.has_mayer_cost            == false
         @test ctd.dim_NLP_state           == ocp.state_dimension + 1
-        @test ctd.mayer                   == nothing
+        @test ctd.mayer                   === nothing
         f_Mayer_test(t,x,u)=[ocp.dynamics(t,x,u);ocp.lagrange(t,x,u)]
         @test ctd.dynamics_lagrange_to_mayer(0,[0;2],1) == f_Mayer_test(0,[0;2],1)
         @test ctd.has_free_final_time     == false
