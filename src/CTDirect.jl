@@ -24,6 +24,6 @@ include("solve.jl")
 export solve
 export is_solvable
 export OptimalControlInit
-export Methods
+export available_methods
 
 end

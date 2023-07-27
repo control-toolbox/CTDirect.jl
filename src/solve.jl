@@ -7,7 +7,7 @@ $(TYPEDSIGNATURES)
 
 Return the list of available methods to solve the optimal control problem.
 """
-function Methods()::Tuple{Tuple{Vararg{Symbol}}}
+function available_methods()::Tuple{Tuple{Vararg{Symbol}}}
     return algorithmes
 end
 
@@ -43,7 +43,7 @@ Keyword arguments:
 
 !!! tip
 
-    - To see the list of available methods, simply call `Methods()`.
+    - To see the list of available methods, simply call `available_methods()`.
     - You can pass any other option by a pair `keyword=value` according to the chosen method. See for instance, [`Ipopt` options](https://coin-or.github.io/Ipopt/OPTIONS.html).
     - The default values for the keyword arguments are given [here](https://control-toolbox.org/CTDocs.jl/ctbase/stable/api-default.html).
 
@@ -66,7 +66,7 @@ function solve(ocp::OptimalControlModel,
     # get full description from partial
     # throw error if description is not valid
     # thus, no else is needed below
-    method = getFullDescription(description, Methods())
+    method = getFullDescription(description, available_methods())
 
     # Model: from ocp to nlp
     if :adnlp in method
