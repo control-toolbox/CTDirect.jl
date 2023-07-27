@@ -76,13 +76,15 @@ LB \le C(X) \le UB
 
 We use packages from [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) to solve the (NLP) problem.
 
+As input of this package we use an [`OptimalControlModel`](@ref) structure from CTBase.
 
-As input of this package we use an [`OptimalControlModel`](@ref) structure from CTBase
-!!! note " Actual limitation"
-    For the moment we have implemented
-    - Only trapezoidal rule for the discretization
-    - Only Ipopt for the optimization soltware
+!!! note "Current limitations"
 
-!!! note "Link with bocop"
+    For the moment we have only implemented
 
-    This package is equivalent to the [bocop](https://bocop.org) software 
+    - trapezoidal rule for the discretization
+    - `Ipopt` for the optimization software
+
+!!! note "Related packages"
+
+    This package is equivalent to the [bocop](https://www.bocop.org) software.
