@@ -6,6 +6,10 @@ CurrentModule =  CTDirect
 
 The `CTDirect.jl` package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
 
+```@raw html
+<img src="./assets/diagram.png" style="display: block; margin: 0 auto 20px auto;" width="320px">
+```
+
 !!! note "Install"
 
     To install a package from the control-toolbox ecosystem, 

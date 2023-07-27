@@ -45,7 +45,7 @@ Keyword arguments:
 
     - To see the list of available methods, simply call `Methods()`.
     - You can pass any other option by a pair `keyword=value` according to the chosen method. See for instance, [`Ipopt` options](https://coin-or.github.io/Ipopt/OPTIONS.html).
-    - The default values for the keyword arguments are given [here](https://control-toolbox.org/CTBase.jl/stable/api-default.html).
+    - The default values for the keyword arguments are given [here](https://control-toolbox.org/CTDocs.jl/ctbase/stable/api-default.html).
 
 ```@examples
 julia> solve(ocp)
