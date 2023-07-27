@@ -1,5 +1,9 @@
 using Documenter
 using CTDirect
+using CTBase
+
+DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
+DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true)
 
 makedocs(
     sitename = "CTDirect.jl",
