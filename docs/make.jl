@@ -7,7 +7,8 @@ makedocs(
     pages = [
         "Introduction"  => "index.md",
         "Methods and Options" => ["rk.md",
-                                  "optimization.md"],
+                                  "optimization.md",
+                                  "solve-options.md"],
         "API"           => "api.md",
         #"Developers"    => "dev-api.md",
     ]

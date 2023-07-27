@@ -41,7 +41,7 @@ The so-called direct approach transforms the infinite dimensional optimal contro
 
 [^2]: J. Nocedal and S.J. Wright. Numerical optimization. Springer-Verlag, New York, 1999.****
 
-Summary of the time discretization:
+Example of the time discretization by the trapezoidal rule:
 
 ```math
 \begin{array}{lcl}
@@ -71,11 +71,11 @@ LB \le C(X) \le UB
 
 We use packages from [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) to solve the (NLP) problem.
 
-!!! note " actual limitation"
+!!! note " Actual limitation"
     For the moment we have implemented
-    - Only trapeze method for the discretization
+    - Only trapezoidal rule for the discretization
     - Only Ipopt for the optimization soltware
 
-!!! note "link with bocop"
+!!! note "Link with bocop"
 
     This package is equivalent to the [bocop](https://bocop.org) software 
