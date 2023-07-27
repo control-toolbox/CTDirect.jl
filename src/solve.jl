@@ -16,7 +16,7 @@ $(TYPEDSIGNATURES)
 
 Solve the the optimal control problem `ocp` by the method given by the (optional) description.
 Return an 
-[`OptimalControlSolution`](https://control-toolbox.org/CTBase.jl/stable/api-types.html#CTBase.OptimalControlSolution)
+[`OptimalControlSolution`](https://control-toolbox.org/docs/ctbase/stable/api-types.html#CTBase.OptimalControlSolution)
 from [`CTBase`](https://github.com/control-toolbox/CTBase.jl) package, that is an approximation of 
 the optimal solution if the method has converged correctly.
 
