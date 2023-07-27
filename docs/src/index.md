@@ -53,10 +53,11 @@ t \in [t_0,t_f]   & \to & \{t_0, \ldots, t_N=t_f\}\\[0.2em]
 x(\cdot),\, u(\cdot) & \to & X=\{x_0, \ldots, x_N, u_0, \ldots, u_N\} \\[1em]
 \hline
 \\
+\text{step} & \to & h = (t_f-t_0)/N\\[0.2em]
 \text{criterion} & \to & \min\ g(x_0, x_N) \\[0.2em]
-\text{dynamics}  & \to & x_{i+i} = x_i + ((t_{i+i} - t_i)/2)\, (f(t_i, x_i, u_i) + f(t_{i+1}, x_{i+1}, u_{i+1})) ~~ \text{(trapeze)}\\[0.2em]
-\text{control constraints} &\to& \xi_l  \le  \xi(t_i, u_i)   \le \xi_u \\
-\text{path constraints} &\to& \eta_l \le \eta(t_i, x_i)        \le \eta_u \\
+\text{dynamics}  & \to & x_{i+i} = x_i + (h/2)\, (f(t_i, x_i, u_i) + f(t_{i+1}, x_{i+1}, u_{i+1})) \\[0.2em]
+\text{control constraints} &\to& \xi_l  \le  \xi(t_i, u_i)   \le \xi_u \\[0.2em]
+\text{path constraints} &\to& \eta_l \le \eta(t_i, x_i)        \le \eta_u \\[0.2em]
 \text{mixed constraints} &\to& \psi_l \le \psi(t_i, x_i, u_i) \le \psi_u \\[0.2em]
 \text{limit conditions} &\to& \phi_l \le \phi(x_0, x_N) \le \phi_u
 \end{array}
@@ -75,6 +76,8 @@ LB \le C(X) \le UB
 
 We use packages from [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) to solve the (NLP) problem.
 
+
+As input of this package we use an [`OptimalControlModel`](@ref) structure from CTBase
 !!! note " Actual limitation"
     For the moment we have implemented
     - Only trapezoidal rule for the discretization
