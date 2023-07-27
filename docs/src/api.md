@@ -13,7 +13,7 @@ Private = false
 
 ```@example
 using CTDirect
-Methods()
+available_methods()
 ```
 
 ## Documentation
