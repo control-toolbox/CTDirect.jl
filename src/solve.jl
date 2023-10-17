@@ -11,6 +11,37 @@ function available_methods()::Tuple{Tuple{Vararg{Symbol}}}
     return algorithmes
 end
 
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Discretize an optimal control problem into a nonlinear optimization problem (ie direct transcription)
+"""
+function DirectTranscription(ocp::OptimalControlModel,
+    description...;
+    init::OptimalControlInit=OptimalControlInit(),
+    grid_size::Integer=__grid_size_direct())
+    
+    # renvoyer le nlp, sans init, qui sera plutot passee au solve
+    # ah en fait adnlpmodel prend le initial guess...
+    ctd = CTDirect_data(ocp, grid_size, init)
+    xu0 = initial_guess(ctd)
+    l_var, u_var = variables_bounds(ctd)
+    lb, ub = constraints_bounds(ctd)
+    nlp = ADNLPModel!(xu -> ipopt_objective(xu, ctd), 
+                    xu0, 
+                    l_var, u_var, 
+                    (c, xu) -> ipopt_constraint!(c, xu, ctd), 
+                    lb, ub, 
+                    backend = :optimized)
+
+return nlp
+
+end
+
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -69,6 +100,7 @@ function solve(ocp::OptimalControlModel,
     method = getFullDescription(description, available_methods())
 
     # Model: from ocp to nlp
+    # +++ extract this part as a standalone function that converts an ocp to a nlp 
     if :adnlp in method
         ctd = CTDirect_data(ocp, grid_size, init)
         xu0 = initial_guess(ctd)
