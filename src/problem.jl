@@ -1,4 +1,161 @@
-# struct for ocop/nlp info
+# struct for discretized optimal control problem
+# contains a NLP formulation of the DOCP for solving
+# and data required to link back to the original OCP
+# +++ start with copy of ctd then trim
+# +++ constructor could use sub-functions...
+# +++ add types
+mutable struct DOCP
+
+    ## OCP
+    # OCP variables and functions
+    initial_time
+    final_time
+    state_dimension
+    control_dimension
+    variable_dimension
+    dynamics
+    mayer
+    lagrange
+    criterion_min_max
+    has_free_initial_time
+    has_free_final_time
+    has_variable
+    has_lagrange_cost
+    has_mayer_cost
+
+    # OCP constraints
+    # indicators
+    has_control_constraints
+    has_state_constraints
+    has_mixed_constraints
+    has_boundary_conditions
+    has_variable_constraints
+    has_control_box
+    has_state_box
+    has_variable_box
+    has_scalar_state   
+    has_scalar_control
+
+    # dimensions
+    dim_control_constraints
+    dim_state_constraints
+    dim_mixed_constraints
+    dim_path_constraints
+    dim_boundary_conditions
+    dim_variable_constraints
+    dim_control_box
+    dim_state_box
+    dim_variable_box
+    
+    # functions
+    control_constraints
+    state_constraints
+    mixed_constraints
+    boundary_conditions
+    variable_constraints
+    control_box
+    state_box
+    variable_box
+
+    ## NLP
+    # NLP problem
+    dim_NLP_state  # 'augmented state' with possible additional component for lagrange cost
+    dim_NLP_constraints
+    dim_NLP_variables
+    dim_NLP_steps
+
+    # initialization
+    NLP_init
+
+    # NLP solution
+    NLP_solution
+    NLP_objective
+    NLP_sol_constraints
+    NLP_constraints_violation
+    NLP_iterations
+    NLP_stats       # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
+
+    # NLP model ready for solver
+    nlp
+
+    # constructor
+    function DOCP(ocp::OptimalControlModel, N::Integer, init::OptimalControlInit)       
+
+        docp = new()
+
+        ## Optimal Control Problem OCP
+        # time
+        docp.initial_time = ocp.initial_time
+        docp.final_time = ocp.final_time
+        docp.has_free_initial_time = (typeof(ocp.initial_time)==Index)
+        docp.has_free_final_time = (typeof(ocp.final_time)==Index)
+        
+        # dimensions and functions
+        docp.state_dimension = ocp.state_dimension
+        docp.has_scalar_state = (docp.state_dimension == 1)    
+        docp.control_dimension = ocp.control_dimension
+        docp.has_scalar_control = (docp.control_dimension == 1)   
+        docp.has_variable = !isnothing(ocp.variable_dimension)
+        if docp.has_variable
+            docp.variable_dimension = ocp.variable_dimension
+        else
+            docp.variable_dimension = 0
+        end
+        #println("Free t0: ", docp.has_free_initial_time, " Free tf: ", docp.has_free_final_time, " Variable dim: ", docp.variable_dimension, " has scalar state: ", docp.has_scalar_state, " has scalar control: ", docp.has_scalar_control)
+        docp.dynamics = ocp.dynamics
+        docp.has_lagrange_cost = !isnothing(ocp.lagrange)
+        docp.lagrange = ocp.lagrange
+        docp.has_mayer_cost = !isnothing(ocp.mayer)
+        docp.mayer = ocp.mayer
+        
+        # constraints
+        docp.control_constraints, docp.state_constraints, docp.mixed_constraints, docp.boundary_conditions, docp.variable_constraints, docp.control_box, docp.state_box, docp.variable_box = nlp_constraints(ocp)
+        docp.dim_control_constraints = length(docp.control_constraints[1])
+        docp.dim_state_constraints = length(docp.state_constraints[1])
+        docp.dim_mixed_constraints = length(docp.mixed_constraints[1])
+        docp.dim_path_constraints = docp.dim_control_constraints + docp.dim_state_constraints + docp.dim_mixed_constraints
+        docp.dim_boundary_conditions = length(docp.boundary_conditions[1])
+        docp.dim_variable_constraints = length(docp.variable_constraints[1])
+        docp.dim_control_box = length(docp.control_box[1])
+        docp.dim_state_box = length(docp.state_box[1])
+        docp.dim_variable_box = length(docp.variable_box[1])
+        docp.has_control_constraints = !isempty(docp.control_constraints[1])
+        docp.has_state_constraints = !isempty(docp.state_constraints[1])
+        docp.has_mixed_constraints = !isempty(docp.mixed_constraints[1])
+        docp.has_boundary_conditions = !isempty(docp.boundary_conditions[1])
+        docp.has_variable_constraints = !isempty(docp.variable_constraints[1])
+        docp.has_control_box = !isempty(docp.control_box[1])
+        docp.has_state_box = !isempty(docp.state_box[1])
+        docp.has_variable_box = !isempty(docp.variable_box[1])
+
+        ## Non Linear Programming NLP
+        docp.dim_NLP_steps = N
+        docp.NLP_init = init
+
+        # Mayer to Lagrange reformulation: 
+        # additional state with Lagrange cost as dynamics and null initial condition
+        if docp.has_lagrange_cost
+            docp.dim_NLP_state = docp.state_dimension + 1  
+            docp.dim_NLP_constraints = N * (docp.dim_NLP_state + docp.dim_path_constraints) + docp.dim_path_constraints + docp.dim_boundary_conditions + docp.dim_variable_constraints + 1           
+        else
+            docp.dim_NLP_state = docp.state_dimension  
+            docp.dim_NLP_constraints = N * (docp.dim_NLP_state + docp.dim_path_constraints) + docp.dim_path_constraints + docp.dim_boundary_conditions + docp.dim_variable_constraints
+        end
+
+        # min or max problem
+        docp.criterion_min_max = ocp.criterion
+
+        # set dimension for NLP unknown (state + control + variable)
+        docp.dim_NLP_variables = (N + 1) * (docp.dim_NLP_state + docp.control_dimension) + docp.variable_dimension
+
+        return docp
+
+    end
+
+end
+
+
+# struct for ocop/nlp info +++ to be deprecated
 mutable struct CTDirect_data
 
     ## OCP
