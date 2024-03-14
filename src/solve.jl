@@ -1,3 +1,10 @@
+# +++ TODO
+# add transcription function ocp -> docp
+# add function to set the intial guess for a docp
+# introduce new struct docp to replace most of CTData
+# replace solve with a solvedocp that would go to CTBase later
+
+
 # availble methods by order of preference: from top to bottom
 algorithmes = ()
 algorithmes = add(algorithmes, (:adnlp, :ipopt))
@@ -23,25 +30,52 @@ function DirectTranscription(ocp::OptimalControlModel,
     init::OptimalControlInit=OptimalControlInit(),
     grid_size::Integer=__grid_size_direct())
     
-    # renvoyer le nlp, sans init, qui sera plutot passee au solve
-    # ah en fait adnlpmodel prend le initial guess...
-    ctd = CTDirect_data(ocp, grid_size, init)
-    xu0 = initial_guess(ctd)
-    l_var, u_var = variables_bounds(ctd)
-    lb, ub = constraints_bounds(ctd)
-    nlp = ADNLPModel!(xu -> ipopt_objective(xu, ctd), 
+    # initialization is optional
+    docp = DOCP(ocp, grid_size, init)
+    xu0 = initial_guess(docp)
+    l_var, u_var = variables_bounds(docp)
+    lb, ub = constraints_bounds(docp)
+    docp.nlp = ADNLPModel!(xu -> ipopt_objective(xu, docp), 
                     xu0, 
                     l_var, u_var, 
-                    (c, xu) -> ipopt_constraint!(c, xu, ctd), 
+                    (c, xu) -> ipopt_constraint!(c, xu, docp), 
                     lb, ub, 
                     backend = :optimized)
 
-return nlp
+return docp
 
 end
 
 
+"""
+$(TYPEDSIGNATURES)
 
+Solve a discretized optimal control problem
+"""
+function solveDOCP(docp::DOCP;
+    display::Bool=__display(),
+    #init::OptimalControlInit=OptimalControlInit(),
+    print_level::Integer=__print_level_ipopt(),
+    mu_strategy::String=__mu_strategy_ipopt(),
+    kwargs...)
+
+    # +++ set initial guess if provided
+    # setDOCPInitialGuess(+++)
+
+    # solve DOCP with NLP solver
+    # sb="yes": remove ipopt header +++ make that default
+    print_level = display ?  print_level : 0
+    ipopt_solution = ipopt(docp.nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
+
+    # build OCP solution from DOCP result
+    sol = _OptimalControlSolution2(ipopt_solution, docp)
+
+    return sol
+end
+
+
+
+# +++ to be deprecated
 """
 $(TYPEDSIGNATURES)
 
@@ -100,7 +134,6 @@ function solve(ocp::OptimalControlModel,
     method = getFullDescription(description, available_methods())
 
     # Model: from ocp to nlp
-    # +++ extract this part as a standalone function that converts an ocp to a nlp 
     if :adnlp in method
         ctd = CTDirect_data(ocp, grid_size, init)
         xu0 = initial_guess(ctd)

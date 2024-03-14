@@ -1,3 +1,96 @@
+# build OCP solution from DOCP solution
+# +++ remove the need for ocp
+function _OptimalControlSolution2(ipopt_solution, docp)
+
+    # save general solution data
+    docp.NLP_stats = ipopt_solution
+    if docp.criterion_min_max == :min
+        docp.NLP_objective = ipopt_solution.objective
+    else
+        docp.NLP_objective = - ipopt_solution.objective
+    end
+    docp.NLP_constraints_violation = ipopt_solution.primal_feas
+    docp.NLP_iterations = ipopt_solution.iter
+    docp.NLP_solution = ipopt_solution.solution
+    docp.NLP_sol_constraints = zeros(docp.dim_NLP_constraints)
+    ipopt_constraint!(docp.NLP_sol_constraints, ipopt_solution.solution, docp)
+
+    # parse NLP variables, constraints and multipliers 
+    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_ipopt_sol(docp)
+
+    # variables and misc infos
+    N = docp.dim_NLP_steps
+    t0 = get_initial_time(docp.NLP_solution, docp)
+    tf = get_final_time(docp.NLP_solution, docp)
+    T = collect(LinRange(t0, tf, N+1))
+    x = ctinterpolate(T, matrix2vec(X, 1))
+    u = ctinterpolate(T, matrix2vec(U, 1))
+    p = ctinterpolate(T[1:end-1], matrix2vec(P, 1))
+    sol = OptimalControlSolution() # +++ constructor with ocp as argument ?
+    #copy!(sol, ocp) #+++need to remove ocp...
+    sol.times      = T
+    sol.state      = (sol.state_dimension==1)    ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t)) # scalar output if dim=1
+    sol.costate    = (sol.state_dimension==1)    ? deepcopy(t -> p(t)[1]) : deepcopy(t -> p(t)) # scalar output if dim=1
+    sol.control    = (sol.control_dimension==1)  ? deepcopy(t -> u(t)[1]) : deepcopy(t -> u(t)) # scalar output if dim=1
+    sol.variable   = (sol.variable_dimension==1) ? v[1] : v # scalar output if dim=1
+    sol.objective  = docp.NLP_objective
+    sol.iterations = docp.NLP_iterations
+    sol.stopping   = :dummy
+    sol.message    = "no message"
+    sol.success    = false #
+
+    # nonlinear constraints and multipliers
+    if docp.has_state_constraints
+        cx = ctinterpolate(T, matrix2vec(sol_state_constraints, 1))
+        mcx = ctinterpolate(T, matrix2vec(mult_state_constraints, 1))
+        sol.infos[:dim_state_constraints] = docp.dim_state_constraints    
+        sol.infos[:state_constraints] = t -> cx(t)
+        sol.infos[:mult_state_constraints] = t -> mcx(t)
+    end
+    if docp.has_control_constraints
+        cu = ctinterpolate(T, matrix2vec(sol_control_constraints, 1))
+        mcu = ctinterpolate(T, matrix2vec(mult_control_constraints, 1))
+        sol.infos[:dim_control_constraints] = docp.dim_control_constraints  
+        sol.infos[:control_constraints] = t -> cu(t)
+        sol.infos[:mult_control_constraints] = t -> mcu(t)
+    end
+    if docp.has_mixed_constraints
+        cxu = ctinterpolate(T, matrix2vec(sol_mixed_constraints, 1))
+        mcxu = ctinterpolate(T, matrix2vec(mult_mixed_constraints, 1))
+        sol.infos[:dim_mixed_constraints] = docp.dim_mixed_constraints    
+        sol.infos[:mixed_constraints] = t -> cxu(t)
+        sol.infos[:mult_mixed_constraints] = t -> mcxu(t)
+    end
+    if docp.has_variable_constraints
+        sol.infos[:dim_variable_constraints] = docp.dim_variable_constraints
+        sol.infos[:variable_constraints] = sol_variable_constraints
+        sol.infos[:mult_variable_constraints] = mult_variable_constraints
+    end
+
+    # box constraints multipliers
+    if docp.has_state_box
+        mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower, 1))
+        mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper, 1))
+        sol.infos[:mult_state_box_lower] = t -> mbox_x_l(t)
+        sol.infos[:mult_state_box_upper] = t -> mbox_x_u(t)    
+    end
+    if docp.has_control_box
+        mbox_u_l = ctinterpolate(T, matrix2vec(mult_control_box_lower, 1))
+        mbox_u_u = ctinterpolate(T, matrix2vec(mult_control_box_upper, 1))
+        sol.infos[:mult_control_box_lower] = t -> mbox_u_l(t)
+        sol.infos[:mult_control_box_upper] = t -> mbox_u_u(t)
+    end
+    if docp.has_variable_box
+        sol.infos[:mult_variable_box_lower] = mult_variable_box_lower
+        sol.infos[:mult_variable_box_upper] = mult_variable_box_upper 
+    end
+
+    return sol
+
+end
+
+
+
 # build generic OCP solution from direct method (NLP) solution
 function _OptimalControlSolution(ocp, ipopt_solution, ctd)
 
