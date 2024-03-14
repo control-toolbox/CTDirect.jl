@@ -6,7 +6,7 @@ function get_variable(xu, ctd)
             return xu[end-ctd.variable_dimension+1:end]
         end
     else
-        return Real[]
+        return Real[] #+++try to get xu type
     end
 end
 

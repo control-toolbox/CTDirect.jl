@@ -26,4 +26,10 @@ export is_solvable
 export OptimalControlInit
 export available_methods
 
+# exports for profiling tests
+export CTDirect_data 
+export initial_guess
+export ipopt_objective
+export ipopt_constraint!
+
 end

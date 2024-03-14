@@ -1,11 +1,14 @@
 #using BenchmarkTools
 #using Traceur
-using Profile
+#using Profile
 #using PProf
-#using JET 
+using JET 
 
 using CTDirect
 using CTBase
+
+code_warntype = false
+jet = true
 
 println("Test: profiling")
 
@@ -47,19 +50,80 @@ end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
 # Solver
-println("First run for compilation")
+println("First run for compilation @time")
 @time sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
-println("Second run for benchmark")
-@timev sol = solve(ocp, grid_size=50, print_level=5, tol=1e-12)
+println("Second run for benchmark @timev")
+@timev sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
 
-#= basic benchmark: goddard with 50 steps (second run, 30% compilation time on first one)
-NLP stats: 
-205var, 154const eq, 154 const ineq 
-31570 nnz jac eq/ineq, 21115 nnz hess (non sparse matrices)
-954 nnz jac eq, 154 nnz jac ineq, 561 nnz hess (sparse)
+# Unit tests for objective and constraints
+grid_size=50
+init=OptimalControlInit()
+ctd = CTDirect_data(ocp, grid_size, init)
+xu0 = initial_guess(ctd)
 
-base:                               50iter / 89GB / 64s
-inplace constraints:                50iter / 77GB / 58s
-AD optimized backend*:              50iter / 387MB / 2.5s
-(*slightly worse without inplace)
-=#
+# Types
+if code_warntype
+    println("@code_warntype objective")
+    @code_warntype ipopt_objective(xu0, ctd)
+    #=
+    Locals
+    xf::Any
+    x0::Any
+    v::Any
+    obj::Any
+    N::Int64
+    tf::Any
+    t0::Any
+    =#
+
+    println("@code_warntype constraints")
+    c = zeros(ctd.dim_NLP_constraints)
+    @code_warntype ipopt_constraint!(c, xu0, ctd)
+    #=
+    @_5::Union{Nothing, Tuple{Int64, Int64}}
+    index::Any
+    x0::Any
+    uf::Any
+    xf::Any
+    li::Any
+    xli::Float64
+    fi::Any
+    ui::Any
+    xi::Any
+    ti::Any
+    v::Any
+    h::Any
+    N::Int64
+    tf::Any
+    t0::Any
+    i::Int64
+    lip1::Any
+    xlip1::Float64
+    fip1::Any
+    uip1::Any
+    xip1::Any
+    tip1::Any
+    =#
+
+    #=
+    l_var, u_var = variables_bounds(ctd)
+    lb, ub = constraints_bounds(ctd)
+    nlp = ADNLPModel!(xu -> ipopt_objective(xu, ctd), 
+                    xu0, 
+                    l_var, u_var, 
+                    (c, xu) -> ipopt_constraint!(c, xu, ctd), 
+                    lb, ub, 
+                    backend = :optimized)
+    =#
+end
+
+
+# JET
+if jet
+    println("@report_opobjective")
+    @report_opt ipopt_objective(xu0, ctd)
+    #=
+    ═════ 56 possible errors found ═════
+    les int semblent ok (int64)
+    =#
+end

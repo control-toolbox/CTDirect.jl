@@ -54,10 +54,10 @@ mutable struct CTDirect_data
 
     ## NLP
     # NLP problem
-    dim_NLP_state  # 'augmented state' with possible additional component for lagrange cost
-    dim_NLP_constraints
-    dim_NLP_variables
-    dim_NLP_steps
+    dim_NLP_state::Int64  # 'augmented state' with possible additional component for lagrange cost
+    dim_NLP_constraints::Int64
+    dim_NLP_variables::Int64
+    dim_NLP_steps::Int64
 
     # initialization
     NLP_init
