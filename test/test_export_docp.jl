@@ -13,7 +13,9 @@ objective!(ocp1, :lagrange, (x, u) -> u^2)
 
 println("Test simple integrator: new formulation with export")
 docp = DirectTranscription(ocp1, grid_size=100)
-sol2 = solveDOCP(docp, print_level=0, tol=1e-12)
-println("Expected Objective 0.313, found ", sol2.objective)
+sol = solveDOCP(docp, print_level=0, tol=1e-12)
+println("Expected Objective 0.313, found ", sol.objective)
 
-#@code_warntype 
+# check types on objective and constraints functions
+xu = initial_guess(docp)
+@code_warntype ipopt_objective(xu, docp)
