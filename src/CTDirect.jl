@@ -27,6 +27,9 @@ export OptimalControlInit
 export DirectTranscription
 export solveDOCP
 #export setDOCPInitialGuess()
+export initial_guess
+export ipopt_objective
+export ipopt_constraint
 export available_methods
 
 end
