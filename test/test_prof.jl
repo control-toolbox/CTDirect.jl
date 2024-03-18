@@ -2,12 +2,12 @@
 #using Traceur
 #using Profile
 #using PProf
-using JET 
+using JET
 
 using CTDirect
 using CTBase
 
-code_warntype = false
+code_warntype = true
 jet = true
 
 println("Test: profiling")
@@ -54,6 +54,19 @@ println("First run for compilation @time")
 @time sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
 println("Second run for benchmark @timev")
 @timev sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
+#=
+  0.835355 seconds (4.25 M allocations: 386.129 MiB, 3.20% gc time)
+elapsed time (ns):  835354582
+gc time (ns):       26690593
+bytes allocated:    404886024
+pool allocs:        4228969
+non-pool GC allocs: 21080
+malloc() calls:     38
+free() calls:       38
+minor collections:  4
+full collections:   0
+=#
+
 
 # Unit tests for objective and constraints
 grid_size=50

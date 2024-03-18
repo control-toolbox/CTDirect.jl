@@ -6,12 +6,12 @@ function get_variable(xu, ctd)
             return xu[end-ctd.variable_dimension+1:end]
         end
     else
-        return Real[] #+++try to get xu type
+        return Real[] #Vector{typeof(xu[0])}() changes nothing
     end
 end
 
 # return original ocp state
-function get_state_at_time_step(xu, ctd, i)
+function get_state_at_time_step(xu, ctd, i::Int64)
     """
         return
         x(t_i)
@@ -133,7 +133,8 @@ function initial_guess(ctd)
 
     # default initialization
     # note: internal variables (lagrange cost, k_i for RK schemes) will keep these default values 
-    xu0 = 0.1 * ones(ctd.dim_NLP_variables)
+    # +++ setting type seems to have little effect in profiling
+    xu0::Vector{Float64} = 0.1 * ones(ctd.dim_NLP_variables)
 
     init = ctd.NLP_init
     N = ctd.dim_NLP_steps

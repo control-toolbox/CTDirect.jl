@@ -5,6 +5,7 @@ mutable struct CTDirect_data
     # OCP variables and functions
     initial_time
     final_time
+    # +++ cannot use const here (to try to improve the types for getters)
     state_dimension
     control_dimension
     variable_dimension
@@ -343,7 +344,7 @@ function ipopt_constraint!(c, xu, ctd)
         li = ctd.lagrange(ti, xi, ui, v)
     end
 
-    index = 1 # counter for the constraints
+    index::Int64 = 1 # counter for the constraints
     for i in 0:N-1
         tip1 = t0 + (i+1)*h
         
