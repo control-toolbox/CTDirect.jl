@@ -6,12 +6,12 @@ function get_variable(xu, docp)
             return xu[end-docp.variable_dimension+1:end]
         end
     else
-        return Real[]
+        return Float64[]
     end
 end
 
 # return original ocp state
-function get_state_at_time_step(xu, docp, i)
+function get_state_at_time_step(xu, docp, i::Int64)
     """
         return
         x(t_i)

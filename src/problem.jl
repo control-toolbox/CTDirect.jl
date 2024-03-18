@@ -10,34 +10,34 @@ mutable struct DOCP
     const ocp::OptimalControlModel
 
     # OCP variables and functions
-    variable_dimension
-    has_free_initial_time
-    has_free_final_time
-    has_variable
-    has_lagrange_cost
-    has_mayer_cost
+    variable_dimension::Int64
+    has_free_initial_time::Bool
+    has_free_final_time::Bool
+    has_variable::Bool
+    has_lagrange_cost::Bool
+    has_mayer_cost::Bool
 
     # OCP constraints
     # indicators
-    has_control_constraints
-    has_state_constraints
-    has_mixed_constraints
-    has_boundary_conditions
-    has_variable_constraints
-    has_control_box
-    has_state_box
-    has_variable_box
+    has_control_constraints::Bool
+    has_state_constraints::Bool
+    has_mixed_constraints::Bool
+    has_boundary_conditions::Bool
+    has_variable_constraints::Bool
+    has_control_box::Bool
+    has_state_box::Bool
+    has_variable_box::Bool
 
     # dimensions
-    dim_control_constraints
-    dim_state_constraints
-    dim_mixed_constraints
-    dim_path_constraints
-    dim_boundary_conditions
-    dim_variable_constraints
-    dim_control_box
-    dim_state_box
-    dim_variable_box
+    dim_control_constraints::Int64
+    dim_state_constraints::Int64
+    dim_mixed_constraints::Int64
+    dim_path_constraints::Int64
+    dim_boundary_conditions::Int64
+    dim_variable_constraints::Int64
+    dim_control_box::Int64
+    dim_state_box::Int64
+    dim_variable_box::Int64
     
     # functions
     control_constraints
@@ -51,10 +51,10 @@ mutable struct DOCP
 
     ## NLP
     # NLP problem
-    dim_NLP_state  # 'augmented state' with possible additional component for lagrange cost
-    dim_NLP_constraints
-    dim_NLP_variables
-    dim_NLP_steps
+    dim_NLP_state::Int64  # 'augmented state' with possible additional component for lagrange cost
+    dim_NLP_constraints::Int64
+    dim_NLP_variables::Int64
+    dim_NLP_steps::Int64
 
     # initialization
     NLP_init
@@ -64,7 +64,7 @@ mutable struct DOCP
     NLP_objective
     NLP_sol_constraints
     NLP_constraints_violation
-    NLP_iterations      
+    NLP_iterations     
     # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
     NLP_stats 
 
