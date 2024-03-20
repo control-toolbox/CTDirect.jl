@@ -1,3 +1,5 @@
+# NB. get rid of the tests for scalar/vectorial somehow ?
+# overload the ocp scalar functions with local vectorial versions ?
 function get_variable(xu, docp)
     if docp.has_variable
         if docp.variable_dimension == 1
@@ -90,9 +92,9 @@ function set_state_at_time_step!(xu, x_init, docp, i)
     n = docp.ocp.state_dimension
     N = docp.dim_NLP_steps
     @assert i <= N "trying to set init for x(t_i) with i > N"
-    # NB. only set first n components of state variable (nx = n+1 for lagrange cost)
+    # NB. only set first n components of state variable (ie the possible additional state for lagrange cost keeps the default init since it is not available from the OCP solution)
     if n == 1
-        xu[i*nx + 1] = x_init[]
+        xu[i*n + 1] = x_init[]
     else
         xu[i*nx + 1 : i*nx + n] = x_init
     end

@@ -55,7 +55,7 @@ mutable struct OptimalControlInit
         init = new()
         init.info          = :solution
         init.state_init    = t -> sol.state(t)  # scalar init if dim=1
-                             # t -> sol.state(t)[1:sol.state_dimension] # remove possible additional state for Lagrange cost
+        #NB. we do not have here the possible additional state for Lagrange cost
         init.control_init  = t -> sol.control(t) # scalar init if dim=1
         init.variable_init = sol.variable # scalar init if dim=1
         return init

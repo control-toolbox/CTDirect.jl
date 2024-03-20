@@ -5,7 +5,6 @@
 using JET
 
 using CTDirect
-using CTBase
 
 code_warntype = true
 jet = true
@@ -177,9 +176,9 @@ println("@code_warntype objective")
 Locals
   xf::Any
   x0::Any
-  v::Any
+  v::Union{Float64, Vector{Float64}, Vector{Real}}
   obj::Any
-  N::Any
+  N::Int64
   tf::Any
   t0::Any
 =#
