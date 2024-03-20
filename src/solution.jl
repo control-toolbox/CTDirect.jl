@@ -1,6 +1,5 @@
 # build OCP solution from DOCP solution
-# +++ remove the need for ocp
-function _OptimalControlSolution2(ipopt_solution, docp)
+function _OptimalControlSolution(ipopt_solution, docp)
 
     # save general solution data
     docp.NLP_stats = ipopt_solution
@@ -27,7 +26,7 @@ function _OptimalControlSolution2(ipopt_solution, docp)
     u = ctinterpolate(T, matrix2vec(U, 1))
     p = ctinterpolate(T[1:end-1], matrix2vec(P, 1))
     sol = OptimalControlSolution() # +++ constructor with ocp as argument ?
-    #copy!(sol, ocp) #+++need to remove ocp...
+    copy!(sol, docp.ocp)
     sol.times      = T
     sol.state      = (sol.state_dimension==1)    ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t)) # scalar output if dim=1
     sol.costate    = (sol.state_dimension==1)    ? deepcopy(t -> p(t)[1]) : deepcopy(t -> p(t)) # scalar output if dim=1

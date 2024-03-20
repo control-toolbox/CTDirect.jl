@@ -1,5 +1,4 @@
 using CTDirect
-using CTBase
 
 # simple integrator min energy
 ocp1 = Model()
@@ -17,5 +16,5 @@ sol = solveDOCP(docp, print_level=0, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
 # check types on objective and constraints functions
-xu = initial_guess(docp)
-@code_warntype ipopt_objective(xu, docp)
+#xu = initial_guess(docp)
+#@code_warntype ipopt_objective(xu, docp)

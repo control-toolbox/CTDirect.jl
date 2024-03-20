@@ -68,7 +68,7 @@ function solveDOCP(docp::DOCP;
     ipopt_solution = ipopt(docp.nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
 
     # build OCP solution from DOCP result
-    sol = _OptimalControlSolution2(ipopt_solution, docp)
+    sol = _OptimalControlSolution(ipopt_solution, docp)
 
     return sol
 end

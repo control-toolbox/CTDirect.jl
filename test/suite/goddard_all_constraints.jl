@@ -50,7 +50,9 @@ function F1(x)
     return [ 0, Tmax/m, -b*Tmax ]
 end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
-sol1 = solve(ocp, grid_size=100, print_level=0, tol=1e-8)
+#sol1 = solve(ocp, grid_size=100, print_level=0, tol=1e-8)
+docp1 = DirectTranscription(ocp, grid_size=100)
+sol1 = solveDOCP(docp1, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types" begin
     @test sol1.objective ≈ 1.0125 rtol=1e-2
 end
@@ -62,62 +64,84 @@ u_init = 0.5
 v_init = 0.1
 
 init_constant = OptimalControlInit(x_init=x_init, u_init=u_init, v_init=v_init)
-sol2 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_constant)
+#sol2 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_constant)
+docp2 = DirectTranscription(ocp, grid_size=30, init=init_constant)
+sol2 = solveDOCP(docp2, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_constant" begin
     @test sol2.objective ≈ 1.0125 rtol=1e-2
 end
 
 init_function_x = OptimalControlInit(x_init=t->x_init, u_init=u_init, v_init=v_init)
-sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_x)
+#sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_x)
+docp = DirectTranscription(ocp, grid_size=30, init=init_function_x)
+sol = solveDOCP(docp, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_function_x" begin
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
 init_function_u = OptimalControlInit(x_init=x_init, u_init=t->u_init, v_init=v_init)
-sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_u)
+#sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_u)
+docp = DirectTranscription(ocp, grid_size=30, init=init_function_u)
+sol = solveDOCP(docp, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_function_u" begin
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
 init_function_xu = OptimalControlInit(x_init=t->x_init, u_init=t->u_init, v_init=v_init)
-sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_xu)
+#sol = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_xu)
+docp = DirectTranscription(ocp, grid_size=30, init=init_function_xu)
+sol = solveDOCP(docp, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_function_xu" begin
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
-sol3 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init))
+#sol3 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init))
+docp3 = DirectTranscription(ocp, grid_size=30, init=OptimalControlInit(x_init=x_init))
+sol3 = solveDOCP(docp3, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_constant (x)" begin
     @test sol3.objective ≈ 1.0125 rtol=1e-2
 end
 
-sol4 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(u_init=u_init))
+#sol4 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(u_init=u_init))
+docp4 = DirectTranscription(ocp, grid_size=30, init=OptimalControlInit(u_init=u_init))
+sol4 = solveDOCP(docp4, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_constant (u)" begin
     @test sol4.objective ≈ 1.0125 rtol=1e-2
 end
 
-sol5 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(v_init=v_init))
+#sol5 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(v_init=v_init))
+docp5 = DirectTranscription(ocp, grid_size=30, init=OptimalControlInit(v_init=v_init))
+sol5 = solveDOCP(docp5, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_constant (v)" begin
     @test sol5.objective ≈ 1.0125 rtol=1e-2
 end
 
-sol6 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init, u_init=u_init))
+#sol6 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init, u_init=u_init))
+docp6 = DirectTranscription(ocp, grid_size=30, init=OptimalControlInit(x_init=x_init, u_init=u_init))
+sol6 = solveDOCP(docp6, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_constant (x,u)" begin
     @test sol6.objective ≈ 1.0125 rtol=1e-2
 end
 
-sol7 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init, v_init=v_init))
+#sol7 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init, v_init=v_init))
+docp7 = DirectTranscription(ocp, grid_size=30, init=OptimalControlInit(x_init=x_init, v_init=v_init))
+sol7 = solveDOCP(docp7, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_constant (x,v)" begin
     @test sol7.objective ≈ 1.0125 rtol=1e-2
 end
 
-sol8 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(u_init=u_init, v_init=v_init))
+#sol8 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(u_init=u_init, v_init=v_init))
+docp8 = DirectTranscription(ocp, grid_size=30, init=OptimalControlInit(u_init=u_init, v_init=v_init))
+sol8 = solveDOCP(docp8, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_constant (u,v)" begin
     @test sol8.objective ≈ 1.0125 rtol=1e-2
 end
 
 # with initial guess from solution
 init_sol = OptimalControlInit(sol2)
-sol9 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_sol)
+#sol9 = solve(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_sol)
+docp9 = DirectTranscription(ocp, grid_size=30, init=init_sol)
+sol9 = solveDOCP(docp9, print_level=0, tol=1e-8)
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints_types :init_sol" begin
     @test sol9.objective ≈ 1.0125 rtol=1e-2
 end
