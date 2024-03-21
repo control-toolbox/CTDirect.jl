@@ -121,33 +121,33 @@ function set_variable!(xu, v_init, docp)
     end
 end
 
-function initial_guess(docp)
+function initial_guess(docp, init::OptimalControlInit=OptimalControlInit())
 
     # default initialization
     # note: internal variables (lagrange cost, k_i for RK schemes) will keep these default values 
-    xu0 = 0.1 * ones(docp.dim_NLP_variables)
+    xuv = 0.1 * ones(docp.dim_NLP_variables)
 
-    init = docp.NLP_init
+    #init = docp.NLP_init
     N = docp.dim_NLP_steps
-    t0 = get_initial_time(xu0, docp)
-    tf = get_final_time(xu0, docp)
+    t0 = get_initial_time(xuv, docp)
+    tf = get_final_time(xuv, docp)
     h = (tf - t0) / N 
 
     # set state / control variables if provided
     for i in 0:N
         ti = t0 + i * h
         if !isnothing(init.state_init(ti))
-            set_state_at_time_step!(xu0, init.state_init(ti), docp, i)
+            set_state_at_time_step!(xuv, init.state_init(ti), docp, i)
         end
         if !isnothing(init.control_init(ti))
-            set_control_at_time_step!(xu0, init.control_init(ti), docp, i)
+            set_control_at_time_step!(xuv, init.control_init(ti), docp, i)
         end
 
         # set variables if provided
         if !isnothing(init.variable_init)
-            set_variable!(xu0, init.variable_init, docp)
+            set_variable!(xuv, init.variable_init, docp)
         end
     end
 
-    return xu0
+    return xuv
 end
