@@ -21,12 +21,11 @@ include("solution.jl")
 include("solve.jl")
 
 # export functions only for user
-export solve
 export is_solvable
 export OptimalControlInit
 export DirectTranscription
+export getNLP
 export solveDOCP
-#export setDOCPInitialGuess()
 export initial_guess
 export ipopt_objective
 export ipopt_constraint

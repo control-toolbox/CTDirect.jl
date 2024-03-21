@@ -57,7 +57,7 @@ mutable struct DOCP
     dim_NLP_steps::Int64
 
     # initialization
-    NLP_init
+    #NLP_init
 
     # NLP solution
     NLP_solution
@@ -72,7 +72,7 @@ mutable struct DOCP
     nlp
 
     # constructor
-    function DOCP(ocp::OptimalControlModel, N::Integer, init::OptimalControlInit)       
+    function DOCP(ocp::OptimalControlModel, N::Integer)       
 
         # +++ try to put here more const members (indicators etc)
         docp = new(ocp)
@@ -114,7 +114,7 @@ mutable struct DOCP
 
         ## Non Linear Programming NLP
         docp.dim_NLP_steps = N
-        docp.NLP_init = init
+        #docp.NLP_init = init
 
         # Mayer to Lagrange reformulation: 
         # additional state with Lagrange cost as dynamics and null initial condition
