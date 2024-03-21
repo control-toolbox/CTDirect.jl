@@ -32,4 +32,17 @@ export ipopt_objective
 export ipopt_constraint
 export available_methods
 
+# CTBase reexports
+export @def
+export Model
+export Index
+export state!
+export control!
+export variable!
+export time!
+export constraint!
+export dynamics!
+export objective!
+
+
 end
