@@ -64,7 +64,7 @@ function solveDOCP(docp::DOCP;
     # solve DOCP with NLP solver
     # sb="yes": remove ipopt header +++ make that default
     print_level = display ?  print_level : 0
-    ipopt_solution = ipopt(docp.nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
+    ipopt_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
 
     # build OCP solution from DOCP result
     sol = _OptimalControlSolution(ipopt_solution, docp)

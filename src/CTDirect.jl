@@ -27,8 +27,8 @@ export DirectTranscription
 export getNLP
 export solveDOCP
 export initial_guess
-export ipopt_objective
-export ipopt_constraint
+export ipopt_objective #remove ?
+export ipopt_constraint #remove ?
 export available_methods
 
 # CTBase reexports
