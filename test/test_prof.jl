@@ -1,13 +1,13 @@
+using CTDirect
+using ADNLPModels, NLPModels
 #using BenchmarkTools
 #using Traceur
 #using Profile
 #using PProf
 using JET
 
-using CTDirect
-
 code_warntype = true
-jet = true
+jet = false
 
 println("Test: profiling")
 
@@ -48,100 +48,7 @@ function F1(x)
 end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
-#=
-# Solver
-println("First run for compilation @time")
-@time sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
-println("Second run for benchmark @timev")
-@timev sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
-#=
-  0.835355 seconds (4.25 M allocations: 386.129 MiB, 3.20% gc time)
-elapsed time (ns):  835354582
-gc time (ns):       26690593
-bytes allocated:    404886024
-pool allocs:        4228969
-non-pool GC allocs: 21080
-malloc() calls:     38
-free() calls:       38
-minor collections:  4
-full collections:   0
-=#
-
-# Unit tests for objective and constraints
-grid_size=50
-init=OptimalControlInit()
-ctd = CTDirect_data(ocp, grid_size, init)
-xu0 = initial_guess(ctd)
-
-# Types
-if code_warntype
-    println("@code_warntype objective")
-    @code_warntype ipopt_objective(xu0, ctd)
-    #=
-    Locals
-    xf::Any
-    x0::Any
-    v::Any
-    obj::Any
-    N::Int64
-    tf::Any
-    t0::Any
-    =#
-
-    println("@code_warntype constraints")
-    c = zeros(ctd.dim_NLP_constraints)
-    @code_warntype ipopt_constraint!(c, xu0, ctd)
-    #=
-    @_5::Union{Nothing, Tuple{Int64, Int64}}
-    index::Any
-    x0::Any
-    uf::Any
-    xf::Any
-    li::Any
-    xli::Float64
-    fi::Any
-    ui::Any
-    xi::Any
-    ti::Any
-    v::Any
-    h::Any
-    N::Int64
-    tf::Any
-    t0::Any
-    i::Int64
-    lip1::Any
-    xlip1::Float64
-    fip1::Any
-    uip1::Any
-    xip1::Any
-    tip1::Any
-    =#
-
-    #=
-    l_var, u_var = variables_bounds(ctd)
-    lb, ub = constraints_bounds(ctd)
-    nlp = ADNLPModel!(xu -> ipopt_objective(xu, ctd), 
-                    xu0, 
-                    l_var, u_var, 
-                    (c, xu) -> ipopt_constraint!(c, xu, ctd), 
-                    lb, ub, 
-                    backend = :optimized)
-    =#
-end
-
-
-# JET
-if jet
-    println("@report_opobjective")
-    @report_opt ipopt_objective(xu0, ctd)
-    #=
-    ═════ 56 possible errors found ═════
-    les int semblent ok (int64)
-    =#
-end
-=#
-
-# new formulation
+# full solve
 @time docp = DirectTranscription(ocp, grid_size=50)
 @time sol = solveDOCP(docp, print_level=0, tol=1e-12)
 @timev docp = DirectTranscription(ocp, grid_size=50)
@@ -169,21 +76,96 @@ minor collections:  4
 full collections:   0
 =#
 
-xu = initial_guess(docp)
-println("@code_warntype objective")
-@code_warntype ipopt_objective(xu, docp)
+nlp = getNLP(docp)
+x0 = initial_guess(docp) #println(x0 == nlp.meta.x0) true ok
+if (code_warntype == true)
+  println("@code_warntype ipopt_objective")
+  @code_warntype ipopt_objective(x0, docp)
 #=
+MethodInstance for CTDirect.ipopt_objective(::Vector{Float64}, ::CTDirect.DOCP)
+  from ipopt_objective(xu, docp) @ CTDirect ~/CTDirect.jl/src/problem.jl:273
+Arguments
+  #self#::Core.Const(CTDirect.ipopt_objective)
+  xu::Vector{Float64}
+  docp::CTDirect.DOCP
 Locals
   xf::Any
   x0::Any
-  v::Union{Float64, Vector{Float64}, Vector{Real}}
+  v::Union{Float64, Vector{Float64}}
   obj::Any
   N::Int64
   tf::Any
   t0::Any
+Body::Any
+1 ─       Core.NewvarNode(:(xf))
+│         Core.NewvarNode(:(x0))
+│         Core.NewvarNode(:(v))
+│         (t0 = CTDirect.get_initial_time(xu, docp))
+│         (tf = CTDirect.get_final_time(xu, docp))
+│         (N = Base.getproperty(docp, :dim_NLP_steps))
+│         (obj = 0)
+│   %8  = Base.getproperty(docp, :has_mayer_cost)::Bool
+└──       goto #3 if not %8
+2 ─       (v = CTDirect.get_variable(xu, docp))
+│         (x0 = CTDirect.get_state_at_time_step(xu, docp, 0))
+│         (xf = CTDirect.get_state_at_time_step(xu, docp, N))
+│   %13 = obj::Core.Const(0)
+│   %14 = Base.getproperty(docp, :ocp)::CTBase.OptimalControlModel
+│   %15 = Base.getproperty(%14, :mayer)::Union{Nothing, CTBase.Mayer}
+│   %16 = x0::Any
+│   %17 = xf::Any
+│   %18 = (%15)(%16, %17, v)::Real
+└──       (obj = %13 + %18)
+3 ┄ %20 = Base.getproperty(docp, :has_lagrange_cost)::Bool
+└──       goto #5 if not %20
+4 ─ %22 = obj::Any
+│   %23 = (N + 1)::Int64
+│   %24 = Base.getproperty(docp, :dim_NLP_state)::Int64
+│   %25 = (%23 * %24)::Int64
+│   %26 = Base.getindex(xu, %25)::Float64
+└──       (obj = %22 + %26)
+5 ┄ %28 = Base.getproperty(docp, :ocp)::CTBase.OptimalControlModel
+│   %29 = CTDirect.is_min(%28)::Bool
+└──       goto #7 if not %29
+6 ─       return obj
+7 ─ %32 = -obj::Any
+└──       return %32
+
 =#
-println("@report_opt objective")
-@report_opt ipopt_objective(xu, docp)
+
+  println("@code_warntype obj")
+  @code_warntype obj(nlp, x0)
 #=
-═════ 50 possible errors found ═════
+MethodInstance for NLPModels.obj(::ADNLPModel{Float64, Vector{Float64}, Vector{Int64}}, ::Vector{Float64})
+  from obj(nlp::ADNLPModel, x::AbstractVector) @ ADNLPModels ~/.julia/packages/ADNLPModels/Q4sHr/src/nlp.jl:533
+Arguments
+  #self#::Core.Const(NLPModels.obj)
+  nlp::ADNLPModel{Float64, Vector{Float64}, Vector{Int64}}
+  x::Vector{Float64}
+Body::Any
+1 ─ %1  = NLPModels.length(x)::Int64
+│   %2  = Base.getproperty(nlp, :meta)::NLPModelMeta{Float64, Vector{Float64}}
+│   %3  = Base.getproperty(%2, :nvar)::Int64
+│   %4  = (%1 != %3)::Bool
+└──       goto #3 if not %4
+2 ─ %6  = Base.getproperty(nlp, :meta)::NLPModelMeta{Float64, Vector{Float64}}
+│   %7  = Base.getproperty(%6, :nvar)::Int64
+│   %8  = NLPModels.length(x)::Int64
+│   %9  = NLPModels.DimensionError("x", %7, %8)::Core.PartialStruct(DimensionError, Any[String, Int64, Int64])
+└──       NLPModels.throw(%9)
+3 ┄       ADNLPModels.increment!(nlp, :neval_obj)
+│   %12 = Base.getproperty(nlp, :f)::Any
+│   %13 = (%12)(x)::Any
+└──       return %13
 =#
+
+  #println("@code_warntype gradient")
+  #@code_warntype grad(nlp, x0)
+end
+
+if (jet == true)
+  println("@report_opt objective")
+  @report_opt ipopt_objective(x0, docp)
+  #═════ 53 possible errors found ═════
+end
+
