@@ -164,8 +164,8 @@ Body::Any
 end
 
 if (jet == true)
-  println("@report_opt objective")
-  @report_opt ipopt_objective(x0, docp)
+  println("@report_opt obj")
+  @report_opt obj(nlp, x0)
   #═════ 53 possible errors found ═════
 end
 

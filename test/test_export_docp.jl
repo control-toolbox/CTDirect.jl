@@ -25,6 +25,8 @@ docp = DirectTranscription(ocp1, grid_size=100, init=init_constant)
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
+#add test with init from solution
+
 
 
 # check types on objective and constraints functions
