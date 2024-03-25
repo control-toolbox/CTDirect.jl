@@ -57,19 +57,20 @@ $(TYPEDSIGNATURES)
 Solve a discretized optimal control problem
 """
 function solveDOCP(docp::DOCP;
+    init=nothing,
     display::Bool=__display(),
-    #init::OptimalControlInit=OptimalControlInit(),
     print_level::Integer=__print_level_ipopt(),
     mu_strategy::String=__mu_strategy_ipopt(),
     kwargs...)
 
-    # +++ set initial guess if provided
-    # setDOCPInitialGuess(+++)
-
     # solve DOCP with NLP solver
     # sb="yes": remove ipopt header +++ make that default
     print_level = display ?  print_level : 0
-    ipopt_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
+    if init == nothing
+        ipopt_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
+    else
+        ipopt_solution = ipopt(getNLP(docp),x0=initial_guess(docp, init), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
+    end
 
     # build OCP solution from DOCP result
     sol = _OptimalControlSolution(ipopt_solution, docp)

@@ -25,9 +25,17 @@ setDOCPInit(docp, init_constant)
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
-#add test with init from solution
+# init from solution
 init_sol = OptimalControlInit(sol)
 setDOCPInit(docp, init_sol)
+#print(docp.nlp.meta.x0)
+sol = solveDOCP(docp, print_level=5, tol=1e-12)
+println("Expected Objective 0.313, found ", sol.objective)
+
+# pass init directly to solve call
+setDOCPInit(docp, OptimalControlInit()) # reset init in docp
+sol = solveDOCP(docp, init=init_sol, print_level=5, tol=1e-12)
+println("Expected Objective 0.313, found ", sol.objective)
 #print(docp.nlp.meta.x0)
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
