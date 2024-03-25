@@ -20,13 +20,17 @@ println("Expected Objective 0.313, found ", sol.objective)
 # different starting guess
 println("with constant init x=0.5 and u=0")
 init_constant = OptimalControlInit(x_init=[-0.5], u_init=0)
-docp = DirectTranscription(ocp1, grid_size=100, init=init_constant)
+setDOCPInit(docp, init_constant)
 #print(docp.nlp.meta.x0)
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
 #add test with init from solution
-
+init_sol = OptimalControlInit(sol)
+setDOCPInit(docp, init_sol)
+#print(docp.nlp.meta.x0)
+sol = solveDOCP(docp, print_level=5, tol=1e-12)
+println("Expected Objective 0.313, found ", sol.objective)
 
 
 # check types on objective and constraints functions
