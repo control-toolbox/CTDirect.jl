@@ -25,6 +25,7 @@ export is_solvable
 export OptimalControlInit
 export DirectTranscription
 export getNLP
+export setDOCPInit
 export solveDOCP
 export initial_guess
 export ipopt_objective #remove ?

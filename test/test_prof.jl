@@ -7,7 +7,7 @@ using ADNLPModels, NLPModels
 using JET
 
 code_warntype = true
-jet = false
+jet = true
 
 println("Test: profiling")
 
@@ -133,8 +133,6 @@ Body::Any
 
 =#
 
-  println("@code_warntype obj")
-  @code_warntype obj(nlp, x0)
 #=
 MethodInstance for NLPModels.obj(::ADNLPModel{Float64, Vector{Float64}, Vector{Int64}}, ::Vector{Float64})
   from obj(nlp::ADNLPModel, x::AbstractVector) @ ADNLPModels ~/.julia/packages/ADNLPModels/Q4sHr/src/nlp.jl:533

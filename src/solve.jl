@@ -46,6 +46,11 @@ function getNLP(docp::DOCP)
 return docp.nlp
 end
 
+function setDOCPInit(docp::DOCP, init::OptimalControlInit)
+nlp = getNLP(docp)
+nlp.meta.x0 .= initial_guess(docp, init)
+end
+
 """
 $(TYPEDSIGNATURES)
 
