@@ -49,9 +49,9 @@ end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
 # full solve
-@time docp = DirectTranscription(ocp, grid_size=50)
+@time docp = directTranscription(ocp, grid_size=50)
 @time sol = solveDOCP(docp, print_level=0, tol=1e-12)
-@timev docp = DirectTranscription(ocp, grid_size=50)
+@timev docp = directTranscription(ocp, grid_size=50)
 @timev sol = solveDOCP(docp, print_level=0, tol=1e-12)
 #=
 0.114651 seconds (573.19 k allocations: 44.455 MiB, 13.90% gc time)

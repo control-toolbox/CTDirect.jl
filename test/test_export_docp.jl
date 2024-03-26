@@ -11,9 +11,8 @@ dynamics!(ocp1, (x, u) -> -x + u)
 objective!(ocp1, :lagrange, (x, u) -> u^2)
 
 println("Test simple integrator: basic init")
-docp = DirectTranscription(ocp1, grid_size=100)
+docp = directTranscription(ocp1, grid_size=100)
 nlp = getNLP(docp)
-#print(nlp.meta.x0)
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
@@ -21,14 +20,12 @@ println("Expected Objective 0.313, found ", sol.objective)
 println("with constant init x=0.5 and u=0")
 init_constant = OptimalControlInit(x_init=[-0.5], u_init=0)
 setDOCPInit(docp, init_constant)
-#print(docp.nlp.meta.x0)
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
 # init from solution
 init_sol = OptimalControlInit(sol)
 setDOCPInit(docp, init_sol)
-#print(docp.nlp.meta.x0)
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
@@ -36,7 +33,6 @@ println("Expected Objective 0.313, found ", sol.objective)
 setDOCPInit(docp, OptimalControlInit()) # reset init in docp
 sol = solveDOCP(docp, init=init_sol, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
-#print(docp.nlp.meta.x0)
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
