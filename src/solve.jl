@@ -64,16 +64,30 @@ function solveDOCP(docp::DOCP;
     kwargs...)
 
     # solve DOCP with NLP solver
-    # sb="yes": remove ipopt header +++ make that default
     print_level = display ?  print_level : 0
     if init == nothing
-        ipopt_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
+        docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
     else
-        ipopt_solution = ipopt(getNLP(docp),x0=initial_guess(docp, init), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
+        docp_solution = ipopt(getNLP(docp),x0=initial_guess(docp, init), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
     end
 
-    # build OCP solution from DOCP result
-    sol = _OptimalControlSolution(ipopt_solution, docp)
+    # return solution for original OCP
+    return OCPSolutionFromDOCP(docp_solution, docp)
+end
 
-    return sol
+
+function solveDirect(ocp::OptimalControlModel;
+    init::OptimalControlInit=OptimalControlInit(),
+    grid_size::Integer=__grid_size_direct(),
+    display::Bool=__display(),
+    print_level::Integer=__print_level_ipopt(),
+    mu_strategy::String=__mu_strategy_ipopt(),
+    kwargs...)
+
+    # build discretized OCP
+    docp = directTranscription(ocp, init, grid_size)
+    # solve DOCP and retrieve OCP solution
+    ocp_solution = solveDOCP(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, kwargs...)
+
+    return ocp_solution
 end

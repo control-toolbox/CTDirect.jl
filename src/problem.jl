@@ -272,8 +272,8 @@ end
 # IPOPT objective
 function ipopt_objective(xu, docp)
 
-    t0 = get_initial_time(xu, docp)
-    tf = get_final_time(xu, docp)
+    #t0 = get_initial_time(xu, docp)
+    #tf = get_final_time(xu, docp)
     N = docp.dim_NLP_steps
     obj = 0
     

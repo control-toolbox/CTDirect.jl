@@ -1,5 +1,5 @@
 # build OCP solution from DOCP solution
-function _OptimalControlSolution(ipopt_solution, docp)
+function OCPSolutionFromDOCP(ipopt_solution, docp)
 
     # save general solution data
     docp.NLP_stats = ipopt_solution

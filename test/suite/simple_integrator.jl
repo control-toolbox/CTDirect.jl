@@ -11,27 +11,24 @@ constraint!(ocp1, :initial, -1, :initial_constraint)
 constraint!(ocp1, :final, 0, :final_constraint)
 dynamics!(ocp1, (x, u) -> -x + u)
 objective!(ocp1, :lagrange, (x, u) -> u^2)
-#sol1 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12)
-docp1 = directTranscription(ocp1, grid_size=100);
-sol1 = solveDOCP(docp1, print_level=0, tol=1e-12);
-@testset verbose = true showtiming = true ":double_integrator :min_tf" begin
+
+# with default initial guess (ie 0.1)
+@testset verbose = true showtiming = true ":simple_integrator :min_tf" begin
+    sol1 = solveDirect(ocp1, grid_size=100, print_level=0, tol=1e-12)
     @test sol1.objective ≈ 0.313 rtol=1e-2
 end
 
 # with initial guess (using both vector and scalar syntax, no optimization variables)
-init_constant = OptimalControlInit(x_init=[-0.5], u_init=0)
-#sol2 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12, init=init_constant)
-docp2 = directTranscription(ocp1, grid_size=100, init=init_constant);
-sol2 = solveDOCP(docp2, print_level=0, tol=1e-12);
-@testset verbose = true showtiming = true ":double_integrator :min_tf :init_constant" begin
+@testset verbose = true showtiming = true ":simple_integrator :min_tf :init_constant" begin
+    init_constant = OptimalControlInit(x_init=[-0.5], u_init=0)
+    sol2 = solveDirect(ocp1, grid_size=100, print_level=0, tol=1e-12, init=init_constant)
     @test sol2.objective ≈ 0.313 rtol=1e-2
 end
 
 # with initial guess from solution
-init_sol = OptimalControlInit(sol2)
-#sol3 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12, init=init_sol)
-docp3 = directTranscription(ocp1, grid_size=100, init=init_sol);
-sol3 = solveDOCP(docp3, print_level=0, tol=1e-12);
-@testset verbose = true showtiming = true ":double_integrator :min_tf :init_sol" begin
+sol = solveDirect(ocp1, grid_size=100, print_level=0, tol=1e-12)
+@testset verbose = true showtiming = true ":simple_integrator :min_tf :init_sol" begin
+    init_sol = OptimalControlInit(sol)
+    sol3 = solveDirect(ocp1, grid_size=100, print_level=0, tol=1e-12, init=init_sol)
     @test sol3.objective ≈ 0.313 rtol=1e-2
 end
