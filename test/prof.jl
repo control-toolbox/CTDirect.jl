@@ -49,10 +49,8 @@ end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
 # full solve
-@time docp = directTranscription(ocp, grid_size=50)
-@time sol = solveDOCP(docp, print_level=0, tol=1e-12)
-@timev docp = directTranscription(ocp, grid_size=50)
-@timev sol = solveDOCP(docp, print_level=0, tol=1e-12)
+@time sol = solveDirect(ocp, grid_size=50, print_level=0, tol=1e-12)
+@timev sol = solveDirect(ocp, grid_size=50, print_level=0, tol=1e-12)
 #=
 0.114651 seconds (573.19 k allocations: 44.455 MiB, 13.90% gc time)
 elapsed time (ns):  114651167
@@ -163,7 +161,7 @@ end
 
 if (jet == true)
   println("@report_opt obj")
-  @report_opt obj(nlp, x0)
-  #═════ 53 possible errors found ═════
+  @report_opt ipopt_objective(x0, docp)
+  #═════ 48 possible errors found ═════
 end
 
