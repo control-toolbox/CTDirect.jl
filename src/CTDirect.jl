@@ -23,7 +23,7 @@ include("solve.jl")
 # export functions only for user
 export is_solvable
 export OptimalControlInit
-export DirectTranscription
+export directTranscription
 export getNLP
 export setDOCPInit
 export solveDOCP

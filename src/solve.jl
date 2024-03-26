@@ -21,7 +21,7 @@ $(TYPEDSIGNATURES)
 
 Discretize an optimal control problem into a nonlinear optimization problem (ie direct transcription)
 """
-function DirectTranscription(ocp::OptimalControlModel,
+function directTranscription(ocp::OptimalControlModel,
     description...;
     init::OptimalControlInit=OptimalControlInit(),
     grid_size::Integer=__grid_size_direct())
