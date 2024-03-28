@@ -3,7 +3,7 @@ module CTDirect
 using CTBase
 using DocStringExtensions
 using Symbolics                   # for optimized auto diff
-using NLPModelsIpopt, ADNLPModels # nlp modeling and resolution
+using NLPModelsIpopt, ADNLPModels # docp model and solver
 
 # Other declarations
 const nlp_constraints = CTBase.nlp_constraints
@@ -21,9 +21,30 @@ include("solution.jl")
 include("solve.jl")
 
 # export functions only for user
-export solve
 export is_solvable
 export OptimalControlInit
+export directTranscription
+export getNLP
+export setDOCPInit
+export solveDOCP
+export solveDirect
+export OCPSolutionFromDOCP
+export initial_guess
+export ipopt_objective
+export ipopt_constraint
 export available_methods
+
+# CTBase reexports
+export @def
+export Model
+export Index
+export state!
+export control!
+export variable!
+export time!
+export constraint!
+export dynamics!
+export objective!
+
 
 end
