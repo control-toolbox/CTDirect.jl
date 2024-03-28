@@ -43,12 +43,12 @@ return docp
 end
 
 function getNLP(docp::DOCP)
-return docp.nlp
+    return docp.nlp
 end
 
 function setDOCPInit(docp::DOCP, init::OptimalControlInit)
-nlp = getNLP(docp)
-nlp.meta.x0 .= initial_guess(docp, init)
+    nlp = getNLP(docp)
+    nlp.meta.x0 .= initial_guess(docp, init)
 end
 
 """
@@ -76,7 +76,8 @@ function solveDOCP(docp::DOCP;
 end
 
 
-function solveDirect(ocp::OptimalControlModel;
+function solveDirect(ocp::OptimalControlModel,
+    description...;
     init::OptimalControlInit=OptimalControlInit(),
     grid_size::Integer=__grid_size_direct(),
     display::Bool=__display(),
@@ -85,7 +86,7 @@ function solveDirect(ocp::OptimalControlModel;
     kwargs...)
 
     # build discretized OCP
-    docp = directTranscription(ocp, init, grid_size)
+    docp = directTranscription(ocp, description, init=init, grid_size=grid_size)
     # solve DOCP and retrieve OCP solution
     ocp_solution = solveDOCP(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, kwargs...)
 
