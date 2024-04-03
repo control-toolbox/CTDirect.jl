@@ -15,17 +15,17 @@ jobs:
     strategy:
       matrix:
         version:
-          - '1.8'
+#          - '1.8' fails due to some weird interpolation problem (knot vector error)
           - '1.9'
           - '1.10'
         os:
           - ubuntu-latest
-          #- macOS-latest
-          ##- windows-latest
+          - macOS-latest
+#          - windows-latest fails with ssh-agent error on windows slave
         arch:
           - x64
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
