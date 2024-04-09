@@ -24,26 +24,26 @@ println("Solve discretized problem and retrieve solution")
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
-# different starting guess
-println("with constant init x=0.5 and u=0")
-init_constant = OptimalControlInit(x_init=[-0.5], u_init=0)
-setDOCPInit(docp, init_constant)
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
+# fail test
+#sol = solveDirect(ocp, grid_size=100, print_level=5, tol=1e-12, max_iter=1) ok
 
-# init from solution
-init_sol = OptimalControlInit(sol)
-setDOCPInit(docp, init_sol)
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-
-# pass init directly to solve call
-setDOCPInit(docp, OptimalControlInit()) # reset init in docp
-sol = solveDOCP(docp, init=init_sol, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-
-
-# check types on objective and constraints functions
-#@code_warntype ipopt_objective(xu, docp)
+@def ocp2 begin
+    tf ∈ R, variable
+    t ∈ [ 0, tf ], time
+    x ∈ R², state
+    u ∈ R, control
+    tf ≥ 0
+    -1 ≤ u(t) ≤ 1
+    q = x₁
+    v = x₂
+    q(0) == 1
+    v(0) == 2
+    q(tf) == 0
+    v(tf) == 0
+    0 ≤ q(t) ≤ 5
+    -2 ≤ v(t) ≤ 3
+    (u^2)(t) ≤ 100
+    ẋ(t) == [ v(t), u(t) ]
+    tf → min
+end
+sol = solveDirect(ocp2, grid_size=100, print_level=5, tol=1e-12)
