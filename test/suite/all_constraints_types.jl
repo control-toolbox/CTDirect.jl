@@ -1,6 +1,6 @@
 using CTDirect
 
-println("Test: goddard all constraints")
+println("Test: all constraint types")
 
 # goddard max final altitue (all constraint types formulation)
 ocp = Model(variable=true)
