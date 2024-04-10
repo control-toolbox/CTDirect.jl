@@ -59,14 +59,20 @@ mutable struct DOCP
     # initialization
     #NLP_init
 
-    # NLP solution
+    # NLP solution +++ (do we really want to store the solution and related infos in DOCP ?)
     NLP_solution
     NLP_objective
     NLP_sol_constraints
     NLP_constraints_violation
-    NLP_iterations     
+    NLP_iterations
+    NLP_stopping
+    NLP_message
+    NLP_success
+    NLP_multipliers_constraints
+    NLP_multipliers_LB
+    NLP_multipliers_UB
     # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
-    NLP_stats 
+    #NLP_stats 
 
     # NLP model for solver
     nlp
@@ -269,8 +275,8 @@ function variables_bounds(docp)
 end
 
 
-# IPOPT objective
-function ipopt_objective(xu, docp)
+# DOCP objective
+function DOCP_objective(xu, docp)
 
     #t0 = get_initial_time(xu, docp)
     #tf = get_final_time(xu, docp)
@@ -296,8 +302,8 @@ function ipopt_objective(xu, docp)
 end
 
 
-# IPOPT constraints  (add bounds computation here at first call ?)
-function ipopt_constraint!(c, xu, docp)    
+# DOCP constraints  (add bounds computation here at first call ?)
+function DOCP_constraint!(c, xu, docp)    
     """
     compute the constraints for the NLP : 
         - discretization of the dynamics via the trapeze method

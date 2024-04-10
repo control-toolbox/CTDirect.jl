@@ -1,21 +1,42 @@
-# build OCP solution from DOCP solution
-function OCPSolutionFromDOCP(ipopt_solution, docp)
+# build OCP solution from DOCP solution (GenericExecutionStats)
+# ipopt solution is a GenericExecutionStats
+# https://jso.dev/SolverCore.jl/dev/reference/#SolverCore.get_status-Tuple{NLPModels.AbstractNLPModel}
+function OCPSolutionFromDOCP(docp, docp_solution_ipopt)
 
-    # save general solution data
-    docp.NLP_stats = ipopt_solution
-    if is_min(docp.ocp)
-        docp.NLP_objective = ipopt_solution.objective
-    else
-        docp.NLP_objective = - ipopt_solution.objective
+    # could pass some status info too (get_status ?)
+
+    return OCPSolutionFromDOCP_raw(docp, docp_solution_ipopt.solution, objective=docp_solution_ipopt.objective, constraints_violation=docp_solution_ipopt.primal_feas, iterations=docp_solution_ipopt.iter,multipliers_con=docp_solution_ipopt.multipliers, multipliers_L=docp_solution_ipopt.multipliers_L, multipliers_U=docp_solution_ipopt.multipliers_U, message=docp_solution_ipopt.solver_specific[:internal_msg])
+end
+
+function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_violation=nothing, iterations=0, multipliers_con=nothing, multipliers_L=nothing, multipliers_U=nothing, message=nothing)
+    
+    # still missing: stopping and success
+    docp.NLP_solution = solution
+    docp.NLP_constraints_violation = constraints_violation
+    docp.NLP_iterations = iterations
+    docp.NLP_message = String(message)
+    docp.NLP_stopping = nothing
+    docp.NLP_success = nothing
+    docp.NLP_multipliers_constraints = multipliers_con
+    docp.NLP_multipliers_LB = multipliers_L
+    docp.NLP_multipliers_UB = multipliers_U
+
+    # set objective
+    if objective==nothing
+        objective = DOCP_objective(solution, docp)
     end
-    docp.NLP_constraints_violation = ipopt_solution.primal_feas
-    docp.NLP_iterations = ipopt_solution.iter
-    docp.NLP_solution = ipopt_solution.solution
+    if is_min(docp.ocp)
+        docp.NLP_objective = objective
+    else
+        docp.NLP_objective = - objective
+    end
+
+    # recompute constraints at solution
     docp.NLP_sol_constraints = zeros(docp.dim_NLP_constraints)
-    ipopt_constraint!(docp.NLP_sol_constraints, ipopt_solution.solution, docp)
+    DOCP_constraint!(docp.NLP_sol_constraints, solution, docp)
 
     # parse NLP variables, constraints and multipliers 
-    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_ipopt_sol(docp)
+    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_DOCP_solution(docp)
 
     # variables and misc infos
     N = docp.dim_NLP_steps
@@ -28,15 +49,16 @@ function OCPSolutionFromDOCP(ipopt_solution, docp)
     sol = OptimalControlSolution() # +++ constructor with ocp as argument ?
     copy!(sol, docp.ocp)
     sol.times      = T
-    sol.state      = (sol.state_dimension==1)    ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t)) # scalar output if dim=1
-    sol.costate    = (sol.state_dimension==1)    ? deepcopy(t -> p(t)[1]) : deepcopy(t -> p(t)) # scalar output if dim=1
-    sol.control    = (sol.control_dimension==1)  ? deepcopy(t -> u(t)[1]) : deepcopy(t -> u(t)) # scalar output if dim=1
-    sol.variable   = (sol.variable_dimension==1) ? v[1] : v # scalar output if dim=1
+    # use scalar output for x,u,v,p if dim=1
+    sol.state      = (sol.state_dimension==1)    ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t)) 
+    sol.costate    = (sol.state_dimension==1)    ? deepcopy(t -> p(t)[1]) : deepcopy(t -> p(t))
+    sol.control    = (sol.control_dimension==1)  ? deepcopy(t -> u(t)[1]) : deepcopy(t -> u(t))
+    sol.variable   = (sol.variable_dimension==1) ? v[1] : v
     sol.objective  = docp.NLP_objective
     sol.iterations = docp.NLP_iterations
-    sol.stopping   = :dummy
-    sol.message    = "no message"
-    sol.success    = false #
+    sol.stopping   = docp.NLP_stopping
+    sol.message    = docp.NLP_message
+    sol.success    = docp.NLP_success
 
     # nonlinear constraints and multipliers
     if docp.has_state_constraints
@@ -89,15 +111,15 @@ function OCPSolutionFromDOCP(ipopt_solution, docp)
 end
 
 
-# parse NLP solution from ipopt into OCP variables, constraints and multipliers
-function parse_ipopt_sol(docp)
+# parse DOCP solution into OCP variables, constraints and multipliers
+function parse_DOCP_solution(docp)
     
     N = docp.dim_NLP_steps
 
     # states and controls variables, with box multipliers
     xu = docp.NLP_solution
-    mult_L = docp.NLP_stats.multipliers_L
-    mult_U = docp.NLP_stats.multipliers_U
+    mult_L = docp.NLP_multipliers_LB
+    mult_U = docp.NLP_multipliers_UB
     X = zeros(N+1,docp.dim_NLP_state)
     U = zeros(N+1,docp.ocp.control_dimension)
     v = get_variable(xu, docp)
@@ -134,7 +156,7 @@ function parse_ipopt_sol(docp)
 
     # constraints, costate and constraints multipliers
     P = zeros(N, docp.dim_NLP_state)
-    lambda = docp.NLP_stats.multipliers
+    lambda = docp.NLP_multipliers_constraints
     c = docp.NLP_sol_constraints
     sol_control_constraints = zeros(N+1,docp.dim_control_constraints)
     sol_state_constraints = zeros(N+1,docp.dim_state_constraints)

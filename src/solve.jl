@@ -31,10 +31,10 @@ function directTranscription(ocp::OptimalControlModel,
     x0 = initial_guess(docp, init)
     l_var, u_var = variables_bounds(docp)
     lb, ub = constraints_bounds(docp)
-    docp.nlp = ADNLPModel!(x -> ipopt_objective(x, docp), 
+    docp.nlp = ADNLPModel!(x -> DOCP_objective(x, docp), 
                     x0,
                     l_var, u_var, 
-                    (c, x) -> ipopt_constraint!(c, x, docp), 
+                    (c, x) -> DOCP_constraint!(c, x, docp), 
                     lb, ub, 
                     backend = :optimized)
 
@@ -72,7 +72,7 @@ function solveDOCP(docp::DOCP;
     end
 
     # return solution for original OCP
-    return OCPSolutionFromDOCP(docp_solution, docp)
+    return OCPSolutionFromDOCP(docp, docp_solution)
 end
 
 

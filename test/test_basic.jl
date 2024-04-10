@@ -35,6 +35,7 @@ println("Expected Objective 0.313, found ", sol.objective)
 init_sol = OptimalControlInit(sol)
 setDOCPInit(docp, init_sol)
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
+println("Solver returns: ", sol.message)
 println("Expected Objective 0.313, found ", sol.objective)
 
 # pass init directly to solve call
