@@ -60,17 +60,17 @@ mutable struct DOCP
     #NLP_init
 
     # NLP solution +++ (do we really want to store the solution and related infos in DOCP ?)
-    NLP_solution
-    NLP_objective
-    NLP_sol_constraints
-    NLP_constraints_violation
-    NLP_iterations
-    NLP_stopping
-    NLP_message
-    NLP_success
-    NLP_multipliers_constraints
-    NLP_multipliers_LB
-    NLP_multipliers_UB
+    #NLP_solution
+    #NLP_objective
+    #NLP_sol_constraints
+    #NLP_constraints_violation
+    #NLP_iterations
+    #NLP_stopping
+    #NLP_message
+    #NLP_success
+    #NLP_multipliers_constraints
+    #NLP_multipliers_LB
+    #NLP_multipliers_UB
     # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
     #NLP_stats 
 

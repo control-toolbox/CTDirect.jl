@@ -5,43 +5,52 @@ function OCPSolutionFromDOCP(docp, docp_solution_ipopt)
 
     # could pass some status info too (get_status ?)
 
-    return OCPSolutionFromDOCP_raw(docp, docp_solution_ipopt.solution, objective=docp_solution_ipopt.objective, constraints_violation=docp_solution_ipopt.primal_feas, iterations=docp_solution_ipopt.iter,multipliers_con=docp_solution_ipopt.multipliers, multipliers_L=docp_solution_ipopt.multipliers_L, multipliers_U=docp_solution_ipopt.multipliers_U, message=docp_solution_ipopt.solver_specific[:internal_msg])
+    return OCPSolutionFromDOCP_raw(docp, docp_solution_ipopt.solution, objective=docp_solution_ipopt.objective, constraints_violation=docp_solution_ipopt.primal_feas, iterations=docp_solution_ipopt.iter,multipliers_constraints=docp_solution_ipopt.multipliers, multipliers_LB=docp_solution_ipopt.multipliers_L, multipliers_UB=docp_solution_ipopt.multipliers_U, message=docp_solution_ipopt.solver_specific[:internal_msg])
 end
 
-function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_violation=nothing, iterations=0, multipliers_con=nothing, multipliers_L=nothing, multipliers_U=nothing, message=nothing)
+function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_violation=nothing, iterations=0, multipliers_constraints=nothing, multipliers_LB=nothing, multipliers_UB=nothing, message=nothing)
     
+
     # still missing: stopping and success
-    docp.NLP_solution = solution
-    docp.NLP_constraints_violation = constraints_violation
-    docp.NLP_iterations = iterations
-    docp.NLP_message = String(message)
-    docp.NLP_stopping = nothing
-    docp.NLP_success = nothing
-    docp.NLP_multipliers_constraints = multipliers_con
-    docp.NLP_multipliers_LB = multipliers_L
-    docp.NLP_multipliers_UB = multipliers_U
+    #docp.NLP_solution = solution
+    #docp.NLP_iterations = iterations
+    #docp.NLP_message = String(message)
+    #docp.NLP_stopping = nothing
+    #docp.NLP_success = nothing
+    #docp.NLP_multipliers_constraints = multipliers_con
+    #docp.NLP_multipliers_LB = multipliers_L
+    #docp.NLP_multipliers_UB = multipliers_U
 
     # set objective
     if objective==nothing
         objective = DOCP_objective(solution, docp)
     end
-    if is_min(docp.ocp)
-        docp.NLP_objective = objective
-    else
-        docp.NLP_objective = - objective
+    if !is_min(docp.ocp)
+        objective = - objective
     end
+    #println(objective)
+    #println(DOCP_objective(solution, docp)) ok
 
     # recompute constraints at solution
-    docp.NLP_sol_constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraint!(docp.NLP_sol_constraints, solution, docp)
+    c = zeros(docp.dim_NLP_constraints)
+    DOCP_constraint!(c, solution, docp)
+    # +++ error, component -3 (3rd from end) is -1. Check this
+    # only 2 boundary conditions so this would be the last dynamics constraint ? maybe the last control is lost somehow ? try 5 or 10 steps for readability
+    # check
+    println(constraints_violation)
+    println(c)
+    if constraints_violation==nothing
+        constraints_violation = norm(c)
+    end
+    #docp.NLP_constraints_violation = constraints_violation
 
     # parse NLP variables, constraints and multipliers 
-    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_DOCP_solution(docp)
+    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_DOCP_solution(docp, solution, multipliers_constraints, multipliers_LB, multipliers_UB, c)
 
     # variables and misc infos
     N = docp.dim_NLP_steps
-    t0 = get_initial_time(docp.NLP_solution, docp)
-    tf = get_final_time(docp.NLP_solution, docp)
+    t0 = get_initial_time(solution, docp)
+    tf = get_final_time(solution, docp)
     T = collect(LinRange(t0, tf, N+1))
     x = ctinterpolate(T, matrix2vec(X, 1))
     u = ctinterpolate(T, matrix2vec(U, 1))
@@ -54,11 +63,11 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
     sol.costate    = (sol.state_dimension==1)    ? deepcopy(t -> p(t)[1]) : deepcopy(t -> p(t))
     sol.control    = (sol.control_dimension==1)  ? deepcopy(t -> u(t)[1]) : deepcopy(t -> u(t))
     sol.variable   = (sol.variable_dimension==1) ? v[1] : v
-    sol.objective  = docp.NLP_objective
-    sol.iterations = docp.NLP_iterations
-    sol.stopping   = docp.NLP_stopping
-    sol.message    = docp.NLP_message
-    sol.success    = docp.NLP_success
+    sol.objective  = objective
+    sol.iterations = iterations
+    sol.stopping   = nothing
+    sol.message    = String(message)
+    sol.success    = nothing
 
     # nonlinear constraints and multipliers
     if docp.has_state_constraints
@@ -112,14 +121,14 @@ end
 
 
 # parse DOCP solution into OCP variables, constraints and multipliers
-function parse_DOCP_solution(docp)
+function parse_DOCP_solution(docp, solution, multipliers_constraints, multipliers_LB, multipliers_UB, c)
     
     N = docp.dim_NLP_steps
 
     # states and controls variables, with box multipliers
-    xu = docp.NLP_solution
-    mult_L = docp.NLP_multipliers_LB
-    mult_U = docp.NLP_multipliers_UB
+    xu = solution
+    mult_L = multipliers_LB
+    mult_U = multipliers_UB
     X = zeros(N+1,docp.dim_NLP_state)
     U = zeros(N+1,docp.ocp.control_dimension)
     v = get_variable(xu, docp)
@@ -156,8 +165,8 @@ function parse_DOCP_solution(docp)
 
     # constraints, costate and constraints multipliers
     P = zeros(N, docp.dim_NLP_state)
-    lambda = docp.NLP_multipliers_constraints
-    c = docp.NLP_sol_constraints
+    lambda = multipliers_constraints
+    #c = docp.NLP_sol_constraints
     sol_control_constraints = zeros(N+1,docp.dim_control_constraints)
     sol_state_constraints = zeros(N+1,docp.dim_state_constraints)
     sol_mixed_constraints = zeros(N+1,docp.dim_mixed_constraints) 

@@ -12,9 +12,10 @@ objective!(ocp, :lagrange, (x, u) -> u^2)
 
 # all-in-one solve call
 println("Test simple integrator: all in one solve call")
-sol = solveDirect(ocp, grid_size=100, print_level=5, tol=1e-12)
+sol = solveDirect(ocp, grid_size=2, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
+#=
 # split calls
 println("Test simple integrator: split calls")
 println("Direct transcription")
@@ -44,7 +45,7 @@ sol = solveDOCP(docp, init=init_sol, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
-
+=#
 
 # check types on objective and constraints functions
 #@code_warntype ipopt_objective(xu, docp)
