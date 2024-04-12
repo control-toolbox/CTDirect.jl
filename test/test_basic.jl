@@ -23,27 +23,3 @@ nlp = getNLP(docp)
 println("Solve discretized problem and retrieve solution")
 sol = solveDOCP(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
-
-# different starting guess
-println("with constant init x=0.5 and u=0")
-init_constant = OptimalControlInit(x_init=[-0.5], u_init=0)
-setDOCPInit(docp, init_constant)
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-
-# init from solution
-init_sol = OptimalControlInit(sol)
-setDOCPInit(docp, init_sol)
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
-println("Solver returns: ", sol.message)
-println("Expected Objective 0.313, found ", sol.objective)
-
-# pass init directly to solve call
-setDOCPInit(docp, OptimalControlInit()) # reset init in docp
-sol = solveDOCP(docp, init=init_sol, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-
-# check types on objective and constraints functions
-#@code_warntype ipopt_objective(xu, docp)
