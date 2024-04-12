@@ -56,24 +56,6 @@ mutable struct DOCP
     dim_NLP_variables::Int64
     dim_NLP_steps::Int64
 
-    # initialization
-    #NLP_init
-
-    # NLP solution +++ (do we really want to store the solution and related infos in DOCP ?)
-    #NLP_solution
-    #NLP_objective
-    #NLP_sol_constraints
-    #NLP_constraints_violation
-    #NLP_iterations
-    #NLP_stopping
-    #NLP_message
-    #NLP_success
-    #NLP_multipliers_constraints
-    #NLP_multipliers_LB
-    #NLP_multipliers_UB
-    # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
-    #NLP_stats 
-
     # NLP model for solver
     nlp
 
@@ -120,7 +102,6 @@ mutable struct DOCP
 
         ## Non Linear Programming NLP
         docp.dim_NLP_steps = N
-        #docp.NLP_init = init
 
         # Mayer to Lagrange reformulation: 
         # additional state with Lagrange cost as dynamics and null initial condition
@@ -363,7 +344,8 @@ function DOCP_constraint!(c, xu, docp)
         end
         index = index + docp.dim_NLP_state
 
-        # path constraints
+        # path constraints 
+        # +++use aux function for block, see solution also
         if docp.has_control_constraints
             c[index:index+docp.dim_control_constraints-1] = docp.control_constraints[2](ti, ui, v)
             index = index + docp.dim_control_constraints
