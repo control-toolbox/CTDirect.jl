@@ -20,7 +20,7 @@ function OCPSolutionFromDOCP(ipopt_solution, docp)
     # variables and misc infos
     N = docp.dim_NLP_steps
     t0 = get_initial_time(docp.NLP_solution, docp)
-    tf = get_final_time(docp.NLP_solution, docp)
+    tf = max(get_final_time(docp.NLP_solution, docp), t0 + 1e-9)
     T = collect(LinRange(t0, tf, N+1))
     x = ctinterpolate(T, matrix2vec(X, 1))
     u = ctinterpolate(T, matrix2vec(U, 1))

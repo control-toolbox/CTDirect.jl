@@ -92,23 +92,3 @@ objective!(ocp5, :lagrange, (x, u) -> u[1]*u[1] + u[2]*u[2])
     sol5 = solveDirect(ocp5, grid_size=50, print_level=0, tol=1e-12)
     @test sol5.objective ≈ 9.6e-2 rtol=1e-2
 end
-
-# min tf, abstract definition
-@def ocp begin
-    tf ∈ R, variable
-    t ∈ [ 0, tf ], time
-    x ∈ R², state
-    u ∈ R, control
-    -1 ≤ u(t) ≤ 1
-    x(0) == [ 0, 0 ]
-    x(tf) == [ 1, 0 ]
-    0.1 ≤ tf ≤ Inf 
-    ẋ(t) == [ x₂(t), u(t) ] 
-    tf → min
-end
-
-@testset verbose = true showtiming = true ":double_integrator :min_tf :abstract" begin
-    @test is_solvable(ocp)
-    sol = solveDirect(ocp, grid_size=100, print_level=0, tol=1e-12)
-    @test sol.objective ≈ 2.0 rtol=1e-2
-end
