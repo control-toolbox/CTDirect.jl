@@ -56,6 +56,12 @@ mutable struct DOCP
     dim_NLP_variables::Int64
     dim_NLP_steps::Int64
 
+    # lower and upper bounds for variables and constraints
+    var_l
+    var_u
+    con_l
+    con_u
+
     # NLP model for solver
     nlp
 
@@ -284,7 +290,7 @@ end
 
 
 # DOCP constraints  (add bounds computation here at first call ?)
-function DOCP_constraint!(c, xu, docp)    
+function DOCP_constraints!(c, xu, docp)    
     """
     compute the constraints for the NLP : 
         - discretization of the dynamics via the trapeze method
@@ -397,6 +403,35 @@ function DOCP_constraint!(c, xu, docp)
         c[index] = get_lagrange_cost_at_time_step(xu, docp, 0)
         index = index + 1
     end
-
     return c # needed even for inplace version, AD error otherwise oO
+end
+
+# +++ todo unify in a single utils function check_bounds(v,lb,ub) that returns the error vector
+function DOCP_constraints_check!(cb, constraints, docp)
+
+    # check constraints vs bounds
+    # by construction only one of the two can be active
+    for i in 1:docp.dim_NLP_constraints
+        if constraints[i] < docp.con_l[i]
+            cb[i] = constraints[i] - docp.con_l[i]
+        end
+        if constraints[i] > docp.con_u[i]
+            cb[i] = constraints[i] - docp.con_u[i]
+        end
+    end
+    return nothing
+end
+
+function DOCP_variables_check!(vb, variables, docp)
+    # check variables vs bounds
+    # by construction only one of the two can be active
+    for i in 1:docp.dim_NLP_variables
+        if variables[i] < docp.var_l[i]
+            vb[i] = solution[i] - docp.var_l[i]
+        end
+        if variables[i] > docp.var_u[i]
+            vb[i] = solution[i] - docp.var_u[i]
+        end
+    end
+    return nothing
 end

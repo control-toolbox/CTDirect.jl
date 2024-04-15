@@ -10,7 +10,11 @@ end
 # still missing: stopping and success info...
 function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_violation=nothing, iterations=0, multipliers_constraints=nothing, multipliers_LB=nothing, multipliers_UB=nothing, message=nothing)
     
-    # adjust objective sign for maximization problem
+    # set objective if needed
+    if objective==nothing
+        objective = DOCP_objective(solution, docp)
+    end
+    # adjust objective sign for maximization problems
     if !is_min(docp.ocp)
         objective = - objective
     end
@@ -18,8 +22,16 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
     # recompute value of constraints at solution
     # NB. the constraint formulation is LB <= C <= UB
     constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraint!(constraints, solution, docp)
-
+    DOCP_constraints!(constraints, solution, docp)
+    # set constraint violation if needed
+    if constraints_violation==nothing
+        constraints_check = zeros(docp.dim_NLP_constraints)
+        DOCP_constraints_check!(constraints_check, constraints, docp)
+        variables_check = zeros(docp.dim_NLP_variables)
+        DOCP_variables_check!(variables_check, solution, docp)
+        constraints_violation = norm(append!(variables_check, constraints_check), Inf)
+    end
+    
     # parse NLP variables, constraints and multipliers 
     X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_DOCP_solution(docp, solution, multipliers_constraints, multipliers_LB, multipliers_UB, constraints)
 

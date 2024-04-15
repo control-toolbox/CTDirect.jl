@@ -1,7 +1,7 @@
 # TODO
 # add function to set the intial guess for a docp: need to rebuild the nlp model completely ? 
 
-# availble methods by order of preference: from top to bottom
+# available methods by order of preference: from top to bottom
 algorithmes = ()
 algorithmes = add(algorithmes, (:adnlp, :ipopt))
 
@@ -29,13 +29,13 @@ function directTranscription(ocp::OptimalControlModel,
     # initialization is optional
     docp = DOCP(ocp, grid_size)
     x0 = initial_guess(docp, init)
-    l_var, u_var = variables_bounds(docp)
-    lb, ub = constraints_bounds(docp)
+    docp.var_l, docp.var_u = variables_bounds(docp)
+    docp.con_l, docp.con_u = constraints_bounds(docp)
     docp.nlp = ADNLPModel!(x -> DOCP_objective(x, docp), 
                     x0,
-                    l_var, u_var, 
-                    (c, x) -> DOCP_constraint!(c, x, docp), 
-                    lb, ub, 
+                    docp.var_l, docp.var_u, 
+                    (c, x) -> DOCP_constraints!(c, x, docp), 
+                    docp.con_l, docp.con_u, 
                     backend = :optimized)
 
 return docp
