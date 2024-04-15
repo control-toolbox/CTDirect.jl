@@ -4,6 +4,7 @@ using CTBase
 using DocStringExtensions
 using Symbolics                   # for optimized auto diff
 using NLPModelsIpopt, ADNLPModels # docp model and solver
+using LinearAlgebra               # norm
 
 # Other declarations
 const nlp_constraints = CTBase.nlp_constraints

@@ -56,17 +56,11 @@ mutable struct DOCP
     dim_NLP_variables::Int64
     dim_NLP_steps::Int64
 
-    # initialization
-    #NLP_init
-
-    # NLP solution
-    NLP_solution
-    NLP_objective
-    NLP_sol_constraints
-    NLP_constraints_violation
-    NLP_iterations     
-    # remove later ? type is https://juliasmoothoptimizers.github.io/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats
-    NLP_stats 
+    # lower and upper bounds for variables and constraints
+    var_l
+    var_u
+    con_l
+    con_u
 
     # NLP model for solver
     nlp
@@ -114,7 +108,6 @@ mutable struct DOCP
 
         ## Non Linear Programming NLP
         docp.dim_NLP_steps = N
-        #docp.NLP_init = init
 
         # Mayer to Lagrange reformulation: 
         # additional state with Lagrange cost as dynamics and null initial condition
@@ -269,8 +262,8 @@ function variables_bounds(docp)
 end
 
 
-# IPOPT objective
-function ipopt_objective(xu, docp)
+# DOCP objective
+function DOCP_objective(xu, docp)
 
     #t0 = get_initial_time(xu, docp)
     #tf = get_final_time(xu, docp)
@@ -296,8 +289,8 @@ function ipopt_objective(xu, docp)
 end
 
 
-# IPOPT constraints  (add bounds computation here at first call ?)
-function ipopt_constraint!(c, xu, docp)    
+# DOCP constraints  (add bounds computation here at first call ?)
+function DOCP_constraints!(c, xu, docp)    
     """
     compute the constraints for the NLP : 
         - discretization of the dynamics via the trapeze method
@@ -357,7 +350,8 @@ function ipopt_constraint!(c, xu, docp)
         end
         index = index + docp.dim_NLP_state
 
-        # path constraints
+        # path constraints 
+        # +++use aux function for block, see solution also
         if docp.has_control_constraints
             c[index:index+docp.dim_control_constraints-1] = docp.control_constraints[2](ti, ui, v)
             index = index + docp.dim_control_constraints
@@ -409,6 +403,35 @@ function ipopt_constraint!(c, xu, docp)
         c[index] = get_lagrange_cost_at_time_step(xu, docp, 0)
         index = index + 1
     end
-
     return c # needed even for inplace version, AD error otherwise oO
+end
+
+# +++ todo unify in a single utils function check_bounds(v,lb,ub) that returns the error vector
+function DOCP_constraints_check!(cb, constraints, docp)
+
+    # check constraints vs bounds
+    # by construction only one of the two can be active
+    for i in 1:docp.dim_NLP_constraints
+        if constraints[i] < docp.con_l[i]
+            cb[i] = constraints[i] - docp.con_l[i]
+        end
+        if constraints[i] > docp.con_u[i]
+            cb[i] = constraints[i] - docp.con_u[i]
+        end
+    end
+    return nothing
+end
+
+function DOCP_variables_check!(vb, variables, docp)
+    # check variables vs bounds
+    # by construction only one of the two can be active
+    for i in 1:docp.dim_NLP_variables
+        if variables[i] < docp.var_l[i]
+            vb[i] = solution[i] - docp.var_l[i]
+        end
+        if variables[i] > docp.var_u[i]
+            vb[i] = solution[i] - docp.var_u[i]
+        end
+    end
+    return nothing
 end
