@@ -1,8 +1,9 @@
 using CTDirect
 using Printf
 
+#################################################
 # goddard max final altitude (all constraint types formulation)
-println("Test goddard (all constraints): initial guess options")
+println("Test goddard (all constraints): initial guess options\n")
 ocp = Model(variable=true)
 Cd = 310
 Tmax = 3.5
@@ -50,9 +51,10 @@ end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
 #################################################
-# all-in-one solve calls
+# 1 Pass initial guess to all-in-one solve call
+println("Passing the initial guess at the main solve level")
 # default init
-sol = solveDirect(ocp, grid_size=100, print_level=0, tol=1e-12)
+sol = solveDirect(ocp, print_level=0)
 @printf("%-56s %.3f at %d iterations\n", "Default initial guess (constant 0.1):", sol.objective, sol.iterations)
 
 # constant initial guess (vector / function formats)
@@ -61,75 +63,68 @@ u_init = 0.5
 v_init = 0.15
 
 # Constant initial guess (vector for x; default for u,v)
-sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init))
+sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_init))
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for x; default for u,v):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for u; default for x,v)
-sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(u_init=u_init))
+sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_init))
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for u; default for x,v):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for v; default for x,u)
-sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(v_init=v_init))
+sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(v_init=v_init))
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for v; default for x,u):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for x,u; default for v)
-sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init, u_init=u_init))
+sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_init, u_init=u_init))
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for x,u; default for v):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for x,v; default for u)
-sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init, v_init=v_init))
+sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_init, v_init=v_init))
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for x,v; default for u):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for u,v; default for x)
-sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(u_init=u_init, v_init=v_init))
+sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_init, v_init=v_init))
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for u,v; default for x):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for x,u,v)
-sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init, u_init=u_init, v_init=v_init))
+sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_init, u_init=u_init, v_init=v_init))
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for x,u,v):", sol.objective, sol.iterations)
 
 
 #= redo with non constant functions
 # Constant initial guess (function for x; vector for u,v)
-sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=t->x_init, u_init=u_init, v_init=v_init))
+sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=t->x_init, u_init=u_init, v_init=v_init))
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (function for x; vector for u,v):", sol.objective, sol.iterations)
 
 # Constant initial guess (function for u; vector for x,v)
-sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_u = OptimalControlInit(x_init=x_init, u_init=t->u_init, v_init=v_init))
+sol = solveDirect(ocp, print_level=0, init=init_function_u = OptimalControlInit(x_init=x_init, u_init=t->u_init, v_init=v_init))
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (function for u; vector for x,v):", sol.objective, sol.iterations)
 =#
 
+# warm start
+sol = solveDirect(ocp, print_level=0, init=init_function_u = OptimalControlInit(sol))
+@printf("%-56s %.3f at %d iterations\n", "Warm start from previous solution", sol.objective, sol.iterations)
 
-#=
+#################################################
+# 2 Setting the initial guess at the DOCP level
+println("\nSetting the initial guess at the DOCP level")
+docp = directTranscription(ocp)
+# constant vector init
+setDOCPInit(docp, OptimalControlInit(x_init=x_init, u_init=u_init, v_init=v_init))
+sol = solveDOCP(docp, print_level=0)
+@printf("%-56s %.3f at %d iterations\n", "Constant initial guess set in DOCP", sol.objective, sol.iterations)
+# warm start
+setDOCPInit(docp, OptimalControlInit(sol))
+sol = solveDOCP(docp, print_level=0)
+@printf("%-56s %.3f at %d iterations\n", "Warm start set in DOCP", sol.objective, sol.iterations)
 
-# split calls
-println("Test simple integrator: split calls")
-println("Direct transcription")
-docp = directTranscription(ocp, grid_size=100)
-nlp = getNLP(docp)
-println("Solve discretized problem and retrieve solution")
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-
-# different starting guess
-println("with constant init x=0.5 and u=0")
-init_constant = OptimalControlInit(x_init=[-0.5], u_init=0)
-setDOCPInit(docp, init_constant)
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-
-# init from solution
-init_sol = OptimalControlInit(sol)
-setDOCPInit(docp, init_sol)
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-
-# pass init directly to solve call
+#################################################
+# 3 Passing the initial guess to solveDOCP call
+println("\nPassing the initial guess to solveDOCP call")
 setDOCPInit(docp, OptimalControlInit()) # reset init in docp
-sol = solveDOCP(docp, init=init_sol, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
-println("Expected Objective 0.313, found ", sol.objective)
-
-
-=#
+# constant vector init
+sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_init, u_init=u_init, v_init=v_init), print_level=0)
+@printf("%-56s %.3f at %d iterations\n", "constant initial guess passed to solveDOCP", sol.objective, sol.iterations)
+# warm start
+sol = solveDOCP(docp, init=OptimalControlInit(sol), print_level=0)
+@printf("%-56s %.3f at %d iterations\n", "Warm start passed to solveDOCP", sol.objective, sol.iterations)
