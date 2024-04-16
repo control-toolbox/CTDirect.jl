@@ -1,8 +1,7 @@
 using CTDirect
 
-println("Test: all constraint types")
-# +++ todo: redo this one with different constraint formulations, use default initial guess only
 # goddard max final altitude (all constraint types formulation)
+println("Test goddard (all constraints): initial guess options")
 ocp = Model(variable=true)
 Cd = 310
 Tmax = 3.5
@@ -33,7 +32,6 @@ constraint!(ocp, :mixed, (x,u,v)->x[3], mf, Inf, :mixed_con_m_lb)
 constraint!(ocp, :variable, v->v, -Inf, 10, :variable_con_tf_ubx)
 # state box
 constraint!(ocp, :state, 1:2, [r0,v0], [r0+0.2, Inf], :state_box_rv)
-#constraint!(ocp, :state, Index(2), v0, Inf, :state_box_vmin)
 # control box
 constraint!(ocp, :control, Index(1), 0, Inf, :control_box_lb)
 # variable box
@@ -49,6 +47,7 @@ function F1(x)
     return [ 0, Tmax/m, -b*Tmax ]
 end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
+
 
 @testset verbose = true showtiming = true ":goddard :max_rf :all_constraints" begin
     sol1 = solveDirect(ocp, grid_size=100, print_level=0, tol=1e-8)
