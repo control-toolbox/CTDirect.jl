@@ -2,7 +2,9 @@
 
 We start with the well-known so-called [Goddard](http//en.wikipedia.org/wiki/Robert_H._Goddard) problem, which models the ascent of a rocket through the atmosphere (see for instance [1],[2]).
 
-+++pic goddard.jpg
+```@raw html
+<img src="./assets/goddard.png" style="display: block; margin: 0 auto 20px auto>
+```
 
 We restrict here ourselves to  vertical (monodimensional) trajectories, and the state variables are the altitude, speed and mass of the rocket during the flight, for a total dimension of 3. The rocket is subject to gravity, thrust and drag forces. The final time is free, and the objective is here to reach a maximal altitude with a given fuel consumption. All units are renormalized.
 
