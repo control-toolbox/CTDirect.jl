@@ -14,6 +14,7 @@ makedocs(
         #                          "optimization.md",
         #                          "solve-options.md"],
         "API"           => "api.md",
+        "Tutorial"      => "tutorial.md",
         #"Developers"    => "dev-api.md",
     ]
 )
