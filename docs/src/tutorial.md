@@ -13,9 +13,14 @@ We restrict here ourselves to  vertical (monodimensional) trajectories, and the 
 
 ```
 
-First import the module
 ```@setup main
 using Plots
+using Plots.PlotMeasures
+plot(args...; kwargs...) = Plots.plot(args...; kwargs..., leftmargin=25px)
+```
+
+First import the CTDirect module
+```@example main
 using CTDirect
 ```
 Then define the OCP for the Goddard problem. Note that the free final time is modeled as an optimization variable, hence the argument (variable=true).
