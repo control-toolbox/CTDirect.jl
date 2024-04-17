@@ -1,5 +1,6 @@
 # try to determine the efficiency of the scalar/vector handling
-
+n = 3
+m = 1
 N = 10
 xu = ones((N+1)*n+N*m)
 

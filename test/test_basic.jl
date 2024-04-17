@@ -12,7 +12,7 @@ objective!(ocp, :lagrange, (x, u) -> u^2)
 
 # all-in-one solve call
 println("Test simple integrator: all in one solve call")
-sol = solveDirect(ocp, grid_size=100, print_level=5, tol=1e-12)
+sol = solve(ocp, grid_size=100, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
 
 # split calls
@@ -21,5 +21,5 @@ println("Direct transcription")
 docp = directTranscription(ocp, grid_size=100)
 nlp = getNLP(docp)
 println("Solve discretized problem and retrieve solution")
-sol = solveDOCP(docp, print_level=5, tol=1e-12)
+sol = solve(docp, print_level=5, tol=1e-12)
 println("Expected Objective 0.313, found ", sol.objective)
