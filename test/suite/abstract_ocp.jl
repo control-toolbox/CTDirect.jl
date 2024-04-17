@@ -17,7 +17,7 @@ println("Test: abstract OCP definition")
 end
 
 @testset verbose = true showtiming = true ":double_integrator :min_tf :abstract" begin
-    sol1 = solveDirect(ocp1, grid_size=100, print_level=0, tol=1e-12)
+    sol1 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12)
     @test sol1.objective ≈ 2.0 rtol=1e-2
 end
 
@@ -43,6 +43,6 @@ end
 end
 
 @testset verbose = true showtiming = true ":double_integrator :min_tf :abstract :constr" begin
-    sol2 = solveDirect(ocp2, grid_size=100, print_level=0, tol=1e-12)
+    sol2 = solve(ocp2, grid_size=100, print_level=0, tol=1e-12)
     @test sol2.objective ≈ 5.46 rtol=1e-2
 end

@@ -49,8 +49,8 @@ end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
 # full solve
-@time sol = solveDirect(ocp, grid_size=50, print_level=0, tol=1e-12)
-@timev sol = solveDirect(ocp, grid_size=50, print_level=0, tol=1e-12)
+@time sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
+@timev sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
 #=
 0.114651 seconds (573.19 k allocations: 44.455 MiB, 13.90% gc time)
 elapsed time (ns):  114651167

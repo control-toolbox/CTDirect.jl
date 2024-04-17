@@ -47,11 +47,11 @@ function F1(x)
     return [ 0, Tmax/m, -b*Tmax ]
 end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
-sol0 = solveDirect(ocp, print_level=0)
+sol0 = solve(ocp, print_level=0)
 
 # default init
 @testset verbose = true showtiming = true ":default_init" begin
-    sol = solveDirect(ocp, print_level=0)
+    sol = solve(ocp, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
@@ -61,31 +61,31 @@ u_const = 0.5
 v_init = 0.15
 
 @testset verbose = true showtiming = true ":constant_init_x" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_u" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_const))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(u_init=u_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_v" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(v_init=v_init))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(v_init=v_init))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_xu" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_xv" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, v_init=v_init))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, v_init=v_init))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_uv" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_const, v_init=v_init))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(u_init=u_const, v_init=v_init))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_xuv" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
@@ -94,25 +94,25 @@ x_func = t->[1+t^2, sqrt(t), 1-t]
 u_func = t->(cos(t)+1)*0.5
 
 @testset verbose = true showtiming = true ":functional_init_x" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_func))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_func))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":functional_init_u" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_func))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(u_init=u_func))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":functional_init_xu" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_func, u_init=u_func))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_func, u_init=u_func))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":mixed_init" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_func, u_init=u_const))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_func, u_init=u_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
 # warm start
 @testset verbose = true showtiming = true ":warm_start" begin
-    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(sol0))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(sol0))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
@@ -120,31 +120,31 @@ end
 docp = directTranscription(ocp)
 @testset verbose = true showtiming = true ":DOCPInit_constant" begin
     setDOCPInit(docp, OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init))
-    sol = solveDOCP(docp, print_level=0)
+    sol = solve(docp, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":DOCPInit_mixed" begin
     setDOCPInit(docp, OptimalControlInit(x_init=x_func, u_init=u_const))
-    sol = solveDOCP(docp, print_level=0)
+    sol = solve(docp, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":DOCPInit_warm_start" begin
     setDOCPInit(docp, OptimalControlInit(sol0))
-    sol = solveDOCP(docp, print_level=0)
+    sol = solve(docp, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
-# pass initial guess to solveDOCP
+# pass initial guess to solve
 setDOCPInit(docp, OptimalControlInit()) # reset init in docp
-@testset verbose = true showtiming = true ":solveDOCP_constant_init" begin
-    sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init), print_level=0)
+@testset verbose = true showtiming = true ":solve_constant_init" begin
+    sol = solve(docp, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init), print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
-@testset verbose = true showtiming = true ":solveDOCP_mixed_init" begin
-    sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_func, u_init=u_const), print_level=0)
+@testset verbose = true showtiming = true ":solve_mixed_init" begin
+    sol = solve(docp, init=OptimalControlInit(x_init=x_func, u_init=u_const), print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
-@testset verbose = true showtiming = true ":solveDOCP_warm_start" begin
-    sol = solveDOCP(docp, init=OptimalControlInit(sol0), print_level=0)
+@testset verbose = true showtiming = true ":solve_warm_start" begin
+    sol = solve(docp, init=OptimalControlInit(sol0), print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end

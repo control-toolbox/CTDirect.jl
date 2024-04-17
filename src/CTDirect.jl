@@ -22,18 +22,18 @@ include("solution.jl")
 include("solve.jl")
 
 # export functions only for user
+export available_methods
 export is_solvable
+export solve
 export OptimalControlInit
 export directTranscription
 export getNLP
 export setDOCPInit
-export solveDOCP
-export solveDirect
 export OCPSolutionFromDOCP
 export initial_guess
 export DOCP_objective
 export DOCP_constraints!
-export available_methods
+
 
 # CTBase reexports
 export @def

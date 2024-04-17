@@ -52,7 +52,7 @@ end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
 # reference solution
-sol0 = solveDirect(ocp, print_level=0, tol=1e-8)
+sol0 = solve(ocp, print_level=0, tol=1e-8)
 #= check ok
 tf0 = sol0.variable
 println("tf ", tf0, " obj ", sol0.objective)
@@ -76,7 +76,7 @@ maxiter = 1000
 # 1 Pass initial guess to all-in-one solve call
 println("Passing the initial guess at the main solve level")
 # default init
-sol = solveDirect(ocp, print_level=0, max_iter=maxiter)
+sol = solve(ocp, print_level=0, max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Default initial guess (constant 0.1):", sol.objective, sol.iterations)
 
 # constant initial guess
@@ -85,31 +85,31 @@ u_const = 0.5
 v_init = 0.15
 
 # Constant initial guess (vector for x; default for u,v)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for x; default for u,v):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for u; default for x,v)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_const), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(u_init=u_const), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for u; default for x,v):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for v; default for x,u)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(v_init=v_init), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(v_init=v_init), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for v; default for x,u):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for x,u; default for v)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for x,u; default for v):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for x,v; default for u)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, v_init=v_init), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, v_init=v_init), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for x,v; default for u):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for u,v; default for x)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_const, v_init=v_init), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(u_init=u_const, v_init=v_init), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for u,v; default for x):", sol.objective, sol.iterations)
 
 # Constant initial guess (vector for x,u,v)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for x,u,v):", sol.objective, sol.iterations)
 
 # functional initial guess
@@ -117,23 +117,23 @@ x_func = t->[1+t^2, sqrt(t), 1-t]
 u_func = t->(cos(t)+1)*0.5
 
 # Functional initial guess for x; default for u,v)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_func), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_func), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Functional initial guess for x; default for u,v):", sol.objective, sol.iterations)
 
 # Functional initial guess for u; default for x,v)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_func), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(u_init=u_func), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Functional initial guess for u; default for x,v):", sol.objective, sol.iterations)
 
 # Functional initial guess for x,u; default for v)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_func, u_init=u_func), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_func, u_init=u_func), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Functional initial guess for x,u; default for v):", sol.objective, sol.iterations)
 
 # Functional initial guess for x; constant for u; default for v)
-sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_func, u_init=u_const), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_func, u_init=u_const), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Functional for x; constant for u; default for v):", sol.objective, sol.iterations)
 
 # warm start
-sol = solveDirect(ocp, print_level=0, init=init_function_u = OptimalControlInit(sol0), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=init_function_u = OptimalControlInit(sol0), max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Warm start from reference solution", sol.objective, sol.iterations)
 
 #################################################
@@ -142,27 +142,27 @@ println("\nSetting the initial guess at the DOCP level")
 docp = directTranscription(ocp)
 # constant vector init
 setDOCPInit(docp, OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init))
-sol = solveDOCP(docp, print_level=0, max_iter=maxiter)
+sol = solve(docp, print_level=0, max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess set in DOCP", sol.objective, sol.iterations)
 # mixed init
 setDOCPInit(docp, OptimalControlInit(x_init=x_func, u_init=u_const))
-sol = solveDOCP(docp, print_level=0, max_iter=maxiter)
+sol = solve(docp, print_level=0, max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Func/const/default initial guess set in DOCP", sol.objective, sol.iterations)
 # warm start
 setDOCPInit(docp, OptimalControlInit(sol0))
-sol = solveDOCP(docp, print_level=0, max_iter=maxiter)
+sol = solve(docp, print_level=0, max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Warm start from reference solution set in DOCP", sol.objective, sol.iterations)
 
 #################################################
-# 3 Passing the initial guess to solveDOCP call
-println("\nPassing the initial guess to solveDOCP call")
+# 3 Passing the initial guess to solve call
+println("\nPassing the initial guess to solve call")
 setDOCPInit(docp, OptimalControlInit()) # reset init in docp
 # constant vector init
-sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init), print_level=0, max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "constant initial guess passed to solveDOCP", sol.objective, sol.iterations)
+sol = solve(docp, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init), print_level=0, max_iter=maxiter)
+@printf("%-56s %.3f at %d iterations\n", "constant initial guess passed to solve", sol.objective, sol.iterations)
 # mixed init
-sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_func, u_init=u_const), print_level=0, max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Func/const/default initial guess passed to solveDOCP", sol.objective, sol.iterations)
+sol = solve(docp, init=OptimalControlInit(x_init=x_func, u_init=u_const), print_level=0, max_iter=maxiter)
+@printf("%-56s %.3f at %d iterations\n", "Func/const/default initial guess passed to solve", sol.objective, sol.iterations)
 # warm start
-sol = solveDOCP(docp, init=OptimalControlInit(sol0), print_level=0, max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Warm start from reference solution passed to solveDOCP", sol.objective, sol.iterations)
+sol = solve(docp, init=OptimalControlInit(sol0), print_level=0, max_iter=maxiter)
+@printf("%-56s %.3f at %d iterations\n", "Warm start from reference solution passed to solve", sol.objective, sol.iterations)

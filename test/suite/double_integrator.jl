@@ -16,7 +16,7 @@ dynamics!(ocp1, (x, u, v) ->  [x[2], u])
 objective!(ocp1, :mayer, (x0, xf, v) -> v)
 
 @testset verbose = true showtiming = true ":double_integrator :min_tf" begin
-    sol1 = solveDirect(ocp1, grid_size=100, print_level=0, tol=1e-12)
+    sol1 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12)
     @test sol1.objective ≈ 2.0 rtol=1e-2
 end
 
@@ -35,7 +35,7 @@ dynamics!(ocp2, (x, u, v) ->  [x[2], u])
 objective!(ocp2, :lagrange, (x, u, v) -> 1)
 
 @testset verbose = true showtiming = true ":double_integrator :min_tf :lagrange" begin
-    sol2 = solveDirect(ocp2, grid_size=100, print_level=0, tol=1e-12)
+    sol2 = solve(ocp2, grid_size=100, print_level=0, tol=1e-12)
     @test sol2.objective ≈ 2.0 rtol=1e-2
 end
 
@@ -54,7 +54,7 @@ dynamics!(ocp3, (x, u, v) ->  [x[2], u[1]])
 objective!(ocp3, :mayer, (x0, xf, v) -> v[1])
 
 @testset verbose = true showtiming = true ":double_integrator :min_tf :vectorial" begin
-    sol3 = solveDirect(ocp3, grid_size=100, print_level=0, tol=1e-12)
+    sol3 = solve(ocp3, grid_size=100, print_level=0, tol=1e-12)
     @test sol3.objective ≈ 2.0 rtol=1e-2
 end
 
@@ -73,7 +73,7 @@ dynamics!(ocp4, (x, u, v) ->  [x[2], u])
 objective!(ocp4, :mayer, (x0, xf, v) -> v[1], :max)
 
 @testset verbose = true showtiming = true ":double_integrator :max_t0" begin
-    sol4 = solveDirect(ocp4, grid_size=100, print_level=0, tol=1e-12)
+    sol4 = solve(ocp4, grid_size=100, print_level=0, tol=1e-12)
     @test sol4.objective ≈ 8.0 rtol=1e-2
 end
 
@@ -89,6 +89,6 @@ dynamics!(ocp5, (x, u) ->  [x[2], -u[1] + u[2]])
 objective!(ocp5, :lagrange, (x, u) -> u[1]*u[1] + u[2]*u[2])
 
 @testset verbose = true showtiming = true ":double_integrator :min_energy" begin
-    sol5 = solveDirect(ocp5, grid_size=50, print_level=0, tol=1e-12)
+    sol5 = solve(ocp5, grid_size=50, print_level=0, tol=1e-12)
     @test sol5.objective ≈ 9.6e-2 rtol=1e-2
 end
