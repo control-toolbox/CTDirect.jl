@@ -52,7 +52,7 @@ end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
 # reference solution
-sol0 = solve(ocp, print_level=0, tol=1e-8)
+sol0 = solve(ocp, print_level=0)
 #= check ok
 tf0 = sol0.variable
 println("tf ", tf0, " obj ", sol0.objective)
