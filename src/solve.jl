@@ -56,7 +56,7 @@ $(TYPEDSIGNATURES)
 
 Solve a discretized optimal control problem
 """
-function solveDOCP(docp::DOCP;
+function solve(docp::DOCP;
     init=nothing,
     display::Bool=__display(),
     print_level::Integer=__print_level_ipopt(),
@@ -76,7 +76,7 @@ function solveDOCP(docp::DOCP;
 end
 
 
-function solveDirect(ocp::OptimalControlModel,
+function solve(ocp::OptimalControlModel,
     description...;
     init::OptimalControlInit=OptimalControlInit(),
     grid_size::Integer=__grid_size_direct(),
@@ -88,7 +88,7 @@ function solveDirect(ocp::OptimalControlModel,
     # build discretized OCP
     docp = directTranscription(ocp, description, init=init, grid_size=grid_size)
     # solve DOCP and retrieve OCP solution
-    ocp_solution = solveDOCP(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, kwargs...)
+    ocp_solution = solve(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, kwargs...)
 
     return ocp_solution
 end
