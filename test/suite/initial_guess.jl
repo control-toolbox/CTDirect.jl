@@ -1,7 +1,7 @@
 using CTDirect
 
 # goddard max final altitude (all constraint types formulation)
-println("Test goddard (all constraints): initial guess options")
+println("Test: initial guess options")
 ocp = Model(variable=true)
 Cd = 310
 Tmax = 3.5
@@ -47,77 +47,104 @@ function F1(x)
     return [ 0, Tmax/m, -b*Tmax ]
 end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
+sol0 = solveDirect(ocp, print_level=0)
 
-
-@testset verbose = true showtiming = true ":goddard :init_default" begin
-    sol = solveDirect(ocp, grid_size=100, print_level=0, tol=1e-8)
+# default init
+@testset verbose = true showtiming = true ":default_init" begin
+    sol = solveDirect(ocp, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
-# with constant initial guess (vector / function formats)
-x_init = [1.05, 0.1, 0.8]
-u_init = 0.5
-v_init = 0.1
+# constant initial guess
+x_const = [1.05, 0.2, 0.8]
+u_const = 0.5
+v_init = 0.15
 
-@testset verbose = true showtiming = true ":goddard :init_constant" begin
-    init_constant = OptimalControlInit(x_init=x_init, u_init=u_init, v_init=v_init)
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_constant)
+@testset verbose = true showtiming = true ":constant_init_x" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":constant_init_u" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_const))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":constant_init_v" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(v_init=v_init))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":constant_init_xu" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":constant_init_xv" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, v_init=v_init))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":constant_init_uv" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_const, v_init=v_init))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":constant_init_xuv" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
-@testset verbose = true showtiming = true ":goddard :init_function_x" begin
-    init_function_x = OptimalControlInit(x_init=t->x_init, u_init=u_init, v_init=v_init)
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_x)
+# functional initial guess
+x_func = t->[1+t^2, sqrt(t), 1-t]
+u_func = t->(cos(t)+1)*0.5
+
+@testset verbose = true showtiming = true ":functional_init_x" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_func))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":functional_init_u" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(u_init=u_func))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":functional_init_xu" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_func, u_init=u_func))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":mixed_init" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(x_init=x_func, u_init=u_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
-@testset verbose = true showtiming = true ":goddard :init_function_u" begin
-    init_function_u = OptimalControlInit(x_init=x_init, u_init=t->u_init, v_init=v_init)
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_u)
+# warm start
+@testset verbose = true showtiming = true ":warm_start" begin
+    sol = solveDirect(ocp, print_level=0, init=OptimalControlInit(sol0))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
-@testset verbose = true showtiming = true ":goddard :init_function_xu" begin
-    init_function_xu = OptimalControlInit(x_init=t->x_init, u_init=t->u_init, v_init=v_init)
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_function_xu)
+# set initial guess in DOCP
+docp = directTranscription(ocp)
+@testset verbose = true showtiming = true ":DOCPInit_constant" begin
+    setDOCPInit(docp, OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init))
+    sol = solveDOCP(docp, print_level=0)
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":DOCPInit_mixed" begin
+    setDOCPInit(docp, OptimalControlInit(x_init=x_func, u_init=u_const))
+    sol = solveDOCP(docp, print_level=0)
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":DOCPInit_warm_start" begin
+    setDOCPInit(docp, OptimalControlInit(sol0))
+    sol = solveDOCP(docp, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
-@testset verbose = true showtiming = true ":goddard :init_constant (x)" begin
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init))
+# pass initial guess to solveDOCP
+setDOCPInit(docp, OptimalControlInit()) # reset init in docp
+@testset verbose = true showtiming = true ":solveDOCP_constant_init" begin
+    sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init), print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
-
-@testset verbose = true showtiming = true ":goddard :init_constant (u)" begin
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(u_init=u_init))
+@testset verbose = true showtiming = true ":solveDOCP_mixed_init" begin
+    sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_func, u_init=u_const), print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
-
-@testset verbose = true showtiming = true ":goddard :init_constant (v)" begin
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(v_init=v_init))
-    @test sol.objective ≈ 1.0125 rtol=1e-2
-end
-
-@testset verbose = true showtiming = true ":goddard :init_constant (x,u)" begin
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init, u_init=u_init))
-    @test sol.objective ≈ 1.0125 rtol=1e-2
-end
-
-@testset verbose = true showtiming = true ":goddard :init_constant (x,v)" begin
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(x_init=x_init, v_init=v_init))
-    @test sol.objective ≈ 1.0125 rtol=1e-2
-end
-
-
-@testset verbose = true showtiming = true ":goddard :init_constant (u,v)" begin
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=OptimalControlInit(u_init=u_init, v_init=v_init))
-    @test sol.objective ≈ 1.0125 rtol=1e-2
-end
-
-# with initial guess from solution
-sol = solveDirect(ocp, grid_size=100, print_level=0, tol=1e-8)
-@testset verbose = true showtiming = true ":goddard :init_sol" begin
-    init_sol = OptimalControlInit(sol)
-    sol = solveDirect(ocp, grid_size=30, print_level=0, tol=1e-8, init=init_sol)
+@testset verbose = true showtiming = true ":solveDOCP_warm_start" begin
+    sol = solveDOCP(docp, init=OptimalControlInit(sol0), print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end

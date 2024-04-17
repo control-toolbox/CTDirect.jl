@@ -31,8 +31,8 @@ export solveDOCP
 export solveDirect
 export OCPSolutionFromDOCP
 export initial_guess
-export ipopt_objective
-export ipopt_constraint
+export DOCP_objective
+export DOCP_constraints!
 export available_methods
 
 # CTBase reexports

@@ -78,7 +78,7 @@ nlp = getNLP(docp)
 x0 = initial_guess(docp) #println(x0 == nlp.meta.x0) true ok
 if (code_warntype == true)
   println("@code_warntype ipopt_objective")
-  @code_warntype ipopt_objective(x0, docp)
+  @code_warntype DOCP_objective(x0, docp)
 #=
 MethodInstance for CTDirect.ipopt_objective(::Vector{Float64}, ::CTDirect.DOCP)
   from ipopt_objective(xu, docp) @ CTDirect ~/CTDirect.jl/src/problem.jl:273
@@ -161,7 +161,7 @@ end
 
 if (jet == true)
   println("@report_opt obj")
-  @report_opt ipopt_objective(x0, docp)
+  @report_opt DOCP_objective(x0, docp)
   #═════ 48 possible errors found ═════
 end
 

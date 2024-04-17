@@ -1,6 +1,6 @@
 using CTDirect
 using Printf
-using Plots
+#using Plots
 
 #################################################
 # goddard max final altitude (all constraint types formulation)
@@ -141,7 +141,7 @@ sol = solveDirect(ocp, print_level=0, init=init_function_u = OptimalControlInit(
 println("\nSetting the initial guess at the DOCP level")
 docp = directTranscription(ocp)
 # constant vector init
-setDOCPInit(docp, OptimalControlInit(x_init=x_init, u_init=u_init, v_init=v_init))
+setDOCPInit(docp, OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init))
 sol = solveDOCP(docp, print_level=0, max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Constant initial guess set in DOCP", sol.objective, sol.iterations)
 # mixed init
@@ -158,10 +158,10 @@ sol = solveDOCP(docp, print_level=0, max_iter=maxiter)
 println("\nPassing the initial guess to solveDOCP call")
 setDOCPInit(docp, OptimalControlInit()) # reset init in docp
 # constant vector init
-sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_init, u_init=u_init, v_init=v_init), print_level=0, max_iter=maxiter)
+sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init), print_level=0, max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "constant initial guess passed to solveDOCP", sol.objective, sol.iterations)
 # mixed init
-sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_func, u_init=u_init), print_level=0, max_iter=maxiter)
+sol = solveDOCP(docp, init=OptimalControlInit(x_init=x_func, u_init=u_const), print_level=0, max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Func/const/default initial guess passed to solveDOCP", sol.objective, sol.iterations)
 # warm start
 sol = solveDOCP(docp, init=OptimalControlInit(sol0), print_level=0, max_iter=maxiter)

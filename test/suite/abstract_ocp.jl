@@ -42,7 +42,7 @@ end
     tf → min
 end
 
-@testset verbose = true showtiming = true ":double_integrator :min_tf :abstract :constraints" begin
+@testset verbose = true showtiming = true ":double_integrator :min_tf :abstract :constr" begin
     sol2 = solveDirect(ocp2, grid_size=100, print_level=0, tol=1e-12)
     @test sol2.objective ≈ 5.46 rtol=1e-2
 end
