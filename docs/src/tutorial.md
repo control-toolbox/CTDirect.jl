@@ -1,6 +1,6 @@
 # [First example: Goddard problem](@id goddard)
 
-We start with the well-known so-called [Goddard](http//en.wikipedia.org/wiki/Robert_H._Goddard) problem, which models the ascent of a rocket through the atmosphere (see for instance [1],[2]).
+We start with the well-known so-called [Goddard](http://en.wikipedia.org/wiki/Robert_H._Goddard) problem, which models the ascent of a rocket through the atmosphere (see for instance [1],[2]).
 
 ```@raw html
 <img src="./assets/goddard.png" style="display: block; margin: 0 auto 20px auto>
@@ -24,47 +24,31 @@ First import the CTDirect module
 using CTDirect
 ```
 Then define the OCP for the Goddard problem. Note that the free final time is modeled as an optimization variable, hence the argument (variable=true).
+
+#=
 ```@example main
-ocp1 = Model(variable=true)
-Cd = 310
-Tmax = 3.5
-β = 500
-b = 2
-r0 = 1
-v0 = 0
-vmax = 0.1
-m0 = 1
-mf = 0.6
-x0 = [ r0, v0, m0 ]
-state!(ocp1, 3)
-control!(ocp1, 1)
-variable!(ocp1, 1)
-time!(ocp1, 0, Index(1))
-constraint!(ocp1, :initial, x0, :initial_constraint)
-constraint!(ocp1, :final, Index(3), mf, :final_constraint)
-constraint!(ocp1, :control, u->u, 0, 1, :control_bounds)
-constraint!(ocp1, :state, 1:2, [r0,v0,mf], [Inf, vmax, m0], :state_bounds)
-constraint!(ocp1, :variable, Index(1), 0.01, 10, :variable_tf_bounds)
-objective!(ocp1, :mayer,  (x0, xf, v) -> xf[1], :max)
-function F0(x)
-    r, v, m = x
-    D = Cd * v^2 * exp(-β*(r - 1))
-    return [ v, -D/m - 1/r^2, 0 ]
+@def ocp1 begin
+    tf ∈ R, variable
+    t ∈ [ 0, tf ], time
+    x ∈ R^2, state
+    u ∈ R, control
+    -1 ≤ u(t) ≤ 1
+    x(0) == [ 0, 0 ]
+    x(tf) == [ 1, 0 ]
+    0.1 ≤ tf ≤ Inf 
+    ẋ(t) == [ x₂(t), u(t) ] 
+    tf → min
 end
-function F1(x)
-    r, v, m = x
-    return [ 0, Tmax/m, -b*Tmax ]
-end
-dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 ```
+=#
 
 We can then solve the problem directly
 ```@example main
-sol0 = solve(ocp, print_level=0)
+sol1 = solve(ocp1, print_level=0)
 ```
 and plot the solution
 ```@example main
-plot(sol0)
+display(plot(sol1))
 ```
 +++ abstract ocp
 

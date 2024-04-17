@@ -8,6 +8,7 @@ DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true
 makedocs(
     sitename = "CTDirect.jl",
     format = Documenter.HTML(prettyurls = false),
+    size_threshold = nothing,
     pages = [
         "Introduction"  => "index.md",
         #"Methods and Options" => ["rk.md",
