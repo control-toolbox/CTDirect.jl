@@ -2,8 +2,8 @@ using Documenter
 using CTDirect
 using CTBase
 
-DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
-DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true)
+#DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
+#DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true)
 
 makedocs(
     warnonly = [:cross_references, :autodocs_block],
