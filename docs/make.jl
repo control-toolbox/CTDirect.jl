@@ -6,13 +6,13 @@ DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
 DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true)
 
 makedocs(
+    warnonly = [:cross_references, :autodocs_block],
     sitename = "CTDirect.jl",
-    format = Documenter.HTML(prettyurls = false),
+    format = Documenter.HTML(prettyurls = false,
+            size_threshold_ignore = ["api-ctbase.md"]),
     pages = [
         "Introduction"  => "index.md",
-        #"Methods and Options" => ["rk.md",
-        #                          "optimization.md",
-        #                          "solve-options.md"],
+        "Tutorial"      => "tutorial.md",
         "API"           => "api.md",
         #"Developers"    => "dev-api.md",
     ]
