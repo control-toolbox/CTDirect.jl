@@ -58,7 +58,7 @@ end
 # constant initial guess
 x_const = [1.05, 0.2, 0.8]
 u_const = 0.5
-v_init = 0.15
+v_const = 0.15
 
 @testset verbose = true showtiming = true ":constant_init_x" begin
     sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const))
@@ -69,7 +69,7 @@ end
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_v" begin
-    sol = solve(ocp, print_level=0, init=OptimalControlInit(v_init=v_init))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(v_init=v_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_xu" begin
@@ -77,15 +77,15 @@ end
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_xv" begin
-    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, v_init=v_init))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, v_init=v_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_uv" begin
-    sol = solve(ocp, print_level=0, init=OptimalControlInit(u_init=u_const, v_init=v_init))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(u_init=u_const, v_init=v_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":constant_init_xuv" begin
-    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init))
+    sol = solve(ocp, print_level=0, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
@@ -119,7 +119,7 @@ end
 # set initial guess in DOCP
 docp = directTranscription(ocp)
 @testset verbose = true showtiming = true ":DOCPInit_constant" begin
-    setDOCPInit(docp, OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init))
+    setDOCPInit(docp, OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_const))
     sol = solve(docp, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
@@ -137,7 +137,7 @@ end
 # pass initial guess to solve
 setDOCPInit(docp, OptimalControlInit()) # reset init in docp
 @testset verbose = true showtiming = true ":solve_constant_init" begin
-    sol = solve(docp, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_init), print_level=0)
+    sol = solve(docp, init=OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_const), print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":solve_mixed_init" begin
