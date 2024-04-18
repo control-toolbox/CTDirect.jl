@@ -67,7 +67,7 @@ end
     t ∈ [ 0, tf ], time
     x ∈ R^3, state
     u ∈ R, control
-    0.1 ≤ tf ≤ 10
+    0.1 ≤ tf ≤ Inf
     r = x[1]
     v = x[2]
     m = x[3]
