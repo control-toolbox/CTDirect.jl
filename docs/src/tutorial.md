@@ -58,10 +58,15 @@ end
 end
 ```
 
-We can solve the problem directly using the default options, i.e 100 time steps and a constant initial guess set at 0.1. Then plot the solution with the state and control variables, as well as the costate recovered from the lagrange multipliers of the discretized problem. 
+We can solve the problem directly using the default options, i.e 100 time steps and a constant initial guess set at 0.1. 
 ```@example main
 sol1 = solve(ocp1, print_level=5)
+nothing # hide
+```
+Then plot the solution with the state and control variables, as well as the costate recovered from the lagrange multipliers of the discretized problem. 
+```@example main
 plot(sol1)
+
 ```
 
 +++ variantes initial guess: constant
@@ -74,6 +79,9 @@ sol4
 We can also use a so-called *warmstart* strategy and use an existing solution as initial guess (note that the OCP solution returned by the **solve** call is functional, thus it is not necessary to use the same time grid).
 ```@example main
 sol4 = solve(ocp1, grid_size=200, print_level=5, init=OptimalControlInit(sol1))
+nothing # hide
+```
+```@example main
 plot(sol4)
 ```
 
