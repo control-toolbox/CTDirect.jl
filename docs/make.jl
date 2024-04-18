@@ -8,7 +8,8 @@ using CTBase
 makedocs(
     warnonly = [:cross_references, :autodocs_block],
     sitename = "CTDirect.jl",
-    format = Documenter.HTML(prettyurls = false),
+    format = Documenter.HTML(prettyurls = false,
+            size_threshold_ignore = ["api-ctbase.md"]),
     pages = [
         #"Introduction"  => "index.md",
         #"Methods and Options" => ["rk.md",
