@@ -2,8 +2,8 @@ using Documenter
 using CTDirect
 using CTBase
 
-#DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
-#DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true)
+DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
+DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true)
 
 makedocs(
     warnonly = [:cross_references, :autodocs_block],
@@ -11,12 +11,9 @@ makedocs(
     format = Documenter.HTML(prettyurls = false,
             size_threshold_ignore = ["api-ctbase.md"]),
     pages = [
-        #"Introduction"  => "index.md",
-        #"Methods and Options" => ["rk.md",
-        #                          "optimization.md",
-        #                          "solve-options.md"],
-        #"API"           => "api.md",
+        "Introduction"  => "index.md",
         "Tutorial"      => "tutorial.md",
+        "API"           => "api.md",
         #"Developers"    => "dev-api.md",
     ]
 )
