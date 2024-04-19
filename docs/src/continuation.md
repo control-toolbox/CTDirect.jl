@@ -7,7 +7,7 @@ We illustrate this on the Goddard problem already presented in the tutorial.
 ```@setup main
 using Printf
 using Statistics
-using Plots; pyplot()
+using Plots
 ```
 
 ```@example main
