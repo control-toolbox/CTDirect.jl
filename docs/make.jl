@@ -11,10 +11,10 @@ makedocs(
     format = Documenter.HTML(prettyurls = false,
             size_threshold_ignore = ["api-ctbase.md"]),
     pages = [
-        #"Introduction"  => "index.md",
-        #"Tutorial"      => "tutorial.md",
+        "Introduction"  => "index.md",
+        "Tutorial"      => "tutorial.md",
         "Continuation"  => "continuation.md",
-        #"API"           => "api.md",
+        "API"           => "api.md",
         #"Developers"    => "dev-api.md",
     ]
 )
