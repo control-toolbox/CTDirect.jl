@@ -1,6 +1,5 @@
 using CTDirect
 using Printf
-#using Plots
 
 #################################################
 # goddard max final altitude (all constraint types formulation)
