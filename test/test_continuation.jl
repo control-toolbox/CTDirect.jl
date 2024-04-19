@@ -37,7 +37,7 @@ constraint!(ocp, :state, 1:2:3, [1,0.6], [1.2,1], :state_box)
 constraint!(ocp, :control, Index(1), 0, 1, :control_box)
 constraint!(ocp, :variable, Index(1), 0.01, Inf, :variable_box)
 constraint!(ocp, :state, Index(2), 0, Inf, :speed_limit)
-objective!(ocp, :mayer,  (x0, xf, v) -> xf[1], :max)
+objective!(ocp, :mayer, (x0, xf, v) -> xf[1], :max)
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
 # solve unconstrained problem
