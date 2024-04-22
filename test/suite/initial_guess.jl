@@ -37,16 +37,16 @@ constraint!(ocp, :control, Index(1), 0, Inf, :control_box_lb)
 # variable box
 constraint!(ocp, :variable, Index(1), 0.01, Inf, :variable_box_tfmin)
 objective!(ocp, :mayer,  (x0, xf, v) -> xf[1], :max)
-function F0(x)
+function FFF0(x)
     r, v, m = x
     D = Cd * v^2 * exp(-β*(r - 1))
     return [ v, -D/m - 1/r^2, 0 ]
 end
-function F1(x)
+function FFF1(x)
     r, v, m = x
     return [ 0, Tmax/m, -b*Tmax ]
 end
-dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
+dynamics!(ocp, (x, u, v) -> FFF0(x) + u*FFF1(x) )
 sol0 = solve(ocp, print_level=0)
 
 # default init
