@@ -1,5 +1,8 @@
-# NB. get rid of the tests for scalar/vectorial somehow ?
-# overload the ocp scalar functions with local vectorial versions ?
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve optimization variables from the NLP variables
+"""
 function get_variable(xu, docp)
     if docp.has_variable
         if docp.variable_dimension == 1
@@ -12,7 +15,12 @@ function get_variable(xu, docp)
     end
 end
 
-# return original ocp state
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve state variables at given time step from the NLP variables
+"""
 function get_state_at_time_step(xu, docp, i::Int64)
     """
         return
@@ -29,6 +37,12 @@ function get_state_at_time_step(xu, docp, i::Int64)
     end
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve the additional state variable corresponding to the lagrange (running) cost at given time step from the NLP variables
+"""
 function get_lagrange_cost_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_state
     N = docp.dim_NLP_steps
@@ -36,6 +50,7 @@ function get_lagrange_cost_at_time_step(xu, docp, i)
     return xu[(i+1)*nx]
 end
 
+# internal vector version
 function vget_state_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_state
     N = docp.dim_NLP_steps
@@ -43,6 +58,12 @@ function vget_state_at_time_step(xu, docp, i)
     return xu[i*nx + 1 : (i+1)*nx]
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve control variables at given time step from the NLP variables
+"""
 function get_control_at_time_step(xu, docp, i)
     """
         return
@@ -59,6 +80,7 @@ function get_control_at_time_step(xu, docp, i)
     end
 end
 
+# internal vector version
 function vget_control_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_state
     m = docp.ocp.control_dimension
@@ -67,6 +89,12 @@ function vget_control_at_time_step(xu, docp, i)
     return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve initial time for OCP (may be fixed or variable)
+"""
 function get_initial_time(xu, docp)
     if docp.has_free_initial_time
         v = get_variable(xu, docp)
@@ -76,6 +104,12 @@ function get_initial_time(xu, docp)
     end
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve final time for OCP (may be fixed or variable)
+"""
 function get_final_time(xu, docp)
     if docp.has_free_final_time
         v = get_variable(xu, docp)
@@ -85,8 +119,12 @@ function get_final_time(xu, docp)
     end
 end
 
-## Initialization for the NLP problem
 
+"""
+$(TYPEDSIGNATURES)
+
+Set state variables at given time step in the NLP variables (for initial guess)
+"""
 function set_state_at_time_step!(xu, x_init, docp, i)
     nx = docp.dim_NLP_state
     n = docp.ocp.state_dimension
@@ -99,7 +137,13 @@ function set_state_at_time_step!(xu, x_init, docp, i)
         xu[i*nx + 1 : i*nx + n] = x_init
     end
 end
-    
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Set control variables at given time step in the NLP variables (for initial guess)
+"""
 function set_control_at_time_step!(xu, u_init, docp, i)
     nx = docp.dim_NLP_state
     m = docp.ocp.control_dimension
@@ -113,6 +157,12 @@ function set_control_at_time_step!(xu, u_init, docp, i)
     end
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Set optimization variables in the NLP variables (for initial guess)
+"""
 function set_variable!(xu, v_init, docp)
     if docp.variable_dimension == 1
         xu[end] = v_init[]
@@ -121,6 +171,12 @@ function set_variable!(xu, v_init, docp)
     end
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Build initial guess for discretized problem
+"""
 function initial_guess(docp, init::OptimalControlInit=OptimalControlInit())
 
     # default initialization

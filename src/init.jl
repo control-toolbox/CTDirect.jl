@@ -1,23 +1,12 @@
-# NB. to be moved up to CTBase later
-
-# init struct (to be passed to solve)
-# functions of time for state and control variables
-# values for optimization variables (NB. free t0/tf in particular !)
-# later for indirect methods add costate and structure information
-
-# constructors
-# - default: keep empty for method-specific handling
-# - from constant vector or function handles
-# - from existing solution
 """
 $(TYPEDSIGNATURES)
 
-Initialization of the optimal control problem solution for the NLP problem.
+Initialization of the OCP solution that can be used when solving the discretized problem DOCP.
 
 # Constructors:
 
 - `OptimalControlInit()`: default initialization
-- `OptimalControlInit(x_init, u_init, v_init)`: constant vector or function handles
+- `OptimalControlInit(x_init, u_init, v_init)`: constant vector and/or function handles
 - `OptimalControlInit(sol)`: from existing solution
 
 # Examples
