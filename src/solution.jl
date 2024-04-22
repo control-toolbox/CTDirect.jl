@@ -1,15 +1,24 @@
-# build OCP solution from DOCP solution (GenericExecutionStats)
-# ipopt solution is a GenericExecutionStats
-# https://jso.dev/SolverCore.jl/dev/reference/#SolverCore.get_status-Tuple{NLPModels.AbstractNLPModel}
+"""
+$(TYPEDSIGNATURES)
+
+Build OCP functional solution from DOCP vector solution (given as a GenericExecutionStats)
+"""
 function OCPSolutionFromDOCP(docp, docp_solution_ipopt)
 
     # could pass some status info too (get_status ?)
     return OCPSolutionFromDOCP_raw(docp, docp_solution_ipopt.solution, objective=docp_solution_ipopt.objective, constraints_violation=docp_solution_ipopt.primal_feas, iterations=docp_solution_ipopt.iter,multipliers_constraints=docp_solution_ipopt.multipliers, multipliers_LB=docp_solution_ipopt.multipliers_L, multipliers_UB=docp_solution_ipopt.multipliers_U, message=docp_solution_ipopt.solver_specific[:internal_msg])
 end
 
-# still missing: stopping and success info...
+
+"""
+$(TYPEDSIGNATURES)
+
+Build OCP functional solution from DOCP vector solution (given as raw variables and multipliers plus some optional infos)
+"""
 function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_violation=nothing, iterations=0, multipliers_constraints=nothing, multipliers_LB=nothing, multipliers_UB=nothing, message=nothing)
-    
+   
+    # NB. still missing: stopping and success info...
+
     # set objective if needed
     if objective==nothing
         objective = DOCP_objective(solution, docp)
@@ -108,7 +117,11 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
 end
 
 
-# parse DOCP solution into OCP variables, constraints and multipliers
+"""
+$(TYPEDSIGNATURES)
+
+Parse DOCP solution into OCP variables, constraints and multipliers
+"""
 function parse_DOCP_solution(docp, solution, multipliers_constraints, multipliers_LB, multipliers_UB, constraints)
     
     # states and controls variables, with box multipliers
