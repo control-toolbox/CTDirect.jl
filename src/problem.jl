@@ -1,10 +1,17 @@
-# struct for discretized optimal control problem
-# contains a copy of the original OCP,
-# a NLP formulation of the DOCP for solving
-# and data required to link the two
-# +++ constructor could use sub-functions ?
-# +++ add types, use const when possible
+"""
+$(TYPEDSIGNATURES)
+
+Struct for discretized optimal control problem DOCP
+
+Contains:
+- a copy of the original OCP
+- a NLP formulation of the DOCP
+- data required to link the two problems
+"""
 mutable struct DOCP
+
+    #+++ constructor could use sub-functions ?
+    #+++ add types, use const when possible
 
     ## OCP
     const ocp::OptimalControlModel
@@ -132,7 +139,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Return if the optimal control problem `ocp` is solvable or not by the method [`solve`](@ref).
+Check if an OCP is solvable by the method [`solve`](@ref).
 """
 function is_solvable(ocp)
     solvable = true
@@ -140,7 +147,11 @@ function is_solvable(ocp)
 end
 
 
-# bounds for the constraints
+"""
+$(TYPEDSIGNATURES)
+
+Build upper and lower bounds vectors for the DOCP nonlinear constraints.
+"""
 function constraints_bounds(docp)
 
     N = docp.dim_NLP_steps
@@ -210,7 +221,12 @@ function constraints_bounds(docp)
     return lb, ub
 end
 
-# box constraints for variables
+
+"""
+$(TYPEDSIGNATURES)
+
+Build upper and lower bounds vectors for the DOCP variable box constraints.
+"""
 function variables_bounds(docp)
 
     N = docp.dim_NLP_steps
@@ -262,6 +278,11 @@ function variables_bounds(docp)
 end
 
 
+"""
+$(TYPEDSIGNATURES)
+
+Compute the objective for the DOCP problem.
+"""
 # DOCP objective
 function DOCP_objective(xu, docp)
 
@@ -289,7 +310,11 @@ function DOCP_objective(xu, docp)
 end
 
 
-# DOCP constraints  (add bounds computation here at first call ?)
+"""
+$(TYPEDSIGNATURES)
+
+Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
+"""
 function DOCP_constraints!(c, xu, docp)    
     """
     compute the constraints for the NLP : 
@@ -406,8 +431,15 @@ function DOCP_constraints!(c, xu, docp)
     return c # needed even for inplace version, AD error otherwise oO
 end
 
-# +++ todo unify in a single utils function check_bounds(v,lb,ub) that returns the error vector
+
+"""
+$(TYPEDSIGNATURES)
+
+Check the nonlinear constraints violation for the DOCP problem. 
+"""
 function DOCP_constraints_check!(cb, constraints, docp)
+
+    # +++ todo unify in a single utils function check_bounds(v,lb,ub) that returns the error vector
 
     # check constraints vs bounds
     # by construction only one of the two can be active
@@ -422,6 +454,12 @@ function DOCP_constraints_check!(cb, constraints, docp)
     return nothing
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Check the variables box constraints violation for the DOCP problem. 
+"""
 function DOCP_variables_check!(vb, variables, docp)
     # check variables vs bounds
     # by construction only one of the two can be active

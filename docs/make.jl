@@ -15,7 +15,7 @@ makedocs(
         "Tutorial"      => "tutorial.md",
         "Continuation"  => "continuation.md",
         "API"           => "api.md",
-        #"Developers"    => "dev-api.md",
+        "Developers"    => "dev-api.md",
     ]
 )
 

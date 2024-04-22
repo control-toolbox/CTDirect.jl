@@ -1,5 +1,4 @@
-# TODO
-# add function to set the intial guess for a docp: need to rebuild the nlp model completely ? 
+# CTDirect interface
 
 # available methods by order of preference: from top to bottom
 algorithmes = ()
@@ -13,7 +12,6 @@ Return the list of available methods to solve the optimal control problem.
 function available_methods()::Tuple{Tuple{Vararg{Symbol}}}
     return algorithmes
 end
-
 
 
 """
@@ -42,19 +40,32 @@ return docp
 
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Extract the NLP problem from the DOCP
+"""
 function getNLP(docp::DOCP)
     return docp.nlp
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Extract the NLP problem from the DOCP
+"""
 function setDOCPInit(docp::DOCP, init::OptimalControlInit)
     nlp = getNLP(docp)
     nlp.meta.x0 .= initial_guess(docp, init)
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
-Solve a discretized optimal control problem
+Solve a discretized optimal control problem DOCP
 """
 function solve(docp::DOCP;
     init=nothing,
@@ -76,6 +87,11 @@ function solve(docp::DOCP;
 end
 
 
+"""
+$(TYPEDSIGNATURES)
+
+Solve an optimal control problem OCP by direct method
+"""
 function solve(ocp::OptimalControlModel,
     description...;
     init::OptimalControlInit=OptimalControlInit(),
