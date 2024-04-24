@@ -44,14 +44,18 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
     # parse NLP variables, constraints and multipliers 
     X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_DOCP_solution(docp, solution, multipliers_constraints, multipliers_LB, multipliers_UB, constraints)
 
-    # variables and misc infos
+    # time grid
     N = docp.dim_NLP_steps
     t0 = get_initial_time(solution, docp)
     tf = max(get_final_time(solution, docp), t0 + 1e-9)
     T = collect(LinRange(t0, tf, N+1))
-    x = ctinterpolate(T, matrix2vec(X, 1))
+
+    # variables: remove additional state for lagrange cost
+    x = ctinterpolate(T, matrix2vec(X[:,1:docp.ocp.state_dimension], 1))
+    p = ctinterpolate(T[1:end-1], matrix2vec(P[:,1:docp.ocp.state_dimension], 1))
     u = ctinterpolate(T, matrix2vec(U, 1))
-    p = ctinterpolate(T[1:end-1], matrix2vec(P, 1))
+
+    # generate ocp solution
     sol = OptimalControlSolution() # +++ constructor with ocp as argument ?
     copy!(sol, docp.ocp)
     sol.times      = T
@@ -62,9 +66,9 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
     sol.variable   = (sol.variable_dimension==1) ? v[1] : v
     sol.objective  = objective
     sol.iterations = iterations
-    sol.stopping   = nothing
+    sol.stopping   = nothing #+++
     sol.message    = String(message)
-    sol.success    = nothing
+    sol.success    = nothing #+++
 
     # nonlinear constraints and multipliers
     if docp.has_state_constraints
@@ -96,8 +100,9 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
 
     # box constraints multipliers
     if docp.has_state_box
-        mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower, 1))
-        mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper, 1))
+        # remove additional state for lagrange cost
+        mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower[:,1:docp.ocp.state_dimension], 1))
+        mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper[:,1:docp.ocp.state_dimension], 1))
         sol.infos[:mult_state_box_lower] = t -> mbox_x_l(t)
         sol.infos[:mult_state_box_upper] = t -> mbox_x_u(t)    
     end
@@ -126,11 +131,21 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
     
     # states and controls variables, with box multipliers
     N = docp.dim_NLP_steps
-    mult_L = multipliers_LB
-    mult_U = multipliers_UB
+  
     X = zeros(N+1,docp.dim_NLP_state)
     U = zeros(N+1,docp.ocp.control_dimension)
     v = get_variable(solution, docp)
+    # if box multipliers are empty, use dummy vectors for size consistency
+    if length(multipliers_LB) > 0
+        mult_L = multipliers_LB
+    else
+        mult_L = zeros(docp.dim_NLP_variables)
+    end
+    if length(multipliers_UB) > 0
+        mult_U = multipliers_UB
+    else
+        mult_U = zeros(docp.dim_NLP_variables)
+    end  
     mult_state_box_lower = zeros(N+1,docp.dim_NLP_state)
     mult_state_box_upper = zeros(N+1,docp.dim_NLP_state)
     mult_control_box_lower = zeros(N+1,docp.ocp.control_dimension)
@@ -139,27 +154,19 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
     mult_variable_box_upper = zeros(N+1,docp.variable_dimension)
 
     for i in 1:N+1
-        # variables
+        # state and control variables
         X[i,:] = vget_state_at_time_step(solution, docp, i-1)
         U[i,:] = vget_control_at_time_step(solution, docp, i-1)
         # box multipliers (same layout as variables !)
-        # +++ fix mult vectors instead to always be full size (todo in return from solve)
-        if length(mult_L) > 0
-            mult_state_box_lower[i,:] = vget_state_at_time_step(mult_L, docp, i-1)
-            mult_control_box_lower[i,:] = vget_control_at_time_step(mult_L, docp, i-1)
-        end
-        if length(mult_U) > 0
-            mult_state_box_upper[i,:] = vget_state_at_time_step(mult_U, docp, i-1)
-            mult_control_box_upper[i,:] = vget_control_at_time_step(mult_U, docp, i-1)
-        end
+        # NB. will return 0 if box constraints are not present
+        mult_state_box_lower[i,:] = vget_state_at_time_step(mult_L, docp, i-1)
+        mult_control_box_lower[i,:] = vget_control_at_time_step(mult_L, docp, i-1)
+        mult_state_box_upper[i,:] = vget_state_at_time_step(mult_U, docp, i-1)
+        mult_control_box_upper[i,:] = vget_control_at_time_step(mult_U, docp, i-1)
     end
     if docp.has_variable_box
-        if length(mult_L) > 0
-            mult_variable_box_lower = get_variable(mult_L, docp)
-        end
-        if length(mult_U) > 0
-            mult_variable_box_upper = get_variable(mult_U, docp)
-        end
+        mult_variable_box_lower = get_variable(mult_L, docp)
+        mult_variable_box_upper = get_variable(mult_U, docp)
     end
 
     # constraints, costate and constraints multipliers
