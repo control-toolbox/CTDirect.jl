@@ -71,7 +71,7 @@ if test1
         print(vmax," ")
         remove_constraint!(ocp, :speed_limit)
         constraint!(ocp, :state, Index(2), 0, vmax, :speed_limit)
-        global sol = solve(ocp, print_level=0, init=OptimalControlInit(sol))   
+        global sol = solve(ocp, print_level=0, init=sol)  
         #@printf("vmax %.2f objective %.6f iterations %d\n",vmax,sol.objective, sol.iterations)
         push!(vmax_list, vmax)
         push!(obj_list, sol.objective)
@@ -104,7 +104,7 @@ if test2
     for Tmax_local=3.5:-0.5:1
         global Tmax = Tmax_local 
         print(Tmax," ")   
-        global sol2 = solve(ocp, print_level=0, init=OptimalControlInit(sol2))
+        global sol2 = solve(ocp, print_level=0, init=sol2)
         push!(Tmax_list, Tmax)
         push!(obj_list, sol2.objective)
         #print(Tmax, " ", sol2.objective, " ", sol2.iterations)
