@@ -177,7 +177,7 @@ $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function initial_guess(docp, init::OptimalControlInit=OptimalControlInit())
+function initial_guess(docp, init::OCPInit=OCPInit())
 
     # default initialization
     # note: internal variables (lagrange cost, k_i for RK schemes) will keep these default values 

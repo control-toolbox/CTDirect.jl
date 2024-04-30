@@ -21,7 +21,7 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 """
 function directTranscription(ocp::OptimalControlModel,
     description...;
-    init::OptimalControlInit=OptimalControlInit(),
+    init::OCPInit=OCPInit(),
     grid_size::Integer=__grid_size_direct())
     
     # initialization is optional
@@ -56,7 +56,7 @@ $(TYPEDSIGNATURES)
 
 Extract the NLP problem from the DOCP
 """
-function setDOCPInit(docp::DOCP, init::OptimalControlInit)
+function setDOCPInit(docp::DOCP, init::OCPInit)
     nlp = getNLP(docp)
     nlp.meta.x0 .= initial_guess(docp, init)
 end
@@ -94,7 +94,7 @@ Solve an optimal control problem OCP by direct method
 """
 function solve(ocp::OptimalControlModel,
     description...;
-    init::Union{OptimalControlInit, OptimalControlSolution}=OptimalControlInit(),
+    init::Union{OCPInit, OptimalControlSolution}=OCPInit(),
     grid_size::Integer=__grid_size_direct(),
     display::Bool=__display(),
     print_level::Integer=__print_level_ipopt(),
@@ -103,7 +103,7 @@ function solve(ocp::OptimalControlModel,
 
     # build init if needed
     if init isa OptimalControlSolution
-        init = OptimalControlInit(init)
+        init = OCPInit(init)
     end
     # build discretized OCP
     docp = directTranscription(ocp, description, init=init, grid_size=grid_size)
