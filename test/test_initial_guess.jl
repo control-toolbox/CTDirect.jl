@@ -132,7 +132,7 @@ sol = solve(ocp, print_level=0, init=OCPInit(state=x_func, control=u_const), max
 @printf("%-56s %.3f at %d iterations\n", "Functional for x; constant for u; default for v):", sol.objective, sol.iterations)
 
 # warm start
-sol = solve(ocp, print_level=0, init=init_function_u = OCPInit(sol0), max_iter=maxiter)
+sol = solve(ocp, print_level=0, init=sol0, max_iter=maxiter)
 @printf("%-56s %.3f at %d iterations\n", "Warm start from reference solution", sol.objective, sol.iterations)
 
 #################################################

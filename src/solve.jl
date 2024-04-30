@@ -101,12 +101,14 @@ function solve(ocp::OptimalControlModel,
     mu_strategy::String=__mu_strategy_ipopt(),
     kwargs...)
 
-    # build init if needed
+    # build init if needed (+++add dictionary as option ?)
     if init isa OptimalControlSolution
         init = OCPInit(init)
-    end
+    end     
+
     # build discretized OCP
     docp = directTranscription(ocp, description, init=init, grid_size=grid_size)
+
     # solve DOCP and retrieve OCP solution
     ocp_solution = solve(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, kwargs...)
 
