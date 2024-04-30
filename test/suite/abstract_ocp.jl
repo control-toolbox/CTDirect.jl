@@ -80,7 +80,7 @@ end
     r(tf) → max
 end
 
-@testset verbose = true showtiming = true ":double_integrator :min_tf :abstract :constr" begin
+@testset verbose = true showtiming = true ":goddard :max_rf :abstract :constr" begin
     sol3 = solve(ocp3, grid_size=100, print_level=0, tol=1e-12)    
     @test sol3.objective ≈ 1.0125 rtol=1e-2
 end

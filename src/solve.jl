@@ -94,13 +94,17 @@ Solve an optimal control problem OCP by direct method
 """
 function solve(ocp::OptimalControlModel,
     description...;
-    init::OptimalControlInit=OptimalControlInit(),
+    init::Union{OptimalControlInit, OptimalControlSolution}=OptimalControlInit(),
     grid_size::Integer=__grid_size_direct(),
     display::Bool=__display(),
     print_level::Integer=__print_level_ipopt(),
     mu_strategy::String=__mu_strategy_ipopt(),
     kwargs...)
 
+    # build init if needed
+    if init isa OptimalControlSolution
+        init = OptimalControlInit(init)
+    end
     # build discretized OCP
     docp = directTranscription(ocp, description, init=init, grid_size=grid_size)
     # solve DOCP and retrieve OCP solution
@@ -108,3 +112,4 @@ function solve(ocp::OptimalControlModel,
 
     return ocp_solution
 end
+
