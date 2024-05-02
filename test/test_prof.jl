@@ -75,7 +75,7 @@ full collections:   0
 =#
 
 nlp = getNLP(docp)
-x0 = CTDirect.initial_guess(docp) #println(x0 == nlp.meta.x0) true ok
+x0 = CTDirect.DOCP_initial_guess(docp) #println(x0 == nlp.meta.x0) true ok
 if (code_warntype == true)
   println("@code_warntype ipopt_objective")
   @code_warntype CTDirect.DOCP_objective(x0, docp)

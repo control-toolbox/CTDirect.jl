@@ -88,6 +88,10 @@ end
     sol = solve(ocp, print_level=0, init=OCPInit(state=x_const, control=u_const, variable=v_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
+@testset verbose = true showtiming = true ":constant_init_xuv :compact" begin
+    sol = solve(ocp, print_level=0, init=(state=x_const, control=u_const, variable=v_const))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
 
 # functional initial guess
 x_func = t->[1+t^2, sqrt(t), 1-t]
@@ -105,8 +109,16 @@ end
     sol = solve(ocp, print_level=0, init=OCPInit(state=x_func, control=u_func))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
+@testset verbose = true showtiming = true ":functional_init_xu :compact" begin
+    sol = solve(ocp, print_level=0, init=(state=x_func, control=u_func))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
 @testset verbose = true showtiming = true ":mixed_init" begin
     sol = solve(ocp, print_level=0, init=OCPInit(state=x_func, control=u_const))
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":mixed_init :compact" begin
+    sol = solve(ocp, print_level=0, init=(state=x_func, control=u_const))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
@@ -115,16 +127,20 @@ end
     sol = solve(ocp, print_level=0, init=OCPInit(sol0))
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
+@testset verbose = true showtiming = true ":warm_start :compact" begin
+    sol = solve(ocp, print_level=0, init=sol0)
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
 
 # set initial guess in DOCP
 docp = directTranscription(ocp)
-@testset verbose = true showtiming = true ":DOCPInit_constant" begin
-    setDOCPInit(docp, OCPInit(state=x_const, control=u_const, variable=v_const))
+@testset verbose = true showtiming = true ":DOCPInit_mixed" begin
+    setDOCPInit(docp, OCPInit(state=x_func, control=u_const))
     sol = solve(docp, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
-@testset verbose = true showtiming = true ":DOCPInit_mixed" begin
-    setDOCPInit(docp, OCPInit(state=x_func, control=u_const))
+@testset verbose = true showtiming = true ":DOCPInit_mixed :compact" begin
+    setDOCPInit(docp, (state=x_func, control=u_const))
     sol = solve(docp, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
@@ -133,18 +149,27 @@ end
     sol = solve(docp, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
+@testset verbose = true showtiming = true ":DOCPInit_warm_start :compact" begin
+    setDOCPInit(docp, sol0)
+    sol = solve(docp, print_level=0)
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
 
 # pass initial guess to solve
 setDOCPInit(docp, OCPInit()) # reset init in docp
-@testset verbose = true showtiming = true ":solve_constant_init" begin
-    sol = solve(docp, init=OCPInit(state=x_const, control=u_const, variable=v_const), print_level=0)
-    @test sol.objective ≈ 1.0125 rtol=1e-2
-end
 @testset verbose = true showtiming = true ":solve_mixed_init" begin
     sol = solve(docp, init=OCPInit(state=x_func, control=u_const), print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
+@testset verbose = true showtiming = true ":solve_mixed_init :compact" begin
+    sol = solve(docp, init=(state=x_func, control=u_const), print_level=0)
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
 @testset verbose = true showtiming = true ":solve_warm_start" begin
     sol = solve(docp, init=OCPInit(sol0), print_level=0)
+    @test sol.objective ≈ 1.0125 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":solve_warm_start :compact" begin
+    sol = solve(docp, init=sol0, print_level=0)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
