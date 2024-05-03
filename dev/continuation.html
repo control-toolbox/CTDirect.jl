@@ -17,12 +17,12 @@ function ocp_T(T)
         ∫(u(t)^2) → min
     end
     return ocp
-end</code></pre><p>Then we perform the continuation with a simple <em>for</em> loop, using each solution to initialize the next problem.</p><pre><code class="language-julia hljs">init1 = OptimalControlInit()
+end</code></pre><p>Then we perform the continuation with a simple <em>for</em> loop, using each solution to initialize the next problem.</p><pre><code class="language-julia hljs">init1 = OCPInit()
 iter_list = []
 for T=1:5
     ocp1 = ocp_T(T)
     sol1 = solve(ocp1, print_level=0, init=init1)
-    global init1 = OptimalControlInit(sol1)
+    global init1 = OCPInit(sol1)
     @printf(&quot;T %.2f objective %.6f iterations %d\n&quot;, T, sol1.objective, sol1.iterations)
     push!(iter_list, sol1.iterations)
 end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">T 1.00 objective 12.004766 iterations 2
@@ -63,7 +63,7 @@ sol = sol0
 obj_list = []
 for Tmax_local=3.5:-0.5:1
     global Tmax = Tmax_local
-    global sol = solve(ocp, print_level=0, init=OptimalControlInit(sol))
+    global sol = solve(ocp, print_level=0, init=OCPInit(sol))
     @printf(&quot;Tmax %.2f objective %.6f iterations %d\n&quot;, Tmax, sol.objective, sol.iterations)
     push!(Tmax_list, Tmax)
     push!(obj_list, sol.objective)
@@ -77,7 +77,7 @@ xlabel!(&quot;Maximal thrust (Tmax)&quot;)
 ylabel!(&quot;Maximal altitude r(tf)&quot;)
 plot(sol0)
 p = plot!(sol)
-plot(pobj, p, layout=2)</code></pre><img src="continuation-94c9c997.svg" alt="Example block output"/><h2 id="Manual-constraint-redefinition"><a class="docs-heading-anchor" href="#Manual-constraint-redefinition">Manual constraint redefinition</a><a id="Manual-constraint-redefinition-1"></a><a class="docs-heading-anchor-permalink" href="#Manual-constraint-redefinition" title="Permalink"></a></h2><p>Here we illustrate a slightly more involved way of modifying the OCP problem during the continuation. Instead of just updating a global variable as before, we now remove and redefine one of the constraints (maximal speed). </p><pre><code class="language-julia hljs">global Tmax = 3.5
+plot(pobj, p, layout=2)</code></pre><img src="continuation-cd60d3a9.svg" alt="Example block output"/><h2 id="Manual-constraint-redefinition"><a class="docs-heading-anchor" href="#Manual-constraint-redefinition">Manual constraint redefinition</a><a id="Manual-constraint-redefinition-1"></a><a class="docs-heading-anchor-permalink" href="#Manual-constraint-redefinition" title="Permalink"></a></h2><p>Here we illustrate a slightly more involved way of modifying the OCP problem during the continuation. Instead of just updating a global variable as before, we now remove and redefine one of the constraints (maximal speed). </p><pre><code class="language-julia hljs">global Tmax = 3.5
 vmax_list = []
 obj_list = []
 iter_list = []
@@ -86,7 +86,7 @@ for vmax=0.15:-0.01:0.05
     print(vmax,&quot; &quot;)
     remove_constraint!(ocp, :speed_limit)
     constraint!(ocp, :state, Index(2), 0, vmax, :speed_limit)
-    global sol = solve(ocp, print_level=0, init=OptimalControlInit(sol))
+    global sol = solve(ocp, print_level=0, init=OCPInit(sol))
     push!(vmax_list, vmax)
     push!(obj_list, sol.objective)
     push!(iter_list, sol.iterations)
@@ -97,7 +97,7 @@ xlabel!(&quot;Speed limit (vmax)&quot;)
 ylabel!(&quot;Maximal altitude r(tf)&quot;)
 plot(sol0)
 p = plot!(sol)
-plot(pobj, p, layout=2)</code></pre><img src="continuation-b560bc7c.svg" alt="Example block output"/><p>We can compare with solving each problem with the default initial guess, which here gives the same solutions but takes more iterations overall.</p><pre><code class="language-julia hljs">iter_list = []
+plot(pobj, p, layout=2)</code></pre><img src="continuation-21bb4003.svg" alt="Example block output"/><p>We can compare with solving each problem with the default initial guess, which here gives the same solutions but takes more iterations overall.</p><pre><code class="language-julia hljs">iter_list = []
 for vmax=0.15:-0.01:0.05
     print(vmax,&quot; &quot;)
     remove_constraint!(ocp, :speed_limit)
@@ -106,4 +106,4 @@ for vmax=0.15:-0.01:0.05
     push!(iter_list, sol.iterations)
 end
 @printf(&quot;\nAverage iterations %d\n&quot;, mean(iter_list))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.15 0.14 0.13 0.12 0.11 0.1 0.09 0.08 0.07 0.06 0.05
-Average iterations 32</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="tutorial.html">« Tutorial</a><a class="docs-footer-nextpage" href="api.html">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Wednesday 1 May 2024 16:18">Wednesday 1 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+Average iterations 32</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="tutorial.html">« Tutorial</a><a class="docs-footer-nextpage" href="api.html">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Friday 3 May 2024 14:57">Friday 3 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
