@@ -21,14 +21,22 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 """
 function directTranscription(ocp::OptimalControlModel,
     description...;
-    init::OptimalControlInit=OptimalControlInit(),
+    init=OCPInit(),
     grid_size::Integer=__grid_size_direct())
     
-    # initialization is optional
     docp = DOCP(ocp, grid_size)
-    x0 = initial_guess(docp, init)
+
+    # build init data if needed
+    if !(init isa OCPInit)
+        init = OCPInit(init)
+    end 
+    
+    # set initial guess and bounds
+    x0 = DOCP_initial_guess(docp, init)
     docp.var_l, docp.var_u = variables_bounds(docp)
     docp.con_l, docp.con_u = constraints_bounds(docp)
+
+    # call NLP problem constructor
     docp.nlp = ADNLPModel!(x -> DOCP_objective(x, docp), 
                     x0,
                     docp.var_l, docp.var_u, 
@@ -56,9 +64,17 @@ $(TYPEDSIGNATURES)
 
 Extract the NLP problem from the DOCP
 """
-function setDOCPInit(docp::DOCP, init::OptimalControlInit)
+function setDOCPInit(docp::DOCP, init)
+
     nlp = getNLP(docp)
-    nlp.meta.x0 .= initial_guess(docp, init)
+
+    # build init data if needed
+    if !(init isa OCPInit)
+        init = OCPInit(init)
+    end 
+
+    nlp.meta.x0 .= DOCP_initial_guess(docp, init)
+
 end
 
 
@@ -79,7 +95,11 @@ function solve(docp::DOCP;
     if init == nothing
         docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
     else
-        docp_solution = ipopt(getNLP(docp),x0=initial_guess(docp, init), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
+        # build init data if needed
+        if !(init isa OCPInit)
+            init = OCPInit(init)
+        end 
+        docp_solution = ipopt(getNLP(docp),x0=DOCP_initial_guess(docp, init), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
     end
 
     # return solution for original OCP
@@ -94,19 +114,21 @@ Solve an optimal control problem OCP by direct method
 """
 function solve(ocp::OptimalControlModel,
     description...;
-    init::Union{OptimalControlInit, OptimalControlSolution}=OptimalControlInit(),
+    init=OCPInit(),
     grid_size::Integer=__grid_size_direct(),
     display::Bool=__display(),
     print_level::Integer=__print_level_ipopt(),
     mu_strategy::String=__mu_strategy_ipopt(),
     kwargs...)
 
-    # build init if needed
-    if init isa OptimalControlSolution
-        init = OptimalControlInit(init)
-    end
+    # build init data if needed
+    if !(init isa OCPInit)
+        init = OCPInit(init)
+    end     
+
     # build discretized OCP
     docp = directTranscription(ocp, description, init=init, grid_size=grid_size)
+
     # solve DOCP and retrieve OCP solution
     ocp_solution = solve(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, kwargs...)
 

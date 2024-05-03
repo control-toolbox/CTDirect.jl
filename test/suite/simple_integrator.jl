@@ -20,15 +20,19 @@ end
 
 # with initial guess (using both vector and scalar syntax, no optimization variables)
 @testset verbose = true showtiming = true ":simple_integrator :min_tf :init_constant" begin
-    init_constant = OptimalControlInit(x_init=[-0.5], u_init=0)
+    init_constant = OCPInit(state=[-0.5], control=0)
     sol2 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12, init=init_constant)
     @test sol2.objective ≈ 0.313 rtol=1e-2
 end
 
 # with initial guess from solution
 sol = solve(ocp1, grid_size=100, print_level=0, tol=1e-12)
-@testset verbose = true showtiming = true ":simple_integrator :min_tf :init_sol" begin
-    init_sol = OptimalControlInit(sol)
+@testset verbose = true showtiming = true ":simple_integrator :min_tf :init_from_sol" begin
+    init_sol = OCPInit(sol)
     sol3 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12, init=init_sol)
     @test sol3.objective ≈ 0.313 rtol=1e-2
+end
+@testset verbose = true showtiming = true ":simple_integrator :min_tf :init_as_sol" begin
+    sol4 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12, init=sol)
+    @test sol4.objective ≈ 0.313 rtol=1e-2
 end

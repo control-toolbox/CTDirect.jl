@@ -78,29 +78,29 @@ Let us start with the simplest case, constant initialisation.
 x_const = [1.05, 0.2, 0.8]
 u_const = 0.5
 v_const = 0.15
-init1 = OptimalControlInit(x_init=x_const, u_init=u_const, v_init=v_const)
+init1 = OCPInit(state=x_const, control=u_const, variable=v_const)
 sol2 = solve(ocp, print_level=0, init=init1)
 println("Objective ", sol2.objective, " after ", sol2.iterations, " iterations")
 ``` 
 
-Now we illustrate the functional initialisation, with some random functions. Note that we only consider the state and control variables, since the optimization variables are scalar and therefore a functional initialisation is not relevant. In the example notice that the call to **OptimalControlInit** does not provide an argument for the optimization variables, therefore the default initial guess will be used.  
+Now we illustrate the functional initialisation, with some random functions. Note that we only consider the state and control variables, since the optimization variables are scalar and therefore a functional initialisation is not relevant. In the example notice that the call to **OCPInit** does not provide an argument for the optimization variables, therefore the default initial guess will be used.  
 ```@example main
 x_func = t->[1+t^2, sqrt(t), 1-t]
 u_func = t->(cos(t)+1)*0.5
-init2 = OptimalControlInit(x_init=x_func, u_init=u_func)
+init2 = OCPInit(state=x_func, control=u_func)
 sol3 = solve(ocp, print_level=0, init=init2)
 println("Objective ", sol3.objective, " after ", sol3.iterations, " iterations")
 ``` 
 More generally, the default, constant and functional initialisations can be mixed, as shown in the example below that uses a functional initial guess for the state, a constant initial guess for the control, and the default initial guess for the optimization variables. 
 ```@example main
-init3 = OptimalControlInit(x_init=x_func, u_init=u_const)
+init3 = OCPInit(state=x_func, control=u_const)
 sol4 = solve(ocp, print_level=0, init=init3)
 println("Objective ", sol4.objective, " after ", sol4.iterations, " iterations")
 ``` 
 
 Finally, we can also use a so-called *warmstart* strategy and use an existing solution as initial guess (note that the OCP solution returned by the **solve** call is functional, thus it is not necessary to use the same time grid). Notice that the objective and constraint violation values start much closer to the solution than with the previous initialisations.
 ```@example main
-init4 = OptimalControlInit(sol1)
+init4 = OCPInit(sol1)
 sol4 = solve(ocp, grid_size=200, print_level=5, init=init4)
 nothing # hide
 ```
@@ -118,12 +118,12 @@ nothing # hide
 ```
 The initial guess can be passed to **solve** same as before.
 ```@example main
-sol6 = solve(docp, print_level=0, init=OptimalControlInit(sol1))
+sol6 = solve(docp, print_level=0, init=OCPInit(sol1))
 println("Objective ", sol6.objective, " after ", sol6.iterations, " iterations")
 ```
 Another possibility is to set the initial guess associated to the DOCP, using the function **setDOCPInit**.
 ```@example main
-setDOCPInit(docp, OptimalControlInit(sol1))
+setDOCPInit(docp, OCPInit(sol1))
 sol7 = solve(docp, print_level=5)
 nothing # hide
 ```
