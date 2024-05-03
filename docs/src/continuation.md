@@ -42,12 +42,12 @@ nothing # hide
 Then we perform the continuation with a simple *for* loop, using each solution to initialize the next problem.
 
 ```@example main
-init1 = OptimalControlInit()
+init1 = OCPInit()
 iter_list = []
 for T=1:5
     ocp1 = ocp_T(T) 
     sol1 = solve(ocp1, print_level=0, init=init1)
-    global init1 = OptimalControlInit(sol1)
+    global init1 = OCPInit(sol1)
     @printf("T %.2f objective %.6f iterations %d\n", T, sol1.objective, sol1.iterations)
     push!(iter_list, sol1.iterations)
 end
@@ -101,7 +101,7 @@ Tmax_list = []
 obj_list = []
 for Tmax_local=3.5:-0.5:1
     global Tmax = Tmax_local  
-    global sol = solve(ocp, print_level=0, init=OptimalControlInit(sol))
+    global sol = solve(ocp, print_level=0, init=OCPInit(sol))
     @printf("Tmax %.2f objective %.6f iterations %d\n", Tmax, sol.objective, sol.iterations)
     push!(Tmax_list, Tmax)
     push!(obj_list, sol.objective)
@@ -134,7 +134,7 @@ for vmax=0.15:-0.01:0.05
     print(vmax," ")
     remove_constraint!(ocp, :speed_limit)
     constraint!(ocp, :state, Index(2), 0, vmax, :speed_limit)
-    global sol = solve(ocp, print_level=0, init=OptimalControlInit(sol))
+    global sol = solve(ocp, print_level=0, init=OCPInit(sol))
     push!(vmax_list, vmax)
     push!(obj_list, sol.objective)
     push!(iter_list, sol.iterations)

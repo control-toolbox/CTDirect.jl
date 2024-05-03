@@ -32,12 +32,12 @@ if test1
     end
 
     # continuation on final time
-    init1 = OptimalControlInit()
+    init1 = OCPInit()
     iter_list = []
     for T=1:5
         ocp1 = ocp_T(T) 
         sol1 = solve(ocp1, print_level=0, init=init1)
-        global init1 = OptimalControlInit(sol1)
+        global init1 = OCPInit(sol1)
         @printf("T %.2f objective %.6f iterations %d\n", T, sol1.objective, sol1.iterations)
         push!(iter_list, sol1.iterations)
     end
@@ -75,13 +75,13 @@ if test2
     end
 
     # continuation on rho
-    init2 = OptimalControlInit()
+    init2 = OCPInit()
     iter_list = []
     ρs = [0.1, 5, 10, 30, 100]
     for ρ in ρs
         ocp2 = myocp(ρ)
         sol2 = solve(ocp2, print_level=0, init=init2)
-        global init2 = OptimalControlInit(sol2)
+        global init2 = OCPInit(sol2)
         @printf("Rho %.2f objective %.6f iterations %d\n", ρ, sol2.objective, sol2.iterations)
         push!(iter_list, sol2.iterations)
     end
