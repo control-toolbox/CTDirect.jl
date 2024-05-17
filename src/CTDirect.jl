@@ -16,17 +16,15 @@ const nlp_constraints = CTBase.nlp_constraints
 const matrix2vec = CTBase.matrix2vec
 
 # includes
-#include("init.jl")
 include("utils.jl")
 include("problem.jl")
 include("solution.jl")
 include("solve.jl")
 
 # export functions only for user
+export solve
 export available_methods
 export is_solvable
-export solve
-#export OptimalControlInit
 export directTranscription
 export getNLP
 export setDOCPInit
