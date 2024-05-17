@@ -3,6 +3,9 @@
 [gh-ci-img]: https://github.com/control-toolbox/CTDirect.jl/actions/workflows/CI.yml/badge.svg?branch=main
 [gh-ci-url]: https://github.com/control-toolbox/CTDirect.jl/actions/workflows/CI.yml?query=branch%3Amain
 
+[release-img]: https://img.shields.io/github/v/release/control-toolbox/CTDirect.jl.svg?style=flat-square
+[release-url]: https://github.com/control-toolbox/CTDirect.jl/releases
+
 [gh-co-img]: https://codecov.io/gh/control-toolbox/CTDirect.jl/branch/main/graph/badge.svg?token=YM5YQQUSO3
 [gh-co-url]: https://codecov.io/gh/control-toolbox/CTDirect.jl
 
@@ -14,9 +17,9 @@
 
 The `CTDirect.jl` package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
 
-| **Documentation**                                                               | **Build Status**                                                                                |
-|:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
-| [![Documentation][gh-doc-stable-img]][gh-doc-stable-url] [![Documentation][gh-doc-dev-img]][gh-doc-dev-url] | [![Build Status][gh-ci-img]][gh-ci-url] [![Covering Status][gh-co-img]][gh-co-url] |
+| **Documentation**               | **Release**                                   | **Code Status**                                                                                |
+|:-------------------------------:|:---------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
+| [![Documentation][gh-doc-stable-img]][gh-doc-stable-url] [![Documentation][gh-doc-dev-img]][gh-doc-dev-url] |  [![Release][release-img]][release-url] | [![Build Status][gh-ci-img]][gh-ci-url] [![Covering Status][gh-co-img]][gh-co-url] |
 
 ## Installation
 
