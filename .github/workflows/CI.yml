@@ -19,7 +19,7 @@ jobs:
         os:
           - ubuntu-latest
           - macOS-latest
-          - windows-latest #fails with ssh-agent error on windows slave
+#          - windows-latest #fails with ssh-agent error on windows slave
         arch:
           - x64
     steps:
