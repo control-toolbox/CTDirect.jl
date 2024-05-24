@@ -22,6 +22,7 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
     # set objective if needed
     if objective==nothing
         objective = DOCP_objective(solution, docp)
+        println("Recomputed raw objective ", objective)
     end
     # adjust objective sign for maximization problems
     if !is_min(docp.ocp)
@@ -33,12 +34,16 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
     constraints = zeros(docp.dim_NLP_constraints)
     DOCP_constraints!(constraints, solution, docp)
     # set constraint violation if needed
+    # +++ is not saved in OCP solution currently...
     if constraints_violation==nothing
         constraints_check = zeros(docp.dim_NLP_constraints)
         DOCP_constraints_check!(constraints_check, constraints, docp)
+        println("Recomputed constraints violation ", norm(constraints_check, Inf))
         variables_check = zeros(docp.dim_NLP_variables)
         DOCP_variables_check!(variables_check, solution, docp)
+        println("Recomputed variable bounds violation ", norm(variables_check, Inf))
         constraints_violation = norm(append!(variables_check, constraints_check), Inf)
+
     end
     
     # parse NLP variables, constraints and multipliers 
@@ -58,17 +63,17 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
     # generate ocp solution
     sol = OptimalControlSolution() # +++ constructor with ocp as argument ?
     copy!(sol, docp.ocp)
-    sol.times      = T
+    sol.times = T
     # use scalar output for x,u,v,p if dim=1
-    sol.state      = (sol.state_dimension==1)    ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t)) 
-    sol.costate    = (sol.state_dimension==1)    ? deepcopy(t -> p(t)[1]) : deepcopy(t -> p(t))
-    sol.control    = (sol.control_dimension==1)  ? deepcopy(t -> u(t)[1]) : deepcopy(t -> u(t))
-    sol.variable   = (sol.variable_dimension==1) ? v[1] : v
-    sol.objective  = objective
+    sol.state = (sol.state_dimension==1) ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t)) 
+    sol.costate = (sol.state_dimension==1) ? deepcopy(t -> p(t)[1]) : deepcopy(t -> p(t))
+    sol.control = (sol.control_dimension==1) ? deepcopy(t -> u(t)[1]) : deepcopy(t -> u(t))
+    sol.variable = (sol.variable_dimension==1) ? v[1] : v
+    sol.objective = objective
     sol.iterations = iterations
-    sol.stopping   = nothing #+++
-    sol.message    = String(message)
-    sol.success    = nothing #+++
+    sol.stopping = nothing #+++
+    sol.message = isnothing(message) ? "No msg" : String(message)
+    sol.success  = nothing #+++
 
     # nonlinear constraints and multipliers
     if docp.has_state_constraints
@@ -136,16 +141,17 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
     U = zeros(N+1,docp.ocp.control_dimension)
     v = get_variable(solution, docp)
     # if box multipliers are empty, use dummy vectors for size consistency
-    if length(multipliers_LB) > 0
+    if !isnothing(multipliers_LB) && length(multipliers_LB) > 0
         mult_L = multipliers_LB
     else
         mult_L = zeros(docp.dim_NLP_variables)
     end
-    if length(multipliers_UB) > 0
+    if !isnothing(multipliers_UB) && length(multipliers_UB) > 0
         mult_U = multipliers_UB
     else
         mult_U = zeros(docp.dim_NLP_variables)
-    end  
+    end
+
     mult_state_box_lower = zeros(N+1,docp.dim_NLP_state)
     mult_state_box_upper = zeros(N+1,docp.dim_NLP_state)
     mult_control_box_lower = zeros(N+1,docp.ocp.control_dimension)
@@ -171,7 +177,7 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
 
     # constraints, costate and constraints multipliers
     P = zeros(N, docp.dim_NLP_state)
-    lambda = multipliers_constraints
+    lambda = isnothing(multipliers_constraints) ? zeros(docp.dim_NLP_constraints) : multipliers_constraints
     sol_control_constraints = zeros(N+1,docp.dim_control_constraints)
     sol_state_constraints = zeros(N+1,docp.dim_state_constraints)
     sol_mixed_constraints = zeros(N+1,docp.dim_mixed_constraints) 

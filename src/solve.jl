@@ -103,7 +103,7 @@ function solve(docp::DOCP;
     end
 
     # return solution for original OCP
-    return OCPSolutionFromDOCP(docp, docp_solution)
+    return OCPSolutionFromDOCP(docp, docp_solution), docp_solution
 end
 
 
@@ -130,7 +130,7 @@ function solve(ocp::OptimalControlModel,
     docp = directTranscription(ocp, description, init=init, grid_size=grid_size)
 
     # solve DOCP and retrieve OCP solution
-    ocp_solution = solve(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, kwargs...)
+    ocp_solution, docp_solution = solve(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, kwargs...)
 
     return ocp_solution
 end
