@@ -100,8 +100,7 @@ println("Objective ", sol4.objective, " after ", sol4.iterations, " iterations")
 
 Finally, we can also use a so-called *warmstart* strategy and use an existing solution as initial guess (note that the OCP solution returned by the **solve** call is functional, thus it is not necessary to use the same time grid). Notice that the objective and constraint violation values start much closer to the solution than with the previous initialisations.
 ```@example main
-init4 = OCPInit(sol1)
-sol4 = solve(ocp, grid_size=200, print_level=5, init=init4)
+sol4 = solve(ocp, grid_size=200, print_level=5, init=sol1)
 nothing # hide
 ```
 ```@example main
@@ -121,7 +120,7 @@ The initial guess can be passed to **solve** same as before.
 ```@example main
 dsol = solve(docp, print_level=0, init=sol1)
 sol6 = OCPSolutionFromDOCP(docp, dsol)
-println("Objective ", sol.objective, " after ", sol6.iterations, " iterations")
+println("Objective ", sol6.objective, " after ", sol6.iterations, " iterations")
 ```
 Another possibility is to set the initial guess associated to the DOCP, using the function **setDOCPInit**.
 ```@example main

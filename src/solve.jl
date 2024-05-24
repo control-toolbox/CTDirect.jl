@@ -102,8 +102,7 @@ function solve(docp::DOCP;
         docp_solution = ipopt(getNLP(docp),x0=DOCP_initial_guess(docp, init), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
     end
 
-    # return solution for original OCP
-    # return OCPSolutionFromDOCP(docp, docp_solution)
+    # return DOCP solution
     return docp_solution
 end
 
