@@ -150,18 +150,22 @@ println("\n2. Setting the initial guess at the DOCP level")
 docp = directTranscription(ocp)
 # mixed init
 setDOCPInit(docp, OCPInit(state=x_func, control=u_const))
-sol, dsol = solve(docp, print_level=0, max_iter=maxiter)
+dsol = solve(docp, print_level=0, max_iter=maxiter)
+sol = OCPSolutionFromDOCP(docp, dsol)
 @printf("%-56s %.3f at %d iterations\n", "Mixed initial guess set in DOCP (OCPInit call)", sol.objective, sol.iterations)
 setDOCPInit(docp, (state=x_func, control=u_const))
-sol, dsol = solve(docp, print_level=0, max_iter=maxiter)
+dsol = solve(docp, print_level=0, max_iter=maxiter)
+sol = OCPSolutionFromDOCP(docp, dsol)
 @printf("%-56s %.3f at %d iterations\n", "Mixed initial guess set in DOCP (compact call)", sol.objective, sol.iterations)
 
 # warm start
 setDOCPInit(docp, OCPInit(sol0))
-sol, dsol = solve(docp, print_level=0, max_iter=maxiter)
+dsol = solve(docp, print_level=0, max_iter=maxiter)
+sol = OCPSolutionFromDOCP(docp, dsol)
 @printf("%-56s %.3f at %d iterations\n", "Warm start set in DOCP (OCPInit call)", sol.objective, sol.iterations)
 setDOCPInit(docp, sol0)
-sol, dsol = solve(docp, print_level=0, max_iter=maxiter)
+dsol = solve(docp, print_level=0, max_iter=maxiter)
+sol = OCPSolutionFromDOCP(docp, dsol)
 @printf("%-56s %.3f at %d iterations\n", "Warm start set in DOCP (compact call)", sol.objective, sol.iterations)
 
 #################################################
@@ -169,13 +173,17 @@ sol, dsol = solve(docp, print_level=0, max_iter=maxiter)
 println("\n3. Passing the initial guess to solve call")
 setDOCPInit(docp, OCPInit()) # reset init in docp
 # mixed init
-sol, dsol = solve(docp, init=OCPInit(state=x_func, control=u_const), print_level=0, max_iter=maxiter)
+dsol = solve(docp, init=OCPInit(state=x_func, control=u_const), print_level=0, max_iter=maxiter)
+sol = OCPSolutionFromDOCP(docp, dsol)
 @printf("%-56s %.3f at %d iterations\n", "Mixed initial guess passed to solve (OCPInit call)", sol.objective, sol.iterations)
-sol, dsol = solve(docp, init=(state=x_func, control=u_const), print_level=0, max_iter=maxiter)
+dsol = solve(docp, init=(state=x_func, control=u_const), print_level=0, max_iter=maxiter)
+sol = OCPSolutionFromDOCP(docp, dsol)
 @printf("%-56s %.3f at %d iterations\n", "Mixed initial guess passed to solve (compact call)", sol.objective, sol.iterations)
 
 # warm start
-sol, dsol = solve(docp, init=OCPInit(sol0), print_level=0, max_iter=maxiter)
+dsol = solve(docp, init=OCPInit(sol0), print_level=0, max_iter=maxiter)
+sol = OCPSolutionFromDOCP(docp, dsol)
 @printf("%-56s %.3f at %d iterations\n", "Warm start passed to solve (OCPInit call)", sol.objective, sol.iterations)
-sol, dsol = solve(docp, init=sol0, print_level=0, max_iter=maxiter)
+dsol = solve(docp, init=sol0, print_level=0, max_iter=maxiter)
+sol = OCPSolutionFromDOCP(docp, dsol)
 @printf("%-56s %.3f at %d iterations\n", "Warm start passed to solve (compact call)", sol.objective, sol.iterations)

@@ -136,40 +136,48 @@ end
 docp = directTranscription(ocp)
 @testset verbose = true showtiming = true ":DOCPInit_mixed" begin
     setDOCPInit(docp, OCPInit(state=x_func, control=u_const))
-    sol, dsol = solve(docp, print_level=0)
+    dsol = solve(docp, print_level=0)
+    sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":DOCPInit_mixed :compact" begin
     setDOCPInit(docp, (state=x_func, control=u_const))
-    sol, dsol = solve(docp, print_level=0)
+    dsol = solve(docp, print_level=0)
+    sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":DOCPInit_warm_start" begin
     setDOCPInit(docp, OCPInit(sol0))
-    sol, dsol = solve(docp, print_level=0)
+    dsol = solve(docp, print_level=0)
+    sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":DOCPInit_warm_start :compact" begin
     setDOCPInit(docp, sol0)
-    sol, dsol = solve(docp, print_level=0)
+    dsol = solve(docp, print_level=0)
+    sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
 # pass initial guess to solve
 setDOCPInit(docp, OCPInit()) # reset init in docp
 @testset verbose = true showtiming = true ":solve_mixed_init" begin
-    sol, dsol = solve(docp, init=OCPInit(state=x_func, control=u_const), print_level=0)
+    dsol = solve(docp, init=OCPInit(state=x_func, control=u_const), print_level=0)
+    sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":solve_mixed_init :compact" begin
-    sol, dsol = solve(docp, init=(state=x_func, control=u_const), print_level=0)
+    dsol = solve(docp, init=(state=x_func, control=u_const), print_level=0)
+    sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":solve_warm_start" begin
-    sol, dsol = solve(docp, init=OCPInit(sol0), print_level=0)
+    dsol = solve(docp, init=OCPInit(sol0), print_level=0)
+    sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 @testset verbose = true showtiming = true ":solve_warm_start :compact" begin
-    sol, dsol = solve(docp, init=sol0, print_level=0)
+    dsol = solve(docp, init=sol0, print_level=0)
+    sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end

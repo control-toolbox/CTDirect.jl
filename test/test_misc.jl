@@ -25,7 +25,8 @@ println("Target 0.313, found ", sol.objective, " at ", sol.iterations, " iterati
 println("Test simple integrator: split calls")
 println("Direct transcription with default init")
 docp = directTranscription(ocp, grid_size=100)
-sol, dsol = solve(docp, print_level=0, tol=1e-12)
+dsol = solve(docp, print_level=0, tol=1e-12)
+sol = OCPSolutionFromDOCP(docp, dsol)
 println("Target 0.313, found ", sol.objective, " at ", sol.iterations, " iterations")
 
 # test NLP getter
@@ -34,7 +35,7 @@ nlp = getNLP(docp)
 # warm start in directTranscription
 println("Direct transcription with warm start (compact syntax)")
 docp2 = directTranscription(ocp, grid_size=100, init=sol)
-sol2, dsol2 = solve(docp2, print_level=5, tol=1e-12)
+dsol2 = solve(docp2, print_level=5, tol=1e-12)
 
 # test OCPSolutionFromDOCP_raw
 println("\nRebuild OCP solution from raw vector")
