@@ -1,5 +1,5 @@
 # [.github/workflows/coverage.yml]
-name: CI
+name: coverage
 on:
   push:
     branches:
