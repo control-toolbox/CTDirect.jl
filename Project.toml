@@ -1,7 +1,7 @@
 name = "CTDirect"
 uuid = "790bbbee-bee9-49ee-8912-a9de031322d5"
 authors = ["Olivier Cots <olivier.cots@enseeiht.fr>"]
-version = "0.5.1"
+version = "0.6.0"
 
 [deps]
 ADNLPModels = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
@@ -14,7 +14,7 @@ SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [compat]
-CTBase = "0.8"
+CTBase = "0.9"
 DocStringExtensions = "0.9"
 SymbolicUtils = "~1.5"
 Symbolics = "5"

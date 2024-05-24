@@ -29,6 +29,7 @@ export directTranscription
 export getNLP
 export setDOCPInit
 export OCPSolutionFromDOCP
+export OCPSolutionFromDOCP_raw
 
 # CTBase reexports
 export @def

@@ -100,8 +100,7 @@ println("Objective ", sol4.objective, " after ", sol4.iterations, " iterations")
 
 Finally, we can also use a so-called *warmstart* strategy and use an existing solution as initial guess (note that the OCP solution returned by the **solve** call is functional, thus it is not necessary to use the same time grid). Notice that the objective and constraint violation values start much closer to the solution than with the previous initialisations.
 ```@example main
-init4 = OCPInit(sol1)
-sol4 = solve(ocp, grid_size=200, print_level=5, init=init4)
+sol4 = solve(ocp, grid_size=200, print_level=5, init=sol1)
 nothing # hide
 ```
 ```@example main
@@ -110,20 +109,28 @@ plot(sol4)
 
 ## The discretized problem
 
-Instead of calling **solve** directly on the OCP problem, you can first obtain the discretized problem (DOCP) by calling **directTranscription**, then call **solve** on the DOCP.
+Instead of calling **solve** directly on the OCP problem, you can first obtain the discretized problem (DOCP) by calling **directTranscription**, then call **solve** on the DOCP. The resulting solution of the discretized problem can be used to generate the corresponding OCP solution with **OCPSolutionFromDOCP**.
 ```@example main
 docp = directTranscription(ocp, grid_size=100)
-sol5 = solve(docp, print_level=5)
+dsol = solve(docp, print_level=5)
+sol5 = OCPSolutionFromDOCP(docp, dsol)
 nothing # hide
 ```
 The initial guess can be passed to **solve** same as before.
 ```@example main
-sol6 = solve(docp, print_level=0, init=OCPInit(sol1))
+dsol = solve(docp, print_level=0, init=sol1)
+sol6 = OCPSolutionFromDOCP(docp, dsol)
 println("Objective ", sol6.objective, " after ", sol6.iterations, " iterations")
 ```
 Another possibility is to set the initial guess associated to the DOCP, using the function **setDOCPInit**.
 ```@example main
-setDOCPInit(docp, OCPInit(sol1))
-sol7 = solve(docp, print_level=5)
+setDOCPInit(docp, sol1)
+dsol = solve(docp, print_level=5)
+nothing # hide
+```
+Finally, the direct transcription also accept an initial guess.
+```@example main
+docp = directTranscription(ocp, grid_size=100, init=sol1)
+dsol = solve(docp, print_level=5)
 nothing # hide
 ```

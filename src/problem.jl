@@ -465,10 +465,10 @@ function DOCP_variables_check!(vb, variables, docp)
     # by construction only one of the two can be active
     for i in 1:docp.dim_NLP_variables
         if variables[i] < docp.var_l[i]
-            vb[i] = solution[i] - docp.var_l[i]
+            vb[i] = variables[i] - docp.var_l[i]
         end
         if variables[i] > docp.var_u[i]
-            vb[i] = solution[i] - docp.var_u[i]
+            vb[i] = variables[i] - docp.var_u[i]
         end
     end
     return nothing
