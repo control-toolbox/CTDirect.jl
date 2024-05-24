@@ -6,7 +6,7 @@
 [release-img]: https://img.shields.io/github/v/release/control-toolbox/CTDirect.jl.svg?style=flat-square
 [release-url]: https://github.com/control-toolbox/CTDirect.jl/releases
 
-[gh-co-img]: https://codecov.io/gh/control-toolbox/CTDirect.jl/branch/main/graph/badge.svg?token=YM5YQQUSO3
+[gh-co-img]: https://codecov.io/gh/control-toolbox/CTDirect.jl/branch/main/graph/badge.svg?token=6J4SJL2SFG
 [gh-co-url]: https://codecov.io/gh/control-toolbox/CTDirect.jl
 
 [gh-doc-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
