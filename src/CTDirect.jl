@@ -44,5 +44,6 @@ export dynamics!
 export objective!
 export remove_constraint!
 export OCPInit
+export plot
 
 end

@@ -1,4 +1,5 @@
 using CTDirect
+using JLD2
 
 println("Test: misc")
 
@@ -42,3 +43,9 @@ nlp = getNLP(docp)
 dsol = solve(docp, print_level=0, tol=1e-12)
 sol_raw = OCPSolutionFromDOCP_raw(docp, dsol.solution)
 
+# test save / load solution in JLD2 format
+@testset verbose = true showtiming = true ":save_load :JLD2" begin
+    save_object("sol.jld2", sol0)
+    sol_reloaded = load_object("sol.jld2")
+    @test sol0.objective == sol_reloaded.objective
+end

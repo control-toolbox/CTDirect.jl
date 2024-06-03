@@ -1,4 +1,5 @@
 using CTDirect
+using JLD2
 
 println("Test: misc")
 
@@ -40,6 +41,12 @@ dsol2 = solve(docp2, print_level=5, tol=1e-12)
 # test OCPSolutionFromDOCP_raw
 println("\nRebuild OCP solution from raw vector")
 sol3 = OCPSolutionFromDOCP_raw(docp2, dsol2.solution)
+
+# save / load solution in JLD2 format (solution includes complex data such as interpolated functions which are less suitable for more generic formats such as JSON)
+save_object("sol.jld2", sol)
+sol4 = load_object("sol.jld2")
+plot(sol4, show=true)
+println(sol.objective == sol4.objective)
 
 println("")
 # 
