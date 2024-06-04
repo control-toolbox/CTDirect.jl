@@ -1,5 +1,4 @@
 using CTDirect
-using JLD2
 
 println("Test: misc")
 
@@ -47,5 +46,12 @@ sol_raw = OCPSolutionFromDOCP_raw(docp, dsol.solution)
 @testset verbose = true showtiming = true ":save_load :JLD2" begin
     save_OCP_solution(sol0, filename_prefix="solution_test")
     sol_reloaded = load_OCP_solution("solution_test")
+    @test sol0.objective == sol_reloaded.objective
+end
+
+# test save / load solution in JSON format
+@testset verbose = true showtiming = true ":save_load :JSON" begin
+    save_OCP_solution(sol0, filename_prefix="solution_test", format="JSON")
+    sol_reloaded = load_OCP_solution("solution_test", format="JSON")
     @test sol0.objective == sol_reloaded.objective
 end

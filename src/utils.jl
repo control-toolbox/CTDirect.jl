@@ -205,33 +205,15 @@ end
 
 #+++ to be moved to CTBase !
 
-
-#+++ add optional args format "JLD2" "JSON" and grid_size=100
-#+++ add struct for discrete ocp solution (just interpolate the functions) that uses only basic data types and can be exported as json 
-"""
-$(TYPEDSIGNATURES)
-
-Save OCP solution in JLD2 format
-"""
-function save_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution")
-    save_object(filename_prefix * ".jld2", sol)
-    return nothing
-    #sol4 = load_object("sol.jld2")
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Load OCP solution in JLD2 format
-"""
-function load_OCP_solution(filename_prefix="solution")
-    return load_object(filename_prefix * ".jld2")
-end
-
+#struct for interpolated ocp solution with only basic data types that can be exported as json
+# +++todo:
+# - pass time grid / grid size
+# - add more fields from OptimalControlSolution
+# - constructor to recreate OptimalControlSolution from this one
 mutable struct OCP_Solution_discrete
 
     grid_size
-
+    objective
     times
     #initial_time_name::Union{String, Nothing}=nothing
     #final_time_name::Union{String, Nothing}=nothing
@@ -255,11 +237,13 @@ mutable struct OCP_Solution_discrete
     #message::Union{Nothing, String}=nothing # the message corresponding to the stopping criterion
     #success::Union{Nothing, Bool}=nothing # whether or not the method has finished successfully: CN1, stagnation vs iterations max
     #infos::Dict{Symbol, Any}=Dict{Symbol, Any}()
-
+    #OCP_Solution_discrete() = new() # for StructTypes / JSON
+    
     function OCP_Solution_discrete(solution::OptimalControlSolution)
         solution_d = new()
 
         # raw copy
+        solution_d.objective = solution.objective
         solution_d.times = solution.times
         solution_d.state_dimension = solution.state_dimension
         solution_d.control_dimension = solution.control_dimension
@@ -279,5 +263,39 @@ mutable struct OCP_Solution_discrete
         end
         return solution_d
     end
+end
 
+"""
+$(TYPEDSIGNATURES)
+  
+Save OCP solution in JLD2/JSON format
+"""
+function save_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution", format="JLD2")
+    if format == "JLD2"
+        save_object(filename_prefix * ".jld2", sol)
+    elseif format == "JSON"
+        open(filename_prefix * ".json", "w") do io
+            JSON3.pretty(io, OCP_Solution_discrete(sol))
+        end
+    else
+        println("ERROR: save_OCP_solution: format should be JLD2 or JSON, received ", format)
+    end
+    return nothing
+end
+    
+"""
+$(TYPEDSIGNATURES)
+ 
+Load OCP solution in JLD2/JSON format
+"""
+function load_OCP_solution(filename_prefix="solution"; format="JLD2")
+    if format == "JLD2"
+        return load_object(filename_prefix * ".jld2")
+    elseif format == "JSON"
+        json_string = read(filename_prefix * ".json", String)
+        return JSON3.read(json_string)
+    else
+        println("ERROR: save_OCP_solution: format should be JLD2 or JSON, received ", format)
+        return nothing
+    end
 end
