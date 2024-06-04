@@ -200,3 +200,102 @@ function DOCP_initial_guess(docp, init::OCPInit=OCPInit())
 
     return xuv
 end
+
+
+
+#+++ to be moved to CTBase !
+
+#struct for interpolated ocp solution with only basic data types that can be exported as json
+# +++todo:
+# - pass time grid / grid size
+# - add more fields from OptimalControlSolution
+# - constructor to recreate OptimalControlSolution from this one
+mutable struct OCP_Solution_discrete
+
+    grid_size
+    objective
+    times
+    #initial_time_name::Union{String, Nothing}=nothing
+    #final_time_name::Union{String, Nothing}=nothing
+    #time_name::Union{String, Nothing}=nothing
+    control_dimension
+    #control_components_names::Union{Vector{String}, Nothing}=nothing
+    #control_name::Union{String, Nothing}=nothing
+    control
+    state_dimension
+    #state_components_names::Union{Vector{String}, Nothing}=nothing
+    #state_name::Union{String, Nothing}=nothing
+    state
+    variable_dimension
+    #variable_components_names::Union{Vector{String}, Nothing}=nothing
+    #variable_name::Union{String, Nothing}=nothing
+    variable
+    costate
+    #objective::Union{Nothing, ctNumber}=nothing
+    #iterations::Union{Nothing, Integer}=nothing
+    #stopping::Union{Nothing, Symbol}=nothing # the stopping criterion
+    #message::Union{Nothing, String}=nothing # the message corresponding to the stopping criterion
+    #success::Union{Nothing, Bool}=nothing # whether or not the method has finished successfully: CN1, stagnation vs iterations max
+    #infos::Dict{Symbol, Any}=Dict{Symbol, Any}()
+    #OCP_Solution_discrete() = new() # for StructTypes / JSON
+    
+    function OCP_Solution_discrete(solution::OptimalControlSolution)
+        solution_d = new()
+
+        # raw copy
+        solution_d.objective = solution.objective
+        solution_d.times = solution.times
+        solution_d.state_dimension = solution.state_dimension
+        solution_d.control_dimension = solution.control_dimension
+        solution_d.variable_dimension = solution.variable_dimension
+        solution_d.variable = solution.variable
+
+        # interpolate functions into vectors
+        # +++ ther *must* be a quicker way to do this -_-
+        solution_d.grid_size = length(solution_d.times) - 1
+        solution_d.state = zeros(solution_d.grid_size+1, solution_d.state_dimension)
+        solution_d.control = zeros(solution_d.grid_size+1, solution_d.control_dimension)
+        solution_d.costate = zeros(solution_d.grid_size+1, solution_d.state_dimension)
+        for i in 1:solution_d.grid_size
+            solution_d.state[i,:] .= solution.state(solution_d.times[i])
+            solution_d.control[i,:] .= solution.control(solution_d.times[i])
+            solution_d.costate[i,:] .= solution.costate(solution_d.times[i])
+        end
+        return solution_d
+    end
+end
+
+"""
+$(TYPEDSIGNATURES)
+  
+Save OCP solution in JLD2/JSON format
+"""
+function save_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution", format="JLD2")
+    if format == "JLD2"
+        save_object(filename_prefix * ".jld2", sol)
+    elseif format == "JSON"
+        open(filename_prefix * ".json", "w") do io
+            JSON3.pretty(io, OCP_Solution_discrete(sol))
+        end
+    else
+        println("ERROR: save_OCP_solution: format should be JLD2 or JSON, received ", format)
+    end
+    return nothing
+end
+    
+"""
+$(TYPEDSIGNATURES)
+ 
+Load OCP solution in JLD2/JSON format
+"""
+function load_OCP_solution(filename_prefix="solution"; format="JLD2")
+    if format == "JLD2"
+        return load_object(filename_prefix * ".jld2")
+    elseif format == "JSON"
+        json_string = read(filename_prefix * ".json", String)
+        return JSON3.read(json_string)
+    else
+        println("ERROR: save_OCP_solution: format should be JLD2 or JSON, received ", format)
+        return nothing
+    end
+end
