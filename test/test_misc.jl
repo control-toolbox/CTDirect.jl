@@ -48,5 +48,13 @@ sol4 = load_OCP_solution("solution_test")
 plot(sol4, show=true)
 println(sol.objective == sol4.objective)
 
+# save discrete solution in JSON format
+sol_disc = OCP_Solution_discrete(sol)
+#display(plot(sol_disc.times, sol_disc.state))
+#plot(sol_disc)
+# save json then augment save function
++++
+# load
+
 println("")
 # 

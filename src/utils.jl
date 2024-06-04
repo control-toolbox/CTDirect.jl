@@ -202,7 +202,10 @@ function DOCP_initial_guess(docp, init::OCPInit=OCPInit())
 end
 
 
-#+++ to be moved to CTBase
+
+#+++ to be moved to CTBase !
+
+
 #+++ add optional args format "JLD2" "JSON" and grid_size=100
 #+++ add struct for discrete ocp solution (just interpolate the functions) that uses only basic data types and can be exported as json 
 """
@@ -223,4 +226,58 @@ Load OCP solution in JLD2 format
 """
 function load_OCP_solution(filename_prefix="solution")
     return load_object(filename_prefix * ".jld2")
+end
+
+mutable struct OCP_Solution_discrete
+
+    grid_size
+
+    times
+    #initial_time_name::Union{String, Nothing}=nothing
+    #final_time_name::Union{String, Nothing}=nothing
+    #time_name::Union{String, Nothing}=nothing
+    control_dimension
+    #control_components_names::Union{Vector{String}, Nothing}=nothing
+    #control_name::Union{String, Nothing}=nothing
+    control
+    state_dimension
+    #state_components_names::Union{Vector{String}, Nothing}=nothing
+    #state_name::Union{String, Nothing}=nothing
+    state
+    variable_dimension
+    #variable_components_names::Union{Vector{String}, Nothing}=nothing
+    #variable_name::Union{String, Nothing}=nothing
+    variable
+    costate
+    #objective::Union{Nothing, ctNumber}=nothing
+    #iterations::Union{Nothing, Integer}=nothing
+    #stopping::Union{Nothing, Symbol}=nothing # the stopping criterion
+    #message::Union{Nothing, String}=nothing # the message corresponding to the stopping criterion
+    #success::Union{Nothing, Bool}=nothing # whether or not the method has finished successfully: CN1, stagnation vs iterations max
+    #infos::Dict{Symbol, Any}=Dict{Symbol, Any}()
+
+    function OCP_Solution_discrete(solution::OptimalControlSolution)
+        solution_d = new()
+
+        # raw copy
+        solution_d.times = solution.times
+        solution_d.state_dimension = solution.state_dimension
+        solution_d.control_dimension = solution.control_dimension
+        solution_d.variable_dimension = solution.variable_dimension
+        solution_d.variable = solution.variable
+
+        # interpolate functions into vectors
+        # +++ ther *must* be a quicker way to do this -_-
+        solution_d.grid_size = length(solution_d.times) - 1
+        solution_d.state = zeros(solution_d.grid_size+1, solution_d.state_dimension)
+        solution_d.control = zeros(solution_d.grid_size+1, solution_d.control_dimension)
+        solution_d.costate = zeros(solution_d.grid_size+1, solution_d.state_dimension)
+        for i in 1:solution_d.grid_size
+            solution_d.state[i,:] .= solution.state(solution_d.times[i])
+            solution_d.control[i,:] .= solution.control(solution_d.times[i])
+            solution_d.costate[i,:] .= solution.costate(solution_d.times[i])
+        end
+        return solution_d
+    end
+
 end

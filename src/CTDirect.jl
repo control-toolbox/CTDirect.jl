@@ -7,6 +7,7 @@ using ADNLPModels               # docp model with AD
 using NLPModelsIpopt            # NLP solver
 using LinearAlgebra             # norm
 using JLD2
+using JSON3
 
 # Other declarations
 const __grid_size_direct() = 100
@@ -33,6 +34,7 @@ export OCPSolutionFromDOCP
 export OCPSolutionFromDOCP_raw
 export save_OCP_solution
 export load_OCP_solution
+export OCP_Solution_discrete
 
 # CTBase reexports
 export @def
@@ -48,5 +50,7 @@ export objective!
 export remove_constraint!
 export OCPInit
 export plot
+
+
 
 end
