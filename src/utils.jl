@@ -200,3 +200,27 @@ function DOCP_initial_guess(docp, init::OCPInit=OCPInit())
 
     return xuv
 end
+
+
+#+++ to be moved to CTBase
+#+++ add optional args format "JLD2" "JSON" and grid_size=100
+#+++ add struct for discrete ocp solution (just interpolate the functions) that uses only basic data types and can be exported as json 
+"""
+$(TYPEDSIGNATURES)
+
+Save OCP solution in JLD2 format
+"""
+function save_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution")
+    save_object(filename_prefix * ".jld2", sol)
+    return nothing
+    #sol4 = load_object("sol.jld2")
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Load OCP solution in JLD2 format
+"""
+function load_OCP_solution(filename_prefix="solution")
+    return load_object(filename_prefix * ".jld2")
+end

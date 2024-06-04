@@ -1,5 +1,4 @@
 using CTDirect
-using JLD2
 
 println("Test: misc")
 
@@ -43,8 +42,8 @@ println("\nRebuild OCP solution from raw vector")
 sol3 = OCPSolutionFromDOCP_raw(docp2, dsol2.solution)
 
 # save / load solution in JLD2 format (solution includes complex data such as interpolated functions which are less suitable for more generic formats such as JSON)
-save_object("sol.jld2", sol)
-sol4 = load_object("sol.jld2")
+save_OCP_solution(sol, filename_prefix="solution_test")
+sol4 = load_OCP_solution("toto")
 plot(sol4, show=true)
 println(sol.objective == sol4.objective)
 

@@ -6,6 +6,7 @@ using Symbolics                 # for optimized AD
 using ADNLPModels               # docp model with AD
 using NLPModelsIpopt            # NLP solver
 using LinearAlgebra             # norm
+using JLD2
 
 # Other declarations
 const __grid_size_direct() = 100
@@ -30,6 +31,8 @@ export getNLP
 export setDOCPInit
 export OCPSolutionFromDOCP
 export OCPSolutionFromDOCP_raw
+export save_OCP_solution
+export load_OCP_solution
 
 # CTBase reexports
 export @def
