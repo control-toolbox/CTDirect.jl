@@ -285,8 +285,19 @@ function load_OCP_solution(filename_prefix="solution"; format="JLD2")
     elseif format == "JSON"
         json_string = read(filename_prefix * ".json", String)
         return JSON3.read(json_string)
+        #+++ parse JSON object containing interpolated solution
+        #+++ then call raw constructor for OCP solution
     else
         println("ERROR: save_OCP_solution: format should be JLD2 or JSON, received ", format)
         return nothing
     end
 end
+
+"""
+$(TYPEDSIGNATURES)
+ 
+Parse interpolated OCP solution saved in JSON format
+"""
+function parse_JSON_solution(json_solution)
+end
+

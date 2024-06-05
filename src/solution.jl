@@ -43,7 +43,19 @@ $(TYPEDSIGNATURES)
     
 Build OCP functional solution from DOCP vector solution (given as raw variables and multipliers plus some optional infos)
 """
-# and reuse this for the discrete json solution !
+# +++ use tuples for more compact arguments
+
+# +++ try to reuse this for the discrete json solution !
+
+# +++ need to remove docp from this one !
+# +++ this means dimensions, 
+# +++ ocp for copy! (-_-) ie dimensions also ?
+# +++ boolean indicators for various constraints types
+# (could check for nothing values instead ?)
+# add a tuple for dimensions
+# a tupple for indicators
+# and do the copy manually ?
+
 function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     objective=0, iterations=0, constraints_violation=0,
     message="No msg", stopping=nothing, success=nothing,
