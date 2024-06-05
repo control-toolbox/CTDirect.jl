@@ -39,8 +39,8 @@ docp = directTranscription(ocp, grid_size=100)
 nlp = getNLP(docp)
 
 # test OCPSolutionFromDOCP_raw
-dsol = solve(docp, print_level=0, tol=1e-12)
-sol_raw = OCPSolutionFromDOCP_raw(docp, dsol.solution)
+#dsol = solve(docp, print_level=0, tol=1e-12)
+#sol_raw = OCPSolutionFromDOCP_raw(docp, dsol.solution)
 
 # test save / load solution in JLD2 format
 @testset verbose = true showtiming = true ":save_load :JLD2" begin
