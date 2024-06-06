@@ -2,7 +2,6 @@ module CTDirect
 
 using CTBase
 using DocStringExtensions
-using Symbolics                 # for optimized AD
 using ADNLPModels               # docp model with AD
 using NLPModelsIpopt            # NLP solver
 using LinearAlgebra             # norm
