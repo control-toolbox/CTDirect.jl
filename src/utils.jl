@@ -212,8 +212,6 @@ end
 # - constructor to recreate OptimalControlSolution from this one
 mutable struct OCP_Solution_discrete
 
-    grid_size
-    objective
     times
     #initial_time_name::Union{String, Nothing}=nothing
     #final_time_name::Union{String, Nothing}=nothing
@@ -231,7 +229,7 @@ mutable struct OCP_Solution_discrete
     #variable_name::Union{String, Nothing}=nothing
     variable
     costate
-    #objective::Union{Nothing, ctNumber}=nothing
+    objective
     #iterations::Union{Nothing, Integer}=nothing
     #stopping::Union{Nothing, Symbol}=nothing # the stopping criterion
     #message::Union{Nothing, String}=nothing # the message corresponding to the stopping criterion
@@ -242,7 +240,7 @@ mutable struct OCP_Solution_discrete
     function OCP_Solution_discrete(solution::OptimalControlSolution)
         solution_d = new()
 
-        # raw copy
+        # raw copy +++ reuse the copy! in CTBase ?
         solution_d.objective = solution.objective
         solution_d.times = solution.times
         solution_d.state_dimension = solution.state_dimension
@@ -251,16 +249,9 @@ mutable struct OCP_Solution_discrete
         solution_d.variable = solution.variable
 
         # interpolate functions into vectors
-        # +++ ther *must* be a quicker way to do this -_-
-        solution_d.grid_size = length(solution_d.times) - 1
-        solution_d.state = zeros(solution_d.grid_size+1, solution_d.state_dimension)
-        solution_d.control = zeros(solution_d.grid_size+1, solution_d.control_dimension)
-        solution_d.costate = zeros(solution_d.grid_size+1, solution_d.state_dimension)
-        for i in 1:solution_d.grid_size
-            solution_d.state[i,:] .= solution.state(solution_d.times[i])
-            solution_d.control[i,:] .= solution.control(solution_d.times[i])
-            solution_d.costate[i,:] .= solution.costate(solution_d.times[i])
-        end
+        solution_d.state = solution.state.(solution_d.times)
+        solution_d.control = solution.control.(solution_d.times)
+        solution_d.costate = solution.costate.(solution_d.times)
         return solution_d
     end
 end
@@ -294,8 +285,19 @@ function load_OCP_solution(filename_prefix="solution"; format="JLD2")
     elseif format == "JSON"
         json_string = read(filename_prefix * ".json", String)
         return JSON3.read(json_string)
+        #+++ parse JSON object containing interpolated solution
+        #+++ then call raw constructor for OCP solution
     else
         println("ERROR: save_OCP_solution: format should be JLD2 or JSON, received ", format)
         return nothing
     end
 end
+
+"""
+$(TYPEDSIGNATURES)
+ 
+Parse interpolated OCP solution saved in JSON format
+"""
+function parse_JSON_solution(json_solution)
+end
+
