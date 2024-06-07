@@ -125,10 +125,24 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Get actual (un-normalized) time step
+Get actual (un-normalized) time value
 """
-function get_unnormalized_time(t_normalized, t0, tf)
+function get_unnormalized_time(xu, docp, t_normalized)
+    t0 = get_initial_time(xu, docp)
+    tf = get_final_time(xu, docp)    
     return t0 + t_normalized * (tf - t0)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Get actual (un-normalized) time at give time step
+"""
+function get_time_at_time_step(xu, docp, i)
+    @assert i <= N "trying to get t_i for i > N"
+    t_normalized = docp.NLP_normalized_time_grid[i+1]
+    return get_unnormalized_time(xu, docp, t_normalized)
 end
 
 
@@ -205,7 +219,7 @@ function DOCP_initial_guess(docp, init::OCPInit=OCPInit())
     N = docp.dim_NLP_steps
     t0 = get_initial_time(xuv, docp)
     tf = get_final_time(xuv, docp)
-    h = (tf - t0) / N 
+    +++h = (tf - t0) / N 
 
     # set state / control variables if provided
     for i in 0:N
@@ -224,6 +238,18 @@ end
 
 
 #+++ to be moved to CTBase !
+"""
+$(TYPEDSIGNATURES)
+
+Implement implicit call to OCPInit constructor if needed
+"""
+function implicitInit(init_passed)
+    if init_passed isa OCPInit
+        return OCPInit
+    else
+        return OCPInit(init_passed)
+    end
+end
 
 #struct for interpolated ocp solution with only basic data types that can be exported as json
 # +++todo:

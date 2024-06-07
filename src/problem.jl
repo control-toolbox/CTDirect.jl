@@ -74,7 +74,7 @@ mutable struct DOCP
     nlp
 
     # constructor
-    function DOCP(ocp::OptimalControlModel, N::Integer)       
+    function DOCP(ocp::OptimalControlModel, N::Integer, time_grid)       
 
         # +++ try to put here more const members (indicators etc)
         # +++ also move some parts to CTBase.OptimalControlProblem
@@ -84,8 +84,16 @@ mutable struct DOCP
         # time grid
         docp.has_free_initial_time = (typeof(ocp.initial_time)==Index)
         docp.has_free_final_time = (typeof(ocp.final_time)==Index)
-        docp.NLP_normalized_time_grid = collect(LinRange(0, 1, N+1))
-        
+        if time_grid == nothing
+            docp.NLP_normalized_time_grid = collect(LinRange(0, 1, N+1))
+        else
+            println("using given time grid")
+            # check normalized ie 0 and 1
+            # check strictly increasing ?
+            # check consistency with N (override)
+            docp.NLP_normalized_time_grid = time_grid
+        end
+
         # dimensions and functions
         docp.has_variable = !isnothing(ocp.variable_dimension)
         if docp.has_variable
@@ -146,7 +154,7 @@ Check if an OCP is solvable by the method [`solve`](@ref).
 """
 function is_solvable(ocp)
     solvable = true
-    # note: non-autonomous mayer case is not supported
+    # +++ note: non-autonomous mayer case is not supported
     return solvable
 end
 
@@ -345,14 +353,15 @@ function DOCP_constraints!(c, xu, docp)
     return
     c :: 
     """
-    t0 = get_initial_time(xu, docp)
-    tf = get_final_time(xu, docp)
-    N = docp.dim_NLP_steps
-    h = (tf - t0) / N
-    v = get_variable(xu, docp)
+    #t0 = get_initial_time(xu, docp)
+    #tf = get_final_time(xu, docp)
+    #N = docp.dim_NLP_steps
+    #h = (tf - t0) / N
 
-    # state equation
-    ti = t0
+    # initialize main loop on time steps
+    v = get_variable(xu, docp)
+    # time, state and control at t_0
+    ti = get_time_at_time_step(xu, docp, 0)
     xi = get_state_at_time_step(xu, docp, 0)
     ui = get_control_at_time_step(xu, docp, 0)
     fi = docp.ocp.dynamics(ti, xi, ui, v)
@@ -361,25 +370,27 @@ function DOCP_constraints!(c, xu, docp)
         li = docp.ocp.lagrange(ti, xi, ui, v)
     end
 
+    # main loop on time steps
     index = 1 # counter for the constraints
     for i in 0:N-1
-        tip1 = t0 + (i+1)*h
-        
-        # state and control at t_{i+1}
+
+        # time, state and control at t_{i+1}
+        tip1 = get_time_at_time_step(i+1)
         xip1 = get_state_at_time_step(xu, docp, i+1)
         uip1 = get_control_at_time_step(xu, docp, i+1)
         fip1 = docp.ocp.dynamics(tip1, xip1, uip1, v)
+        hi = tip1 - ti
 
         # state equation
         if docp.ocp.state_dimension == 1
-            c[index] = xip1 - (xi + 0.5*h*(fi + fip1))            
+            c[index] = xip1 - (xi + 0.5*hi*(fi + fip1))            
         else
-            c[index:index+docp.ocp.state_dimension-1] = xip1 - (xi + 0.5*h*(fi + fip1))
+            c[index:index+docp.ocp.state_dimension-1] = xip1 - (xi + 0.5*hi*(fi + fip1))
         end
         if docp.has_lagrange_cost
             xlip1 = get_lagrange_cost_at_time_step(xu, docp, i+1)
             lip1 = docp.ocp.lagrange(tip1, xip1, uip1, v)
-            c[index+docp.ocp.state_dimension] = xlip1 - (xli + 0.5*h*(li + lip1))
+            c[index+docp.ocp.state_dimension] = xlip1 - (xli + 0.5*hi*(li + lip1))
             xli = xlip1
             li = lip1
         end
@@ -399,12 +410,16 @@ function DOCP_constraints!(c, xu, docp)
             c[index:index+docp.dim_mixed_constraints-1] = docp.mixed_constraints[2](ti, xi, ui, v)
             index = index + docp.dim_mixed_constraints
         end
+
+        # updates for next iteration
+        ti = tip1
         xi = xip1
         ui = uip1
         fi = fip1
     end
 
     # path constraints at final time
+    tf = get_time_at_time_step(xu, docp, N)
     xf = get_state_at_time_step(xu, docp, N)
     uf = get_control_at_time_step(xu, docp, N)
     if docp.has_control_constraints

@@ -9,11 +9,12 @@ function OCPSolutionFromDOCP(docp, docp_solution_ipopt)
     solution = docp_solution_ipopt.solution
 
     # time grid
-    N = docp.dim_NLP_steps
-    t0 = get_initial_time(solution, docp)
-    tf = max(get_final_time(solution, docp), t0 + 1e-9)
-    T = collect(LinRange(t0, tf, N+1))
-    
+    #N = docp.dim_NLP_steps
+    #t0 = get_initial_time(solution, docp)
+    #tf = max(get_final_time(solution, docp), t0 + 1e-9)
+    #T = collect(LinRange(t0, tf, N+1))
+    T = get_unnormalized_time.(solution, docp, docp.NLP_normalized_time_grid)
+
     # adjust objective sign for maximization problems
     if is_min(docp.ocp)
         objective = docp_solution_ipopt.objective
@@ -46,8 +47,12 @@ Build OCP functional solution from DOCP vector solution (given as raw variables 
 # +++ use tuples for more compact arguments
 
 # +++ try to reuse this for the discrete json solution !
+# USE SEVERAL METHODS DEPENDING ON AVAILABLE INFO !
 
-# +++ need to remove docp from this one !
+# +++ 1) pass only ocp first
+#function OCPSolutionFromDOCP_raw(ocp, ...)
+
+# 2) then only raw data
 # +++ this means dimensions, 
 # +++ ocp for copy! (-_-) ie dimensions also ?
 # +++ boolean indicators for various constraints types
@@ -55,6 +60,7 @@ Build OCP functional solution from DOCP vector solution (given as raw variables 
 # add a tuple for dimensions
 # a tupple for indicators
 # and do the copy manually ?
+#function OCPSolutionFromDOCP_raw(ocp_data, ...)
 
 function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     objective=0, iterations=0, constraints_violation=0,
