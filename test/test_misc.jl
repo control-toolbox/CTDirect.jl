@@ -38,8 +38,8 @@ docp2 = directTranscription(ocp, grid_size=100, init=sol)
 dsol2 = solve(docp2, print_level=5, tol=1e-12)
 
 # test OCPSolutionFromDOCP_raw
-println("\nRebuild OCP solution from raw vector")
-sol3 = OCPSolutionFromDOCP_raw(docp2, dsol2.solution)
+#println("\nRebuild OCP solution from raw vector")
+#sol3 = OCPSolutionFromDOCP_raw(docp2, dsol2.solution)
 
 # save / load solution in JLD2 format
 save_OCP_solution(sol, filename_prefix="solution_test")

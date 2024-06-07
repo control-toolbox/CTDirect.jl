@@ -6,54 +6,61 @@ Build OCP functional solution from DOCP vector solution (given as a GenericExecu
 function OCPSolutionFromDOCP(docp, docp_solution_ipopt)
 
     # could pass some status info too (get_status ?)
-    return OCPSolutionFromDOCP_raw(docp, docp_solution_ipopt.solution, objective=docp_solution_ipopt.objective, constraints_violation=docp_solution_ipopt.primal_feas, iterations=docp_solution_ipopt.iter,multipliers_constraints=docp_solution_ipopt.multipliers, multipliers_LB=docp_solution_ipopt.multipliers_L, multipliers_UB=docp_solution_ipopt.multipliers_U, message=docp_solution_ipopt.solver_specific[:internal_msg])
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Build OCP functional solution from DOCP vector solution (given as raw variables and multipliers plus some optional infos)
-"""
-function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_violation=nothing, iterations=0, multipliers_constraints=nothing, multipliers_LB=nothing, multipliers_UB=nothing, message=nothing)
-   
-    # NB. still missing: stopping and success info...
-
-    # set objective if needed
-    if objective==nothing
-        objective = DOCP_objective(solution, docp)
-        println("Recomputed raw objective ", objective)
-    end
-    # adjust objective sign for maximization problems
-    if !is_min(docp.ocp)
-        objective = - objective
-    end
-
-    # recompute value of constraints at solution
-    # NB. the constraint formulation is LB <= C <= UB
-    constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraints!(constraints, solution, docp)
-    # set constraint violation if needed
-    # +++ is not saved in OCP solution currently...
-    if constraints_violation==nothing
-        constraints_check = zeros(docp.dim_NLP_constraints)
-        DOCP_constraints_check!(constraints_check, constraints, docp)
-        println("Recomputed constraints violation ", norm(constraints_check, Inf))
-        variables_check = zeros(docp.dim_NLP_variables)
-        DOCP_variables_check!(variables_check, solution, docp)
-        println("Recomputed variable bounds violation ", norm(variables_check, Inf))
-        constraints_violation = norm(append!(variables_check, constraints_check), Inf)
-
-    end
-    
-    # parse NLP variables, constraints and multipliers 
-    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_DOCP_solution(docp, solution, multipliers_constraints, multipliers_LB, multipliers_UB, constraints)
+    solution = docp_solution_ipopt.solution
 
     # time grid
     N = docp.dim_NLP_steps
     t0 = get_initial_time(solution, docp)
     tf = max(get_final_time(solution, docp), t0 + 1e-9)
     T = collect(LinRange(t0, tf, N+1))
+    
+    # adjust objective sign for maximization problems
+    if is_min(docp.ocp)
+        objective = docp_solution_ipopt.objective
+    else        
+        objective = - docp_solution_ipopt.objective
+    end
+
+    # recompute value of constraints at solution
+    # NB. the constraint formulation is LB <= C <= UB
+    constraints = zeros(docp.dim_NLP_constraints)
+    DOCP_constraints!(constraints, solution, docp)
+
+    # parse NLP variables, constraints and multipliers 
+    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_DOCP_solution(docp, solution, docp_solution_ipopt.multipliers, docp_solution_ipopt.multipliers_L, docp_solution_ipopt.multipliers_U, constraints)
+
+    # build and return OCP solution
+    return OCPSolutionFromDOCP_raw(docp, T, X, U, v, P,
+    objective=objective, iterations=docp_solution_ipopt.iter,constraints_violation=docp_solution_ipopt.primal_feas, 
+    message=String(docp_solution_ipopt.solver_specific[:internal_msg]),
+    sol_control_constraints=sol_control_constraints, sol_state_constraints=sol_state_constraints, sol_mixed_constraints=sol_mixed_constraints, sol_variable_constraints=sol_variable_constraints, mult_control_constraints=mult_control_constraints, mult_state_constraints=mult_state_constraints, mult_mixed_constraints=mult_mixed_constraints, mult_variable_constraints=mult_variable_constraints, mult_state_box_lower=mult_state_box_lower, mult_state_box_upper=mult_state_box_upper, mult_control_box_lower=mult_control_box_lower, mult_control_box_upper=mult_control_box_upper, mult_variable_box_lower=mult_variable_box_lower, mult_variable_box_upper=mult_variable_box_upper)
+
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+    
+Build OCP functional solution from DOCP vector solution (given as raw variables and multipliers plus some optional infos)
+"""
+# +++ use tuples for more compact arguments
+
+# +++ try to reuse this for the discrete json solution !
+
+# +++ need to remove docp from this one !
+# +++ this means dimensions, 
+# +++ ocp for copy! (-_-) ie dimensions also ?
+# +++ boolean indicators for various constraints types
+# (could check for nothing values instead ?)
+# add a tuple for dimensions
+# a tupple for indicators
+# and do the copy manually ?
+
+function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
+    objective=0, iterations=0, constraints_violation=0,
+    message="No msg", stopping=nothing, success=nothing,
+    sol_control_constraints=nothing, sol_state_constraints=nothing, sol_mixed_constraints=nothing, sol_variable_constraints=nothing, mult_control_constraints=nothing, mult_state_constraints=nothing, mult_mixed_constraints=nothing, mult_variable_constraints=nothing, mult_state_box_lower=nothing, 
+    mult_state_box_upper=nothing, mult_control_box_lower=nothing, mult_control_box_upper=nothing, mult_variable_box_lower=nothing, mult_variable_box_upper=nothing)
 
     # variables: remove additional state for lagrange cost
     x = ctinterpolate(T, matrix2vec(X[:,1:docp.ocp.state_dimension], 1))
@@ -61,8 +68,8 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
     u = ctinterpolate(T, matrix2vec(U, 1))
 
     # generate ocp solution
-    sol = OptimalControlSolution() # +++ constructor with ocp as argument ?
-    copy!(sol, docp.ocp)
+    sol = OptimalControlSolution()
+    copy!(sol, docp.ocp) # +++ use constructor with ocp as argument instead of this ?
     sol.times = T
     # use scalar output for x,u,v,p if dim=1
     sol.state = (sol.state_dimension==1) ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t)) 
@@ -71,9 +78,10 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
     sol.variable = (sol.variable_dimension==1) ? v[1] : v
     sol.objective = objective
     sol.iterations = iterations
-    sol.stopping = nothing #+++
-    sol.message = isnothing(message) ? "No msg" : String(message)
-    sol.success  = nothing #+++
+    sol.stopping = stopping
+    sol.message = message
+    sol.success  = success
+    sol.infos[:constraints_violation] = constraints_violation
 
     # nonlinear constraints and multipliers
     if docp.has_state_constraints
@@ -123,7 +131,6 @@ function OCPSolutionFromDOCP_raw(docp, solution; objective=nothing, constraints_
     end
 
     return sol
-
 end
 
 
@@ -136,7 +143,6 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
     
     # states and controls variables, with box multipliers
     N = docp.dim_NLP_steps
-  
     X = zeros(N+1,docp.dim_NLP_state)
     U = zeros(N+1,docp.ocp.control_dimension)
     v = get_variable(solution, docp)
@@ -244,3 +250,36 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
 
     return X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper
 end
+
+
+    #return OCPSolutionFromDOCP_raw(docp, docp_solution_ipopt.solution, objective=docp_solution_ipopt.objective, constraints_violation=docp_solution_ipopt.primal_feas, iterations=docp_solution_ipopt.iter,multipliers_constraints=docp_solution_ipopt.multipliers, multipliers_LB=docp_solution_ipopt.multipliers_L, multipliers_UB=docp_solution_ipopt.multipliers_U, message=docp_solution_ipopt.solver_specific[:internal_msg])
+
+#= OLD
+    # NB. still missing: stopping and success info...
+    # set objective if needed
+    if objective==nothing
+        objective = DOCP_objective(solution, docp)
+        println("Recomputed raw objective ", objective)
+    end
+    # adjust objective sign for maximization problems
+    if !is_min(docp.ocp)
+        objective = - objective
+    end
+
+    # recompute value of constraints at solution
+    # NB. the constraint formulation is LB <= C <= UB
+    constraints = zeros(docp.dim_NLP_constraints)
+    DOCP_constraints!(constraints, solution, docp)
+    # set constraint violation if needed
+    # +++ is not saved in OCP solution currently...
+    if constraints_violation==nothing
+        constraints_check = zeros(docp.dim_NLP_constraints)
+        DOCP_constraints_check!(constraints_check, constraints, docp)
+        println("Recomputed constraints violation ", norm(constraints_check, Inf))
+        variables_check = zeros(docp.dim_NLP_variables)
+        DOCP_variables_check!(variables_check, solution, docp)
+        println("Recomputed variable bounds violation ", norm(variables_check, Inf))
+        constraints_violation = norm(append!(variables_check, constraints_check), Inf)
+
+    end
+=#
