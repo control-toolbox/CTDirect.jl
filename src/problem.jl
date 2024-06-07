@@ -88,9 +88,9 @@ mutable struct DOCP
             docp.NLP_normalized_time_grid = collect(LinRange(0, 1, N+1))
         else
             println("using given time grid")
-            # check normalized ie 0 and 1
-            # check strictly increasing ?
-            # check consistency with N (override)
+            # +++check normalized ie 0 and 1
+            # +++check strictly increasing ?
+            # +++check consistency with N (override)
             docp.NLP_normalized_time_grid = time_grid
         end
 
@@ -303,10 +303,8 @@ Compute the objective for the DOCP problem.
 # DOCP objective
 function DOCP_objective(xu, docp)
 
-    #t0 = get_initial_time(xu, docp)
-    #tf = get_final_time(xu, docp)
-    N = docp.dim_NLP_steps
     obj = 0
+    N = docp.dim_NLP_steps
     
     # note: non-autonomous mayer case is not supported
     if docp.has_mayer_cost
@@ -353,13 +351,11 @@ function DOCP_constraints!(c, xu, docp)
     return
     c :: 
     """
-    #t0 = get_initial_time(xu, docp)
-    #tf = get_final_time(xu, docp)
-    #N = docp.dim_NLP_steps
-    #h = (tf - t0) / N
 
     # initialize main loop on time steps
+    N = docp.dim_NLP_steps
     v = get_variable(xu, docp)
+
     # time, state and control at t_0
     ti = get_time_at_time_step(xu, docp, 0)
     xi = get_state_at_time_step(xu, docp, 0)
@@ -375,7 +371,7 @@ function DOCP_constraints!(c, xu, docp)
     for i in 0:N-1
 
         # time, state and control at t_{i+1}
-        tip1 = get_time_at_time_step(i+1)
+        tip1 = get_time_at_time_step(xu, docp, i+1)
         xip1 = get_state_at_time_step(xu, docp, i+1)
         uip1 = get_control_at_time_step(xu, docp, i+1)
         fip1 = docp.ocp.dynamics(tip1, xip1, uip1, v)
@@ -490,10 +486,10 @@ function DOCP_variables_check!(vb, variables, docp)
     # by construction only one of the two can be active
     for i in 1:docp.dim_NLP_variables
         if variables[i] < docp.var_l[i]
-            vb[i] = variables[i] - docp.var_l[i]
+            vb[i] = variables[i] - docp.var_l[i] # < 0
         end
         if variables[i] > docp.var_u[i]
-            vb[i] = variables[i] - docp.var_u[i]
+            vb[i] = variables[i] - docp.var_u[i] # > 0
         end
     end
     return nothing

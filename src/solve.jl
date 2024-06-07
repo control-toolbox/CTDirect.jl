@@ -24,14 +24,10 @@ function directTranscription(ocp::OptimalControlModel,
     init=OCPInit(),
     grid_size::Integer=__grid_size_direct(),
     time_grid=nothing)
-    
+
+    # build DOCP
     docp = DOCP(ocp, grid_size, time_grid)
 
-    # build init data if needed
-    #if !(init isa OCPInit)
-    #    init = OCPInit(init)
-    #end 
-    
     # set initial guess and bounds
     x0 = DOCP_initial_guess(docp, implicitInit(init))
     docp.var_l, docp.var_u = variables_bounds(docp)
@@ -68,11 +64,6 @@ Extract the NLP problem from the DOCP
 function setDOCPInit(docp::DOCP, init)
 
     nlp = getNLP(docp)
-
-    # build init data if needed
-    #if !(init isa OCPInit)
-    #    init = OCPInit(init)
-    #end
     nlp.meta.x0 .= DOCP_initial_guess(docp, implicitInit(init))
 
 end
@@ -96,10 +87,6 @@ function solve(docp::DOCP;
         # use initial guess embedded in the DOCP
         docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
     else
-        # build init data if needed
-        #if !(init isa OCPInit)
-        #    init = OCPInit(init)
-        #end
         # use given initial guess
         docp_solution = ipopt(getNLP(docp),x0=DOCP_initial_guess(docp, implicitInit(init)), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
     end
@@ -123,11 +110,6 @@ function solve(ocp::OptimalControlModel,
     print_level::Integer=__print_level_ipopt(),
     mu_strategy::String=__mu_strategy_ipopt(),
     kwargs...)
-
-    # build init data if needed
-    #if !(init isa OCPInit)
-    #    init = OCPInit(init)
-    #end     
 
     # build discretized OCP
     docp = directTranscription(ocp, description, init=implicitInit(init), grid_size=grid_size, time_grid=time_grid)

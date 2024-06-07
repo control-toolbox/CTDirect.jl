@@ -9,11 +9,16 @@ function OCPSolutionFromDOCP(docp, docp_solution_ipopt)
     solution = docp_solution_ipopt.solution
 
     # time grid
-    #N = docp.dim_NLP_steps
-    #t0 = get_initial_time(solution, docp)
-    #tf = max(get_final_time(solution, docp), t0 + 1e-9)
-    #T = collect(LinRange(t0, tf, N+1))
-    T = get_unnormalized_time.(solution, docp, docp.NLP_normalized_time_grid)
+    N = docp.dim_NLP_steps
+    T = zeros(N+1)
+    for i=1:N+1
+        T[i] = get_unnormalized_time(solution, docp, docp.NLP_normalized_time_grid[i])
+    end
+    #=
+    t0 = get_initial_time(solution, docp)
+    tf = get_final_time(solution, docp)
+    println(T==collect(LinRange(t0, tf, N+1)))
+    =#
 
     # adjust objective sign for maximization problems
     if is_min(docp.ocp)
