@@ -62,6 +62,7 @@ mutable struct DOCP
     dim_NLP_constraints::Int64
     dim_NLP_variables::Int64
     dim_NLP_steps::Int64
+    NLP_normalized_time_grid
 
     # lower and upper bounds for variables and constraints
     var_l
@@ -76,12 +77,14 @@ mutable struct DOCP
     function DOCP(ocp::OptimalControlModel, N::Integer)       
 
         # +++ try to put here more const members (indicators etc)
+        # +++ also move some parts to CTBase.OptimalControlProblem
         docp = new(ocp)
 
         ## Optimal Control Problem OCP
-        # time
+        # time grid
         docp.has_free_initial_time = (typeof(ocp.initial_time)==Index)
         docp.has_free_final_time = (typeof(ocp.final_time)==Index)
+        docp.NLP_normalized_time_grid = collect(LinRange(0, 1, N+1))
         
         # dimensions and functions
         docp.has_variable = !isnothing(ocp.variable_dimension)
@@ -143,9 +146,15 @@ Check if an OCP is solvable by the method [`solve`](@ref).
 """
 function is_solvable(ocp)
     solvable = true
+    # note: non-autonomous mayer case is not supported
     return solvable
 end
 
+
+# +++ for the aux functions manipulating X and C(X) and bounds
+# move to a more abstract level to make scheme change easier
+# eg use addDynamicsConstraint, addBoundsBlock etc
+# with abstract interfaces, to be implemented for each scheme
 
 """
 $(TYPEDSIGNATURES)
@@ -291,6 +300,7 @@ function DOCP_objective(xu, docp)
     N = docp.dim_NLP_steps
     obj = 0
     
+    # note: non-autonomous mayer case is not supported
     if docp.has_mayer_cost
         v = get_variable(xu, docp)
         x0 = get_state_at_time_step(xu, docp, 0)

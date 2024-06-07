@@ -19,6 +19,16 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Get actual (un-normalized) time step
+"""
+function get_unnormalized_time(t_normalized, t0, tf)
+    return t0 + t_normalized * (tf - t0)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
 Retrieve state variables at given time step from the NLP variables
 """
 function get_state_at_time_step(xu, docp, i::Int64)
@@ -109,6 +119,16 @@ function get_final_time(xu, docp)
     else
         return docp.ocp.final_time
     end
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Get actual (un-normalized) time step
+"""
+function get_unnormalized_time(t_normalized, t0, tf)
+    return t0 + t_normalized * (tf - t0)
 end
 
 
