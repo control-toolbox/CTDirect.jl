@@ -115,6 +115,31 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Get actual (un-normalized) time value
+"""
+function get_unnormalized_time(xu, docp, t_normalized)
+    t0 = get_initial_time(xu, docp)
+    tf = get_final_time(xu, docp)    
+    return t0 + t_normalized * (tf - t0)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Get actual (un-normalized) time at give time step
+"""
+function get_time_at_time_step(xu, docp, i)
+    N = docp.dim_NLP_steps
+    @assert i <= N "trying to get t_i for i > N"
+    t_normalized = docp.NLP_normalized_time_grid[i+1]
+    return get_unnormalized_time(xu, docp, t_normalized)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
 Set state variables at given time step in the NLP variables (for initial guess)
 """
 function set_state_at_time_step!(xu, x_init, docp, i)
@@ -181,15 +206,9 @@ function DOCP_initial_guess(docp, init::OCPInit=OCPInit())
         set_variable!(xuv, init.variable_init, docp)
     end
 
-    # get time grid for state / control variables
-    N = docp.dim_NLP_steps
-    t0 = get_initial_time(xuv, docp)
-    tf = get_final_time(xuv, docp)
-    h = (tf - t0) / N 
-
     # set state / control variables if provided
-    for i in 0:N
-        ti = t0 + i * h
+    for i in 0:docp.dim_NLP_steps
+        ti = get_time_at_time_step(xuv, docp, i)
         if !isnothing(init.state_init(ti))
             set_state_at_time_step!(xuv, init.state_init(ti), docp, i)
         end
@@ -204,6 +223,21 @@ end
 
 
 #+++ to be moved to CTBase !
+"""
+$(TYPEDSIGNATURES)
+
+Implement implicit call to OCPInit constructor if needed
+"""
+function implicitInit(init_passed)
+    # if argument passed for init is
+    # - nothing or initialization data (vectors, functions, solution): call constructor
+    # - already an OCPInit: just transmit
+    if !(init_passed isa OCPInit)
+        return OCPInit(init_passed)
+    else
+        return init_passed
+    end
+end
 
 #struct for interpolated ocp solution with only basic data types that can be exported as json
 # +++todo:
@@ -299,5 +333,6 @@ $(TYPEDSIGNATURES)
 Parse interpolated OCP solution saved in JSON format
 """
 function parse_JSON_solution(json_solution)
+    println("parse_JSON_solution not implemented yet")
 end
 

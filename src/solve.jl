@@ -22,17 +22,14 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 function directTranscription(ocp::OptimalControlModel,
     description...;
     init=OCPInit(),
-    grid_size::Integer=__grid_size_direct())
-    
-    docp = DOCP(ocp, grid_size)
+    grid_size::Integer=__grid_size_direct(),
+    time_grid=nothing)
 
-    # build init data if needed
-    if !(init isa OCPInit)
-        init = OCPInit(init)
-    end 
-    
+    # build DOCP
+    docp = DOCP(ocp, grid_size, time_grid)
+
     # set initial guess and bounds
-    x0 = DOCP_initial_guess(docp, init)
+    x0 = DOCP_initial_guess(docp, implicitInit(init))
     docp.var_l, docp.var_u = variables_bounds(docp)
     docp.con_l, docp.con_u = constraints_bounds(docp)
 
@@ -67,13 +64,7 @@ Extract the NLP problem from the DOCP
 function setDOCPInit(docp::DOCP, init)
 
     nlp = getNLP(docp)
-
-    # build init data if needed
-    if !(init isa OCPInit)
-        init = OCPInit(init)
-    end 
-
-    nlp.meta.x0 .= DOCP_initial_guess(docp, init)
+    nlp.meta.x0 .= DOCP_initial_guess(docp, implicitInit(init))
 
 end
 
@@ -93,13 +84,11 @@ function solve(docp::DOCP;
     # solve DOCP with NLP solver
     print_level = display ?  print_level : 0
     if init == nothing
+        # use initial guess embedded in the DOCP
         docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
     else
-        # build init data if needed
-        if !(init isa OCPInit)
-            init = OCPInit(init)
-        end 
-        docp_solution = ipopt(getNLP(docp),x0=DOCP_initial_guess(docp, init), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
+        # use given initial guess
+        docp_solution = ipopt(getNLP(docp),x0=DOCP_initial_guess(docp, implicitInit(init)), print_level=print_level, mu_strategy=mu_strategy, sb="yes"; kwargs...)
     end
 
     # return DOCP solution
@@ -116,18 +105,14 @@ function solve(ocp::OptimalControlModel,
     description...;
     init=OCPInit(),
     grid_size::Integer=__grid_size_direct(),
+    time_grid=nothing,
     display::Bool=__display(),
     print_level::Integer=__print_level_ipopt(),
     mu_strategy::String=__mu_strategy_ipopt(),
     kwargs...)
 
-    # build init data if needed
-    if !(init isa OCPInit)
-        init = OCPInit(init)
-    end     
-
     # build discretized OCP
-    docp = directTranscription(ocp, description, init=init, grid_size=grid_size)
+    docp = directTranscription(ocp, description, init=implicitInit(init), grid_size=grid_size, time_grid=time_grid)
 
     # solve DOCP
     docp_solution = solve(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, kwargs...)
