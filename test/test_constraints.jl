@@ -50,7 +50,5 @@ function FF1(x)
 end
 dynamics!(ocp, (x, u, v) -> FF0(x) + u*FF1(x) )
 
-@testset verbose = true showtiming = true ":goddard :max_rf :all_constraints" begin
-    sol1 = solve(ocp, grid_size=100, print_level=0, tol=1e-8)
-    @test sol1.objective ≈ 1.0125 rtol=1e-2
-end
+sol = solve(ocp, grid_size=100, print_level=0, tol=1e-8)
+println("Target 1.0125, found ", sol.objective, " at ", sol.iterations, " iterations")

@@ -38,7 +38,7 @@ export OCP_Solution_discrete
 
 # CTBase reexports
 export @def
-export Model
+export Model, __OCPModel
 export Index
 export state!
 export control!
