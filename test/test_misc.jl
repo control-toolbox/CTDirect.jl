@@ -1,4 +1,5 @@
 using CTDirect
+using CTBase
 
 println("Test: misc")
 

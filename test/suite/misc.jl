@@ -1,5 +1,3 @@
-using CTDirect
-
 println("Test: misc")
 
 # simple integrator min energy
