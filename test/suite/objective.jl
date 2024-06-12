@@ -1,7 +1,4 @@
-using CTDirect
 # tests some objective options, variable tf
-
-
 println("Test: double integrator")
 
 # min tf

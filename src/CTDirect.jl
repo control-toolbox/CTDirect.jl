@@ -36,21 +36,5 @@ export save_OCP_solution
 export load_OCP_solution
 export OCP_Solution_discrete
 
-# CTBase reexports
-export @def
-export Model, __OCPModel
-export Index
-export state!
-export control!
-export variable!
-export time!
-export constraint!
-export dynamics!
-export objective!
-export remove_constraint!
-export OCPInit
-export plot
-
-
 
 end

@@ -1,5 +1,3 @@
-using CTDirect
-
 println("Test: abstract OCP definition")
 
 # double integrator min tf, abstract definition

@@ -1,4 +1,5 @@
 using CTDirect
+using CTBase
 
 println("Test: all constraint types")
 # +++ todo: complete with different constraint formulations

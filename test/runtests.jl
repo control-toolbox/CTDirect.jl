@@ -1,7 +1,7 @@
 using CTDirect
+using CTBase
+using Statistics
 using Test
-#using LinearAlgebra
-#include("test_utils.jl")
 
 # check local test suite
 @testset verbose = true showtiming = true "Test suite" begin

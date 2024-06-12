@@ -1,5 +1,3 @@
-using CTDirect
-
 println("Test: all constraint types")
 # +++ todo: complete with different constraint formulations
 # goddard max final altitude (all constraint types formulation)
