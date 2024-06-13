@@ -1,6 +1,3 @@
-using CTDirect
-using Statistics
-
 println("Test: discrete continuation")
 
 # continuation on final time with parametric ocp definition 

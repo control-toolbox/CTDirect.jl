@@ -327,12 +327,13 @@ function load_OCP_solution(filename_prefix="solution"; format="JLD2")
     end
 end
 
+#=
 """
 $(TYPEDSIGNATURES)
  
-Parse interpolated OCP solution saved in JSON format
+Parse interpolated OCP solution saved in JSON format (NOT IMPLEMENTED)
 """
 function parse_JSON_solution(json_solution)
     println("parse_JSON_solution not implemented yet")
 end
-
+=#

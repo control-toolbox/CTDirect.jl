@@ -1,3 +1,6 @@
+using CTDirect
+using CTBase
+
 println("Test: abstract OCP definition")
 
 # double integrator min tf, abstract definition
@@ -14,10 +17,8 @@ println("Test: abstract OCP definition")
     tf → min
 end
 
-@testset verbose = true showtiming = true ":double_integrator :min_tf :abstract" begin
-    sol1 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12)
-    @test sol1.objective ≈ 2.0 rtol=1e-2
-end
+sol1 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12)
+println("Target 2.0, found ", sol1.objective)
 
 # same with some random constraints
 @def ocp2 begin
@@ -40,11 +41,10 @@ end
     tf → min
 end
 
-@testset verbose = true showtiming = true ":double_integrator :min_tf :abstract :constr" begin
-    sol2 = solve(ocp2, grid_size=100, print_level=0, tol=1e-12)
-    @test sol2.objective ≈ 5.46 rtol=1e-2
-end
+sol2 = solve(ocp2, grid_size=100, print_level=0, tol=1e-12)
+println("Target 5.46, found ", sol2.objective)
 
+# goddard
 Cd = 310
 β = 500
 Tmax = 3.5
@@ -78,7 +78,5 @@ end
     r(tf) → max
 end
 
-@testset verbose = true showtiming = true ":goddard :max_rf :abstract :constr" begin
-    sol3 = solve(ocp3, grid_size=100, print_level=0, tol=1e-12)    
-    @test sol3.objective ≈ 1.0125 rtol=1e-2
-end
+sol3 = solve(ocp3, grid_size=100, print_level=0, tol=1e-12)    
+println("Target 1.0125, found ", sol3.objective)

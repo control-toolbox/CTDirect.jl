@@ -1,5 +1,3 @@
-using CTDirect
-
 # goddard max final altitude (all constraint types formulation)
 println("Test: initial guess options")
 ocp = Model(variable=true)
