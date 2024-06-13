@@ -63,4 +63,7 @@ objective!(ocp4, :mayer, (x0, xf, v) -> v[1], :max)
 sol4 = solve(ocp4, grid_size=100, print_level=0, tol=1e-12)
 println("Target 8.0, found ", sol4.objective)
 
-
+# with non uniform grid
+sol5 = solve(ocp4, time_grid=[0,0.1,0.6,0.95,1], print_level=0, tol=1e-12)
+plot(sol5, show=true)
+println("Target 8.0, found ", sol5.objective)

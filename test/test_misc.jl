@@ -27,16 +27,16 @@ println("Test simple integrator: split calls")
 println("Direct transcription with default init")
 docp = directTranscription(ocp, grid_size=100)
 dsol = solve(docp, print_level=0, tol=1e-12)
-sol = OCPSolutionFromDOCP(docp, dsol)
-println("Target 0.313, found ", sol.objective, " at ", sol.iterations, " iterations")
+sol1 = OCPSolutionFromDOCP(docp, dsol)
+println("Target 0.313, found ", sol1.objective, " at ", sol1.iterations, " iterations")
 
 # test NLP getter
 nlp = getNLP(docp)
 
 # warm start in directTranscription
-println("Direct transcription with warm start (compact syntax)")
+println("\nDirect transcription with warm start (compact syntax)")
 docp2 = directTranscription(ocp, grid_size=100, init=sol)
-dsol2 = solve(docp2, print_level=5, tol=1e-12)
+dsol2 = solve(docp2, print_level=0, tol=1e-12)
 
 # test OCPSolutionFromDOCP_raw
 #println("\nRebuild OCP solution from raw vector")
@@ -46,12 +46,21 @@ dsol2 = solve(docp2, print_level=5, tol=1e-12)
 save_OCP_solution(sol, filename_prefix="solution_test")
 sol4 = load_OCP_solution("solution_test")
 plot(sol4, show=true)
-println(sol.objective == sol4.objective)
+println("\nCheck JLD2 solution ", sol.objective == sol4.objective)
 
 # save / load discrete solution in JSON format
 # NB. we recover here a JSON Object...
 save_OCP_solution(sol, filename_prefix="solution_test", format="JSON")
 sol_disc_reloaded = load_OCP_solution("solution_test", format="JSON")
-println(sol.objective == sol_disc_reloaded.objective)
+println("\nCheck JSON solution ", sol.objective == sol_disc_reloaded.objective)
+
+# solve with explicit and non uniform time grid
+println("\nTest explicit time grid") 
+sol5 = solve(ocp, time_grid=LinRange(0,1,101), print_level=0, tol=1e-12)
+println("Check default-like grid ", (sol5.objective == sol.objective) && (sol5.iterations == sol.iterations))
+ 
+sol6 = solve(ocp, time_grid=[0,0.1,0.6,0.98,0.99,1], print_level=0, tol=1e-12)
+println("Objective with small unbalanced grid ", sol6.objective)
+plot(sol6, show=true)
 
 println("")

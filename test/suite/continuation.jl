@@ -32,6 +32,15 @@ end
     @test mean(iter_list) ≈ 2.8 rtol=1e-2
 end
 
+# recheck solution (T=2) with explicit / non-uniform grid
+@testset verbose = true showtiming = true ":explicit_grid :non_uniform_grid" begin
+    ocpT2 = ocp_T(2)
+    solT2 = solve(ocpT2, print_level=0)
+    solT2_exp = solve(ocpT2, time_grid=LinRange(0,1,101),print_level=0)
+    @test (solT2.objective==solT2_exp.objective) && (solT2.iterations==solT2_exp.iterations)
+    solT2_nonunif = solve(ocpT2, time_grid=[0,0.3,1,1.9,2],print_level=0)
+    @test solT2_nonunif.objective ≈ 2.43 rtol=1e-2
+end
 
 # continuation with parametric definition of the ocp
 relu(x) = max(0, x)

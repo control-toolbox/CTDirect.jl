@@ -74,7 +74,7 @@ mutable struct DOCP
     nlp
 
     # constructor
-    function DOCP(ocp::OptimalControlModel, N::Integer, time_grid)       
+    function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid)       
 
         # +++ try to put here more const members (indicators etc)
         # +++ also move some parts to CTBase.OptimalControlProblem
@@ -85,14 +85,25 @@ mutable struct DOCP
         docp.has_free_initial_time = (typeof(ocp.initial_time)==Index)
         docp.has_free_final_time = (typeof(ocp.final_time)==Index)
         if time_grid == nothing
-            docp.NLP_normalized_time_grid = collect(LinRange(0, 1, N+1))
+            docp.NLP_normalized_time_grid = collect(LinRange(0, 1, grid_size+1))
+            docp.dim_NLP_steps = grid_size
         else
-            println("using given time grid")
-            # +++check normalized ie 0 and 1
-            # +++check strictly increasing ?
-            # +++check consistency with N (override)
+            # check strictly increasing
+            if !issorted(time_grid,lt=<=)
+                throw(ArgumentError("given time grid is not strictly increasing. Aborting..."))
+                return docp
+            end
+            # normalize input grid if needed
+            if (time_grid[1] != 0) || (time_grid[end] != 1)
+                println("INFO: normalizing given time grid...")
+                t0 = time_grid[1]
+                tf = time_grid[end]
+                time_grid = (time_grid .- t0) ./ (tf - t0) 
+            end
             docp.NLP_normalized_time_grid = time_grid
+            docp.dim_NLP_steps = length(time_grid) - 1
         end
+        N = docp.dim_NLP_steps
 
         # dimensions and functions
         docp.has_variable = !isnothing(ocp.variable_dimension)
@@ -125,7 +136,6 @@ mutable struct DOCP
         docp.has_variable_box = !isempty(docp.variable_box[1])
 
         ## Non Linear Programming NLP
-        docp.dim_NLP_steps = N
 
         # Mayer to Lagrange reformulation: 
         # additional state with Lagrange cost as dynamics and null initial condition

@@ -76,3 +76,7 @@ objective!(ocp4, :mayer, (x0, xf, v) -> v[1], :max)
     @test sol4.objective ≈ 8.0 rtol=1e-2
 end
 
+@testset verbose = true showtiming = true ":max_t0 :non_uniform_grid" begin
+    sol5 = solve(ocp4, time_grid=[0,0.1,0.6,0.95,1], print_level=0, tol=1e-12)
+    @test sol5.objective ≈ 7.48 rtol=1e-2
+end

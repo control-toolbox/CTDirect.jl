@@ -53,3 +53,12 @@ dynamics!(ocp, (x, u, v) -> FF0(x) + u*FF1(x) )
 
 sol = solve(ocp, grid_size=100, print_level=0, tol=1e-8)
 println("Target 1.0125, found ", sol.objective, " at ", sol.iterations, " iterations")
+
+# explicit grid
+sol1 = solve(ocp, time_grid=LinRange(0,1,101), print_level=0, tol=1e-8)
+println((sol1.objective==sol.objective) && (sol1.iterations==sol.iterations))
+
+# non uniform grid
+sol2 = solve(ocp, time_grid=[0,0.1,0.6,0.98,0.99,1], print_level=0, tol=1e-8)
+println("Objective with small unbalanced grid ", sol2.objective)
+plot(sol2, show=true)
