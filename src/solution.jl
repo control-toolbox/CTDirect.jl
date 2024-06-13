@@ -74,6 +74,7 @@ function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     mult_state_box_upper=nothing, mult_control_box_lower=nothing, mult_control_box_upper=nothing, mult_variable_box_lower=nothing, mult_variable_box_upper=nothing)
 
     # check that time grid is strictly increasing
+    # if not proceed with list of indexes as time grid
     if !issorted(T,lt=<=)
         println(T)
         println("WARNING: time grid at solution is not strictly increasing...")
