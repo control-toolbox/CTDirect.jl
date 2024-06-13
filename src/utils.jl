@@ -228,6 +228,7 @@ $(TYPEDSIGNATURES)
 
 Implement implicit call to OCPInit constructor if needed
 """
+# +++ rename OCPInit as OptimalControlInitialization or something
 function implicitInit(init_passed)
     # if argument passed for init is
     # - nothing or initialization data (vectors, functions, solution): call constructor
@@ -295,6 +296,7 @@ $(TYPEDSIGNATURES)
   
 Save OCP solution in JLD2/JSON format
 """
+# +++ split as export/import for JSON
 function save_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution", format="JLD2")
     if format == "JLD2"
         save_object(filename_prefix * ".jld2", sol)
