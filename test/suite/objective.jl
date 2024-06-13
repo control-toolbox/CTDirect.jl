@@ -68,6 +68,7 @@ constraint!(ocp4, :initial, [0,0], :initial_constraint)
 constraint!(ocp4, :final, [1,0], :final_constraint)
 constraint!(ocp4, :control, -1, 1, :control_constraint)
 constraint!(ocp4, :variable, [0.1, 0.1], [10, 10], :variable_constraint)
+constraint!(ocp4, :variable, v -> v[2]-v[1], 0.1, Inf)
 dynamics!(ocp4, (x, u, v) ->  [x[2], u])
 objective!(ocp4, :mayer, (x0, xf, v) -> v[1], :max)
 
@@ -76,3 +77,7 @@ objective!(ocp4, :mayer, (x0, xf, v) -> v[1], :max)
     @test sol4.objective ≈ 8.0 rtol=1e-2
 end
 
+@testset verbose = true showtiming = true ":max_t0 :non_uniform_grid" begin
+    sol5 = solve(ocp4, time_grid=[0,0.1,0.6,0.95,1], print_level=0, tol=1e-12)
+    @test sol5.objective ≈ 7.48 rtol=1e-2
+end

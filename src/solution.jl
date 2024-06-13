@@ -73,6 +73,14 @@ function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     sol_control_constraints=nothing, sol_state_constraints=nothing, sol_mixed_constraints=nothing, sol_variable_constraints=nothing, mult_control_constraints=nothing, mult_state_constraints=nothing, mult_mixed_constraints=nothing, mult_variable_constraints=nothing, mult_state_box_lower=nothing, 
     mult_state_box_upper=nothing, mult_control_box_lower=nothing, mult_control_box_upper=nothing, mult_variable_box_lower=nothing, mult_variable_box_upper=nothing)
 
+    # check that time grid is strictly increasing
+    # if not proceed with list of indexes as time grid
+    if !issorted(T,lt=<=)
+        println(T)
+        println("WARNING: time grid at solution is not strictly increasing...")
+        T = LinRange(0,docp.dim_NLP_steps,docp.dim_NLP_steps+1)
+    end
+
     # variables: remove additional state for lagrange cost
     x = ctinterpolate(T, matrix2vec(X[:,1:docp.ocp.state_dimension], 1))
     p = ctinterpolate(T[1:end-1], matrix2vec(P[:,1:docp.ocp.state_dimension], 1))

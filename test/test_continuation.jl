@@ -35,15 +35,24 @@ if test1
     init1 = OCPInit()
     iter_list = []
     for T=1:5
-        ocp1 = ocp_T(T) 
-        sol1 = solve(ocp1, print_level=0, init=init1)
+        local ocp1 = ocp_T(T) 
+        local sol1 = solve(ocp1, print_level=0, init=init1)
         global init1 = OCPInit(sol1)
         @printf("T %.2f objective %.6f iterations %d\n", T, sol1.objective, sol1.iterations)
         push!(iter_list, sol1.iterations)
     end
     @printf("Average iterations %d\n", mean(iter_list))
-end
 
+    # recheck solution (T=2) with explicit / non-uniform grid
+    ocpT2 = ocp_T(2)
+    solT2 = solve(ocpT2, print_level=0)
+    solT2_exp = solve(ocpT2, time_grid=LinRange(0,1,101),print_level=0)
+    println("T=2 Check explicit grid ", (solT2.objective==solT2_exp.objective) && (solT2.iterations==solT2_exp.iterations))
+    solT2_nonunif = solve(ocpT2, time_grid=[0,0.3,1,1.9,2],print_level=0)
+    println("T=2 with non-uniform grid ", solT2_nonunif.objective)
+    plot(solT2_nonunif, show=true)
+
+end
 
 # continuation with parametric definition of the ocp
 if test2
@@ -79,8 +88,8 @@ if test2
     iter_list = []
     ρs = [0.1, 5, 10, 30, 100]
     for ρ in ρs
-        ocp2 = myocp(ρ)
-        sol2 = solve(ocp2, print_level=0, init=init2)
+        local ocp2 = myocp(ρ)
+        local sol2 = solve(ocp2, print_level=0, init=init2)
         global init2 = OCPInit(sol2)
         @printf("Rho %.2f objective %.6f iterations %d\n", ρ, sol2.objective, sol2.iterations)
         push!(iter_list, sol2.iterations)
@@ -159,7 +168,7 @@ if test4
     # default init
     print("\nSolve goddard for different speed limits, default initial guess\nvmax ")
     iter_list = []
-    for vmax=0.15:-0.01:0.05
+    for vmax=0.14:-0.02:0.05
         print(vmax," ")
         remove_constraint!(ocp, :speed_limit)
         constraint!(ocp, :state, Index(2), 0, vmax, :speed_limit)
@@ -174,7 +183,7 @@ if test4
     obj_list = []
     iter_list = []
     sol = sol0
-    for vmax=0.15:-0.01:0.05
+    for vmax=0.14:-0.02:0.05
         print(vmax," ")
         remove_constraint!(ocp, :speed_limit)
         constraint!(ocp, :state, Index(2), 0, vmax, :speed_limit)

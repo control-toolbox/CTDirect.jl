@@ -53,3 +53,16 @@ end
     sol_reloaded = load_OCP_solution("solution_test", format="JSON")
     @test sol0.objective == sol_reloaded.objective
 end
+
+# solve with explicit and non uniform time grid
+@testset verbose = true showtiming = true ":explicit_grid" begin
+    time_grid = LinRange(0,1,101)
+    sol5 = solve(ocp, time_grid=time_grid, print_level=0)
+    @test (sol5.objective == sol0.objective) && (sol5.iterations == sol0.iterations)
+end
+
+@testset verbose = true showtiming = true ":non_uniform_grid" begin
+    time_grid = [0,0.1,0.3,0.6,0.98,0.99,1]
+    sol6 = solve(ocp, time_grid=time_grid, print_level=0)
+    @test sol6.objective ≈ 0.309 rtol=1e-2
+end
