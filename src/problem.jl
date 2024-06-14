@@ -18,34 +18,7 @@ mutable struct DOCP
 
     # OCP variables and functions
     variable_dimension::Int64
-    #has_free_initial_time::Bool
-    #has_free_final_time::Bool
-    #has_variable::Bool
-    #has_lagrange_cost::Bool
-    #has_mayer_cost::Bool
 
-    # OCP constraints
-    # indicators
-    has_control_constraints::Bool
-    has_state_constraints::Bool
-    has_mixed_constraints::Bool
-    has_boundary_conditions::Bool
-    has_variable_constraints::Bool
-    has_control_box::Bool
-    has_state_box::Bool
-    has_variable_box::Bool
-
-    # dimensions
-    dim_control_constraints::Int64
-    dim_state_constraints::Int64
-    dim_mixed_constraints::Int64
-    dim_path_constraints::Int64
-    dim_boundary_conditions::Int64
-    dim_variable_constraints::Int64
-    dim_control_box::Int64
-    dim_state_box::Int64
-    dim_variable_box::Int64
-    
     # functions
     control_constraints
     state_constraints
@@ -82,8 +55,6 @@ mutable struct DOCP
 
         ## Optimal Control Problem OCP
         # time grid
-        #docp.has_free_initial_time = (typeof(ocp.initial_time)==Index)
-        #docp.has_free_final_time = (typeof(ocp.final_time)==Index)
         if time_grid == nothing
             docp.NLP_normalized_time_grid = collect(LinRange(0, 1, grid_size+1))
             docp.dim_NLP_steps = grid_size
@@ -106,47 +77,25 @@ mutable struct DOCP
         N = docp.dim_NLP_steps
 
         # dimensions and functions
-        #docp.has_variable = !isnothing(ocp.variable_dimension)
-        #if docp.has_variable
         if is_variable_dependent(ocp)
             docp.variable_dimension = ocp.variable_dimension
         else
             docp.variable_dimension = 0
         end
-        #docp.has_lagrange_cost = !isnothing(ocp.lagrange)
-        #docp.has_mayer_cost = !isnothing(ocp.mayer)
-        
+
         # constraints
         docp.control_constraints, docp.state_constraints, docp.mixed_constraints, docp.boundary_conditions, docp.variable_constraints, docp.control_box, docp.state_box, docp.variable_box = nlp_constraints(ocp)
 
-        docp.dim_control_constraints = length(docp.control_constraints[1])
-        docp.dim_state_constraints = length(docp.state_constraints[1])
-        docp.dim_mixed_constraints = length(docp.mixed_constraints[1])
-        docp.dim_path_constraints = docp.dim_control_constraints + docp.dim_state_constraints + docp.dim_mixed_constraints
-        docp.dim_boundary_conditions = length(docp.boundary_conditions[1])
-        docp.dim_variable_constraints = length(docp.variable_constraints[1])
-        docp.dim_control_box = length(docp.control_box[1])
-        docp.dim_state_box = length(docp.state_box[1])
-        docp.dim_variable_box = length(docp.variable_box[1])
-        docp.has_control_constraints = !isempty(docp.control_constraints[1])
-        docp.has_state_constraints = !isempty(docp.state_constraints[1])
-        docp.has_mixed_constraints = !isempty(docp.mixed_constraints[1])
-        docp.has_boundary_conditions = !isempty(docp.boundary_conditions[1])
-        docp.has_variable_constraints = !isempty(docp.variable_constraints[1])
-        docp.has_control_box = !isempty(docp.control_box[1])
-        docp.has_state_box = !isempty(docp.state_box[1])
-        docp.has_variable_box = !isempty(docp.variable_box[1])
-  
         ## Non Linear Programming NLP
 
         # Mayer to Lagrange reformulation: 
         # additional state with Lagrange cost as dynamics and null initial condition
         if has_lagrange_cost(ocp)
             docp.dim_NLP_state = docp.ocp.state_dimension + 1  
-            docp.dim_NLP_constraints = N * (docp.dim_NLP_state + docp.dim_path_constraints) + docp.dim_path_constraints + docp.dim_boundary_conditions + docp.dim_variable_constraints + 1           
+            docp.dim_NLP_constraints = N * (docp.dim_NLP_state + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_conditions(ocp) + dim_variable_constraints(ocp) + 1           
         else
             docp.dim_NLP_state = docp.ocp.state_dimension  
-            docp.dim_NLP_constraints = N * (docp.dim_NLP_state + docp.dim_path_constraints) + docp.dim_path_constraints + docp.dim_boundary_conditions + docp.dim_variable_constraints
+            docp.dim_NLP_constraints = N * (docp.dim_NLP_state + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_conditions(ocp) + dim_variable_constraints(ocp)
         end
 
         # set dimension for NLP unknown (state + control + variable)
@@ -193,52 +142,52 @@ function constraints_bounds(docp)
         # skip (ie leave 0) bound for equality dynamics constraint
         index = index + docp.dim_NLP_state
         # path constraints 
-        if docp.has_control_constraints
-            lb[index:index+docp.dim_control_constraints-1] = docp.control_constraints[1]
-            ub[index:index+docp.dim_control_constraints-1] = docp.control_constraints[3]
-            index = index + docp.dim_control_constraints
+        if dim_control_constraints(ocp) > 0
+            lb[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[1]
+            ub[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[3]
+            index = index + dim_control_constraints(ocp)
         end
-        if docp.has_state_constraints
-            lb[index:index+docp.dim_state_constraints-1] = docp.state_constraints[1]
-            ub[index:index+docp.dim_state_constraints-1] = docp.state_constraints[3]
-            index = index + docp.dim_state_constraints
+        if dim_state_constraints(ocp) > 0
+            lb[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[1]
+            ub[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[3]
+            index = index + dim_state_constraints(ocp)
         end
-        if docp.has_mixed_constraints
-            lb[index:index+docp.dim_mixed_constraints-1] = docp.mixed_constraints[1]
-            ub[index:index+docp.dim_mixed_constraints-1] = docp.mixed_constraints[3]
-            index = index + docp.dim_mixed_constraints
+        if dim_mixed_constraints(ocp) > 0
+            lb[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[1]
+            ub[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[3]
+            index = index + dim_mixed_constraints(ocp)
         end
     end
     
     # path constraints at final time
-    if docp.has_control_constraints
-        lb[index:index+docp.dim_control_constraints-1] = docp.control_constraints[1]
-        ub[index:index+docp.dim_control_constraints-1] = docp.control_constraints[3]
-        index = index + docp.dim_control_constraints
+    if dim_control_constraints(ocp) > 0
+        lb[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[1]
+        ub[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[3]
+        index = index + dim_control_constraints(ocp)
     end
-    if docp.has_state_constraints
-        lb[index:index+docp.dim_state_constraints-1] = docp.state_constraints[1]
-        ub[index:index+docp.dim_state_constraints-1] = docp.state_constraints[3]
-        index = index + docp.dim_state_constraints
+    if dim_state_constraints(ocp) > 0
+        lb[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[1]
+        ub[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[3]
+        index = index + dim_state_constraints(ocp)
     end
-    if docp.has_mixed_constraints
-        lb[index:index+docp.dim_mixed_constraints-1] = docp.mixed_constraints[1]
-        ub[index:index+docp.dim_mixed_constraints-1] = docp.mixed_constraints[3]
-        index = index + docp.dim_mixed_constraints
+    if dim_mixed_constraints(ocp) > 0
+        lb[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[1]
+        ub[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[3]
+        index = index + dim_mixed_constraints(ocp)
     end
     
     # boundary conditions
-    if docp.has_boundary_conditions
-        lb[index:index+docp.dim_boundary_conditions-1] = docp.boundary_conditions[1]
-        ub[index:index+docp.dim_boundary_conditions-1] = docp.boundary_conditions[3]
-        index = index + docp.dim_boundary_conditions
+    if dim_boundary_conditions(ocp) > 0
+        lb[index:index+dim_boundary_conditions(ocp)-1] = docp.boundary_conditions[1]
+        ub[index:index+dim_boundary_conditions(ocp)-1] = docp.boundary_conditions[3]
+        index = index + dim_boundary_conditions(ocp)
     end
 
     # variable constraints
-    if docp.has_variable_constraints
-        lb[index:index+docp.dim_variable_constraints-1] = docp.variable_constraints[1]
-        ub[index:index+docp.dim_variable_constraints-1] = docp.variable_constraints[3]
-        index = index + docp.dim_variable_constraints
+    if dim_variable_constraints(ocp) > 0
+        lb[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[1]
+        ub[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[3]
+        index = index + dim_variable_constraints(ocp)
     end 
 
     # lagrange cost (set integral to 0 at t0)
@@ -262,6 +211,7 @@ function variables_bounds(docp)
     N = docp.dim_NLP_steps
     l_var = -Inf * ones(docp.dim_NLP_variables)
     u_var = Inf * ones(docp.dim_NLP_variables)
+    ocp = docp.ocp
 
     # NLP variables layout: [X0, X1 .. XN, U0, U1 .. UN, V]
     # NB. keep offset for each block since blocks are optional !
@@ -270,9 +220,9 @@ function variables_bounds(docp)
 
     # state box
     offset = 0
-    if docp.has_state_box
+    if dim_state_box(ocp) > 0
         for i in 0:N
-            for j in 1:docp.dim_state_box
+            for j in 1:dim_state_box(ocp)
                 indice = docp.state_box[2][j]
                 l_var[offset+indice] = docp.state_box[1][j]
                 u_var[offset+indice] = docp.state_box[3][j]
@@ -283,9 +233,9 @@ function variables_bounds(docp)
 
     # control box
     offset = (N+1) * docp.dim_NLP_state
-    if docp.has_control_box
+    if dim_control_box(ocp) > 0
         for i in 0:N
-            for j in 1:docp.dim_control_box
+            for j in 1:dim_control_box(ocp)
                 indice = docp.control_box[2][j]
                 l_var[offset+indice] = docp.control_box[1][j]
                 u_var[offset+indice] = docp.control_box[3][j]
@@ -296,8 +246,8 @@ function variables_bounds(docp)
 
     # variable box
     offset = (N+1) * (docp.dim_NLP_state + docp.ocp.control_dimension)
-    if docp.has_variable_box
-        for j in 1:docp.dim_variable_box
+    if dim_variable_box(ocp) > 0
+        for j in 1:dim_variable_box(ocp)
             indice = docp.variable_box[2][j]
             l_var[offset+indice] = docp.variable_box[1][j]
             u_var[offset+indice] = docp.variable_box[3][j]
@@ -409,17 +359,17 @@ function DOCP_constraints!(c, xu, docp)
 
         # path constraints 
         # +++use aux function for block, see solution also
-        if docp.has_control_constraints
-            c[index:index+docp.dim_control_constraints-1] = docp.control_constraints[2](ti, ui, v)
-            index = index + docp.dim_control_constraints
+        if dim_control_constraints(ocp) > 0
+            c[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[2](ti, ui, v)
+            index = index + dim_control_constraints(ocp)
         end
-        if docp.has_state_constraints
-            c[index:index+docp.dim_state_constraints-1] = docp.state_constraints[2](ti, xi ,v)
-            index = index + docp.dim_state_constraints
+        if dim_state_constraints(ocp) > 0
+            c[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[2](ti, xi ,v)
+            index = index + dim_state_constraints(ocp)
         end
-        if docp.has_mixed_constraints
-            c[index:index+docp.dim_mixed_constraints-1] = docp.mixed_constraints[2](ti, xi, ui, v)
-            index = index + docp.dim_mixed_constraints
+        if dim_mixed_constraints(ocp) > 0
+            c[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[2](ti, xi, ui, v)
+            index = index + dim_mixed_constraints(ocp)
         end
 
         # updates for next iteration
@@ -433,30 +383,30 @@ function DOCP_constraints!(c, xu, docp)
     tf = get_time_at_time_step(xu, docp, N)
     xf = get_state_at_time_step(xu, docp, N)
     uf = get_control_at_time_step(xu, docp, N)
-    if docp.has_control_constraints
-        c[index:index+docp.dim_control_constraints-1] = docp.control_constraints[2](tf, uf, v)      
-        index = index + docp.dim_control_constraints
+    if dim_control_constraints(ocp) > 0
+        c[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[2](tf, uf, v)      
+        index = index + dim_control_constraints(ocp)
     end  
-    if docp.has_state_constraints
-        c[index:index+docp.dim_state_constraints-1] = docp.state_constraints[2](tf, xf, v)      
-        index = index + docp.dim_state_constraints
+    if dim_state_constraints(ocp) > 0
+        c[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[2](tf, xf, v)      
+        index = index + dim_state_constraints(ocp)
     end 
-    if docp.has_mixed_constraints
-        c[index:index+docp.dim_mixed_constraints-1] = docp.mixed_constraints[2](tf, xf, uf, v)
-        index = index + docp.dim_mixed_constraints
+    if dim_mixed_constraints(ocp) > 0
+        c[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[2](tf, xf, uf, v)
+        index = index + dim_mixed_constraints(ocp)
     end
 
     # boundary conditions
-    if docp.has_boundary_conditions
+    if dim_boundary_conditions(ocp) > 0
         x0 = get_state_at_time_step(xu, docp, 0)
-        c[index:index+docp.dim_boundary_conditions-1] = docp.boundary_conditions[2](x0, xf, v)
-        index = index + docp.dim_boundary_conditions
+        c[index:index+dim_boundary_conditions(ocp)-1] = docp.boundary_conditions[2](x0, xf, v)
+        index = index + dim_boundary_conditions(ocp)
     end
 
     # variable constraints
-    if docp.has_variable_constraints
-        c[index:index+docp.dim_variable_constraints-1] = docp.variable_constraints[2](v)
-        index = index + docp.dim_variable_constraints
+    if dim_variable_constraints(ocp) > 0
+        c[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[2](v)
+        index = index + dim_variable_constraints(ocp)
     end
 
     # null initial condition for augmented state (reformulated lagrangian cost)
