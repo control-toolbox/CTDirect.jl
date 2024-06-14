@@ -228,7 +228,8 @@ $(TYPEDSIGNATURES)
 
 Implement implicit call to OCPInit constructor if needed
 """
-# +++ rename OCPInit as OptimalControlInitialization or something
+# +++ rename OCPInit as OptimalControlInit
+# +++ replace this function by a trivial constructor method that returns its argument ?
 function implicitInit(init_passed)
     # if argument passed for init is
     # - nothing or initialization data (vectors, functions, solution): call constructor
@@ -242,7 +243,6 @@ end
 
 #struct for interpolated ocp solution with only basic data types that can be exported as json
 # +++todo:
-# - pass time grid / grid size
 # - add more fields from OptimalControlSolution
 # - constructor to recreate OptimalControlSolution from this one
 mutable struct OCP_Solution_discrete
