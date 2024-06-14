@@ -4,7 +4,7 @@ $(TYPEDSIGNATURES)
 Retrieve optimization variables from the NLP variables
 """
 function get_variable(xu, docp)
-    if docp.has_variable
+    if is_variable_dependent(docp.ocp)
         if docp.variable_dimension == 1
             return xu[end]
         else
@@ -88,7 +88,7 @@ $(TYPEDSIGNATURES)
 Retrieve initial time for OCP (may be fixed or variable)
 """
 function get_initial_time(xu, docp)
-    if docp.has_free_initial_time
+    if has_free_initial_time(docp.ocp)
         v = get_variable(xu, docp)
         return v[docp.ocp.initial_time]
     else
@@ -103,7 +103,7 @@ $(TYPEDSIGNATURES)
 Retrieve final time for OCP (may be fixed or variable)
 """
 function get_final_time(xu, docp)
-    if docp.has_free_final_time
+    if has_free_final_time(docp.ocp)
         v = get_variable(xu, docp)
         return v[docp.ocp.final_time]
     else

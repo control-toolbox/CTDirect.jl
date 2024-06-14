@@ -18,11 +18,11 @@ mutable struct DOCP
 
     # OCP variables and functions
     variable_dimension::Int64
-    has_free_initial_time::Bool
-    has_free_final_time::Bool
-    has_variable::Bool
-    has_lagrange_cost::Bool
-    has_mayer_cost::Bool
+    #has_free_initial_time::Bool
+    #has_free_final_time::Bool
+    #has_variable::Bool
+    #has_lagrange_cost::Bool
+    #has_mayer_cost::Bool
 
     # OCP constraints
     # indicators
@@ -82,8 +82,8 @@ mutable struct DOCP
 
         ## Optimal Control Problem OCP
         # time grid
-        docp.has_free_initial_time = (typeof(ocp.initial_time)==Index)
-        docp.has_free_final_time = (typeof(ocp.final_time)==Index)
+        #docp.has_free_initial_time = (typeof(ocp.initial_time)==Index)
+        #docp.has_free_final_time = (typeof(ocp.final_time)==Index)
         if time_grid == nothing
             docp.NLP_normalized_time_grid = collect(LinRange(0, 1, grid_size+1))
             docp.dim_NLP_steps = grid_size
@@ -106,17 +106,19 @@ mutable struct DOCP
         N = docp.dim_NLP_steps
 
         # dimensions and functions
-        docp.has_variable = !isnothing(ocp.variable_dimension)
-        if docp.has_variable
+        #docp.has_variable = !isnothing(ocp.variable_dimension)
+        #if docp.has_variable
+        if is_variable_dependent(ocp)
             docp.variable_dimension = ocp.variable_dimension
         else
             docp.variable_dimension = 0
         end
-        docp.has_lagrange_cost = !isnothing(ocp.lagrange)
-        docp.has_mayer_cost = !isnothing(ocp.mayer)
+        #docp.has_lagrange_cost = !isnothing(ocp.lagrange)
+        #docp.has_mayer_cost = !isnothing(ocp.mayer)
         
         # constraints
         docp.control_constraints, docp.state_constraints, docp.mixed_constraints, docp.boundary_conditions, docp.variable_constraints, docp.control_box, docp.state_box, docp.variable_box = nlp_constraints(ocp)
+
         docp.dim_control_constraints = length(docp.control_constraints[1])
         docp.dim_state_constraints = length(docp.state_constraints[1])
         docp.dim_mixed_constraints = length(docp.mixed_constraints[1])
@@ -134,12 +136,12 @@ mutable struct DOCP
         docp.has_control_box = !isempty(docp.control_box[1])
         docp.has_state_box = !isempty(docp.state_box[1])
         docp.has_variable_box = !isempty(docp.variable_box[1])
-
+  
         ## Non Linear Programming NLP
 
         # Mayer to Lagrange reformulation: 
         # additional state with Lagrange cost as dynamics and null initial condition
-        if docp.has_lagrange_cost
+        if has_lagrange_cost(ocp)
             docp.dim_NLP_state = docp.ocp.state_dimension + 1  
             docp.dim_NLP_constraints = N * (docp.dim_NLP_state + docp.dim_path_constraints) + docp.dim_path_constraints + docp.dim_boundary_conditions + docp.dim_variable_constraints + 1           
         else
@@ -184,6 +186,7 @@ function constraints_bounds(docp)
     N = docp.dim_NLP_steps
     lb = zeros(docp.dim_NLP_constraints)
     ub = zeros(docp.dim_NLP_constraints)
+    ocp = docp.ocp
 
     index = 1 # counter for the constraints
     for i in 0:N-1
@@ -239,7 +242,7 @@ function constraints_bounds(docp)
     end 
 
     # lagrange cost (set integral to 0 at t0)
-    if docp.has_lagrange_cost
+    if has_lagrange_cost(ocp)
         lb[index] = 0.
         ub[index] = 0.
         index = index + 1
@@ -315,20 +318,21 @@ function DOCP_objective(xu, docp)
 
     obj = 0
     N = docp.dim_NLP_steps
-    
+    ocp = docp.ocp
+
     # note: non-autonomous mayer case is not supported
-    if docp.has_mayer_cost
+    if has_mayer_cost(ocp)
         v = get_variable(xu, docp)
         x0 = get_state_at_time_step(xu, docp, 0)
         xf = get_state_at_time_step(xu, docp, N)
-        obj = obj + docp.ocp.mayer(x0, xf, v)
+        obj = obj + ocp.mayer(x0, xf, v)
     end
     
-    if docp.has_lagrange_cost
+    if has_lagrange_cost(ocp)
         obj = obj + xu[(N+1)*docp.dim_NLP_state]
     end
 
-    if is_min(docp.ocp)
+    if is_min(ocp)
         return obj
     else
         return -obj
@@ -365,15 +369,16 @@ function DOCP_constraints!(c, xu, docp)
     # initialize main loop on time steps
     N = docp.dim_NLP_steps
     v = get_variable(xu, docp)
+    ocp = docp.ocp
 
     # time, state and control at t_0
     ti = get_time_at_time_step(xu, docp, 0)
     xi = get_state_at_time_step(xu, docp, 0)
     ui = get_control_at_time_step(xu, docp, 0)
-    fi = docp.ocp.dynamics(ti, xi, ui, v)
-    if docp.has_lagrange_cost
+    fi = ocp.dynamics(ti, xi, ui, v)
+    if has_lagrange_cost(ocp)
         xli = get_lagrange_cost_at_time_step(xu, docp, 0)
-        li = docp.ocp.lagrange(ti, xi, ui, v)
+        li = ocp.lagrange(ti, xi, ui, v)
     end
 
     # main loop on time steps
@@ -384,19 +389,19 @@ function DOCP_constraints!(c, xu, docp)
         tip1 = get_time_at_time_step(xu, docp, i+1)
         xip1 = get_state_at_time_step(xu, docp, i+1)
         uip1 = get_control_at_time_step(xu, docp, i+1)
-        fip1 = docp.ocp.dynamics(tip1, xip1, uip1, v)
+        fip1 = ocp.dynamics(tip1, xip1, uip1, v)
         hi = tip1 - ti
 
         # state equation
-        if docp.ocp.state_dimension == 1
+        if ocp.state_dimension == 1
             c[index] = xip1 - (xi + 0.5*hi*(fi + fip1))            
         else
-            c[index:index+docp.ocp.state_dimension-1] = xip1 - (xi + 0.5*hi*(fi + fip1))
+            c[index:index+ocp.state_dimension-1] = xip1 - (xi + 0.5*hi*(fi + fip1))
         end
-        if docp.has_lagrange_cost
+        if has_lagrange_cost(ocp)
             xlip1 = get_lagrange_cost_at_time_step(xu, docp, i+1)
-            lip1 = docp.ocp.lagrange(tip1, xip1, uip1, v)
-            c[index+docp.ocp.state_dimension] = xlip1 - (xli + 0.5*hi*(li + lip1))
+            lip1 = ocp.lagrange(tip1, xip1, uip1, v)
+            c[index+ocp.state_dimension] = xlip1 - (xli + 0.5*hi*(li + lip1))
             xli = xlip1
             li = lip1
         end
@@ -455,7 +460,7 @@ function DOCP_constraints!(c, xu, docp)
     end
 
     # null initial condition for augmented state (reformulated lagrangian cost)
-    if docp.has_lagrange_cost
+    if has_lagrange_cost(ocp)
         c[index] = get_lagrange_cost_at_time_step(xu, docp, 0)
         index = index + 1
     end
