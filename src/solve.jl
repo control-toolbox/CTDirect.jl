@@ -131,7 +131,7 @@ function solve(ocp::OptimalControlModel,
     docp = directTranscription(ocp, description, init=implicitInit(init), grid_size=grid_size, time_grid=time_grid)
 
     # solve DOCP
-    docp_solution = solve(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, linear_solver=linear_solver; kwargs...)
+    docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, linear_solver=linear_solver; kwargs...)
 
     # build and return OCP solution
     return OCPSolutionFromDOCP(docp, docp_solution)
