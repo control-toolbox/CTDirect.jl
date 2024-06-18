@@ -5,6 +5,7 @@ using DocStringExtensions
 using ADNLPModels               # docp model with AD
 using NLPModelsIpopt            # NLP solver
 using LinearAlgebra             # norm
+using HSL
 using JLD2
 using JSON3
 using StructTypes
@@ -16,6 +17,7 @@ const __mu_strategy_ipopt = CTBase.__mu_strategy_ipopt
 const __display = CTBase.__display
 const nlp_constraints = CTBase.nlp_constraints
 const matrix2vec = CTBase.matrix2vec
+const __linear_solver() = "ma57"
 
 # includes
 include("utils.jl")
