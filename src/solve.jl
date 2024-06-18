@@ -99,11 +99,11 @@ function solve(docp::DOCP;
     if init == nothing
         # use initial guess embedded in the DOCP
         docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes",
-                              linear_solver=linear_solver; kwargs...)
+                              linear_solver=linear_solver, kwargs...)
     else
         # use given initial guess
         docp_solution = ipopt(getNLP(docp), x0=DOCP_initial_guess(docp, implicitInit(init)), print_level=print_level,
-                              mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
+                              mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver, kwargs...)
     end
 
     # return DOCP solution
@@ -131,7 +131,7 @@ function solve(ocp::OptimalControlModel,
     docp = directTranscription(ocp, description, init=implicitInit(init), grid_size=grid_size, time_grid=time_grid)
 
     # solve DOCP
-    docp_solution = solve(docp; display=display, print_level=print_level, mu_strategy=mu_strategy, linear_solver=linear_solver; kwargs...)
+    docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, linear_solver=linear_solver, kwargs...)
 
     # build and return OCP solution
     return OCPSolutionFromDOCP(docp, docp_solution)
