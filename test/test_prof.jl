@@ -1,4 +1,5 @@
 using CTDirect
+using CTBase
 using ADNLPModels, NLPModels
 #using BenchmarkTools
 #using Traceur
@@ -6,8 +7,10 @@ using ADNLPModels, NLPModels
 #using PProf
 using JET
 
-code_warntype = true
-jet = true
+test_time = false
+test_code_warntype =false
+test_jet = false
+test_ipopt = true
 
 println("Test: profiling")
 
@@ -48,9 +51,13 @@ function F1(x)
 end
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
+# compilation
+sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
+
 # full solve
-@time sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
-@timev sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
+if test_time
+  @timev sol = solve(ocp, grid_size=50, print_level=0, tol=1e-12)
+end
 #=
 0.114651 seconds (573.19 k allocations: 44.455 MiB, 13.90% gc time)
 elapsed time (ns):  114651167
@@ -74,12 +81,12 @@ minor collections:  4
 full collections:   0
 =#
 
-nlp = getNLP(docp)
-x0 = CTDirect.DOCP_initial_guess(docp) #println(x0 == nlp.meta.x0) true ok
-if (code_warntype == true)
+if test_code_warntype
   println("@code_warntype ipopt_objective")
   @code_warntype CTDirect.DOCP_objective(x0, docp)
-#=
+
+
+  #=
 MethodInstance for CTDirect.ipopt_objective(::Vector{Float64}, ::CTDirect.DOCP)
   from ipopt_objective(xu, docp) @ CTDirect ~/CTDirect.jl/src/problem.jl:273
 Arguments
@@ -159,9 +166,16 @@ Body::Any
   #@code_warntype grad(nlp, x0)
 end
 
-if (jet == true)
+if test_jet
   println("@report_opt obj")
   @report_opt CTDirect.DOCP_objective(x0, docp)
   #═════ 48 possible errors found ═════
 end
 
+# ipopt statistics
+if test_ipopt
+  docp = directTranscription(ocp, grid_size=200, init=(state=[1,0.2,0.5], control=0.5))
+  dsol = solve(docp, print_level=5, tol=1e-12, print_timing_statistics="yes")
+  println("\n Discrete solution")
+  println(dsol)
+end
