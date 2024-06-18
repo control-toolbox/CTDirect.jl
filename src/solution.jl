@@ -165,8 +165,8 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
     ocp = docp.ocp
     # states and controls variables, with box multipliers
     N = docp.dim_NLP_steps
-    X = zeros(N+1,docp.dim_NLP_state)
-    U = zeros(N+1,ocp.control_dimension)
+    X = zeros(N+1,docp.dim_NLP_x)
+    U = zeros(N+1,docp.dim_NLP_u)
     v = get_variable(solution, docp)
     # if box multipliers are empty, use dummy vectors for size consistency
     if !isnothing(multipliers_LB) && length(multipliers_LB) > 0
@@ -180,12 +180,12 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
         mult_U = zeros(docp.dim_NLP_variables)
     end
 
-    mult_state_box_lower = zeros(N+1,docp.dim_NLP_state)
-    mult_state_box_upper = zeros(N+1,docp.dim_NLP_state)
-    mult_control_box_lower = zeros(N+1,ocp.control_dimension)
-    mult_control_box_upper = zeros(N+1,ocp.control_dimension)
-    mult_variable_box_lower = zeros(N+1,docp.variable_dimension)
-    mult_variable_box_upper = zeros(N+1,docp.variable_dimension)
+    mult_state_box_lower = zeros(N+1,docp.dim_NLP_x)
+    mult_state_box_upper = zeros(N+1,docp.dim_NLP_x)
+    mult_control_box_lower = zeros(N+1,docp.dim_NLP_u)
+    mult_control_box_upper = zeros(N+1,docp.dim_NLP_u)
+    mult_variable_box_lower = zeros(N+1,docp.dim_NLP_v)
+    mult_variable_box_upper = zeros(N+1,docp.dim_NLP_v)
 
     for i in 1:N+1
         # state and control variables
@@ -204,7 +204,7 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
     end
 
     # constraints, costate and constraints multipliers
-    P = zeros(N, docp.dim_NLP_state)
+    P = zeros(N, docp.dim_NLP_x)
     lambda = isnothing(multipliers_constraints) ? zeros(docp.dim_NLP_constraints) : multipliers_constraints
     sol_control_constraints = zeros(N+1,dim_control_constraints(ocp))
     sol_state_constraints = zeros(N+1,dim_state_constraints(ocp))
@@ -218,8 +218,8 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
     index = 1
     for i in 1:N
         # state equation
-        P[i,:] = lambda[index:index+docp.dim_NLP_state-1]
-        index = index + docp.dim_NLP_state
+        P[i,:] = lambda[index:index+docp.dim_NLP_x-1]
+        index = index + docp.dim_NLP_x
         # path constraints
         # +++ use aux function for the 3 blocks, see eval c also
         if dim_control_constraints(ocp) > 0

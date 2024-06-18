@@ -17,7 +17,7 @@ mutable struct DOCP
     const ocp::OptimalControlModel
 
     # OCP variables and functions
-    variable_dimension::Int64
+    #variable_dimension::Int64
 
     # functions
     control_constraints
@@ -30,8 +30,9 @@ mutable struct DOCP
     variable_box
 
     ## NLP
-    # NLP problem
-    dim_NLP_state::Int64  # 'augmented state' with possible additional component for lagrange cost
+    dim_NLP_x::Int64  # possible additional lagrange cost
+    dim_NLP_u::Int64
+    dim_NLP_v::Int64
     dim_NLP_constraints::Int64
     dim_NLP_variables::Int64
     dim_NLP_steps::Int64
@@ -76,30 +77,29 @@ mutable struct DOCP
         end
         N = docp.dim_NLP_steps
 
-        # dimensions and functions
-        if is_variable_dependent(ocp)
-            docp.variable_dimension = ocp.variable_dimension
-        else
-            docp.variable_dimension = 0
-        end
-
-        # constraints
+        # parse NLP constraints
         docp.control_constraints, docp.state_constraints, docp.mixed_constraints, docp.boundary_conditions, docp.variable_constraints, docp.control_box, docp.state_box, docp.variable_box = nlp_constraints(ocp)
 
-        ## Non Linear Programming NLP
-
-        # Mayer to Lagrange reformulation: 
-        # additional state with Lagrange cost as dynamics and null initial condition
+        # set dimensions
+        # Mayer to Lagrange: additional state with Lagrange cost as dynamics and null initial condition
         if has_lagrange_cost(ocp)
-            docp.dim_NLP_state = docp.ocp.state_dimension + 1  
-            docp.dim_NLP_constraints = N * (docp.dim_NLP_state + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_conditions(ocp) + dim_variable_constraints(ocp) + 1           
+            docp.dim_NLP_x = docp.ocp.state_dimension + 1  
+            docp.dim_NLP_constraints = N * (docp.dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_conditions(ocp) + dim_variable_constraints(ocp) + 1           
         else
-            docp.dim_NLP_state = docp.ocp.state_dimension  
-            docp.dim_NLP_constraints = N * (docp.dim_NLP_state + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_conditions(ocp) + dim_variable_constraints(ocp)
+            docp.dim_NLP_x = docp.ocp.state_dimension  
+            docp.dim_NLP_constraints = N * (docp.dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_conditions(ocp) + dim_variable_constraints(ocp)
         end
 
-        # set dimension for NLP unknown (state + control + variable)
-        docp.dim_NLP_variables = (N + 1) * (docp.dim_NLP_state + docp.ocp.control_dimension) + docp.variable_dimension
+        docp.dim_NLP_u = ocp.control_dimension
+        
+        if is_variable_dependent(ocp)
+            docp.dim_NLP_v = ocp.variable_dimension
+        else
+            docp.dim_NLP_v = 0 # dim in ocp would be 'nothing'
+        end
+
+        # NLP unknown (state + control + variable)
+        docp.dim_NLP_variables = (N + 1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_v
 
         return docp
 
@@ -140,7 +140,7 @@ function constraints_bounds(docp)
     index = 1 # counter for the constraints
     for i in 0:N-1
         # skip (ie leave 0) bound for equality dynamics constraint
-        index = index + docp.dim_NLP_state
+        index = index + docp.dim_NLP_x
         # path constraints 
         if dim_control_constraints(ocp) > 0
             lb[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[1]
@@ -227,12 +227,12 @@ function variables_bounds(docp)
                 l_var[offset+indice] = docp.state_box[1][j]
                 u_var[offset+indice] = docp.state_box[3][j]
             end
-            offset = offset + docp.dim_NLP_state
+            offset = offset + docp.dim_NLP_x
         end
     end
 
     # control box
-    offset = (N+1) * docp.dim_NLP_state
+    offset = (N+1) * docp.dim_NLP_x
     if dim_control_box(ocp) > 0
         for i in 0:N
             for j in 1:dim_control_box(ocp)
@@ -240,12 +240,12 @@ function variables_bounds(docp)
                 l_var[offset+indice] = docp.control_box[1][j]
                 u_var[offset+indice] = docp.control_box[3][j]
             end
-            offset = offset + docp.ocp.control_dimension
+            offset = offset + docp.dim_NLP_u
         end
     end
 
     # variable box
-    offset = (N+1) * (docp.dim_NLP_state + docp.ocp.control_dimension)
+    offset = (N+1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     if dim_variable_box(ocp) > 0
         for j in 1:dim_variable_box(ocp)
             indice = docp.variable_box[2][j]
@@ -279,7 +279,7 @@ function DOCP_objective(xu, docp)
     end
     
     if has_lagrange_cost(ocp)
-        obj = obj + xu[(N+1)*docp.dim_NLP_state]
+        obj = obj + xu[(N+1)*docp.dim_NLP_x]
     end
 
     if is_min(ocp)
@@ -355,7 +355,7 @@ function DOCP_constraints!(c, xu, docp)
             xli = xlip1
             li = lip1
         end
-        index = index + docp.dim_NLP_state
+        index = index + docp.dim_NLP_x
 
         # path constraints 
         # +++use aux function for block, see solution also
