@@ -79,7 +79,7 @@ function solve(docp::DOCP;
     display::Bool=__display(),
     print_level::Integer=__print_level_ipopt(),
     mu_strategy::String=__mu_strategy_ipopt(),
-    linear_solver::String="ma57",
+    linear_solver::String=__linear_solver(),
     kwargs...)
 
     # Linear solver
@@ -124,7 +124,7 @@ function solve(ocp::OptimalControlModel,
     display::Bool=__display(),
     print_level::Integer=__print_level_ipopt(),
     mu_strategy::String=__mu_strategy_ipopt(),
-    linear_solver::String="ma57",
+    linear_solver::String=__linear_solver(),
     kwargs...)
 
     # build discretized OCP
