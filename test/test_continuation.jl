@@ -1,7 +1,6 @@
 using CTDirect
 using CTBase
 using Printf
-using Statistics
 using Plots; pyplot()
 
 test1 = true
@@ -32,16 +31,16 @@ if test1
     end
 
     # continuation on final time
-    init1 = OCPInit()
+    init1 = OptimalControlInit()
     iter_list = []
     for T=1:5
         local ocp1 = ocp_T(T) 
         local sol1 = solve(ocp1, print_level=0, init=init1)
-        global init1 = OCPInit(sol1)
+        global init1 = sol1
         @printf("T %.2f objective %.6f iterations %d\n", T, sol1.objective, sol1.iterations)
         push!(iter_list, sol1.iterations)
     end
-    @printf("Average iterations %d\n", mean(iter_list))
+    @printf("Average iterations %.2f\n", sum(iter_list)/length(iter_list))
 
     # recheck solution (T=2) with explicit / non-uniform grid
     ocpT2 = ocp_T(2)
@@ -84,17 +83,17 @@ if test2
     end
 
     # continuation on rho
-    init2 = OCPInit()
+    init2 = OptimalControlInit()
     iter_list = []
     ρs = [0.1, 5, 10, 30, 100]
     for ρ in ρs
         local ocp2 = myocp(ρ)
         local sol2 = solve(ocp2, print_level=0, init=init2)
-        global init2 = OCPInit(sol2)
+        global init2 = sol2
         @printf("Rho %.2f objective %.6f iterations %d\n", ρ, sol2.objective, sol2.iterations)
         push!(iter_list, sol2.iterations)
     end
-    @printf("Average iterations %d\n", mean(iter_list))
+    @printf("Average iterations %.2f\n", sum(iter_list)/length(iter_list))
 end
 
 
@@ -150,7 +149,7 @@ if test3
         push!(obj_list, sol3.objective)
         push!(iter_list, sol3.iterations)
     end
-    @printf("\nAverage iterations %d\n", mean(iter_list))
+    @printf("\nAverage iterations %.2f\n", sum(iter_list)/length(iter_list))
 
     # plot obj(vmax)
     pobj = plot(Tmax_list, obj_list, label="r(tf)", xlabel="Maximal thrust (Tmax)", ylabel="Maximal altitude r(tf)",seriestype=:scatter)
@@ -175,7 +174,7 @@ if test4
         global sol = solve(ocp, print_level=0) 
         push!(iter_list, sol.iterations)
     end
-    @printf("\nAverage iterations %d\n", mean(iter_list))
+    @printf("\nAverage iterations %.2f\n", sum(iter_list)/length(iter_list))
 
     # warm start
     print("Discrete continuation on speed limit, with warm start\nvmax ")
@@ -192,7 +191,7 @@ if test4
         push!(obj_list, sol.objective)
         push!(iter_list, sol.iterations)
     end
-    @printf("\nAverage iterations %d\n", mean(iter_list))
+    @printf("\nAverage iterations %.2f\n", sum(iter_list)/length(iter_list))
 
     # plot obj(vmax)
     pobj = plot(vmax_list, obj_list, label="r(tf)", xlabel="Speed limit (vmax)", ylabel="Maximal altitude r(tf)",seriestype=:scatter)

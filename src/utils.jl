@@ -194,7 +194,7 @@ $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function DOCP_initial_guess(docp, init::OCPInit=OCPInit())
+function DOCP_initial_guess(docp, init::OptimalControlInit=OptimalControlInit())
 
     # default initialization
     # note: internal variables (lagrange cost, k_i for RK schemes) will keep these default values 
@@ -222,18 +222,18 @@ end
 
 
 
-#+++ to be moved to CTBase !
+#+++ should be replaced by new constructor
 """
 $(TYPEDSIGNATURES)
 
-Implement implicit call to OCPInit constructor if needed
+Implement implicit call to OptimalControlInit constructor if needed
 """
 function implicitInit(init_passed)
     # if argument passed for init is
     # - nothing or initialization data (vectors, functions, solution): call constructor
-    # - already an OCPInit: just transmit
-    if !(init_passed isa OCPInit)
-        return OCPInit(init_passed)
+    # - already an OptimalControlInit: just transmit
+    if !(init_passed isa OptimalControlInit)
+        return OptimalControlInit(init_passed)
     else
         return init_passed
     end

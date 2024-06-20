@@ -21,7 +21,7 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 """
 function directTranscription(ocp::OptimalControlModel,
     description...;
-    init=OCPInit(),
+    init=OptimalControlInit(),
     grid_size::Integer=__grid_size_direct(),
     time_grid=nothing)
 
@@ -103,7 +103,7 @@ Solve an optimal control problem OCP by direct method
 """
 function solve(ocp::OptimalControlModel,
     description...;
-    init=OCPInit(),
+    init=OptimalControlInit(),
     grid_size::Integer=__grid_size_direct(),
     time_grid=nothing,
     display::Bool=__display(),

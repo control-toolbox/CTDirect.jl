@@ -78,22 +78,22 @@ Let us start with the simplest case, constant initialisation.
 x_const = [1.05, 0.2, 0.8]
 u_const = 0.5
 v_const = 0.15
-init1 = OCPInit(state=x_const, control=u_const, variable=v_const)
+init1 = (state=x_const, control=u_const, variable=v_const)
 sol2 = solve(ocp, print_level=0, init=init1)
 println("Objective ", sol2.objective, " after ", sol2.iterations, " iterations")
 ``` 
 
-Now we illustrate the functional initialisation, with some random functions. Note that we only consider the state and control variables, since the optimization variables are scalar and therefore a functional initialisation is not relevant. In the example notice that the call to **OCPInit** does not provide an argument for the optimization variables, therefore the default initial guess will be used.  
+Now we illustrate the functional initialisation, with some random functions. Note that we only consider the state and control variables, since the optimization variables are scalar and therefore a functional initialisation is not relevant. In the example notice that the initialization does not provide an argument for the optimization variables, therefore the default initial guess will be used.  
 ```@example main
 x_func = t->[1+t^2, sqrt(t), 1-t]
 u_func = t->(cos(t)+1)*0.5
-init2 = OCPInit(state=x_func, control=u_func)
+init2 = (state=x_func, control=u_func)
 sol3 = solve(ocp, print_level=0, init=init2)
 println("Objective ", sol3.objective, " after ", sol3.iterations, " iterations")
 ``` 
 More generally, the default, constant and functional initialisations can be mixed, as shown in the example below that uses a functional initial guess for the state, a constant initial guess for the control, and the default initial guess for the optimization variables. 
 ```@example main
-init3 = OCPInit(state=x_func, control=u_const)
+init3 = (state=x_func, control=u_const)
 sol4 = solve(ocp, print_level=0, init=init3)
 println("Objective ", sol4.objective, " after ", sol4.iterations, " iterations")
 ``` 
