@@ -98,12 +98,10 @@ function solve(docp::DOCP;
     print_level = display ?  print_level : 0
     if init == nothing
         # use initial guess embedded in the DOCP
-        docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes",
-                              linear_solver=linear_solver; kwargs...)
+        docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
     else
         # use given initial guess
-        docp_solution = ipopt(getNLP(docp), x0=DOCP_initial_guess(docp, implicitInit(init)), print_level=print_level,
-                              mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
+        docp_solution = ipopt(getNLP(docp), x0=DOCP_initial_guess(docp, implicitInit(init)), print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
     end
 
     # return DOCP solution
