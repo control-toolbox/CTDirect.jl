@@ -1,5 +1,6 @@
 using CTDirect
 using CTBase
+using Plots
 
 println("Test: double integrator with several objectives")
 
