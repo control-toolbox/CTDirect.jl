@@ -10,7 +10,6 @@ The most compact syntax to perform a discrete continuation is to use a function 
 
 ```@setup main
 using Printf
-using Statistics
 using Plots
 ```
 
@@ -76,16 +75,21 @@ function F1(x)
 end
 
 ocp = Model(variable=true)
+r0 = 1
+v0 = 0
+m0 = 1
+mf = 0.6
+x0=[r0,v0,m0]
+vmax = 0.1
 state!(ocp, 3)
 control!(ocp, 1)
 variable!(ocp, 1)
-time!(ocp, 0, Index(1))
-constraint!(ocp, :initial, [1,0,1], :initial_constraint)
-constraint!(ocp, :final, Index(3), 0.6, :final_constraint)
-constraint!(ocp, :state, 1:2:3, [1,0.6], [1.2,1], :state_box)
-constraint!(ocp, :control, Index(1), 0, 1, :control_box)
-constraint!(ocp, :variable, Index(1), 0.01, Inf, :variable_box)
-constraint!(ocp, :state, Index(2), 0, Inf, :speed_limit)
+time!(ocp, t0=0, indf=1)
+constraint!(ocp, :initial, lb=x0, ub=x0)
+constraint!(ocp, :final, rg=3, lb=mf, ub=Inf)
+constraint!(ocp, :state, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
+constraint!(ocp, :control, lb=0, ub=1)
+constraint!(ocp, :variable, lb=0.01, ub=Inf)
 objective!(ocp, :mayer, (x0, xf, v) -> xf[1], :max)
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 

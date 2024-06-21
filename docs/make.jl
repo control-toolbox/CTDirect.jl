@@ -1,6 +1,7 @@
 using Documenter
 using CTDirect
 using CTBase
+using Plots
 
 DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
 DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true)

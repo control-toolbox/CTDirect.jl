@@ -15,6 +15,7 @@ First import the CTDirect and CTBase modules
 ```@example main
 using CTDirect
 using CTBase
+using Plots
 ```
 
 Then define the OCP for the Goddard problem. Note that the free final time is modeled as an *optimization variable*, and has both a lower bound to prevent the optimization getting stuck at tf=0. In this particular case an upper bound is not needed for the final time since the final mass is prescribed.
