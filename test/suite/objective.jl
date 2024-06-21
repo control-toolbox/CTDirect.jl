@@ -15,8 +15,8 @@ dynamics!(ocp, (x, u, v) ->  [x[2], u])
 objective!(ocp, :mayer, (x0, xf, v) -> v)
 
 @testset verbose = true showtiming = true ":min_tf :mayer" begin
-    sol1 = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
-    @test sol1.objective ≈ 2.0 rtol=1e-2
+    sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
+    @test sol.objective ≈ 2.0 rtol=1e-2
 end
 
 
@@ -34,8 +34,8 @@ dynamics!(ocp, (x, u, v) ->  [x[2], u])
 objective!(ocp, :lagrange, (x, u, v) -> 1)
 
 @testset verbose = true showtiming = true ":min_tf :lagrange" begin
-    sol2 = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
-    @test sol2.objective ≈ 2.0 rtol=1e-2
+    sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
+    @test sol.objective ≈ 2.0 rtol=1e-2
 end
 
 
@@ -54,11 +54,16 @@ dynamics!(ocp, (x, u, v) ->  [x[2], u])
 objective!(ocp, :mayer, (x0, xf, v) -> v[1], :max)
 
 @testset verbose = true showtiming = true ":max_t0" begin
-    sol4 = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
-    @test sol4.objective ≈ 8.0 rtol=1e-2
+    sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
+    @test sol.objective ≈ 8.0 rtol=1e-2
+end
+
+@testset verbose = true showtiming = true ":max_t0 :explicit_grid" begin
+    sol = solve(ocp, time_grid=LinRange(0,1,101), print_level=0, tol=1e-12)
+    @test sol.objective ≈ 8.0 rtol=1e-2
 end
 
 @testset verbose = true showtiming = true ":max_t0 :non_uniform_grid" begin
-    sol5 = solve(ocp, time_grid=[0,0.1,0.6,0.95,1], print_level=0, tol=1e-12)
-    @test sol5.objective ≈ 7.48 rtol=1e-2
+    sol = solve(ocp, time_grid=[0,0.1,0.6,0.95,1], print_level=0, tol=1e-12)
+    @test sol.objective ≈ 7.48 rtol=1e-2
 end
