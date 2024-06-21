@@ -82,32 +82,24 @@ end
 end
 
 # goddard
-Cd = 310
-Tmax = 3.5
-β = 500
-b = 2
-function F00(x)
-    r, v, m = x
-    D = Cd * v^2 * exp(-β*(r - 1))
-    return [ v, -D/m - 1/r^2, 0 ]
-end
-function F01(x)
-    r, v, m = x
-    return [ 0, Tmax/m, -b*Tmax ]
-end
 ocp = Model(variable=true)
+r0 = 1
+v0 = 0
+m0 = 1
+mf = 0.6
+x0=[r0,v0,m0]
+vmax = 0.1
 state!(ocp, 3)
 control!(ocp, 1)
 variable!(ocp, 1)
-time!(ocp, 0, Index(1))
-constraint!(ocp, :initial, [1,0,1], :initial_constraint)
-constraint!(ocp, :final, Index(3), 0.6, :final_constraint)
-constraint!(ocp, :state, 1:2:3, [1,0.6], [1.2,1], :state_box)
-constraint!(ocp, :control, Index(1), 0, 1, :control_box)
-constraint!(ocp, :variable, Index(1), 0.01, Inf, :variable_box)
-constraint!(ocp, :state, Index(2), 0, Inf, :speed_limit)
+time!(ocp, t0=0, indf=1)
+constraint!(ocp, :initial, lb=x0, ub=x0)
+constraint!(ocp, :final, rg=3, lb=mf, ub=Inf)
+constraint!(ocp, :state, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
+constraint!(ocp, :control, lb=0, ub=1)
+constraint!(ocp, :variable, lb=0.01, ub=Inf)
 objective!(ocp, :mayer, (x0, xf, v) -> xf[1], :max)
-dynamics!(ocp, (x, u, v) -> F00(x) + u*F01(x) )
+dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 sol0 = solve(ocp, print_level=0)
 
 @testset verbose = true showtiming = true ":global_variable :warm_start" begin
@@ -121,5 +113,5 @@ sol0 = solve(ocp, print_level=0)
         push!(iter_list, sol.iterations)
     end
     @test last(obj_list) ≈ 1.00359 rtol=1e-2
-    @test sum(iter_list)/length(iter_list) ≈ 17.0 rtol=1e-2
+    @test sum(iter_list)/length(iter_list) ≈ 16.8 rtol=1e-2
 end

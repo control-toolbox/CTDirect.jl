@@ -1,12 +1,11 @@
 using CTDirect
 using CTBase
 using Printf
-using Plots; pyplot()
+using Plots
 
 test1 = true
 test2 = true
 test3 = true
-test4 = true
 
 # continuation on fixed final time
 # NB. time! can be called only once, so we redefine the ocp
@@ -98,7 +97,7 @@ end
 
 
 # goddard max final altitude
-if (test3 || test4)
+if (test3)
     Cd = 310
     Tmax = 3.5
     β = 500
@@ -114,27 +113,29 @@ if (test3 || test4)
     end
 
     ocp = Model(variable=true)
+    r0 = 1
+    v0 = 0
+    m0 = 1
+    mf = 0.6
+    x0=[r0,v0,m0]
+    vmax = 0.1
     state!(ocp, 3)
     control!(ocp, 1)
     variable!(ocp, 1)
-    time!(ocp, 0, Index(1))
-    constraint!(ocp, :initial, [1,0,1], :initial_constraint)
-    constraint!(ocp, :final, Index(3), 0.6, :final_constraint)
-    constraint!(ocp, :state, 1:2:3, [1,0.6], [1.2,1], :state_box)
-    constraint!(ocp, :control, Index(1), 0, 1, :control_box)
-    constraint!(ocp, :variable, Index(1), 0.01, Inf, :variable_box)
-    constraint!(ocp, :state, Index(2), 0, Inf, :speed_limit)
+    time!(ocp, t0=0, indf=1)
+    constraint!(ocp, :initial, lb=x0, ub=x0)
+    constraint!(ocp, :final, rg=3, lb=mf, ub=Inf)
+    constraint!(ocp, :state, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
+    constraint!(ocp, :control, lb=0, ub=1)
+    constraint!(ocp, :variable, lb=0.01, ub=Inf)
     objective!(ocp, :mayer, (x0, xf, v) -> xf[1], :max)
     dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
     # solve unconstrained problem
     sol0 = solve(ocp, print_level=0)
     @printf("\nObjective for goddard reference solution %.6f",  sol0.objective)
-end
 
-
-# using a global variable in ocp definition
-if test3
+    # using a global variable in ocp definition
     print("\nDiscrete continuation on maximal thrust\nTmax ")
     # continuation on Tmax (using default init is slower)
     Tmax_list = []
@@ -157,46 +158,4 @@ if test3
     plot(sol0)
     p = plot!(sol3)
     display(plot(pobj, p, layout=2, reuse=false))
-end
-
-
-# manually edit a constraint in ocp
-if test4
-    # reset Tmax
-    global Tmax = 3.5
-    # default init
-    print("\nSolve goddard for different speed limits, default initial guess\nvmax ")
-    iter_list = []
-    for vmax=0.14:-0.02:0.05
-        print(vmax," ")
-        remove_constraint!(ocp, :speed_limit)
-        constraint!(ocp, :state, Index(2), 0, vmax, :speed_limit)
-        global sol = solve(ocp, print_level=0) 
-        push!(iter_list, sol.iterations)
-    end
-    @printf("\nAverage iterations %.2f\n", sum(iter_list)/length(iter_list))
-
-    # warm start
-    print("Discrete continuation on speed limit, with warm start\nvmax ")
-    vmax_list = []
-    obj_list = []
-    iter_list = []
-    sol = sol0
-    for vmax=0.14:-0.02:0.05
-        print(vmax," ")
-        remove_constraint!(ocp, :speed_limit)
-        constraint!(ocp, :state, Index(2), 0, vmax, :speed_limit)
-        global sol = solve(ocp, print_level=0, init=sol)
-        push!(vmax_list, vmax)
-        push!(obj_list, sol.objective)
-        push!(iter_list, sol.iterations)
-    end
-    @printf("\nAverage iterations %.2f\n", sum(iter_list)/length(iter_list))
-
-    # plot obj(vmax)
-    pobj = plot(vmax_list, obj_list, label="r(tf)", xlabel="Speed limit (vmax)", ylabel="Maximal altitude r(tf)",seriestype=:scatter)
-    # plot multiple solutions
-    plot(sol0)
-    p = plot!(sol)
-    display(plot(pobj, p, layout=2))
 end

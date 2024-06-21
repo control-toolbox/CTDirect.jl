@@ -29,7 +29,7 @@ x0 = [ r0, v0, m0 ]
 state!(ocp, 3)
 control!(ocp, 1)
 variable!(ocp, 1)
-time!(ocp, 0, Index(1))
+time!(ocp, t0=0, indf=1)
 constraint!(ocp, :initial, x0, :initial_constraint)
 constraint!(ocp, :final, Index(3), mf, :final_constraint)
 constraint!(ocp, :state, (x,v)->x[2], -Inf, vmax, :state_con_v_ub)
