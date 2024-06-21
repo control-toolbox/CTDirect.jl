@@ -228,6 +228,9 @@ $(TYPEDSIGNATURES)
 
 Implement implicit call to OptimalControlInit constructor if needed
 """
+# +++ rename OCPInit as OptimalControlInit
+# +++ replace this function by a trivial constructor method that returns its argument ?
+#=
 function implicitInit(init_passed)
     # if argument passed for init is
     # - nothing or initialization data (vectors, functions, solution): call constructor
@@ -238,10 +241,10 @@ function implicitInit(init_passed)
         return init_passed
     end
 end
+=#
 
 #struct for interpolated ocp solution with only basic data types that can be exported as json
 # +++todo:
-# - pass time grid / grid size
 # - add more fields from OptimalControlSolution
 # - constructor to recreate OptimalControlSolution from this one
 mutable struct OCP_Solution_discrete
@@ -293,38 +296,42 @@ end
 """
 $(TYPEDSIGNATURES)
   
-Save OCP solution in JLD2/JSON format
+Save OCP solution in JLD2 format
 """
-function save_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution", format="JLD2")
-    if format == "JLD2"
-        save_object(filename_prefix * ".jld2", sol)
-    elseif format == "JSON"
-        open(filename_prefix * ".json", "w") do io
-            JSON3.pretty(io, OCP_Solution_discrete(sol))
-        end
-    else
-        println("ERROR: save_OCP_solution: format should be JLD2 or JSON, received ", format)
-    end
+function save_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution")
+    save_object(filename_prefix * ".jld2", sol)
     return nothing
 end
     
 """
 $(TYPEDSIGNATURES)
  
-Load OCP solution in JLD2/JSON format
+Load OCP solution in JLD2 format
 """
-function load_OCP_solution(filename_prefix="solution"; format="JLD2")
-    if format == "JLD2"
-        return load_object(filename_prefix * ".jld2")
-    elseif format == "JSON"
-        json_string = read(filename_prefix * ".json", String)
-        return JSON3.read(json_string)
-        #+++ parse JSON object containing interpolated solution
-        #+++ then call raw constructor for OCP solution
-    else
-        println("ERROR: save_OCP_solution: format should be JLD2 or JSON, received ", format)
-        return nothing
+function load_OCP_solution(filename_prefix="solution")
+    return load_object(filename_prefix * ".jld2")
+end
+
+"""
+$(TYPEDSIGNATURES)
+  
+Export OCP solution in JSON format
+"""
+function export_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution")
+    open(filename_prefix * ".json", "w") do io
+        JSON3.pretty(io, OCP_Solution_discrete(sol))
     end
+    return nothing
+end
+
+"""
+$(TYPEDSIGNATURES)
+  
+Read OCP solution in JSON format
+"""
+function read_OCP_solution(filename_prefix="solution")
+    json_string = read(filename_prefix * ".json", String)
+    return JSON3.read(json_string)
 end
 
 #=
@@ -335,5 +342,7 @@ Parse interpolated OCP solution saved in JSON format (NOT IMPLEMENTED)
 """
 function parse_JSON_solution(json_solution)
     println("parse_JSON_solution not implemented yet")
+        #+++ parse JSON object containing interpolated solution
+        #+++ then call raw constructor for OCP solution
 end
 =#

@@ -123,9 +123,9 @@ dsol = solve(docp, print_level=0, init=sol1)
 sol6 = OCPSolutionFromDOCP(docp, dsol)
 println("Objective ", sol6.objective, " after ", sol6.iterations, " iterations")
 ```
-Another possibility is to set the initial guess associated to the DOCP, using the function **setDOCPInit**.
+Another possibility is to set the initial guess associated to the DOCP, using the function **setInitialGuess**.
 ```@example main
-setDOCPInit(docp, sol1)
+setInitialGuess(docp, sol1)
 dsol = solve(docp, print_level=5)
 nothing # hide
 ```

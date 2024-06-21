@@ -31,11 +31,13 @@ export available_methods
 export is_solvable
 export directTranscription
 export getNLP
-export setDOCPInit
+export setInitialGuess
 export OCPSolutionFromDOCP
 export OCPSolutionFromDOCP_raw
 export save_OCP_solution
 export load_OCP_solution
+export export_OCP_solution
+export read_OCP_solution
 export OCP_Solution_discrete
 
 

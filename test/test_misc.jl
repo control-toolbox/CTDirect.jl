@@ -61,10 +61,10 @@ sol4 = load_OCP_solution("solution_test")
 plot(sol4, show=true)
 println("\nCheck JLD2 solution ", sol.objective == sol4.objective)
 
-# save / load discrete solution in JSON format
+# export / read discrete solution in JSON format
 # NB. we recover here a JSON Object...
-save_OCP_solution(sol, filename_prefix="solution_test", format="JSON")
-sol_disc_reloaded = load_OCP_solution("solution_test", format="JSON")
+export_OCP_solution(sol, filename_prefix="solution_test")
+sol_disc_reloaded = read_OCP_solution("solution_test")
 println("\nCheck JSON solution ", sol.objective == sol_disc_reloaded.objective)
 
 # solve with explicit and non uniform time grid

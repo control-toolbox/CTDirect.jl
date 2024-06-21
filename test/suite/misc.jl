@@ -47,10 +47,10 @@ nlp = getNLP(docp)
     @test sol0.objective == sol_reloaded.objective
 end
 
-# test save / load solution in JSON format
-@testset verbose = true showtiming = true ":save_load :JSON" begin
-    save_OCP_solution(sol0, filename_prefix="solution_test", format="JSON")
-    sol_reloaded = load_OCP_solution("solution_test", format="JSON")
+# test export / read solution in JSON format
+@testset verbose = true showtiming = true ":export_read :JSON" begin
+    export_OCP_solution(sol0, filename_prefix="solution_test")
+    sol_reloaded = read_OCP_solution("solution_test")
     @test sol0.objective == sol_reloaded.objective
 end
 

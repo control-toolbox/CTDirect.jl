@@ -29,7 +29,7 @@ function directTranscription(ocp::OptimalControlModel,
     docp = DOCP(ocp, grid_size, time_grid)
 
     # set initial guess and bounds
-    x0 = DOCP_initial_guess(docp, implicitInit(init))
+    x0 = DOCP_initial_guess(docp, OptimalControlInit(init))
     docp.var_l, docp.var_u = variables_bounds(docp)
     docp.con_l, docp.con_u = constraints_bounds(docp)
 
@@ -61,10 +61,10 @@ $(TYPEDSIGNATURES)
 
 Extract the NLP problem from the DOCP
 """
-function setDOCPInit(docp::DOCP, init)
+function setInitialGuess(docp::DOCP, init)
 
     nlp = getNLP(docp)
-    nlp.meta.x0 .= DOCP_initial_guess(docp, implicitInit(init))
+    nlp.meta.x0 .= DOCP_initial_guess(docp, OptimalControlInit(init))
 
 end
 
@@ -101,7 +101,7 @@ function solve(docp::DOCP;
         docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
     else
         # use given initial guess
-        docp_solution = ipopt(getNLP(docp), x0=DOCP_initial_guess(docp, implicitInit(init)), print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
+        docp_solution = ipopt(getNLP(docp), x0=DOCP_initial_guess(docp, OptimalControlInit(init)), print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
     end
 
     # return DOCP solution
@@ -126,7 +126,7 @@ function solve(ocp::OptimalControlModel,
     kwargs...)
 
     # build discretized OCP
-    docp = directTranscription(ocp, description, init=implicitInit(init), grid_size=grid_size, time_grid=time_grid)
+    docp = directTranscription(ocp, description, init=OptimalControlInit(init), grid_size=grid_size, time_grid=time_grid)
 
     # solve DOCP
     docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, linear_solver=linear_solver; kwargs...)
