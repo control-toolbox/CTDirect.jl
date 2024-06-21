@@ -106,21 +106,21 @@ end
 docp = directTranscription(ocp)
 
 @testset verbose = true showtiming = true ":DOCPInit_mixed :compact" begin
-    setDOCPInit(docp, (state=x_func, control=u_const))
+    setInitialGuess(docp, (state=x_func, control=u_const))
     dsol = solve(docp, print_level=0)
     sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
 @testset verbose = true showtiming = true ":DOCPInit_warm_start :compact" begin
-    setDOCPInit(docp, sol0)
+    setInitialGuess(docp, sol0)
     dsol = solve(docp, print_level=0)
     sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 1.0125 rtol=1e-2
 end
 
 # pass initial guess to solve
-setDOCPInit(docp, OptimalControlInit()) # reset init in docp
+setInitialGuess(docp, OptimalControlInit()) # reset init in docp
 
 @testset verbose = true showtiming = true ":solve_mixed_init :compact" begin
     dsol = solve(docp, init=(state=x_func, control=u_const), print_level=0)
