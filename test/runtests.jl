@@ -1,6 +1,5 @@
 using CTDirect
 using CTBase
-using Statistics
 using Test
 
 # check local test suite

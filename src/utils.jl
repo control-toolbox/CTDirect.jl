@@ -4,11 +4,11 @@ $(TYPEDSIGNATURES)
 Retrieve optimization variables from the NLP variables
 """
 function get_variable(xu, docp)
-    if docp.has_variable
-        if docp.variable_dimension == 1
+    if is_variable_dependent(docp.ocp)
+        if docp.dim_NLP_v == 1
             return xu[end]
         else
-            return xu[end-docp.variable_dimension+1:end]
+            return xu[end-docp.dim_NLP_v+1:end]
         end
     else
         return Float64[]
@@ -22,7 +22,7 @@ $(TYPEDSIGNATURES)
 Retrieve state variables at given time step from the NLP variables
 """
 function get_state_at_time_step(xu, docp, i::Int64)
-    nx = docp.dim_NLP_state
+    nx = docp.dim_NLP_x
     n = docp.ocp.state_dimension
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get x(t_i) for i > N"
@@ -40,7 +40,7 @@ $(TYPEDSIGNATURES)
 Retrieve the additional state variable corresponding to the lagrange (running) cost at given time step from the NLP variables
 """
 function get_lagrange_cost_at_time_step(xu, docp, i)
-    nx = docp.dim_NLP_state
+    nx = docp.dim_NLP_x
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get lagrange cost at t_i for i > N"
     return xu[(i+1)*nx]
@@ -48,7 +48,7 @@ end
 
 # internal vector version
 function vget_state_at_time_step(xu, docp, i)
-    nx = docp.dim_NLP_state
+    nx = docp.dim_NLP_x
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get x(t_i) for i > N"
     return xu[i*nx + 1 : (i+1)*nx]
@@ -61,8 +61,8 @@ $(TYPEDSIGNATURES)
 Retrieve control variables at given time step from the NLP variables
 """
 function get_control_at_time_step(xu, docp, i)
-    nx = docp.dim_NLP_state
-    m = docp.ocp.control_dimension
+    nx = docp.dim_NLP_x
+    m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get u(t_i) for i > N"
     if m == 1
@@ -74,8 +74,8 @@ end
 
 # internal vector version
 function vget_control_at_time_step(xu, docp, i)
-    nx = docp.dim_NLP_state
-    m = docp.ocp.control_dimension
+    nx = docp.dim_NLP_x
+    m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get u(t_i) for i > N"
     return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
@@ -88,7 +88,7 @@ $(TYPEDSIGNATURES)
 Retrieve initial time for OCP (may be fixed or variable)
 """
 function get_initial_time(xu, docp)
-    if docp.has_free_initial_time
+    if has_free_initial_time(docp.ocp)
         v = get_variable(xu, docp)
         return v[docp.ocp.initial_time]
     else
@@ -103,7 +103,7 @@ $(TYPEDSIGNATURES)
 Retrieve final time for OCP (may be fixed or variable)
 """
 function get_final_time(xu, docp)
-    if docp.has_free_final_time
+    if has_free_final_time(docp.ocp)
         v = get_variable(xu, docp)
         return v[docp.ocp.final_time]
     else
@@ -143,7 +143,7 @@ $(TYPEDSIGNATURES)
 Set state variables at given time step in the NLP variables (for initial guess)
 """
 function set_state_at_time_step!(xu, x_init, docp, i)
-    nx = docp.dim_NLP_state
+    nx = docp.dim_NLP_x
     n = docp.ocp.state_dimension
     N = docp.dim_NLP_steps
     @assert i <= N "trying to set init for x(t_i) with i > N"
@@ -162,8 +162,8 @@ $(TYPEDSIGNATURES)
 Set control variables at given time step in the NLP variables (for initial guess)
 """
 function set_control_at_time_step!(xu, u_init, docp, i)
-    nx = docp.dim_NLP_state
-    m = docp.ocp.control_dimension
+    nx = docp.dim_NLP_x
+    m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
     @assert i <= N "trying to set init for u(t_i) with i > N"
     offset = (N+1)*nx
@@ -181,10 +181,10 @@ $(TYPEDSIGNATURES)
 Set optimization variables in the NLP variables (for initial guess)
 """
 function set_variable!(xu, v_init, docp)
-    if docp.variable_dimension == 1
+    if docp.dim_NLP_v == 1
         xu[end] = v_init[]
     else
-        xu[end-docp.variable_dimension+1 : end] = v_init
+        xu[end-docp.dim_NLP_v+1 : end] = v_init
     end
 end
 
@@ -194,7 +194,7 @@ $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function DOCP_initial_guess(docp, init::OCPInit=OCPInit())
+function DOCP_initial_guess(docp, init::OptimalControlInit=OptimalControlInit())
 
     # default initialization
     # note: internal variables (lagrange cost, k_i for RK schemes) will keep these default values 
@@ -222,18 +222,18 @@ end
 
 
 
-#+++ to be moved to CTBase !
+#+++ should be replaced by new constructor
 """
 $(TYPEDSIGNATURES)
 
-Implement implicit call to OCPInit constructor if needed
+Implement implicit call to OptimalControlInit constructor if needed
 """
 function implicitInit(init_passed)
     # if argument passed for init is
     # - nothing or initialization data (vectors, functions, solution): call constructor
-    # - already an OCPInit: just transmit
-    if !(init_passed isa OCPInit)
-        return OCPInit(init_passed)
+    # - already an OptimalControlInit: just transmit
+    if !(init_passed isa OptimalControlInit)
+        return OptimalControlInit(init_passed)
     else
         return init_passed
     end
