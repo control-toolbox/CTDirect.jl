@@ -1,5 +1,6 @@
 using CTDirect
 using CTBase
+using Plots
 
 println("Test: all constraint types")
 # +++ todo: complete with different constraint formulations
@@ -18,28 +19,13 @@ x0 = [ r0, v0, m0 ]
 state!(ocp, 3)
 control!(ocp, 1)
 variable!(ocp, 1)
-time!(ocp, 0, Index(1))
-# use all possible types of constraints
-# initial condition
-constraint!(ocp, :initial, x0, :initial_constraint)
-# final condition
-constraint!(ocp, :final, Index(3), mf, :final_constraint)
-# state constraint
-constraint!(ocp, :state, (x,v)->x[2], -Inf, vmax, :state_con_v_ub)
-# control constraint
-constraint!(ocp, :control, (u,v)->u, -Inf, 1, :control_con_u_ub)
-# mixed constraint
-constraint!(ocp, :mixed, (x,u,v)->x[3], mf, Inf, :mixed_con_m_lb)
-# variable constraint
-constraint!(ocp, :variable, v->v, -Inf, 10, :variable_con_tf_ubx)
-# state box
-constraint!(ocp, :state, 1:2, [r0,v0], [r0+0.2, Inf], :state_box_rv)
-#constraint!(ocp, :state, Index(2), v0, Inf, :state_box_vmin)
-# control box
-constraint!(ocp, :control, Index(1), 0, Inf, :control_box_lb)
-# variable box
-constraint!(ocp, :variable, Index(1), 0.01, Inf, :variable_box_tfmin)
-objective!(ocp, :mayer,  (x0, xf, v) -> xf[1], :max)
+time!(ocp, t0=0, indf=1)
+constraint!(ocp, :initial, lb=x0, ub=x0)
+constraint!(ocp, :final, rg=3, lb=mf, ub=Inf)
+constraint!(ocp, :state, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
+constraint!(ocp, :control, lb=0, ub=1)
+constraint!(ocp, :variable, lb=0.01, ub=Inf)
+objective!(ocp, :mayer, (x0, xf, v) -> xf[1], :max)
 function FF0(x)
     r, v, m = x
     D = Cd * v^2 * exp(-β*(r - 1))

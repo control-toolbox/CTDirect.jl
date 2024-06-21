@@ -1,5 +1,6 @@
 using CTDirect
 using CTBase
+using Plots
 
 println("Test: misc")
 
@@ -8,12 +9,24 @@ println("Test: misc")
 ocp = Model()
 state!(ocp, 1)
 control!(ocp, 2)
-time!(ocp, [0, 1])
-constraint!(ocp, :initial, -1, :initial_constraint)
-constraint!(ocp, :final, 0, :final_constraint)
-constraint!(ocp, :control, 1:2, [0,0], [Inf, Inf], :positive_controls)
+time!(ocp, t0=0, tf=1)
+constraint!(ocp, :initial, lb=-1, ub=-1)
+constraint!(ocp, :final, lb=0, ub=0)
+constraint!(ocp, :control, lb=[0,0], ub=[Inf, Inf])
 dynamics!(ocp, (x, u) -> -x - u[1] + u[2])
 objective!(ocp, :lagrange, (x, u) -> (u[1]+u[2])^2)
+#=
+@def ocp begin
+    t ∈ [ 0, 1], time
+    x ∈ R, state
+    u ∈ R^2, control
+    u(t) ≥ [0,0]
+    x(0) == -1
+    x(1) == 0 
+    ẋ(t) == -x(t) - u₁(t) + u₂(t)
+    int(u₁(t)+u₂(t))^2 → min
+end
+=#
 
 # all-in-one solve call
 println(available_methods())

@@ -21,7 +21,7 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 """
 function directTranscription(ocp::OptimalControlModel,
     description...;
-    init=OCPInit(),
+    init=OptimalControlInit(),
     grid_size::Integer=__grid_size_direct(),
     time_grid=nothing)
 
@@ -98,12 +98,10 @@ function solve(docp::DOCP;
     print_level = display ?  print_level : 0
     if init == nothing
         # use initial guess embedded in the DOCP
-        docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes",
-                              linear_solver=linear_solver; kwargs...)
+        docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
     else
         # use given initial guess
-        docp_solution = ipopt(getNLP(docp), x0=DOCP_initial_guess(docp, implicitInit(init)), print_level=print_level,
-                              mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
+        docp_solution = ipopt(getNLP(docp), x0=DOCP_initial_guess(docp, implicitInit(init)), print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
     end
 
     # return DOCP solution
@@ -118,7 +116,7 @@ Solve an optimal control problem OCP by direct method
 """
 function solve(ocp::OptimalControlModel,
     description...;
-    init=OCPInit(),
+    init=OptimalControlInit(),
     grid_size::Integer=__grid_size_direct(),
     time_grid=nothing,
     display::Bool=__display(),
