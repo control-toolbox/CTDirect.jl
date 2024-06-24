@@ -1,3 +1,16 @@
+#=
+NLP variables layout: [X0, X1 .. XN, U0, U1 .. UN, V]
+
+additional state variable x_{n+1}(t) for the objective (Lagrange to Mayer formulation)
+    [x_1(t_0), ... , x_{n+1}(t_0),
+    ... , 
+    x_{1}(t_N), ... , x_{n+1}(t_N),
+    u_1(t_0), ... , u_m(t_0), 
+    ... , 
+    u_m(t_N), ..., u_m(t_N),
+    v]
+=#
+
 """
 $(TYPEDSIGNATURES)
 
@@ -50,8 +63,7 @@ mutable struct DOCP
     # constructor
     function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid)       
 
-        # +++ try to put here more const members (indicators etc)
-        # +++ also move some parts to CTBase.OptimalControlProblem
+        # +++ try to put here more const members (indicators etc), also move some parts to CTBase
         docp = new(ocp)
 
         ## Optimal Control Problem OCP
@@ -120,11 +132,6 @@ function is_solvable(ocp)
 end
 
 
-# +++ for the aux functions manipulating X and C(X) and bounds
-# move to a more abstract level to make scheme change easier
-# eg use addDynamicsConstraint, addBoundsBlock etc
-# with abstract interfaces, to be implemented for each scheme
-
 """
 $(TYPEDSIGNATURES)
 
@@ -137,7 +144,7 @@ function constraints_bounds(docp)
 
     index = 1 # counter for the constraints
     for i in 0:docp.dim_NLP_steps-1
-        # skip (ie leave 0) bound for equality dynamics constraint
+        # skip (ie leave 0) for equality dynamics constraint
         index = index + docp.dim_NLP_x
         # path constraints
         index = setPathConstraintsAtTimeStep!(docp, index, :bounds; lb=lb, ub=ub)
@@ -165,10 +172,8 @@ function variables_bounds(docp)
     u_var = Inf * ones(docp.dim_NLP_variables)
     ocp = docp.ocp
 
-    # NLP variables layout: [X0, X1 .. XN, U0, U1 .. UN, V]
-    # NB. keep offset for each block since blocks are optional !
-
-    # +++ we could use the setters here (build local vectors then call setter ?!)
+    # NB. keep offset for each block since they are optional !
+    # Also, not practical to reuse the setters for x,u,v due to the non-ordered indices and possibly not full dimension
 
     # state box
     offset = 0
@@ -255,15 +260,6 @@ function DOCP_constraints!(c, xu, docp)
     inputs
     ocp :: ocp model
     xu :: 
-        layout of the nlp unknown xu for trapeze discretization 
-        additional state variable x_{n+1}(t) for the objective (Lagrange to Mayer formulation)
-        [x_1(t_0), ... , x_{n+1}(t_0),
-        ... , 
-        x_{1}(t_N), ... , x_{n+1}(t_N),
-        u_1(t_0), ... , u_m(t_0), 
-        ... , 
-        u_m(t_N), ..., u_m(t_N),
-        v]
     return
     c :: 
     """
