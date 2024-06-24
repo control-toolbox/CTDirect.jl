@@ -23,7 +23,7 @@ mutable struct DOCP
     control_constraints
     state_constraints
     mixed_constraints
-    boundary_conditions
+    boundary_constraints
     variable_constraints
     control_box
     state_box
@@ -78,16 +78,16 @@ mutable struct DOCP
         N = docp.dim_NLP_steps
 
         # parse NLP constraints
-        docp.control_constraints, docp.state_constraints, docp.mixed_constraints, docp.boundary_conditions, docp.variable_constraints, docp.control_box, docp.state_box, docp.variable_box = nlp_constraints(ocp)
+        docp.control_constraints, docp.state_constraints, docp.mixed_constraints, docp.boundary_constraints, docp.variable_constraints, docp.control_box, docp.state_box, docp.variable_box = nlp_constraints!(ocp)
 
         # set dimensions
         # Mayer to Lagrange: additional state with Lagrange cost as dynamics and null initial condition
         if has_lagrange_cost(ocp)
             docp.dim_NLP_x = docp.ocp.state_dimension + 1  
-            docp.dim_NLP_constraints = N * (docp.dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_conditions(ocp) + dim_variable_constraints(ocp) + 1           
+            docp.dim_NLP_constraints = N * (docp.dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_constraints(ocp) + dim_variable_constraints(ocp) + 1           
         else
             docp.dim_NLP_x = docp.ocp.state_dimension  
-            docp.dim_NLP_constraints = N * (docp.dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_conditions(ocp) + dim_variable_constraints(ocp)
+            docp.dim_NLP_constraints = N * (docp.dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_constraints(ocp) + dim_variable_constraints(ocp)
         end
 
         docp.dim_NLP_u = ocp.control_dimension
@@ -177,10 +177,10 @@ function constraints_bounds(docp)
     end
     
     # boundary conditions
-    if dim_boundary_conditions(ocp) > 0
-        lb[index:index+dim_boundary_conditions(ocp)-1] = docp.boundary_conditions[1]
-        ub[index:index+dim_boundary_conditions(ocp)-1] = docp.boundary_conditions[3]
-        index = index + dim_boundary_conditions(ocp)
+    if dim_boundary_constraints(ocp) > 0
+        lb[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[1]
+        ub[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[3]
+        index = index + dim_boundary_constraints(ocp)
     end
 
     # variable constraints
@@ -449,9 +449,9 @@ function fillPunctualConditions(docp, c, index, args_0, args_f)
     ocp = docp.ocp
 
     # boundary conditions
-    if dim_boundary_conditions(ocp) > 0
-        c[index:index+dim_boundary_conditions(ocp)-1] = docp.boundary_conditions[2](args_0.state, args_f.state, args_0.variable)
-        index = index + dim_boundary_conditions(ocp)
+    if dim_boundary_constraints(ocp) > 0
+        c[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[2](args_0.state, args_f.state, args_0.variable)
+        index = index + dim_boundary_constraints(ocp)
     end
 
     # variable constraints
