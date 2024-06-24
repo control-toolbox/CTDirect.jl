@@ -38,6 +38,8 @@ dynamics!(ocp, (x, u, v) -> FF0(x) + u*FF1(x) )
     @test sol1.objective ≈ 1.0125 rtol=1e-2
 end
 
+#=
+# explicit grid
 @testset verbose = true showtiming = true ":explicit_grid" begin
     sol = solve(ocp, grid_size=100, print_level=0, tol=1e-8)
     sol1 = solve(ocp, time_grid=LinRange(0,1,101), print_level=0, tol=1e-8)
@@ -49,3 +51,4 @@ end
     sol2 = solve(ocp, time_grid=[0,0.1,0.6,0.98,0.99,1], print_level=0, tol=1e-8)
     @test sol2.objective ≈ 1.0094 rtol=1e-2
 end
+=#

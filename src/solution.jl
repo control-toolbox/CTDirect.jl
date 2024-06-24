@@ -258,8 +258,8 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
 
     # boundary conditions and multipliers
     if dim_boundary_constraints(ocp) > 0
-        sol_boundary_conditions = constraints[index:index+dim_boundary_constraints(ocp)-1]
-        mult_boundary_conditions = lambda[index:index+dim_boundary_constraints(ocp)-1]
+        sol_boundary_constraints = constraints[index:index+dim_boundary_constraints(ocp)-1]
+        mult_boundary_constraints = lambda[index:index+dim_boundary_constraints(ocp)-1]
         index = index + dim_boundary_constraints(ocp)
     end
 

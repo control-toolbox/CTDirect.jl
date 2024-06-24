@@ -147,7 +147,7 @@ function set_state_at_time_step!(xu, x_init, docp, i)
     n = docp.ocp.state_dimension
     N = docp.dim_NLP_steps
     @assert i <= N "trying to set init for x(t_i) with i > N"
-    # NB. only set first n components of state variable (ie the possible additional state for lagrange cost keeps the default init since it is not available from the OCP solution)
+    # NB. only set first the actual state variables from the OCP (not the possible additional state for lagrange cost)
     if n == 1
         xu[i*n + 1] = x_init[]
     else
@@ -194,7 +194,8 @@ $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function DOCP_initial_guess(docp, init::OptimalControlInit=OptimalControlInit())
+function DOCP_initial_guess(docp,
+    init::OptimalControlInit=OptimalControlInit())
 
     # default initialization
     # note: internal variables (lagrange cost, k_i for RK schemes) will keep these default values 
@@ -220,28 +221,6 @@ function DOCP_initial_guess(docp, init::OptimalControlInit=OptimalControlInit())
     return xuv
 end
 
-
-
-#+++ should be replaced by new constructor
-"""
-$(TYPEDSIGNATURES)
-
-Implement implicit call to OptimalControlInit constructor if needed
-"""
-# +++ rename OCPInit as OptimalControlInit
-# +++ replace this function by a trivial constructor method that returns its argument ?
-#=
-function implicitInit(init_passed)
-    # if argument passed for init is
-    # - nothing or initialization data (vectors, functions, solution): call constructor
-    # - already an OptimalControlInit: just transmit
-    if !(init_passed isa OptimalControlInit)
-        return OptimalControlInit(init_passed)
-    else
-        return init_passed
-    end
-end
-=#
 
 #struct for interpolated ocp solution with only basic data types that can be exported as json
 # +++todo:
