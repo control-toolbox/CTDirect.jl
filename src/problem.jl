@@ -140,11 +140,11 @@ function constraints_bounds(docp)
         # skip (ie leave 0) bound for equality dynamics constraint
         index = index + docp.dim_NLP_x
         # path constraints
-        index = fillPathConstraintsBoundsAtTimeStep!(docp, lb, ub, index)
+        index = setPathConstraintsAtTimeStep!(docp, index, :bounds; lb=lb, ub=ub)
     end
     
     # path constraints at final time
-    index = fillPathConstraintsBoundsAtTimeStep!(docp, lb, ub, index) 
+    index = setPathConstraintsAtTimeStep!(docp, index, :bounds; lb=lb, ub=ub) 
 
     # boundary and variable constraints
     index = fillPunctualConditionsBounds!(docp, lb, ub, index)
@@ -283,7 +283,7 @@ function DOCP_constraints!(c, xu, docp)
         index = fillStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
 
         # path constraints 
-        index = fillPathConstraintsAtTimeStep!(docp, c, index, args_i)
+        index = setPathConstraintsAtTimeStep!(docp, index, :constraints; c=c, args=args_i)
 
         # updates for next iteration
         args_i = args_ip1
@@ -291,7 +291,7 @@ function DOCP_constraints!(c, xu, docp)
 
     # path constraints at final time
     args_f = args_i
-    index = fillPathConstraintsAtTimeStep!(docp, c, index, args_f)
+    index = setPathConstraintsAtTimeStep!(docp, index, :constraints; c=c, args=args_f)
 
     # boundary conditions and variable constraints
     index = fillPunctualConditions!(docp, c, index, args_0, args_f)
@@ -358,66 +358,60 @@ function fillStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
     return index
 end
 
-"""
-$(TYPEDSIGNATURES)
-
-Fill the constraints corresponding to the path constraints
-"""
-function fillPathConstraintsAtTimeStep!(docp, c, index, args_i)
-
-    ocp = docp.ocp
-    ti = args_i.time
-    xi = args_i.state
-    ui = args_i.control
-    v = args_i.variable
-
-    if dim_control_constraints(ocp) > 0
-        c[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[2](ti, ui, v)
-        index = index + dim_control_constraints(ocp)
-    end
-    if dim_state_constraints(ocp) > 0
-        c[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[2](ti, xi ,v)
-        index = index + dim_state_constraints(ocp)
-    end
-    if dim_mixed_constraints(ocp) > 0
-        c[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[2](ti, xi, ui, v)
-        index = index + dim_mixed_constraints(ocp)
-    end
-    return index
-end
 
 """
 $(TYPEDSIGNATURES)
 
-Fill the bounds corresponding to the path constraints
+Fill the path constraints / bounds for given time step
+target = :constraints | :bounds
 """
-# +++ later unify with the one above
-# pass the index 1,2,3 to identify the vector(s) to be filled
-# with named arguments for the changing part
-# function fillPathConstraintsAtTimeStep!(docp, index, type; c=nothing, lb=nothing, ub=nothing, args=nothing)
-
-
-function fillPathConstraintsBoundsAtTimeStep!(docp, lb, ub, index)
+function setPathConstraintsAtTimeStep!(docp, index, target; c=nothing, lb=nothing, ub=nothing, args=nothing)
 
     ocp = docp.ocp
+    if target == :constraints
+        ti = args.time
+        xi = args.state
+        ui = args.control
+        v = args.variable
+    end
 
+    # pure control constraints
     if dim_control_constraints(ocp) > 0
-        lb[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[1]
-        ub[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[3]
+        if target == :constraints
+            c[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[2](ti, ui, v)
+        else
+            lb[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[1]
+            ub[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[3]
+        end
         index = index + dim_control_constraints(ocp)
     end
+
+    # pure state constraints
     if dim_state_constraints(ocp) > 0
-        lb[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[1]
-        ub[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[3]
+        if target == :constraints
+            c[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[2](ti, xi ,v)
+        else
+            lb[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[1]
+            ub[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[3]
+        end
         index = index + dim_state_constraints(ocp)
     end
+
+    # mixed state / control constraints
     if dim_mixed_constraints(ocp) > 0
-        lb[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[1]
-        ub[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[3]
+        if target == :constraints
+            c[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[2](ti, xi, ui, v)
+        else
+            lb[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[1]
+            ub[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[3]
+        end
         index = index + dim_mixed_constraints(ocp)
     end
+    
     return index
+
 end
+
 
 """
 $(TYPEDSIGNATURES)
