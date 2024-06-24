@@ -147,8 +147,7 @@ function constraints_bounds(docp)
     index = setPathConstraintsAtTimeStep!(docp, index, :bounds; lb=lb, ub=ub) 
 
     # boundary and variable constraints
-    #index = fillPunctualConditionsBounds!(docp, lb, ub, index)
-    index = setPunctualConditions!(docp, index, :bounds; lb=lb, ub=ub)
+     index = setPunctualConditions!(docp, index, :bounds; lb=lb, ub=ub)
 
     return lb, ub
 end
@@ -281,7 +280,7 @@ function DOCP_constraints!(c, xu, docp)
         args_ip1 = ArgsAtTimeStep(xu, docp, i+1)
 
         # state equation
-        index = fillStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
+        index = setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
 
         # path constraints 
         index = setPathConstraintsAtTimeStep!(docp, index, :constraints; c=c, args=args_i)
@@ -295,7 +294,6 @@ function DOCP_constraints!(c, xu, docp)
     index = setPathConstraintsAtTimeStep!(docp, index, :constraints; c=c, args=args_f)
 
     # boundary conditions and variable constraints
-    #index = fillPunctualConditions!(docp, c, index, args_0, args_f)
     index = setPunctualConditions!(docp, index, :constraints; c=c, args_0=args_0, args_f=args_f)
 
     # needed even for inplace version, AD error otherwise oO
@@ -339,9 +337,9 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fill the constraints corresponding to the state equation
+Set the constraints corresponding to the state equation
 """
-function fillStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
+function setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
     
     ocp = docp.ocp
     hi = args_ip1.time - args_i.time
@@ -364,7 +362,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fill the path constraints / bounds for given time step
+Set the path constraints / bounds for given time step
 target = :constraints | :bounds
 """
 function setPathConstraintsAtTimeStep!(docp, index, target; c=nothing, args=nothing, lb=nothing, ub=nothing)
@@ -461,70 +459,6 @@ function setPunctualConditions!(docp, index, target; c=nothing, args_0=nothing, 
     return index
 
 end
-
-#=
-"""
-$(TYPEDSIGNATURES)
-
-Fill the constraints corresponding to the boundary conditions and variable constraints
-"""
-function fillPunctualConditions!(docp, c, index, args_0, args_f)
-
-    ocp = docp.ocp
-
-    # boundary conditions
-    if dim_boundary_constraints(ocp) > 0
-        c[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[2](args_0.state, args_f.state, args_0.variable)
-        index = index + dim_boundary_constraints(ocp)
-    end
-
-    # variable constraints
-    if dim_variable_constraints(ocp) > 0
-        c[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[2](args_0.variable)
-        index = index + dim_variable_constraints(ocp)
-    end
-
-    # null initial condition for lagrangian cost state
-    if has_lagrange_cost(ocp)
-        c[index] = args_0.lagrange_state
-        index = index + 1
-    end
-
-    return index
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Fill the bounds corresponding to the boundary conditions and variable constraints
-"""
-function fillPunctualConditionsBounds!(docp, lb, ub, index)
-
-    ocp = docp.ocp
-
-    if dim_boundary_constraints(ocp) > 0
-        lb[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[1]
-        ub[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[3]
-        index = index + dim_boundary_constraints(ocp)
-    end
-
-    # variable constraints
-    if dim_variable_constraints(ocp) > 0
-        lb[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[1]
-        ub[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[3]
-        index = index + dim_variable_constraints(ocp)
-    end 
-
-    # lagrange cost (set integral to 0 at t0)
-    if has_lagrange_cost(ocp)
-        lb[index] = 0.
-        ub[index] = 0.
-        index = index + 1
-    end
-
-    return index
-end
-=#
 
 
 """
