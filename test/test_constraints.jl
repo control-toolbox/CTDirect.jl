@@ -51,7 +51,7 @@ variable!(ocp1, 1)
 time!(ocp1, t0=0, indf=1)
 constraint!(ocp1, :initial, lb=x0, ub=x0)
 constraint!(ocp1, :final, rg=3, lb=mf, ub=Inf)
-constraint!(ocp1, :state, f=(x,v)->x, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
+constraint!(ocp1, :state, f=(x,v)->x, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0]) # fail !
 constraint!(ocp1, :control, f=(u,v)->u, lb=0, ub=1)
 constraint!(ocp1, :variable, f=v->v, lb=0.01, ub=Inf)
 objective!(ocp1, :mayer, (x0, xf, v) -> xf[1], :max)

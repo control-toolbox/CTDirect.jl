@@ -1,6 +1,19 @@
 """
 $(TYPEDSIGNATURES)
 
+Convert 1-element vector to scalar, pass vector otherwise
+"""
+function vec2scal(v)
+    if length(v) == 1
+        return v[]
+    else
+        return v
+    end
+end
+
+"""
+$(TYPEDSIGNATURES)
+
 Retrieve optimization variables from the NLP variables
 """
 function get_variable(xu, docp)
@@ -19,20 +32,15 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve state variables at given time step from the NLP variables
+Retrieve OCP state variables at given time step from the NLP variables
 """
 function get_state_at_time_step(xu, docp, i::Int64)
     nx = docp.dim_NLP_x
     n = docp.ocp.state_dimension
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get x(t_i) for i > N"
-    if n == 1
-        return xu[i*nx + 1]
-    else
-        return xu[i*nx + 1 : i*nx + n]
-    end
+    return xu[i*nx + 1 : i*nx + n]
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -46,14 +54,17 @@ function get_lagrange_cost_at_time_step(xu, docp, i)
     return xu[(i+1)*nx]
 end
 
-# internal vector version
-function vget_state_at_time_step(xu, docp, i)
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve NLP state variables at given time step from the NLP variables (including additional state for lagrangian cost)
+"""
+function get_NLP_state_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get x(t_i) for i > N"
     return xu[i*nx + 1 : (i+1)*nx]
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -61,19 +72,6 @@ $(TYPEDSIGNATURES)
 Retrieve control variables at given time step from the NLP variables
 """
 function get_control_at_time_step(xu, docp, i)
-    nx = docp.dim_NLP_x
-    m = docp.dim_NLP_u
-    N = docp.dim_NLP_steps
-    @assert i <= N "trying to get u(t_i) for i > N"
-    if m == 1
-        return xu[(N+1)*nx + i*m + 1]
-    else
-        return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
-    end
-end
-
-# internal vector version
-function vget_control_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps

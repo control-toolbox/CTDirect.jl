@@ -189,14 +189,14 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
 
     for i in 1:N+1
         # state and control variables
-        X[i,:] = vget_state_at_time_step(solution, docp, i-1)
-        U[i,:] = vget_control_at_time_step(solution, docp, i-1)
+        X[i,:] = get_NLP_state_at_time_step(solution, docp, i-1)
+        U[i,:] = get_control_at_time_step(solution, docp, i-1)
         # box multipliers (same layout as variables !)
         # NB. will return 0 if box constraints are not present
-        mult_state_box_lower[i,:] = vget_state_at_time_step(mult_L, docp, i-1)
-        mult_control_box_lower[i,:] = vget_control_at_time_step(mult_L, docp, i-1)
-        mult_state_box_upper[i,:] = vget_state_at_time_step(mult_U, docp, i-1)
-        mult_control_box_upper[i,:] = vget_control_at_time_step(mult_U, docp, i-1)
+        mult_state_box_lower[i,:] = get_NLP_state_at_time_step(mult_L, docp, i-1)
+        mult_control_box_lower[i,:] = get_control_at_time_step(mult_L, docp, i-1)
+        mult_state_box_upper[i,:] = get_NLP_state_at_time_step(mult_U, docp, i-1)
+        mult_control_box_upper[i,:] = get_control_at_time_step(mult_U, docp, i-1)
     end
     if dim_variable_box(ocp) > 0
         mult_variable_box_lower = get_variable(mult_L, docp)

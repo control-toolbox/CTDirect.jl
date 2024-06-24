@@ -230,8 +230,8 @@ function DOCP_objective(xu, docp)
     # note: non-autonomous mayer case is not supported
     if has_mayer_cost(ocp)
         v = get_variable(xu, docp)
-        x0 = get_state_at_time_step(xu, docp, 0)
-        xf = get_state_at_time_step(xu, docp, N)
+        x0 = vec2scal(get_state_at_time_step(xu, docp, 0))
+        xf = vec2scal(get_state_at_time_step(xu, docp, N))
         obj = obj + ocp.mayer(x0, xf, v)
     end
     
@@ -315,9 +315,9 @@ mutable struct ArgsAtTimeStep
     function ArgsAtTimeStep(xu, docp, i)
         args = new()
         args.time = get_time_at_time_step(xu, docp, i)
-        args.state = get_state_at_time_step(xu, docp, i)
-        args.control = get_control_at_time_step(xu, docp, i)
-        args.variable = get_variable(xu, docp) 
+        args.state = vec2scal(get_state_at_time_step(xu, docp, i))
+        args.control = vec2scal(get_control_at_time_step(xu, docp, i))
+        args.variable = get_variable(xu, docp)
         args.dynamics = docp.ocp.dynamics(args.time, args.state, args.control, args.variable)
         if has_lagrange_cost(docp.ocp)
             args.lagrange_state = get_lagrange_cost_at_time_step(xu, docp, i)
@@ -343,7 +343,8 @@ function setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
     if ocp.state_dimension == 1
         c[index] = args_ip1.state - (args_i.state + 0.5*hi*(args_i.dynamics + args_ip1.dynamics))            
     else
-        c[index:index+ocp.state_dimension-1] = args_ip1.state - (args_i.state + 0.5*hi*(args_i.dynamics + args_ip1.dynamics))
+        toto = args_i.state .+ 0.5*hi*(args_i.dynamics + args_ip1.dynamics)
+        c[index:index+ocp.state_dimension-1] = args_ip1.state - toto
     end
 
     if has_lagrange_cost(ocp)
