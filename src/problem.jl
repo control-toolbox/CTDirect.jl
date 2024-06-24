@@ -132,70 +132,22 @@ Build upper and lower bounds vectors for the DOCP nonlinear constraints.
 """
 function constraints_bounds(docp)
 
-    N = docp.dim_NLP_steps
     lb = zeros(docp.dim_NLP_constraints)
     ub = zeros(docp.dim_NLP_constraints)
-    ocp = docp.ocp
 
     index = 1 # counter for the constraints
-    for i in 0:N-1
+    for i in 0:docp.dim_NLP_steps-1
         # skip (ie leave 0) bound for equality dynamics constraint
         index = index + docp.dim_NLP_x
-        # path constraints 
-        if dim_control_constraints(ocp) > 0
-            lb[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[1]
-            ub[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[3]
-            index = index + dim_control_constraints(ocp)
-        end
-        if dim_state_constraints(ocp) > 0
-            lb[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[1]
-            ub[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[3]
-            index = index + dim_state_constraints(ocp)
-        end
-        if dim_mixed_constraints(ocp) > 0
-            lb[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[1]
-            ub[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[3]
-            index = index + dim_mixed_constraints(ocp)
-        end
+        # path constraints
+        index = fillPathConstraintsBoundsAtTimeStep!(docp, lb, ub, index)
     end
     
     # path constraints at final time
-    if dim_control_constraints(ocp) > 0
-        lb[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[1]
-        ub[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[3]
-        index = index + dim_control_constraints(ocp)
-    end
-    if dim_state_constraints(ocp) > 0
-        lb[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[1]
-        ub[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[3]
-        index = index + dim_state_constraints(ocp)
-    end
-    if dim_mixed_constraints(ocp) > 0
-        lb[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[1]
-        ub[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[3]
-        index = index + dim_mixed_constraints(ocp)
-    end
-    
-    # boundary conditions
-    if dim_boundary_constraints(ocp) > 0
-        lb[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[1]
-        ub[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[3]
-        index = index + dim_boundary_constraints(ocp)
-    end
+    index = fillPathConstraintsBoundsAtTimeStep!(docp, lb, ub, index) 
 
-    # variable constraints
-    if dim_variable_constraints(ocp) > 0
-        lb[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[1]
-        ub[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[3]
-        index = index + dim_variable_constraints(ocp)
-    end 
-
-    # lagrange cost (set integral to 0 at t0)
-    if has_lagrange_cost(ocp)
-        lb[index] = 0.
-        ub[index] = 0.
-        index = index + 1
-    end
+    # boundary and variable constraints
+    index = fillPunctualConditionsBounds!(docp, lb, ub, index)
 
     return lb, ub
 end
@@ -316,18 +268,13 @@ function DOCP_constraints!(c, xu, docp)
     c :: 
     """
 
-    # initialize main loop on time steps
-    N = docp.dim_NLP_steps
-    v = get_variable(xu, docp)
-    ocp = docp.ocp
-
     # t,x,u,f,... at t_0
     args_0 = ArgsAtTimeStep(xu, docp, 0)
     args_i = args_0
 
     # main loop on time steps
     index = 1 # counter for the constraints
-    for i in 0:N-1
+    for i in 0:docp.dim_NLP_steps-1
 
         # t,x,u,f,... at t_{i+1}
         args_ip1 = ArgsAtTimeStep(xu, docp, i+1)
@@ -347,7 +294,7 @@ function DOCP_constraints!(c, xu, docp)
     index = fillPathConstraintsAtTimeStep!(docp, c, index, args_f)
 
     # boundary conditions and variable constraints
-    index = fillPunctualConditions(docp, c, index, args_0, args_f)
+    index = fillPunctualConditions!(docp, c, index, args_0, args_f)
 
     # needed even for inplace version, AD error otherwise oO
     return c 
@@ -442,9 +389,42 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Fill the bounds corresponding to the path constraints
+"""
+# +++ later unify with the one above
+# pass the index 1,2,3 to identify the vector(s) to be filled
+# with named arguments for the changing part
+# function fillPathConstraintsAtTimeStep!(docp, index, type; c=nothing, lb=nothing, ub=nothing, args=nothing)
+
+
+function fillPathConstraintsBoundsAtTimeStep!(docp, lb, ub, index)
+
+    ocp = docp.ocp
+
+    if dim_control_constraints(ocp) > 0
+        lb[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[1]
+        ub[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[3]
+        index = index + dim_control_constraints(ocp)
+    end
+    if dim_state_constraints(ocp) > 0
+        lb[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[1]
+        ub[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[3]
+        index = index + dim_state_constraints(ocp)
+    end
+    if dim_mixed_constraints(ocp) > 0
+        lb[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[1]
+        ub[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[3]
+        index = index + dim_mixed_constraints(ocp)
+    end
+    return index
+end
+
+"""
+$(TYPEDSIGNATURES)
+
 Fill the constraints corresponding to the boundary conditions and variable constraints
 """
-function fillPunctualConditions(docp, c, index, args_0, args_f)
+function fillPunctualConditions!(docp, c, index, args_0, args_f)
 
     ocp = docp.ocp
 
@@ -468,6 +448,39 @@ function fillPunctualConditions(docp, c, index, args_0, args_f)
 
     return index
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Fill the bounds corresponding to the boundary conditions and variable constraints
+"""
+function fillPunctualConditionsBounds!(docp, lb, ub, index)
+
+    ocp = docp.ocp
+
+    if dim_boundary_constraints(ocp) > 0
+        lb[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[1]
+        ub[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[3]
+        index = index + dim_boundary_constraints(ocp)
+    end
+
+    # variable constraints
+    if dim_variable_constraints(ocp) > 0
+        lb[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[1]
+        ub[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[3]
+        index = index + dim_variable_constraints(ocp)
+    end 
+
+    # lagrange cost (set integral to 0 at t0)
+    if has_lagrange_cost(ocp)
+        lb[index] = 0.
+        ub[index] = 0.
+        index = index + 1
+    end
+
+    return index
+end
+
 
 
 """
