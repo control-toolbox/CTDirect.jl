@@ -26,26 +26,21 @@ end
 end
 
 
-
 # recheck solution (T=2) with explicit / non-uniform grid
-function ocp_T(T)
-    @def ocp begin
-        t ∈ [ 0, T ], time
-        x ∈ R², state
-        u ∈ R, control
-        q = x₁
-        v = x₂
-        q(0) == 0
-        v(0) == 0
-        q(T) == 1
-        v(T) == 0
-        ẋ(t) == [ v(t), u(t) ]
-        ∫(u(t)^2) → min
-    end
-    return ocp
+@def ocpT2 begin
+    t ∈ [ 0, 2 ], time
+    x ∈ R², state
+    u ∈ R, control
+    q = x₁
+    v = x₂
+    q(0) == 0
+    v(0) == 0
+    q(2) == 1
+    v(2) == 0
+    ẋ(t) == [ v(t), u(t) ]
+    ∫(u(t)^2) → min
 end
 
-ocpT2 = ocp_T(2)
 solT2 = solve(ocpT2, print_level=0)
 
 @testset verbose = true showtiming = true ":explicit_grid" begin
