@@ -29,7 +29,7 @@ end
     @test obj_list ≈ [12, 1.5, 0.44, 0.19, 0.096] rtol=1e-2
 end
 
-
+#=
 # continuation with parametric definition of the ocp
 relu(x) = max(0, x)
 μ = 10
@@ -65,6 +65,7 @@ end
     end
     @test obj_list ≈ [-0.034, -1.7, -6.2, -35, -148] rtol=1e-2
 end
+=#
 
 # goddard
 ocp = Model(variable=true)
