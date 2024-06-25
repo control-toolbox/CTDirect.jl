@@ -14,8 +14,9 @@ println("Test: abstract OCP definition")
     tf → min
 end
 
+global sol1
 @testset verbose = true showtiming = true ":double_integrator :min_tf :abstract" begin
-    sol1 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12)
+    global sol1 = solve(ocp1, print_level=0, tol=1e-12)
     @test sol1.objective ≈ 2.0 rtol=1e-2
 end
 
@@ -41,7 +42,7 @@ end
 end
 
 @testset verbose = true showtiming = true ":double_integrator :min_tf :abstract :constr" begin
-    sol2 = solve(ocp2, grid_size=100, print_level=0, tol=1e-12)
+    sol2 = solve(ocp2, print_level=0, tol=1e-12, init=sol1)
     @test sol2.objective ≈ 5.46 rtol=1e-2
 end
 
@@ -79,6 +80,6 @@ end
 end
 
 @testset verbose = true showtiming = true ":goddard :max_rf :abstract :constr" begin
-    sol3 = solve(ocp3, grid_size=100, print_level=0, tol=1e-12)    
+    sol3 = solve(ocp3, print_level=0, tol=1e-12)    
     @test sol3.objective ≈ 1.0125 rtol=1e-2
 end

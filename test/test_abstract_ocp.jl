@@ -17,7 +17,7 @@ println("Test: abstract OCP definition")
     tf → min
 end
 
-sol1 = solve(ocp1, grid_size=100, print_level=0, tol=1e-12)
+sol1 = solve(ocp1, print_level=0, tol=1e-12)
 println("Target 2.0, found ", sol1.objective)
 
 # same with some random constraints
@@ -41,7 +41,7 @@ println("Target 2.0, found ", sol1.objective)
     tf → min
 end
 
-sol2 = solve(ocp2, grid_size=100, print_level=0, tol=1e-12)
+sol2 = solve(ocp2, print_level=0, tol=1e-12, init=sol1)
 println("Target 5.46, found ", sol2.objective)
 
 # goddard
@@ -78,5 +78,5 @@ end
     r(tf) → max
 end
 
-sol3 = solve(ocp3, grid_size=100, print_level=0, tol=1e-12)    
+sol3 = solve(ocp3, print_level=0, tol=1e-12)    
 println("Target 1.0125, found ", sol3.objective)

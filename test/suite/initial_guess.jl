@@ -21,16 +21,16 @@ constraint!(ocp, :state, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
 constraint!(ocp, :control, lb=0, ub=1)
 constraint!(ocp, :variable, lb=0.01, ub=Inf)
 objective!(ocp, :mayer,  (x0, xf, v) -> xf[1], :max)
-function FFF0(x)
+function F0(x)
     r, v, m = x
     D = Cd * v^2 * exp(-β*(r - 1))
     return [ v, -D/m - 1/r^2, 0 ]
 end
-function FFF1(x)
+function F1(x)
     r, v, m = x
     return [ 0, Tmax/m, -b*Tmax ]
 end
-dynamics!(ocp, (x, u, v) -> FFF0(x) + u*FFF1(x) )
+dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 sol0 = solve(ocp, print_level=0)
 
 # default init

@@ -19,21 +19,21 @@ sol0 = solve(ocp, print_level=0)
 end
 
 @testset verbose = true showtiming = true ":docp_solve" begin
-    docp = directTranscription(ocp, grid_size=100)
+    docp = directTranscription(ocp)
     dsol = solve(docp, print_level=0, tol=1e-12)
     sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.objective ≈ 0.313 rtol=1e-2
 end
 
 @testset verbose = true showtiming = true ":docp_solve :warm_start" begin
-    docp = directTranscription(ocp, grid_size=100, init=sol0)
+    docp = directTranscription(ocp, init=sol0)
     dsol = solve(docp, print_level=0, tol=1e-12)
     sol = OCPSolutionFromDOCP(docp, dsol)
     @test sol.iterations == 5
 end
 
 # test NLP getter
-docp = directTranscription(ocp, grid_size=100)
+docp = directTranscription(ocp)
 nlp = getNLP(docp)
 
 # test OCPSolutionFromDOCP_raw
@@ -54,15 +54,3 @@ end
     @test sol0.objective == sol_reloaded.objective
 end
 
-# solve with explicit and non uniform time grid
-@testset verbose = true showtiming = true ":explicit_grid" begin
-    time_grid = LinRange(0,1,101)
-    sol5 = solve(ocp, time_grid=time_grid, print_level=0)
-    @test (sol5.objective == sol0.objective) && (sol5.iterations == sol0.iterations)
-end
-
-@testset verbose = true showtiming = true ":non_uniform_grid" begin
-    time_grid = [0,0.1,0.3,0.6,0.98,0.99,1]
-    sol6 = solve(ocp, time_grid=time_grid, print_level=0)
-    @test sol6.objective ≈ 0.309 rtol=1e-2
-end

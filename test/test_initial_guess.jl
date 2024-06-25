@@ -4,7 +4,7 @@ using Printf
 
 #################################################
 # goddard max final altitude (all constraint types formulation)
-println("Test goddard (all constraints): initial guess options\n")
+println("Test goddard: initial guess options\n")
 ocp = Model(variable=true)
 Cd = 310
 Tmax = 3.5

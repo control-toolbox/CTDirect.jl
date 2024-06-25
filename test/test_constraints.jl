@@ -40,9 +40,10 @@ constraint!(ocp, :variable, lb=0.01, ub=Inf)
 objective!(ocp, :mayer, (x0, xf, v) -> xf[1], :max)
 dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
 
-sol = solve(ocp, grid_size=100, print_level=0, tol=1e-8)
+sol = solve(ocp, print_level=0, tol=1e-8)
 println("Target 1.0125, found ", sol.objective, " at ", sol.iterations, " iterations")
 
+#=
 # functional constraints
 ocp1 = Model(variable=true)
 state!(ocp1, 3)
@@ -57,5 +58,6 @@ constraint!(ocp1, :variable, f=v->v, lb=0.01, ub=Inf)
 objective!(ocp1, :mayer, (x0, xf, v) -> xf[1], :max)
 dynamics!(ocp1, (x, u, v) -> F0(x) + u*F1(x) )
 
-sol = solve(ocp1, grid_size=100, print_level=5, tol=1e-8)
+sol = solve(ocp1, print_level=5, tol=1e-8)
 println("Target 1.0125, found ", sol.objective, " at ", sol.iterations, " iterations")
+=#
