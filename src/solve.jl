@@ -38,7 +38,7 @@ function directTranscription(ocp::OptimalControlModel,
                     x0,
                     docp.var_l, docp.var_u, 
                     (c, x) -> DOCP_constraints!(c, x, docp), 
-                    docp.con_l, docp.con_u, 
+                    docp.con_l, docp.con_u,
                     backend = :optimized)
 
 return docp

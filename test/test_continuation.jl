@@ -85,45 +85,13 @@ end
 
 # goddard max final altitude
 if (test3)
-    Cd = 310
-    Tmax = 3.5
-    β = 500
-    b = 2
-    function F0(x)
-        r, v, m = x
-        D = Cd * v^2 * exp(-β*(r - 1))
-        return [ v, -D/m - 1/r^2, 0 ]
-    end
-    function F1(x)
-        r, v, m = x
-        return [ 0, Tmax/m, -b*Tmax ]
-    end
-
-    ocp = Model(variable=true)
-    r0 = 1
-    v0 = 0
-    m0 = 1
-    mf = 0.6
-    x0=[r0,v0,m0]
-    vmax = 0.1
-    state!(ocp, 3)
-    control!(ocp, 1)
-    variable!(ocp, 1)
-    time!(ocp, t0=0, indf=1)
-    constraint!(ocp, :initial, lb=x0, ub=x0)
-    constraint!(ocp, :final, rg=3, lb=mf, ub=Inf)
-    constraint!(ocp, :state, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
-    constraint!(ocp, :control, lb=0, ub=1)
-    constraint!(ocp, :variable, lb=0.01, ub=Inf)
-    objective!(ocp, :mayer, (x0, xf, v) -> xf[1], :max)
-    dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
-
+    include("problems/goddard.jl")
     # solve unconstrained problem
     sol0 = solve(ocp, print_level=0)
     @printf("\nObjective for goddard reference solution %.6f",  sol0.objective)
 
     # using a global variable in ocp definition
-    print("\nDiscrete continuation on maximal thrust\nTmax ")
+    print("\nDiscrete continuation on maximal thrust")
     # continuation on Tmax (using default init is slower)
     Tmax_list = []
     obj_list = []

@@ -68,45 +68,14 @@ end
 =#
 
 # goddard
-ocp = Model(variable=true)
-Cd = 310
-Tmax = 3.5
-β = 500
-b = 2
-r0 = 1
-v0 = 0
-vmax = 0.1
-m0 = 1
-mf = 0.6
-x0 = [ r0, v0, m0 ]
-state!(ocp, 3)
-control!(ocp, 1)
-variable!(ocp, 1)
-time!(ocp, t0=0, indf=1)
-constraint!(ocp, :initial, lb=x0, ub=x0)
-constraint!(ocp, :final, rg=3, lb=mf, ub=mf)
-constraint!(ocp, :state, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
-constraint!(ocp, :control, lb=0, ub=1)
-constraint!(ocp, :variable, lb=0.01, ub=Inf)
-objective!(ocp, :mayer,  (x0, xf, v) -> xf[1], :max)
-function F0(x)
-    r, v, m = x
-    D = Cd * v^2 * exp(-β*(r - 1))
-    return [ v, -D/m - 1/r^2, 0 ]
-end
-function F1(x)
-    r, v, m = x
-    return [ 0, Tmax/m, -b*Tmax ]
-end
-dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
-sol0 = solve(ocp, print_level=0)
+sol0 = solve(goddard, print_level=0)
 
 @testset verbose = true showtiming = true ":global_variable :warm_start" begin
     sol = sol0
     obj_list = []
     for Tmax_local=3.5:-0.5:1
         global Tmax = Tmax_local 
-        sol = solve(ocp, print_level=0, init=sol)
+        sol = solve(goddard, print_level=0, init=sol)
         push!(obj_list, sol.objective)
     end
     @test obj_list ≈ [1.0125, 1.0124, 1.0120, 1.0112, 1.0092, 1.0036] rtol=1e-2
