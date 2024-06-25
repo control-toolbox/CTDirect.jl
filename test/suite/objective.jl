@@ -1,5 +1,5 @@
 # tests some objective options, variable tf
-println("Test: double integrator")
+println("Test: objective")
 
 # min tf
 ocp = Model(variable=true)
@@ -15,7 +15,7 @@ dynamics!(ocp, (x, u, v) ->  [x[2], u])
 objective!(ocp, :mayer, (x0, xf, v) -> v)
 
 @testset verbose = true showtiming = true ":min_tf :mayer" begin
-    sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
+    sol = solve(ocp, print_level=0, tol=1e-12)
     @test sol.objective ≈ 2.0 rtol=1e-2
 end
 
@@ -34,7 +34,7 @@ dynamics!(ocp, (x, u, v) ->  [x[2], u])
 objective!(ocp, :lagrange, (x, u, v) -> 1)
 
 @testset verbose = true showtiming = true ":min_tf :lagrange" begin
-    sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
+    sol = solve(ocp, print_level=0, tol=1e-12)
     @test sol.objective ≈ 2.0 rtol=1e-2
 end
 
@@ -54,12 +54,12 @@ dynamics!(ocp, (x, u, v) ->  [x[2], u])
 objective!(ocp, :mayer, (x0, xf, v) -> v[1], :max)
 
 @testset verbose = true showtiming = true ":max_t0" begin
-    sol = solve(ocp, grid_size=100, print_level=0, tol=1e-12)
+    sol = solve(ocp, print_level=0, tol=1e-12)
     @test sol.objective ≈ 8.0 rtol=1e-2
 end
 
 @testset verbose = true showtiming = true ":max_t0 :explicit_grid" begin
-    sol = solve(ocp, time_grid=LinRange(0,1,101), print_level=0, tol=1e-12)
+    sol = solve(ocp, time_grid=LinRange(0,1,CTDirect.__grid_size_direct()+1), print_level=0, tol=1e-12)
     @test sol.objective ≈ 8.0 rtol=1e-2
 end
 

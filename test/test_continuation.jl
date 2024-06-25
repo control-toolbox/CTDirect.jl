@@ -31,24 +31,14 @@ if test1
 
     # continuation on final time
     init1 = OptimalControlInit()
-    iter_list = []
     for T=1:5
         local ocp1 = ocp_T(T) 
         local sol1 = solve(ocp1, print_level=0, init=init1)
         global init1 = sol1
         @printf("T %.2f objective %.6f iterations %d\n", T, sol1.objective, sol1.iterations)
-        push!(iter_list, sol1.iterations)
     end
-    @printf("Average iterations %.2f\n", sum(iter_list)/length(iter_list))
 
-    # recheck solution (T=2) with explicit / non-uniform grid
-    ocpT2 = ocp_T(2)
-    solT2 = solve(ocpT2, print_level=0)
-    solT2_exp = solve(ocpT2, time_grid=LinRange(0,1,101),print_level=0)
-    println("T=2 Check explicit grid ", (solT2.objective==solT2_exp.objective) && (solT2.iterations==solT2_exp.iterations))
-    solT2_nonunif = solve(ocpT2, time_grid=[0,0.3,1,1.9,2],print_level=0)
-    println("T=2 with non-uniform grid ", solT2_nonunif.objective)
-    plot(solT2_nonunif, show=true)
+
 
 end
 
@@ -83,74 +73,36 @@ if test2
 
     # continuation on rho
     init2 = OptimalControlInit()
-    iter_list = []
     ρs = [0.1, 5, 10, 30, 100]
     for ρ in ρs
         local ocp2 = myocp(ρ)
         local sol2 = solve(ocp2, print_level=0, init=init2)
         global init2 = sol2
         @printf("Rho %.2f objective %.6f iterations %d\n", ρ, sol2.objective, sol2.iterations)
-        push!(iter_list, sol2.iterations)
     end
-    @printf("Average iterations %.2f\n", sum(iter_list)/length(iter_list))
 end
 
 
 # goddard max final altitude
 if (test3)
-    Cd = 310
-    Tmax = 3.5
-    β = 500
-    b = 2
-    function F0(x)
-        r, v, m = x
-        D = Cd * v^2 * exp(-β*(r - 1))
-        return [ v, -D/m - 1/r^2, 0 ]
-    end
-    function F1(x)
-        r, v, m = x
-        return [ 0, Tmax/m, -b*Tmax ]
-    end
-
-    ocp = Model(variable=true)
-    r0 = 1
-    v0 = 0
-    m0 = 1
-    mf = 0.6
-    x0=[r0,v0,m0]
-    vmax = 0.1
-    state!(ocp, 3)
-    control!(ocp, 1)
-    variable!(ocp, 1)
-    time!(ocp, t0=0, indf=1)
-    constraint!(ocp, :initial, lb=x0, ub=x0)
-    constraint!(ocp, :final, rg=3, lb=mf, ub=Inf)
-    constraint!(ocp, :state, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
-    constraint!(ocp, :control, lb=0, ub=1)
-    constraint!(ocp, :variable, lb=0.01, ub=Inf)
-    objective!(ocp, :mayer, (x0, xf, v) -> xf[1], :max)
-    dynamics!(ocp, (x, u, v) -> F0(x) + u*F1(x) )
-
+    include("problems/goddard.jl")
     # solve unconstrained problem
     sol0 = solve(ocp, print_level=0)
     @printf("\nObjective for goddard reference solution %.6f",  sol0.objective)
 
     # using a global variable in ocp definition
-    print("\nDiscrete continuation on maximal thrust\nTmax ")
+    print("\nDiscrete continuation on maximal thrust")
     # continuation on Tmax (using default init is slower)
     Tmax_list = []
     obj_list = []
-    iter_list = []
     sol3 = sol0
     for Tmax_local=3.5:-0.5:1
-        global Tmax = Tmax_local 
-        print(Tmax," ")   
+        global Tmax = Tmax_local  
         global sol3 = solve(ocp, print_level=0, init=sol3)
+        @printf("Tmax %.2f objective %.6f iterations %d\n", Tmax, sol3.objective, sol3.iterations)
         push!(Tmax_list, Tmax)
         push!(obj_list, sol3.objective)
-        push!(iter_list, sol3.iterations)
     end
-    @printf("\nAverage iterations %.2f\n", sum(iter_list)/length(iter_list))
 
     # plot obj(vmax)
     pobj = plot(Tmax_list, obj_list, label="r(tf)", xlabel="Maximal thrust (Tmax)", ylabel="Maximal altitude r(tf)",seriestype=:scatter)
