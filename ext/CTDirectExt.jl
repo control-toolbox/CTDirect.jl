@@ -1,28 +1,29 @@
 module CTDirectExt
 
-    using CTDirect
+using CTDirect
+using CTBase
+using DocStringExtensions
 
-    # load save export
-    using JLD2
+# load save export
+using JLD2
     
-    """
-    $(TYPEDSIGNATURES)
-     
-    Save OCP solution in JLD2 format
-    """
-    function CTDirect.save_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution")
-        save_object(filename_prefix * ".jld2", sol)
-        return nothing
-    end
+"""
+$(TYPEDSIGNATURES)
+  
+Save OCP solution in JLD2 format
+"""
+function CTDirect.save_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution")
+    save_object(filename_prefix * ".jld2", sol)
+    return nothing
+end
         
-    """
-    $(TYPEDSIGNATURES)
+"""
+$(TYPEDSIGNATURES)
      
-    Load OCP solution in JLD2 format
-    """
-    function CTDirect.load_OCP_solution(filename_prefix="solution")
-        return load_object(filename_prefix * ".jld2")
-    end
-
+Load OCP solution in JLD2 format
+"""
+function CTDirect.load_OCP_solution(filename_prefix="solution")
+    return load_object(filename_prefix * ".jld2")
+end
 
 end
