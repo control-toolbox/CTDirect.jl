@@ -47,12 +47,7 @@ function CommonSolve.solve(docp::DOCP;
     return docp_solution
 end
 
-export solve
 
-end
-
-
-#=
 """
 $(TYPEDSIGNATURES)
 
@@ -73,9 +68,14 @@ function CommonSolve.solve(ocp::OptimalControlModel,
     docp = directTranscription(ocp, description, init=OptimalControlInit(init), grid_size=grid_size, time_grid=time_grid)
 
     # solve DOCP
-    docp_solution = CTSolveExt.solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, linear_solver=linear_solver; kwargs...)
+    docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, linear_solver=linear_solver; kwargs...)
 
     # build and return OCP solution
     return OCPSolutionFromDOCP(docp, docp_solution)
 end
-=#
+
+export solve
+
+end
+
+
