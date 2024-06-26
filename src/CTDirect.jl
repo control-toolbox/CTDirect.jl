@@ -23,8 +23,6 @@ include("problem.jl")
 include("solution.jl")
 include("solve.jl")
 
-# re-exports
-export solve
 
 # exports
 export available_methods
