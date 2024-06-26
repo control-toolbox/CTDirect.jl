@@ -1,6 +1,5 @@
 using Documenter
-using CTDirect
-using CTBase
+include("../test/common_deps.jl")
 using Plots
 
 DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
