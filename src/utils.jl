@@ -272,58 +272,12 @@ mutable struct OCP_Solution_discrete
     end
 end
 
-
 # placeholders for load / save function (see CTDirectExt)
 save_OCP_solution() = error("placeholder for save")
 #load_OCP_solution() = error("placeholder for load") # precompilation error (overwriting method)
 function load_OCP_solution end #ok for precompilation
 export_OCP_solution() = error("placeholder for export")
 function read_OCP_solution end
-
-#=
-"""
-$(TYPEDSIGNATURES)
-  
-Save OCP solution in JLD2 format
-"""
-function save_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution")
-    save_object(filename_prefix * ".jld2", sol)
-    return nothing
-end
-    
-"""
-$(TYPEDSIGNATURES)
- 
-Load OCP solution in JLD2 format
-"""
-function load_OCP_solution(filename_prefix="solution")
-    return load_object(filename_prefix * ".jld2")
-end
-=#
-
-#=
-"""
-$(TYPEDSIGNATURES)
-  
-Export OCP solution in JSON format
-"""
-function export_OCP_solution(sol::OptimalControlSolution; filename_prefix="solution")
-    open(filename_prefix * ".json", "w") do io
-        JSON3.pretty(io, OCP_Solution_discrete(sol))
-    end
-    return nothing
-end
-
-"""
-$(TYPEDSIGNATURES)
-  
-Read OCP solution in JSON format
-"""
-function read_OCP_solution(filename_prefix="solution")
-    json_string = read(filename_prefix * ".json", String)
-    return JSON3.read(json_string)
-end
-=#
 
 #=
 """

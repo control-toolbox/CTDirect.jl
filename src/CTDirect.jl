@@ -6,6 +6,7 @@ using ADNLPModels               # docp model with AD
 #using NLPModelsIpopt            # NLP solver
 using LinearAlgebra             # norm
 #using HSL
+using CommonSolve: solve
 
 # Other declarations
 const __grid_size_direct() = 100
@@ -22,8 +23,10 @@ include("problem.jl")
 include("solution.jl")
 include("solve.jl")
 
-# export functions only for user
+# re exports
 export solve
+
+# exports
 export available_methods
 export is_solvable
 export directTranscription
