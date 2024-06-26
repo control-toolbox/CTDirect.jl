@@ -277,7 +277,8 @@ end
 save_OCP_solution() = error("placeholder for save")
 #load_OCP_solution() = error("placeholder for load") # precompilation error (overwriting method)
 function load_OCP_solution end #ok for precompilation
-
+export_OCP_solution() = error("placeholder for export")
+function read_OCP_solution end
 
 #=
 """
@@ -300,7 +301,7 @@ function load_OCP_solution(filename_prefix="solution")
 end
 =#
 
-
+#=
 """
 $(TYPEDSIGNATURES)
   
@@ -322,6 +323,7 @@ function read_OCP_solution(filename_prefix="solution")
     json_string = read(filename_prefix * ".json", String)
     return JSON3.read(json_string)
 end
+=#
 
 #=
 """

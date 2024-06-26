@@ -6,8 +6,6 @@ using ADNLPModels               # docp model with AD
 using NLPModelsIpopt            # NLP solver
 using LinearAlgebra             # norm
 using HSL
-using JSON3
-using StructTypes
 
 # Other declarations
 const __grid_size_direct() = 100
