@@ -74,8 +74,6 @@ function CommonSolve.solve(ocp::OptimalControlModel,
     return OCPSolutionFromDOCP(docp, docp_solution)
 end
 
-export solve
-
 end
 
 
