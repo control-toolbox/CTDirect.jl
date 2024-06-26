@@ -2,6 +2,7 @@ module CTSolveExt
 
 using CTDirect
 using CTBase
+using CommonSolve
 using DocStringExtensions
 
 using NLPModelsIpopt # solve
@@ -12,7 +13,7 @@ $(TYPEDSIGNATURES)
 
 Solve a discretized optimal control problem DOCP
 """
-function CTDirect.solve(docp::DOCP;
+function CommonSolve.solve(docp::DOCP;
     init=nothing,
     display::Bool=CTDirect.__display(),
     print_level::Integer=CTDirect.__print_level_ipopt(),
@@ -52,7 +53,7 @@ $(TYPEDSIGNATURES)
 
 Solve an optimal control problem OCP by direct method
 """
-function CTDirect.solve(ocp::OptimalControlModel,
+function CommonSolve.solve(ocp::OptimalControlModel,
     description...;
     init=OptimalControlInit(),
     grid_size::Integer=CTDirect.__grid_size_direct(),
@@ -72,7 +73,5 @@ function CTDirect.solve(ocp::OptimalControlModel,
     # build and return OCP solution
     return OCPSolutionFromDOCP(docp, docp_solution)
 end
-
-
 
 end

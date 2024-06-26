@@ -69,7 +69,7 @@ function setInitialGuess(docp::DOCP, init)
 end
 
 # placeholder for package extension (later cf commonsolve.jl ?)
-solve() = error("Placeholder for solve function...")
+#function solve() = error("Placeholder for solve function...")
 
 #=
 """
