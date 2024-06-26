@@ -272,6 +272,15 @@ mutable struct OCP_Solution_discrete
     end
 end
 
+function save_OCP_solution()
+    println("placeholder for save")
+end
+function load_OCP_solution()
+    println("placeholder for load")
+end
+
+
+#=
 """
 $(TYPEDSIGNATURES)
   
@@ -290,6 +299,8 @@ Load OCP solution in JLD2 format
 function load_OCP_solution(filename_prefix="solution")
     return load_object(filename_prefix * ".jld2")
 end
+=#
+
 
 """
 $(TYPEDSIGNATURES)

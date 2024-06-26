@@ -68,6 +68,14 @@ function setInitialGuess(docp::DOCP, init)
 
 end
 
+#=
+# placeholder for package extension (later cf commonsolve.jl ?)
+function solve()
+    println("Placeholder for solve function...")
+    return nothing
+end
+=#
+
 
 """
 $(TYPEDSIGNATURES)
@@ -134,4 +142,3 @@ function solve(ocp::OptimalControlModel,
     # build and return OCP solution
     return OCPSolutionFromDOCP(docp, docp_solution)
 end
-

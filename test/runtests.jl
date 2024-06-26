@@ -1,5 +1,6 @@
 using CTDirect
 using CTBase
+using JLD2
 using Test
 
 # check local test suite
