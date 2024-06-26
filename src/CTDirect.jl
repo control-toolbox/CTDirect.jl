@@ -3,9 +3,9 @@ module CTDirect
 using CTBase
 using DocStringExtensions
 using ADNLPModels               # docp model with AD
-using NLPModelsIpopt            # NLP solver
+#using NLPModelsIpopt            # NLP solver
 using LinearAlgebra             # norm
-using HSL
+#using HSL
 
 # Other declarations
 const __grid_size_direct() = 100
@@ -27,6 +27,7 @@ export solve
 export available_methods
 export is_solvable
 export directTranscription
+export DOCP
 export getNLP
 export setInitialGuess
 export OCPSolutionFromDOCP

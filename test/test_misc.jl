@@ -1,8 +1,5 @@
-using CTDirect
-using CTBase
+include("common_deps.jl")
 using Plots
-using JLD2
-using JSON3
 
 println("Test: misc")
 

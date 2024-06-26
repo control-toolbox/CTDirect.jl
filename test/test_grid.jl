@@ -1,3 +1,8 @@
+include("common_deps.jl")
+using Plots
+
+println("Test: grid options")
+
 # simple integrator min energy
 # control split as positive/negative parts for m=2 tets case
 ocp = Model()

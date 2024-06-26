@@ -1,12 +1,11 @@
-using CTDirect
-using CTBase
-using Plots
-
-# goddard max final altitude (all constraint types formulation)
-println("Test: constraint types")
-
+include("common_deps.jl")
 include("problems/goddard.jl")
 
+println("Test: constraint types")
+
+
+# goddard, box constraints
+ocp = goddard
 sol = solve(ocp, print_level=0, tol=1e-8)
 println("Target 1.0125, found ", sol.objective, " at ", sol.iterations, " iterations")
 

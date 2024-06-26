@@ -1,5 +1,4 @@
-using CTDirect
-using CTBase
+include("common_deps.jl")
 using Printf
 using Plots
 
@@ -86,6 +85,7 @@ end
 # goddard max final altitude
 if (test3)
     include("problems/goddard.jl")
+    ocp = goddard
     # solve unconstrained problem
     sol0 = solve(ocp, print_level=0)
     @printf("\nObjective for goddard reference solution %.6f",  sol0.objective)

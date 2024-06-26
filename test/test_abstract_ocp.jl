@@ -1,5 +1,5 @@
-using CTDirect
-using CTBase
+include("common_deps.jl")
+include("problems/goddard.jl")
 
 println("Test: abstract OCP definition")
 
@@ -22,7 +22,6 @@ println("Target 2.0, found ", sol1.objective)
 
 
 # goddard
-include("problems/goddard.jl")
 # NB. the ≤ is not the same as <= (parse error for <=)
 @def ocp3 begin
     tf ∈ R, variable
