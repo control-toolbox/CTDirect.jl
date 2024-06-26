@@ -5,7 +5,7 @@ using CTBase
 using CommonSolve
 using DocStringExtensions
 
-using NLPModelsIpopt # solve
+using NLPModelsIpopt
 using HSL
 
 """
@@ -49,6 +49,9 @@ end
 
 export solve
 
+end
+
+
 #=
 """
 $(TYPEDSIGNATURES)
@@ -76,5 +79,3 @@ function CommonSolve.solve(ocp::OptimalControlModel,
     return OCPSolutionFromDOCP(docp, docp_solution)
 end
 =#
-
-end
