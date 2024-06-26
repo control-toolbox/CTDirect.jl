@@ -11,10 +11,11 @@ We restrict here ourselves to  vertical (monodimensional) trajectories, and the 
 
 ## Problem definition
 
-First import the CTDirect and CTBase modules
+First import the necessary modules
 ```@example main
 using CTDirect
 using CTBase
+using NLPModelsIpopt
 using Plots
 ```
 

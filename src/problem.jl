@@ -79,7 +79,7 @@ mutable struct DOCP
             end
             # normalize input grid if needed
             if (time_grid[1] != 0) || (time_grid[end] != 1)
-                println("INFO: normalizing given time grid...")
+                #println("INFO: normalizing given time grid...")
                 t0 = time_grid[1]
                 tf = time_grid[end]
                 time_grid = (time_grid .- t0) ./ (tf - t0) 

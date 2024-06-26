@@ -1,6 +1,8 @@
 using Documenter
 using CTDirect
 using CTBase
+using NLPModelsIpopt
+using HSL
 using Plots
 
 DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)

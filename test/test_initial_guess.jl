@@ -1,13 +1,11 @@
-using CTDirect
-using CTBase
+include("common_deps.jl")
+include("problems/goddard.jl")
 using Printf
 
-#################################################
-# goddard max final altitude (all constraint types formulation)
-println("Test goddard: initial guess options\n")
-include("suite/goddard.jl")
+println("Test: initial guess options\n")
 
 # reference solution
+ocp = goddard
 sol0 = solve(ocp, print_level=0)
 
 # use 0 iterations to retrieve initial guess as solution

@@ -272,6 +272,15 @@ mutable struct OCP_Solution_discrete
     end
 end
 
+
+# placeholders for load / save function (see CTDirectExt)
+save_OCP_solution() = error("placeholder for save")
+#load_OCP_solution() = error("placeholder for load") # precompilation error (overwriting method)
+function load_OCP_solution end #ok for precompilation
+export_OCP_solution() = error("placeholder for export")
+function read_OCP_solution end
+
+#=
 """
 $(TYPEDSIGNATURES)
   
@@ -290,7 +299,9 @@ Load OCP solution in JLD2 format
 function load_OCP_solution(filename_prefix="solution")
     return load_object(filename_prefix * ".jld2")
 end
+=#
 
+#=
 """
 $(TYPEDSIGNATURES)
   
@@ -312,6 +323,7 @@ function read_OCP_solution(filename_prefix="solution")
     json_string = read(filename_prefix * ".json", String)
     return JSON3.read(json_string)
 end
+=#
 
 #=
 """

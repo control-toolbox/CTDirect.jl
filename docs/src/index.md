@@ -80,9 +80,8 @@ As input of this package we use an [`OptimalControlModel`](@ref) structure from 
 
 !!! note "Current limitations"
 
-    For the moment we have only implemented
-
-    - trapezoidal rule for the discretization
+    The current implemented is limited to
+    - trapezoidal rule for the ODE discretization
     - `Ipopt` for the optimization software
 
 !!! note "Related packages"

@@ -1,5 +1,4 @@
-using CTDirect
-using CTBase
+include("common_deps.jl")
 using Plots
 
 println("Test: misc")

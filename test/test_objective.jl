@@ -1,6 +1,4 @@
-using CTDirect
-using CTBase
-using Plots
+include("common_deps.jl")
 
 println("Test: objective")
 

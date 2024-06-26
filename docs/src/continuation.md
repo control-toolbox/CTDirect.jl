@@ -8,17 +8,17 @@ This usually gives better and faster convergence than solving each problem with 
 
 The most compact syntax to perform a discrete continuation is to use a function that returns the OCP for a given value of the continuation parameter, and solve a sequence of these problems. We illustrate this on a very basic double integrator with increasing fixed final time.
 
-```@setup main
-using Printf
-using Plots
-```
 
-First we write a function that returns the OCP for a given final time.
-
+First we load the required packages
 ```@example main
 using CTDirect
 using CTBase
-
+using NLPModelsIpopt
+using Printf
+using Plots
+```
+and write a function that returns the OCP for a given final time
+```@example main
 function ocp_T(T)
     @def ocp begin
         t ∈ [ 0, T ], time
