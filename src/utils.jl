@@ -190,17 +190,31 @@ end
 
 
 # local init
-function setFunctionalInit(data)
-    if data isa Function
+function setFunctionalInit(data, time)
+    if isnothing(data)
+        return t-> nothing
+    elseif data isa Function
         return t -> data(t)
-    elseif (data isa ctVector || isnothing(data))
-        return t -> data
+    elseif (data isa ctVector)
+        if isnothing(time)
+            return t -> data
+        else
+            itp = ctinterpolate(time, data)
+            return t -> itp(t)
+        end
+    elseif data isa ctMatrix
+        if isnothing(time)
+            error("Matrix initialization also requires the time vector. Got ", time)
+        else
+            itp = ctinterpolate(time, matrix2vec(data, 1))
+            return t -> itp(t)
+        end
     end
-    # interpolate if matrix. need time grid...
+
 end
 
 mutable struct _OptimalControlInit
-
+   
     state_init::Function
     control_init::Function
     variable_init::Union{Nothing, ctVector}
@@ -208,11 +222,11 @@ mutable struct _OptimalControlInit
     multipliers_init::Union{Nothing, ctVector}
 
     # base constructor with explicit arguments
-    function _OptimalControlInit(; state::Union{Nothing, ctVector, Function}=nothing, control::Union{Nothing, ctVector, Function}=nothing, variable::Union{Nothing, ctVector}=nothing)
+    function _OptimalControlInit(; state::Union{Nothing, ctVector, Function}=nothing, control::Union{Nothing, ctVector, Function}=nothing, variable::Union{Nothing, ctVector}=nothing, time::Union{Nothing, ctVector}=nothing)
         
         init = new()
-        init.state_init = setFunctionalInit(state)
-        init.control_init = setFunctionalInit(control)
+        init.state_init = setFunctionalInit(state, time)
+        init.control_init = setFunctionalInit(control, time)
         init.variable_init = variable
         return init
 
@@ -224,6 +238,7 @@ mutable struct _OptimalControlInit
         x_init = nothing
         u_init = nothing
         v_init = nothing
+        t_init = nothing
 
         for key in keys(init_data)
             if key == :state
@@ -232,12 +247,14 @@ mutable struct _OptimalControlInit
                 u_init = init_data[:control]
             elseif key == :variable
                 v_init = init_data[:variable]
+            elseif key == :time
+                t_init = init_data[:time]
             else
-                error("Unknown key in initialization data (allowed: state, control, variable): ", key)
+                error("Unknown key in initialization data (allowed: state, control, variable, time): ", key)
             end
         end
 
-        return _OptimalControlInit(state=x_init, control=u_init, variable=v_init)
+        return _OptimalControlInit(state=x_init, control=u_init, variable=v_init, time=t_init)
     
     end
 
