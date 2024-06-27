@@ -23,16 +23,15 @@ u_func = t->(cos(10*t)+1)*0.5
 
 # matrix
 tf=0.1
-time = LinRange(0,tf,11)
-x_matrix = x_func.(time)
-u_matrix = u_func.(time)
-#println(x_matrix)
-println(u_matrix)
-sol = solve(ocp, print_level=0, init=(time=time, control=u_matrix), max_iter=0)
-@printf("%-56s %.3f at %d iterations\n", "Matrix for u", sol.objective, sol.iterations)
+steps=11
+time = LinRange(0,tf,steps)
+x_matrix = stack(x_func.(time),dims=1)
+u_matrix = stack(u_func.(time),dims=1)
+sol = solve(ocp, print_level=0, init=(time=time, state=x_matrix, control=u_matrix), max_iter=0)
 plot(sol, show=true)
+sol = solve(ocp, print_level=0, init=(time=time, state=x_matrix, control=u_matrix), max_iter=maxiter)
+@printf("%-56s %.3f at %d iterations\n", "Matrix for x, u", sol.objective, sol.iterations)
 
-error("stop")
 
 #################################################
 # 1 Pass initial guess to all-in-one solve call

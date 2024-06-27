@@ -202,7 +202,7 @@ function setFunctionalInit(data, time)
             itp = ctinterpolate(time, data)
             return t -> itp(t)
         end
-    elseif data isa ctMatrix
+    elseif data isa Matrix
         if isnothing(time)
             error("Matrix initialization also requires the time vector. Got ", time)
         else
@@ -222,7 +222,7 @@ mutable struct _OptimalControlInit
     multipliers_init::Union{Nothing, ctVector}
 
     # base constructor with explicit arguments
-    function _OptimalControlInit(; state::Union{Nothing, ctVector, Function}=nothing, control::Union{Nothing, ctVector, Function}=nothing, variable::Union{Nothing, ctVector}=nothing, time::Union{Nothing, ctVector}=nothing)
+    function _OptimalControlInit(; state::Union{Nothing, ctVector, Function, Matrix}=nothing, control::Union{Nothing, ctVector, Function, Matrix}=nothing, variable::Union{Nothing, ctVector}=nothing, time::Union{Nothing, ctVector}=nothing)
         
         init = new()
         init.state_init = setFunctionalInit(state, time)
