@@ -190,6 +190,14 @@ end
 
 
 # local init
+function setFunctionalInit(data)
+    if data isa Function
+        return t -> data(t)
+    elseif (data isa ctVector || isnothing(data))
+        return t -> data
+    end
+    # interpolate if matrix. need time grid...
+end
 
 mutable struct _OptimalControlInit
 
@@ -198,47 +206,47 @@ mutable struct _OptimalControlInit
     variable_init::Union{Nothing, ctVector}
     costate_init::Function
     multipliers_init::Union{Nothing, ctVector}
-    info::Symbol
 
-    # warm start from solution
-    function _OptimalControlInit(sol::OptimalControlSolution)
-
-        init = new()
-        init.info = :from_solution
-        init.state_init    = t -> sol.state(t)
-        init.control_init  = t -> sol.control(t)
-        init.variable_init = sol.variable
-        #+++ add costate and scalar multipliers
-
-        return init
-    end
-
-    # constant / functional init with explicit arguments
+    # base constructor with explicit arguments
     function _OptimalControlInit(; state::Union{Nothing, ctVector, Function}=nothing, control::Union{Nothing, ctVector, Function}=nothing, variable::Union{Nothing, ctVector}=nothing)
         
         init = new()
-        init.info = :constant_or_function
-        init.state_init = (state isa Function) ? t -> state(t) : t -> state
-        init.control_init = (control isa Function) ? t -> control(t) : t -> control
+        init.state_init = setFunctionalInit(state)
+        init.control_init = setFunctionalInit(control)
         init.variable_init = variable
-        #+++ add costate and scalar multipliers
-        
         return init
+
     end
 
-    # version with arguments as collection/iterable
-    # (may be fused with version above ?)
-    function _OptimalControlInit(init)
+    # version with arguments as named tuple or dict
+    function _OptimalControlInit(init_data)
 
-        x_init = :state    ∈ keys(init) ? init[:state]    : nothing
-        u_init = :control  ∈ keys(init) ? init[:control]  : nothing
-        v_init = :variable ∈ keys(init) ? init[:variable] : nothing
+        x_init = nothing
+        u_init = nothing
+        v_init = nothing
+
+        for key in keys(init_data)
+            if key == :state
+                x_init = init_data[:state]
+            elseif key == :control
+                u_init = init_data[:control]
+            elseif key == :variable
+                v_init = init_data[:variable]
+            else
+                error("Unknown key in initialization data (allowed: state, control, variable): ", key)
+            end
+        end
+
         return _OptimalControlInit(state=x_init, control=u_init, variable=v_init)
     
     end
 
-    # trivial version that just returns its argument
-    # used for unified syntax in caller functions
+    # warm start from solution
+    function _OptimalControlInit(sol::OptimalControlSolution)
+        return _OptimalControlInit(state=sol.state, control=sol.control, variable=sol.variable)
+    end
+
+    # trivial version for unified syntax in caller functions
     function _OptimalControlInit(init::_OptimalControlInit)
         return init
     end
