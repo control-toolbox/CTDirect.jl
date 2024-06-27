@@ -95,7 +95,7 @@ sol = OCPSolutionFromDOCP(docp, dsol)
 #################################################
 # 3 Passing the initial guess to solve call
 println("\n3. Passing the initial guess to solve call")
-setInitialGuess(docp, OptimalControlInit()) # reset init in docp
+setInitialGuess(docp, ()) # reset init in docp
 # mixed init
 dsol = solve(docp, init=(state=x_func, control=u_const), print_level=0, max_iter=maxiter)
 sol = OCPSolutionFromDOCP(docp, dsol)

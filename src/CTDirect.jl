@@ -3,9 +3,7 @@ module CTDirect
 using CTBase
 using DocStringExtensions
 using ADNLPModels               # docp model with AD
-#using NLPModelsIpopt            # NLP solver
 using LinearAlgebra             # norm
-#using HSL
 using CommonSolve: solve
 
 # Other declarations
@@ -24,7 +22,7 @@ include("solution.jl")
 include("solve.jl")
 
 # re exports
-export solve
+export solve # CommonSolve
 
 # exports
 export available_methods

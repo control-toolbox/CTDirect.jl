@@ -89,7 +89,7 @@ end
 end
 
 # pass initial guess to solve
-setInitialGuess(docp, OptimalControlInit()) # reset init in docp
+setInitialGuess(docp, ()) # reset init in docp
 
 @testset verbose = true showtiming = true ":solve_mixed_init :compact" begin
     dsol = solve(docp, init=(state=x_func, control=u_const), print_level=0)

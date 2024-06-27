@@ -18,7 +18,7 @@ function ocp_T(T)
     return ocp
 end
 @testset verbose = true showtiming = true ":parametric_ocp :warm_start" begin
-    init = OptimalControlInit()
+    init = ()
     obj_list = []
     for T=1:5
         ocp = ocp_T(T) 
@@ -55,7 +55,7 @@ function myocp(ρ)
     return ocp
 end
 @testset verbose = true showtiming = true ":parametric_ocp :warm_start" begin
-    init = OptimalControlInit()
+    init = ()
     obj_list = []
     for ρ in [0.1, 5, 10, 30, 100]
         ocp = myocp(ρ)

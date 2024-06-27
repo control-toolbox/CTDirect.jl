@@ -29,7 +29,7 @@ if test1
     end
 
     # continuation on final time
-    init1 = OptimalControlInit()
+    init1 = ()
     for T=1:5
         local ocp1 = ocp_T(T) 
         local sol1 = solve(ocp1, print_level=0, init=init1)
@@ -71,7 +71,7 @@ if test2
     end
 
     # continuation on rho
-    init2 = OptimalControlInit()
+    init2 = () #OptimalControlInit()
     ρs = [0.1, 5, 10, 30, 100]
     for ρ in ρs
         local ocp2 = myocp(ρ)
