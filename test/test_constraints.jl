@@ -9,7 +9,6 @@ ocp = goddard
 sol = solve(ocp, print_level=0, tol=1e-8)
 println("Target 1.0125, found ", sol.objective, " at ", sol.iterations, " iterations")
 
-#=
 # functional constraints
 ocp1 = Model(variable=true)
 state!(ocp1, 3)
@@ -24,6 +23,7 @@ constraint!(ocp1, :variable, f=v->v, lb=0.01, ub=Inf)
 objective!(ocp1, :mayer, (x0, xf, v) -> xf[1], :max)
 dynamics!(ocp1, (x, u, v) -> F0(x) + u*F1(x) )
 
-sol = solve(ocp1, print_level=5, tol=1e-8)
+# note: the equations do not handle r<1 well
+# without the box constraint on x, the default init (0.1) is not suitable
+sol = solve(ocp1, print_level=0, tol=1e-8, init=(state=[1.01,0.05,0.75],))
 println("Target 1.0125, found ", sol.objective, " at ", sol.iterations, " iterations")
-=#
