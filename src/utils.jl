@@ -272,11 +272,10 @@ mutable struct OCP_Solution_discrete
     end
 end
 
-# placeholders for load / save function (see CTDirectExt)
-save_OCP_solution() = error("placeholder for save")
-#load_OCP_solution() = error("placeholder for load") # precompilation error (overwriting method)
-function load_OCP_solution end #ok for precompilation
-export_OCP_solution() = error("placeholder for export")
+# placeholders (see CTDirectExt)
+function save_OCP_solution end
+function load_OCP_solution end
+function export_OCP_solution end
 function read_OCP_solution end
 
 #=
