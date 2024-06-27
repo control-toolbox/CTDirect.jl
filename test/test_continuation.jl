@@ -71,7 +71,7 @@ if test2
     end
 
     # continuation on rho
-    init2 = () #OptimalControlInit()
+    init2 = ()
     ρs = [0.1, 5, 10, 30, 100]
     for ρ in ρs
         local ocp2 = myocp(ρ)
