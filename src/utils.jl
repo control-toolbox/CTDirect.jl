@@ -210,7 +210,7 @@ function setFunctionalInit(data, time)
         # functional initialization
         return t -> data(t)
     elseif (data isa ctVector)
-        if length(data) == length(time)
+        if !isnothing(time) && (length(data) == length(time))
             # interpolation vs time, dim 1 case
             itp = ctinterpolate(time, data)
             return t -> itp(t)
@@ -230,7 +230,7 @@ end
 
 function checkTimeGrid(time)
     if isnothing(time)
-        return LinRange(0,1,CTDirect.__grid_size_direct()+1)
+        return nothing
     elseif time isa ctVector
         return time
     else
