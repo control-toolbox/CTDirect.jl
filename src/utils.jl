@@ -190,27 +190,52 @@ end
 
 
 # local init
+function isaVectVect(data)
+    return (data isa Vector) && (data[1] isa ctVector)
+end
+
+function checkData(data)
+    if data isa Matrix
+        return matrix2vec(data,1)
+    else
+        return data
+    end
+end
+
 function setFunctionalInit(data, time)
     if isnothing(data)
+        # fallback to method-dependent default initialization
         return t-> nothing
     elseif data isa Function
+        # functional initialization
         return t -> data(t)
     elseif (data isa ctVector)
-        if isnothing(time)
-            return t -> data
-        else
+        if length(data) == length(time)
+            # interpolation vs time, dim 1 case
             itp = ctinterpolate(time, data)
             return t -> itp(t)
-        end
-    elseif data isa Matrix
-        if isnothing(time)
-            error("Matrix initialization also requires the time vector. Got ", time)
         else
-            itp = ctinterpolate(time, matrix2vec(data, 1))
-            return t -> itp(t)
+            # constant initialization
+            return t -> data
         end
+    elseif isaVectVect(data)
+        # interpolation vs time, general case
+        itp = ctinterpolate(time, data)
+        return t -> itp(t)
+    else
+        error("Unrecognized initialization argument: ",typeof(data))
     end
 
+end
+
+function checkTimeGrid(time)
+    if isnothing(time)
+        return LinRange(0,1,CTDirect.__grid_size_direct()+1)
+    elseif time isa ctVector
+        return time
+    else
+        return vec(time)
+    end
 end
 
 mutable struct _OptimalControlInit
@@ -222,9 +247,12 @@ mutable struct _OptimalControlInit
     multipliers_init::Union{Nothing, ctVector}
 
     # base constructor with explicit arguments
-    function _OptimalControlInit(; state::Union{Nothing, ctVector, Function, Matrix}=nothing, control::Union{Nothing, ctVector, Function, Matrix}=nothing, variable::Union{Nothing, ctVector}=nothing, time::Union{Nothing, ctVector}=nothing)
+    function _OptimalControlInit(; state=nothing, control=nothing, variable=nothing, time=nothing)
         
         init = new()
+        time = checkTimeGrid(time)
+        state = checkData(state)
+        control = checkData(control)
         init.state_init = setFunctionalInit(state, time)
         init.control_init = setFunctionalInit(control, time)
         init.variable_init = variable

@@ -21,18 +21,6 @@ v_const = 0.15
 x_func = t->[1+t^2, sqrt(t), 1-t]
 u_func = t->(cos(10*t)+1)*0.5
 
-# matrix
-tf=0.1
-steps=11
-time = LinRange(0,tf,steps)
-x_matrix = stack(x_func.(time),dims=1)
-u_matrix = stack(u_func.(time),dims=1)
-sol = solve(ocp, print_level=0, init=(time=time, state=x_matrix, control=u_matrix), max_iter=0)
-plot(sol, show=true)
-sol = solve(ocp, print_level=0, init=(time=time, state=x_matrix, control=u_matrix), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Matrix for x, u", sol.objective, sol.iterations)
-
-
 #################################################
 # 1 Pass initial guess to all-in-one solve call
 println("1. Passing the initial guess at the main solve level")
