@@ -194,7 +194,7 @@ function isaVectVect(data)
     return (data isa Vector) && (data[1] isa ctVector)
 end
 
-function checkData(data)
+function formatData(data)
     if data isa Matrix
         return matrix2vec(data,1)
     else
@@ -202,33 +202,7 @@ function checkData(data)
     end
 end
 
-function setFunctionalInit(data, time)
-    if isnothing(data)
-        # fallback to method-dependent default initialization
-        return t-> nothing
-    elseif data isa Function
-        # functional initialization
-        return t -> data(t)
-    elseif (data isa ctVector)
-        if !isnothing(time) && (length(data) == length(time))
-            # interpolation vs time, dim 1 case
-            itp = ctinterpolate(time, data)
-            return t -> itp(t)
-        else
-            # constant initialization
-            return t -> data
-        end
-    elseif isaVectVect(data)
-        # interpolation vs time, general case
-        itp = ctinterpolate(time, data)
-        return t -> itp(t)
-    else
-        error("Unrecognized initialization argument: ",typeof(data))
-    end
-
-end
-
-function checkTimeGrid(time)
+function formatTimeGrid(time)
     if isnothing(time)
         return nothing
     elseif time isa ctVector
@@ -238,8 +212,48 @@ function checkTimeGrid(time)
     end
 end
 
+# +++split in different methods vs data/time type ?!
+function setFunctionalInit(data, time, dim)
+    if isnothing(data)
+        # fallback to method-dependent default initialization
+        return t-> nothing
+    elseif data isa Function
+        # functional initialization
+        if !isnothing(dim) && length(data(0)) != dim
+            error("Init dimension mismatch: got ",length(data(0))," but expected ",dim )
+        else
+            return t -> data(t)
+        end
+    elseif (data isa ctVector)
+        if !isnothing(time) && (length(data) == length(time))
+            # interpolation vs time, dim 1 case
+            itp = ctinterpolate(time, data)
+            return t -> itp(t)
+        elseif !isnothing(dim) && length(data) != dim
+            error("Init dimension mismatch: got ",length(data)," but expected ",dim )
+        else
+            # constant initialization
+            return t -> data
+        end
+    elseif isaVectVect(data)
+        # interpolation vs time, general case
+        itp = ctinterpolate(time, data)
+        if !isnothing(dim) && length(itp(0)) != dim
+            error("Init dimension mismatch: got ",length(itp(0))," but expected ",dim )
+        else
+            return t -> itp(t)
+        end
+    else
+        error("Unrecognized initialization argument: ",typeof(data))
+    end
+
+end
+
 mutable struct _OptimalControlInit
    
+    state_dimension
+    control_dimension
+    variable_dimension
     state_init::Function
     control_init::Function
     variable_init::Union{Nothing, ctVector}
@@ -247,54 +261,64 @@ mutable struct _OptimalControlInit
     multipliers_init::Union{Nothing, ctVector}
 
     # base constructor with explicit arguments
-    function _OptimalControlInit(; state=nothing, control=nothing, variable=nothing, time=nothing)
+    function _OptimalControlInit(; state=nothing, control=nothing, variable=nothing, time=nothing, state_dim=nothing, control_dim=nothing, variable_dim=nothing)
         
         init = new()
-        time = checkTimeGrid(time)
-        state = checkData(state)
-        control = checkData(control)
-        init.state_init = setFunctionalInit(state, time)
-        init.control_init = setFunctionalInit(control, time)
+        time = formatTimeGrid(time)
+        state = formatData(state)
+        control = formatData(control)
+        init.state_init = setFunctionalInit(state, time, state_dim)
+        init.control_init = setFunctionalInit(control, time, control_dim)
+        # check v dim
         init.variable_init = variable
         return init
 
     end
 
     # version with arguments as named tuple or dict
-    function _OptimalControlInit(init_data)
+    function _OptimalControlInit(init_data; state_dim=nothing, control_dim=nothing, variable_dim=nothing)
 
+        # trivial case: default init
         x_init = nothing
         u_init = nothing
         v_init = nothing
         t_init = nothing
+        x_dim = nothing
+        u_dim = nothing
+        v_dim = nothing
 
-        for key in keys(init_data)
-            if key == :state
-                x_init = init_data[:state]
-            elseif key == :control
-                u_init = init_data[:control]
-            elseif key == :variable
-                v_init = init_data[:variable]
-            elseif key == :time
-                t_init = init_data[:time]
-            else
-                error("Unknown key in initialization data (allowed: state, control, variable, time): ", key)
+        # parse arguments and call base constructor
+        if !isnothing(init_data)
+            for key in keys(init_data)
+                if key == :state
+                    x_init = init_data[:state]
+                elseif key == :control
+                    u_init = init_data[:control]
+                elseif key == :variable
+                    v_init = init_data[:variable]
+                elseif key == :time
+                    t_init = init_data[:time]
+                else
+                    error("Unknown key in initialization data (allowed: state, control, variable, time, state_dim, control_dim, variable_dim): ", key)
+                end
             end
         end
 
-        return _OptimalControlInit(state=x_init, control=u_init, variable=v_init, time=t_init)
+        return _OptimalControlInit(state=x_init, control=u_init, variable=v_init, time=t_init, state_dim=state_dim, control_dim=control_dim, variable_dim=variable_dim)
     
     end
 
     # warm start from solution
-    function _OptimalControlInit(sol::OptimalControlSolution)
-        return _OptimalControlInit(state=sol.state, control=sol.control, variable=sol.variable)
+    function _OptimalControlInit(sol::OptimalControlSolution; unused_kwargs...)
+        return _OptimalControlInit(state=sol.state, control=sol.control, variable=sol.variable, state_dim=sol.state_dimension, control_dim=sol.control_dimension, variable_dim=sol.variable_dimension)
     end
 
+    #=
     # trivial version for unified syntax in caller functions
     function _OptimalControlInit(init::_OptimalControlInit)
         return init
     end
+    =#
 
 end
 

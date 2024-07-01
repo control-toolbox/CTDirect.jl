@@ -35,12 +35,16 @@ function CommonSolve.solve(docp::DOCP;
 
     # solve DOCP with NLP solver
     print_level = display ?  print_level : 0
-    if init == nothing
+    nlp = getNLP(docp)
+    if isnothing(init)
         # use initial guess embedded in the DOCP
-        docp_solution = ipopt(getNLP(docp), print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
+        docp_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
     else
         # use given initial guess
-        docp_solution = ipopt(getNLP(docp), x0=CTDirect.DOCP_initial_guess(docp, _OptimalControlInit(init)), print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
+        ocp = docp.ocp
+        x0 = CTDirect.DOCP_initial_guess(docp, _OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
+
+        docp_solution = ipopt(nlp, x0=x0, print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
     end
 
     # return DOCP solution
@@ -55,7 +59,7 @@ Solve an optimal control problem OCP by direct method
 """
 function CommonSolve.solve(ocp::OptimalControlModel,
     description...;
-    init=_OptimalControlInit(),
+    init=nothing,
     grid_size::Integer=CTDirect.__grid_size_direct(),
     time_grid=nothing,
     display::Bool=CTDirect.__display(),
@@ -65,7 +69,7 @@ function CommonSolve.solve(ocp::OptimalControlModel,
     kwargs...)
 
     # build discretized OCP
-    docp = directTranscription(ocp, description, init=_OptimalControlInit(init), grid_size=grid_size, time_grid=time_grid)
+    docp = directTranscription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
 
     # solve DOCP
     docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, linear_solver=linear_solver; kwargs...)

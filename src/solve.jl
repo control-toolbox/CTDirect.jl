@@ -21,15 +21,17 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 """
 function directTranscription(ocp::OptimalControlModel,
     description...;
-    init=_OptimalControlInit(),
+    init=nothing,
     grid_size::Integer=__grid_size_direct(),
     time_grid=nothing)
 
     # build DOCP
     docp = DOCP(ocp, grid_size, time_grid)
 
-    # set initial guess and bounds
-    x0 = DOCP_initial_guess(docp, _OptimalControlInit(init))
+    # set initial guess
+    x0 = DOCP_initial_guess(docp, _OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
+
+    # set bounds
     docp.var_l, docp.var_u = variables_bounds(docp)
     docp.con_l, docp.con_u = constraints_bounds(docp)
 
@@ -64,6 +66,7 @@ Extract the NLP problem from the DOCP
 function setInitialGuess(docp::DOCP, init)
 
     nlp = getNLP(docp)
-    nlp.meta.x0 .= DOCP_initial_guess(docp,_OptimalControlInit(init))
+    ocp = docp.ocp
+    nlp.meta.x0 .= DOCP_initial_guess(docp, _OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 
 end
