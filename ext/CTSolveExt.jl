@@ -71,7 +71,7 @@ function CommonSolve.solve(ocp::OptimalControlModel,
     # build discretized OCP
     docp = directTranscription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
 
-    # solve DOCP
+    # solve DOCP (NB. init is already embedded in docp)
     docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, linear_solver=linear_solver; kwargs...)
 
     # build and return OCP solution

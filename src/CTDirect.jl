@@ -39,7 +39,6 @@ export export_OCP_solution
 export read_OCP_solution
 export OCP_Solution_discrete
 
-export _OptimalControlInit #temp
-
+export _OptimalControlInit #temp, later from CTBase
 
 end
