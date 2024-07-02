@@ -9,18 +9,18 @@ maxiter = 0
 
 # test functions
 function check_xf(sol, xf)
-    println(xf)
-    println(sol.state(sol.times[end]))
+    #println(xf)
+    #println(sol.state(sol.times[end]))
     return xf == sol.state(sol.times[end])
 end
 function check_uf(sol, uf)
-    println(uf)
-    println(sol.control(sol.times[end]))
+    #println(uf)
+    #println(sol.control(sol.times[end]))
     return uf == sol.control(sol.times[end])
 end
 function check_v(sol, v)
-    println(v)
-    println(sol.variable)
+    #println(v)
+    #println(sol.variable)
     return v == sol.variable
 end
 
@@ -60,69 +60,106 @@ u_vec = [0, 0.3, .1]
 #################################################
 # 1 Pass initial guess to all-in-one solve call
 println("1. Passing the initial guess at the main solve level")
-# default init
+
+# 1.a default initial guess
 sol = solve(ocp, print_level=0, max_iter=maxiter)
 if maxiter > 0
     @printf("%-56s %.3f at %d iterations\n", "Default initial guess", sol.objective, sol.iterations)
 else
-    println(check_xf(sol, [0.1, 0.1]))
-    println(check_uf(sol, 0.1))
-    println(check_v(sol, 0.1))
+    println(check_xf(sol, [0.1, 0.1]) && check_uf(sol, 0.1) && check_v(sol, 0.1))
 end
 
-# Constant initial guess (vector for x; default for u,v)
+# 1.b constant initial guess
 sol = solve(ocp, print_level=0, init=(state=x_const,), max_iter=maxiter)
 if maxiter > 0
-    @printf("%-56s %.3f at %d iterations\n", "Constant x; default for u,v)", sol.objective, sol.iterations)
+    @printf("%-56s %.3f at %d iterations\n", "Constant x; default u,v", sol.objective, sol.iterations)
 else
     println(check_xf(sol, x_const))
 end
 
-# Constant initial guess (vector for u; default for x,v)
 sol = solve(ocp, print_level=0, init=(control=u_const,), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for u; default for x,v)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Constant u; default x,v", sol.objective, sol.iterations)
+else
+    println(check_uf(sol, u_const))
+end
 
-# Constant initial guess (vector for v; default for x,u)
 sol = solve(ocp, print_level=0, init=(variable=v_const,), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for v; default for x,u)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Constant v; default x,u", sol.objective, sol.iterations)
+else
+    println(check_v(sol, v_const))
+end
 
-# Constant initial guess (vector for x,u; default for v)
 sol = solve(ocp, print_level=0, init=(state=x_const, control=u_const), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for x,u; default for v)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Constant  x,u; default v", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, x_const) && check_uf(sol, u_const))
+end
 
-# Constant initial guess (vector for x,v; default for u)
 sol = solve(ocp, print_level=0, init=(state=x_const, variable=v_const), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for x,v; default for u)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Constant x,v; default u)", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, x_const) && check_v(sol, v_const))
+end
 
-# Constant initial guess (vector for u,v; default for x)
 sol = solve(ocp, print_level=0, init=(control=u_const, variable=v_const), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Constant initial guess (vector for u,v; default for x)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Constant u,v; default x)", sol.objective, sol.iterations)
+else
+    println(check_uf(sol, u_const) && check_v(sol, v_const))
+end
 
-# Constant initial guess (vector for x,u,v)
 sol = solve(ocp, print_level=0, init=(state=x_const, control=u_const, variable=v_const), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Constant initial guess x,u,v (compact call)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Constant x,u,v", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, x_const) && check_uf(sol, u_const) && check_v(sol, v_const))
+end    
 
-
-# Functional initial guess for x; default for u,v)
+# 1. functional initial guess
 sol = solve(ocp, print_level=0, init=(state=x_func,), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Functional initial guess for x; default for u,v", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Functional x; default u,v", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, x_func(sol.times[end])))
+end
 
-# Functional initial guess for u; default for x,v)
 sol = solve(ocp, print_level=0, init=(control=u_func,), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Functional initial guess for u; default for x,v", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Functional u; default x,v", sol.objective, sol.iterations)
+else
+    println(check_uf(sol, u_func(sol.times[end])))
+end
 
-# Functional initial guess for x,u; default for v)
 sol = solve(ocp, print_level=0, init=(state=x_func, control=u_func), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Functional x,u; default v (compact call)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Functional x,u; default v", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, x_func(sol.times[end])) && check_uf(sol, u_func(sol.times[end])))
+end
 
-# Functional for x; constant for u; default for v)
+# +++1.d interpolated initial guess
+
+# 1.e mixed initial guess
 sol = solve(ocp, print_level=0, init=(state=x_func, control=u_const), max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Mixed functional/constant/default (compact call)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Functional x; constant u; default v", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, x_func(sol.times[end])) && check_uf(sol, u_const))
+end
 
-# warm start
+#+++ some mixes with interp
+
+# 1.f warm start
 sol = solve(ocp, print_level=0, init=sol0, max_iter=maxiter)
-@printf("%-56s %.3f at %d iterations\n", "Warm start from reference solution", sol.objective, sol.iterations)
-
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Warm start from reference solution", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, sol.state(sol.times[end])) && check_uf(sol, sol.control(sol.times[end])) && check_v(sol, sol.variable))
+end
 
 #################################################
 # 2 Setting the initial guess at the DOCP level
@@ -132,13 +169,21 @@ docp = directTranscription(ocp)
 setInitialGuess(docp, (state=x_func, control=u_const))
 dsol = solve(docp, print_level=0, max_iter=maxiter)
 sol = OCPSolutionFromDOCP(docp, dsol)
-@printf("%-56s %.3f at %d iterations\n", "Mixed initial guess set in DOCP (compact call)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Mixed initial guess set in DOCP", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, x_func(sol.times[end])) && check_uf(sol, u_const))
+end
 
 # warm start
 setInitialGuess(docp, sol0)
 dsol = solve(docp, print_level=0, max_iter=maxiter)
 sol = OCPSolutionFromDOCP(docp, dsol)
-@printf("%-56s %.3f at %d iterations\n", "Warm start set in DOCP (compact call)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Warm start set in DOCP", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, sol.state(sol.times[end])) && check_uf(sol, sol.control(sol.times[end])) && check_v(sol, sol.variable))
+end
 
 #################################################
 # 3 Passing the initial guess to solve call
@@ -147,9 +192,17 @@ setInitialGuess(docp, ()) # reset init in docp
 # mixed init
 dsol = solve(docp, init=(state=x_func, control=u_const), print_level=0, max_iter=maxiter)
 sol = OCPSolutionFromDOCP(docp, dsol)
-@printf("%-56s %.3f at %d iterations\n", "Mixed initial guess passed to solve (compact call)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Mixed initial guess passed to solve", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, x_func(sol.times[end])) && check_uf(sol, u_const))
+end
 
 # warm start
 dsol = solve(docp, init=sol0, print_level=0, max_iter=maxiter)
 sol = OCPSolutionFromDOCP(docp, dsol)
-@printf("%-56s %.3f at %d iterations\n", "Warm start passed to solve (compact call)", sol.objective, sol.iterations)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Warm start passed to solve", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, sol.state(sol.times[end])) && check_uf(sol, sol.control(sol.times[end])) && check_v(sol, sol.variable))
+end
