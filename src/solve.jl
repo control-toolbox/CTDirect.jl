@@ -1,8 +1,8 @@
 # CTDirect interface
 
 # available methods by order of preference: from top to bottom
-algorithmes = ()
-algorithmes = add(algorithmes, (:adnlp, :ipopt))
+algorithms = ()
+algorithms = add(algorithms, (:adnlp, :ipopt))
 
 """
 $(TYPEDSIGNATURES)
@@ -10,7 +10,7 @@ $(TYPEDSIGNATURES)
 Return the list of available methods to solve the optimal control problem.
 """
 function available_methods()::Tuple{Tuple{Vararg{Symbol}}}
-    return algorithmes
+    return algorithms
 end
 
 
