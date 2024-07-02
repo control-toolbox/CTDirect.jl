@@ -41,7 +41,7 @@ nothing # hide
 Then we perform the continuation with a simple *for* loop, using each solution to initialize the next problem.
 
 ```@example main
-init1 = OptimalControlInit()
+init1 = ()
 iter_list = []
 for T=1:5
     ocp1 = ocp_T(T) 

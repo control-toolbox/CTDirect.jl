@@ -22,3 +22,13 @@ Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 Private = false
 ```
+
+<! -- manually add docstrings from package extensions -->
+<! -- does not work for solve which is not in CTDirect -->
+```@docs
+solve
+save_OCP_solution
+load_OCP_solution
+export_OCP_solution
+read_OCP_solution
+```
