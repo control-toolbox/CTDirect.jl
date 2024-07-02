@@ -61,7 +61,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Extract the NLP problem from the DOCP
+Set initial guess in the DOCP
 """
 function setInitialGuess(docp::DOCP, init)
 
