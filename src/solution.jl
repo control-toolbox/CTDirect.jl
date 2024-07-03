@@ -128,20 +128,20 @@ function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     end
 
     # box constraints multipliers
-    if dim_state_box(ocp) > 0
+    if dim_state_range(ocp) > 0
         # remove additional state for lagrange cost
         mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower[:,1:ocp.state_dimension], 1))
         mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper[:,1:ocp.state_dimension], 1))
         sol.infos[:mult_state_box_lower] = t -> mbox_x_l(t)
         sol.infos[:mult_state_box_upper] = t -> mbox_x_u(t)    
     end
-    if dim_control_box(ocp) > 0
+    if dim_control_range(ocp) > 0
         mbox_u_l = ctinterpolate(T, matrix2vec(mult_control_box_lower, 1))
         mbox_u_u = ctinterpolate(T, matrix2vec(mult_control_box_upper, 1))
         sol.infos[:mult_control_box_lower] = t -> mbox_u_l(t)
         sol.infos[:mult_control_box_upper] = t -> mbox_u_u(t)
     end
-    if dim_variable_box(ocp) > 0
+    if dim_variable_range(ocp) > 0
         sol.infos[:mult_variable_box_lower] = mult_variable_box_lower
         sol.infos[:mult_variable_box_upper] = mult_variable_box_upper 
     end
@@ -193,7 +193,7 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
         mult_state_box_upper[i,:] = vget_state_at_time_step(mult_U, docp, i-1)
         mult_control_box_upper[i,:] = vget_control_at_time_step(mult_U, docp, i-1)
     end
-    if dim_variable_box(ocp) > 0
+    if dim_variable_range(ocp) > 0
         mult_variable_box_lower = get_variable(mult_L, docp)
         mult_variable_box_upper = get_variable(mult_U, docp)
     end

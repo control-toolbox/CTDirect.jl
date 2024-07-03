@@ -177,9 +177,9 @@ function variables_bounds(docp)
 
     # state box
     offset = 0
-    if dim_state_box(ocp) > 0
+    if dim_state_range(ocp) > 0
         for i in 0:N
-            for j in 1:dim_state_box(ocp)
+            for j in 1:dim_state_range(ocp)
                 indice = docp.state_box[2][j]
                 l_var[offset+indice] = docp.state_box[1][j]
                 u_var[offset+indice] = docp.state_box[3][j]
@@ -190,9 +190,9 @@ function variables_bounds(docp)
 
     # control box
     offset = (N+1) * docp.dim_NLP_x
-    if dim_control_box(ocp) > 0
+    if dim_control_range(ocp) > 0
         for i in 0:N
-            for j in 1:dim_control_box(ocp)
+            for j in 1:dim_control_range(ocp)
                 indice = docp.control_box[2][j]
                 l_var[offset+indice] = docp.control_box[1][j]
                 u_var[offset+indice] = docp.control_box[3][j]
@@ -203,8 +203,8 @@ function variables_bounds(docp)
 
     # variable box
     offset = (N+1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    if dim_variable_box(ocp) > 0
-        for j in 1:dim_variable_box(ocp)
+    if dim_variable_range(ocp) > 0
+        for j in 1:dim_variable_range(ocp)
             indice = docp.variable_box[2][j]
             l_var[offset+indice] = docp.variable_box[1][j]
             u_var[offset+indice] = docp.variable_box[3][j]
