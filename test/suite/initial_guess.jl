@@ -129,13 +129,12 @@ end
 # 2 Setting the initial guess at the DOCP level
 docp = directTranscription(ocp)
 # mixed init
-setInitialGuess(docp, (time=t_vec, state=x_vec, control=u_func, variable=v_const))
-dsol = solve(docp, print_level=0, max_iter=maxiter)
 @testset verbose = true showtiming = true ":docp_mixed_init" begin
+    setInitialGuess(docp, (time=t_vec, state=x_vec, control=u_func, variable=v_const))
+    dsol = solve(docp, print_level=0, max_iter=maxiter)
     sol = OCPSolutionFromDOCP(docp, dsol)
     @test(check_xf(sol, x_vec[end]) && check_uf(sol, u_func(sol.times[end])) && check_v(sol, v_const))
 end
-
 # warm start
 @testset verbose = true showtiming = true ":docp_warm_start" begin
     setInitialGuess(docp, sol0)
