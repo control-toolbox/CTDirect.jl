@@ -22,7 +22,7 @@ include("solution.jl")
 include("solve.jl")
 
 # re exports
-export solve # CommonSolve
+export solve # from CommonSolve, extended in CTSolveExt
 
 # exports
 export available_methods
@@ -38,7 +38,5 @@ export load_OCP_solution
 export export_OCP_solution
 export read_OCP_solution
 export OCP_Solution_discrete
-
-export _OptimalControlInit #temp, later from CTBase
 
 end

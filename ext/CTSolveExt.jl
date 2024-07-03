@@ -42,7 +42,7 @@ function CommonSolve.solve(docp::DOCP;
     else
         # use given initial guess
         ocp = docp.ocp
-        x0 = CTDirect.DOCP_initial_guess(docp, _OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
+        x0 = CTDirect.DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 
         docp_solution = ipopt(nlp, x0=x0, print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
     end

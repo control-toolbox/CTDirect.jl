@@ -6,6 +6,7 @@ using HSL
 using JLD2
 using JSON3
 using Plots
+using CommonSolve
 
 DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
 DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true)
