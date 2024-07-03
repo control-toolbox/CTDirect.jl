@@ -38,7 +38,7 @@ v_const = 0.15
 x_func = t->[t^2, sqrt(t)]
 u_func = t->(cos(10*t)+1)*0.5
 
-# interpolated initial gues
+# interpolated initial guess
 x_vec = [[0, 0], [1, 2], [5, -1]]
 x_matrix = [0 0; 1 2; 5 -1]
 u_vec = [0, 0.3, .1]
