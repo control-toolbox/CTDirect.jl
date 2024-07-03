@@ -29,7 +29,7 @@ function directTranscription(ocp::OptimalControlModel,
     docp = DOCP(ocp, grid_size, time_grid)
 
     # set initial guess
-    x0 = DOCP_initial_guess(docp, _OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
+    x0 = DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 
     # set bounds
     docp.var_l, docp.var_u = variables_bounds(docp)
@@ -67,6 +67,6 @@ function setInitialGuess(docp::DOCP, init)
 
     nlp = getNLP(docp)
     ocp = docp.ocp
-    nlp.meta.x0 .= DOCP_initial_guess(docp, _OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
+    nlp.meta.x0 .= DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 
 end
