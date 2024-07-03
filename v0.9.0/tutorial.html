@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tutorial · CTDirect.jl</title><meta name="title" content="Tutorial · CTDirect.jl"/><meta property="og:title" content="Tutorial · CTDirect.jl"/><meta property="twitter:title" content="Tutorial · CTDirect.jl"/><meta name="description" content="Documentation for CTDirect.jl."/><meta property="og:description" content="Documentation for CTDirect.jl."/><meta property="twitter:description" content="Documentation for CTDirect.jl."/><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="index.html">CTDirect.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="index.html">Introduction</a></li><li class="is-active"><a class="tocitem" href="tutorial.html">Tutorial</a><ul class="internal"><li><a class="tocitem" href="#Problem-definition"><span>Problem definition</span></a></li><li><a class="tocitem" href="#Basic-solve"><span>Basic solve</span></a></li><li><a class="tocitem" href="#Initial-guess-options"><span>Initial guess options</span></a></li><li><a class="tocitem" href="#The-discretized-problem"><span>The discretized problem</span></a></li></ul></li><li><a class="tocitem" href="continuation.html">Continuation</a></li><li><a class="tocitem" href="api.html">API</a></li><li><a class="tocitem" href="dev-api.html">Developers</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href="tutorial.html">Tutorial</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="tutorial.html">Tutorial</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/control-toolbox/CTDirect.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/control-toolbox/CTDirect.jl/blob/main/docs/src/tutorial.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="First-example:-Goddard-problem"><a class="docs-heading-anchor" href="#First-example:-Goddard-problem">First example: Goddard problem</a><a id="First-example:-Goddard-problem-1"></a><a class="docs-heading-anchor-permalink" href="#First-example:-Goddard-problem" title="Permalink"></a></h1><p><img src="assets/goddard.png" alt="R.H. Goddard"/></p><p>We start with the well-known so-called <a href="http://en.wikipedia.org/wiki/Robert_H._Goddard">Goddard</a> problem, which models the ascent of a rocket through the atmosphere (see for instance <sup class="footnote-reference"><a id="citeref-1" href="#footnote-1">[1]</a></sup>,<sup class="footnote-reference"><a id="citeref-2" href="#footnote-2">[2]</a></sup>). We restrict here ourselves to  vertical (monodimensional) trajectories, and the state variables are the altitude, speed and mass of the rocket during the flight, for a total dimension of 3. The rocket is subject to gravity, thrust and drag forces. The final time is free, and the objective is here to reach a maximal altitude with a given fuel consumption, i.e a fixed final mass. We also impose a speed limit. All units are renormalized.</p><h2 id="Problem-definition"><a class="docs-heading-anchor" href="#Problem-definition">Problem definition</a><a id="Problem-definition-1"></a><a class="docs-heading-anchor-permalink" href="#Problem-definition" title="Permalink"></a></h2><p>First import the necessary modules</p><pre><code class="language-julia hljs">using CTDirect
+using CTBase
+using NLPModelsIpopt
+using Plots</code></pre><p>Then define the OCP for the Goddard problem. Note that the free final time is modeled as an <em>optimization variable</em>, and has both a lower bound to prevent the optimization getting stuck at tf=0. In this particular case an upper bound is not needed for the final time since the final mass is prescribed.</p><pre><code class="language-julia hljs">Cd = 310
+β = 500
+Tmax = 3.5
+b = 2
+vmax = 0.1
+function F0(x)
+    r, v, m = x
+    D = Cd * v^2 * exp(-β*(r - 1))
+    return [ v, -D/m - 1/r^2, 0 ]
+end
+function F1(x)
+    r, v, m = x
+    return [ 0, Tmax/m, -b*Tmax ]
+end
+@def ocp begin
+    tf ∈ R, variable
+    t ∈ [ 0, tf ], time
+    x ∈ R^3, state
+    u ∈ R, control
+    0.1 ≤ tf ≤ Inf
+    r = x[1]
+    v = x[2]
+    m = x[3]
+    x(0) == [1, 0, 1]
+    m(tf) == 0.6
+    1 ≤ r(t) ≤ 1.1
+    0 ≤ v(t) ≤ vmax
+    0 ≤ u(t) ≤ 1
+    ẋ(t) == F0(x(t)) + u(t)*F1(x(t))
+    r(tf) → max
+end</code></pre><h2 id="Basic-solve"><a class="docs-heading-anchor" href="#Basic-solve">Basic solve</a><a id="Basic-solve-1"></a><a class="docs-heading-anchor-permalink" href="#Basic-solve" title="Permalink"></a></h2><p>We can solve the problem directly using the default options.</p><pre><code class="language-julia hljs">sol1 = solve(ocp, print_level=5)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">This is Ipopt version 3.14.14, running with linear solver MUMPS 5.6.2.
+
+Number of nonzeros in equality constraint Jacobian...:     2104
+Number of nonzeros in inequality constraint Jacobian.:        0
+Number of nonzeros in Lagrangian Hessian.............:     1111
+
+Total number of variables............................:      405
+                     variables with only lower bounds:        1
+                variables with lower and upper bounds:      303
+                     variables with only upper bounds:        0
+Total number of equality constraints.................:      304
+Total number of inequality constraints...............:        0
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:        0
+
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+   0 -1.0010000e+00 9.00e-01 1.00e+00   0.0 0.00e+00    -  0.00e+00 0.00e+00   0
+   1 -1.0009191e+00 8.99e-01 1.31e+00  -6.7 4.87e+00    -  2.73e-03 1.40e-03h  1
+   2 -1.0008453e+00 8.98e-01 4.19e+00  -6.7 1.56e+01    -  1.12e-03 5.12e-04h  1
+   3 -1.0000084e+00 8.96e-01 1.36e+02  -0.1 2.35e+01    -  3.36e-03 2.96e-03f  1
+   4 -1.0000001e+00 8.95e-01 2.20e+02  -6.7 3.51e+01    -  5.11e-03 1.34e-04h  1
+   5 -1.0000002e+00 8.95e-01 2.64e+02  -6.7 7.10e+01    -  1.66e-04 1.98e-04h  1
+   6 -1.0000734e+00 8.95e-01 1.45e+03   0.2 1.17e+02    -  1.39e-04 4.07e-04h  1
+   7 -1.0000761e+00 8.95e-01 2.31e+03   0.9 8.04e+02    -  9.37e-04 3.06e-05f  1
+   8 -1.0001204e+00 8.95e-01 2.75e+03  -0.2 3.49e+02    -  7.63e-04 3.05e-04h  1
+   9 -1.0001348e+00 8.95e-01 9.40e+04   1.2 9.53e+02    -  7.68e-03 1.24e-04h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  10 -1.0001497e+00 8.94e-01 7.80e+05   1.6 1.75e+02    -  1.62e-03 1.23e-04h  1
+  11 -1.0001612e+00 8.94e-01 1.54e+07   1.8 2.28e+02    -  1.95e-03 9.54e-05h  1
+  12 -1.0001627e+00 8.94e-01 2.12e+08   2.0 1.46e+03    -  1.63e-04 1.21e-05h  1
+  13r-1.0001627e+00 8.94e-01 1.00e+03   1.9 0.00e+00    -  0.00e+00 2.29e-07R  2
+  14r-1.0021658e+00 6.61e-01 6.10e+02   1.4 1.43e+01    -  9.89e-01 6.58e-02f  1
+  15 -1.0051988e+00 4.21e-01 7.52e+01  -1.1 1.18e+00    -  1.03e-01 3.62e-01f  1
+  16 -1.0053674e+00 2.86e-01 3.98e+01  -0.9 4.22e-01   2.0 1.00e+00 3.21e-01h  1
+  17 -1.0074444e+00 5.78e-02 4.84e+01  -0.6 2.86e-01   1.5 1.00e+00 7.98e-01h  1
+  18 -1.0085150e+00 3.65e-02 6.25e+01  -0.8 9.72e-01    -  4.60e-01 3.69e-01h  1
+  19 -1.0090668e+00 3.65e-04 1.77e+01  -1.6 3.41e-01    -  8.98e-01 9.90e-01h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  20 -1.0090561e+00 3.57e-06 9.26e-01  -7.4 1.93e-03    -  9.87e-01 9.90e-01h  1
+  21 -1.0092525e+00 6.99e-07 8.55e+00  -9.2 1.09e-02    -  9.38e-01 1.00e+00h  1
+  22 -1.0113856e+00 3.64e-04 5.52e-03  -4.5 1.85e-01    -  1.00e+00 1.00e+00h  1
+  23 -1.0115764e+00 5.08e-05 8.88e-04  -5.2 6.89e-02    -  1.00e+00 1.00e+00h  1
+  24 -1.0123085e+00 7.93e-05 4.74e+01  -5.6 1.06e-01    -  1.00e+00 8.70e-01h  1
+  25 -1.0124884e+00 3.40e-05 3.37e-04  -6.0 1.03e-01    -  1.00e+00 1.00e+00h  1
+  26 -1.0125516e+00 1.87e-05 1.19e+00  -6.6 1.04e-01    -  1.00e+00 9.83e-01h  1
+  27 -1.0125519e+00 4.71e-06 1.95e-05  -6.6 8.15e-02    -  1.00e+00 1.00e+00h  1
+  28 -1.0125692e+00 2.50e-06 1.52e-05  -7.6 5.82e-02    -  1.00e+00 1.00e+00h  1
+  29 -1.0125709e+00 1.76e-06 1.90e-03  -8.1 1.56e-01    -  9.99e-01 1.00e+00h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  30 -1.0125715e+00 5.26e-07 2.44e-03  -8.9 9.13e-02    -  1.00e+00 9.97e-01h  1
+  31 -1.0125716e+00 1.23e-08 2.91e-04  -9.5 1.06e-02    -  1.00e+00 9.97e-01h  1
+  32 -1.0125716e+00 1.13e-10 1.96e-10 -11.0 9.98e-04    -  1.00e+00 1.00e+00h  1
+
+Number of Iterations....: 32
+
+                                   (scaled)                 (unscaled)
+Objective...............:  -1.0125716188887888e+00   -1.0125716188887888e+00
+Dual infeasibility......:   1.9622306253391514e-10    1.9622306253391514e-10
+Constraint violation....:   7.4132811000993115e-11    1.1292693169462352e-10
+Variable bound violation:   4.6279317461594971e-09    4.6279317461594971e-09
+Complementarity.........:   1.1457861803401074e-11    1.1457861803401074e-11
+Overall NLP error.......:   7.4132811000993115e-11    1.9622306253391514e-10
+
+
+Number of objective function evaluations             = 35
+Number of objective gradient evaluations             = 33
+Number of equality constraint evaluations            = 35
+Number of inequality constraint evaluations          = 0
+Number of equality constraint Jacobian evaluations   = 34
+Number of inequality constraint Jacobian evaluations = 0
+Number of Lagrangian Hessian evaluations             = 32
+Total seconds in IPOPT                               = 2.114
+
+EXIT: Optimal Solution Found.</code></pre><p>Then plot the solution with the state and control variables, as well as the costate recovered from the lagrange multipliers of the discretized problem. </p><pre><code class="language-julia hljs">plot(sol1)</code></pre><img src="tutorial-cdf035e1.svg" alt="Example block output"/><p>The most common option for <strong>solve</strong> is the number of time steps for the discretized problem (default 100), that can be set with the argument <em>grid_size</em>. A larger grid size will increase the computational cost, while a smaller value may lead to a very coarse solution.</p><h2 id="Initial-guess-options"><a class="docs-heading-anchor" href="#Initial-guess-options">Initial guess options</a><a id="Initial-guess-options-1"></a><a class="docs-heading-anchor-permalink" href="#Initial-guess-options" title="Permalink"></a></h2><p>The function <strong>solve</strong> uses a default constant initialisation of 0.1 for all variables. More advanced options include constant and/or functional initialisation for each individual state or control component, as well as reusing an existing solution, also known as <em>warm start</em><sup class="footnote-reference"><a id="citeref-3" href="#footnote-3">[3]</a></sup>.</p><p>Let us start with the simplest case, constant initialisation.</p><pre><code class="language-julia hljs">x_const = [1.05, 0.2, 0.8]
+u_const = 0.5
+v_const = 0.15
+init1 = (state=x_const, control=u_const, variable=v_const)
+sol2 = solve(ocp, print_level=0, init=init1)
+println(&quot;Objective &quot;, sol2.objective, &quot; after &quot;, sol2.iterations, &quot; iterations&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Objective 1.0125716188798317 after 19 iterations</code></pre><p>Now we illustrate the functional initialisation, with some random functions. Note that we only consider the state and control variables, since the optimization variables are scalar and therefore a functional initialisation is not relevant. In the example notice that the initialization does not provide an argument for the optimization variables, therefore the default initial guess will be used.  </p><pre><code class="language-julia hljs">x_func = t-&gt;[1+t^2, sqrt(t), 1-t]
+u_func = t-&gt;(cos(t)+1)*0.5
+init2 = (state=x_func, control=u_func)
+sol3 = solve(ocp, print_level=0, init=init2)
+println(&quot;Objective &quot;, sol3.objective, &quot; after &quot;, sol3.iterations, &quot; iterations&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Objective 1.0125716128319804 after 22 iterations</code></pre><p>More generally, the default, constant and functional initialisations can be mixed, as shown in the example below that uses a functional initial guess for the state, a constant initial guess for the control, and the default initial guess for the optimization variables. </p><pre><code class="language-julia hljs">init3 = (state=x_func, control=u_const)
+sol4 = solve(ocp, print_level=0, init=init3)
+println(&quot;Objective &quot;, sol4.objective, &quot; after &quot;, sol4.iterations, &quot; iterations&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Objective 1.0125716174920962 after 20 iterations</code></pre><p>Finally, we can also use a so-called <em>warmstart</em> strategy and use an existing solution as initial guess (note that the OCP solution returned by the <strong>solve</strong> call is functional, thus it is not necessary to use the same time grid). Notice that the objective and constraint violation values start much closer to the solution than with the previous initialisations.</p><pre><code class="language-julia hljs">sol4 = solve(ocp, grid_size=200, print_level=5, init=sol1)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">This is Ipopt version 3.14.14, running with linear solver MUMPS 5.6.2.
+
+Number of nonzeros in equality constraint Jacobian...:     4204
+Number of nonzeros in inequality constraint Jacobian.:        0
+Number of nonzeros in Lagrangian Hessian.............:     2211
+
+Total number of variables............................:      805
+                     variables with only lower bounds:        1
+                variables with lower and upper bounds:      603
+                     variables with only upper bounds:        0
+Total number of equality constraints.................:      604
+Total number of inequality constraints...............:        0
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:        0
+
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+   0 -1.0125716e+00 1.02e-03 3.57e-03   0.0 0.00e+00    -  0.00e+00 0.00e+00   0
+   1 -1.0119840e+00 1.39e-05 1.21e+00  -2.2 2.16e-02    -  9.13e-01 9.90e-01f  1
+   2 -1.0119853e+00 1.25e-07 9.23e-02  -7.6 5.78e-04    -  9.74e-01 9.91e-01h  1
+   3 -1.0120244e+00 1.37e-07 2.85e+00  -5.3 1.68e-02    -  9.40e-01 1.00e+00h  1
+   4 -1.0119848e+00 1.21e-06 2.85e+00  -5.3 3.28e-02    -  9.93e-01 1.00e+00h  1
+   5 -1.0119603e+00 3.11e-05 5.01e-04  -5.4 3.27e-01    -  1.00e+00 1.00e+00h  1
+   6 -1.0119496e+00 6.70e-07 7.87e-06  -5.4 1.56e-01    -  1.00e+00 1.00e+00h  1
+   7 -1.0124446e+00 1.12e-05 1.92e+01  -8.1 5.66e-02    -  9.02e-01 8.54e-01h  1
+   8 -1.0125322e+00 8.92e-06 9.91e-05  -6.6 1.04e-01    -  1.00e+00 1.00e+00h  1
+   9 -1.0125611e+00 3.10e-06 1.67e-01  -7.1 8.70e-02    -  1.00e+00 9.91e-01h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  10 -1.0125716e+00 1.63e-06 9.55e-06  -7.7 7.71e-02    -  1.00e+00 1.00e+00h  1
+  11 -1.0125744e+00 6.67e-07 1.61e-02  -8.4 7.65e-02    -  1.00e+00 9.91e-01h  1
+  12 -1.0125750e+00 1.23e-07 1.18e-03  -9.0 1.20e-01    -  1.00e+00 9.97e-01h  1
+  13 -1.0125751e+00 5.48e-08 1.59e-07  -9.8 6.58e-02    -  1.00e+00 1.00e+00h  1
+  14 -1.0125751e+00 1.23e-08 1.45e-08 -11.0 3.47e-02    -  1.00e+00 1.00e+00h  1
+  15 -1.0125751e+00 4.93e-10 2.41e-10 -11.0 6.06e-03    -  1.00e+00 1.00e+00h  1
+
+Number of Iterations....: 15
+
+                                   (scaled)                 (unscaled)
+Objective...............:  -1.0125751257356814e+00   -1.0125751257356814e+00
+Dual infeasibility......:   2.4115625689091677e-10    2.4115625689091677e-10
+Constraint violation....:   4.9310726335516364e-10    4.9310726335516364e-10
+Variable bound violation:   0.0000000000000000e+00    0.0000000000000000e+00
+Complementarity.........:   2.3617725778825179e-11    2.3617725778825179e-11
+Overall NLP error.......:   4.9310726335516364e-10    4.9310726335516364e-10
+
+
+Number of objective function evaluations             = 16
+Number of objective gradient evaluations             = 16
+Number of equality constraint evaluations            = 16
+Number of inequality constraint evaluations          = 0
+Number of equality constraint Jacobian evaluations   = 16
+Number of inequality constraint Jacobian evaluations = 0
+Number of Lagrangian Hessian evaluations             = 15
+Total seconds in IPOPT                               = 3.946
+
+EXIT: Optimal Solution Found.</code></pre><pre><code class="language-julia hljs">plot(sol4)</code></pre><img src="tutorial-1606b9f4.svg" alt="Example block output"/><h2 id="The-discretized-problem"><a class="docs-heading-anchor" href="#The-discretized-problem">The discretized problem</a><a id="The-discretized-problem-1"></a><a class="docs-heading-anchor-permalink" href="#The-discretized-problem" title="Permalink"></a></h2><p>Instead of calling <strong>solve</strong> directly on the OCP problem, you can first obtain the discretized problem (DOCP) by calling <strong>directTranscription</strong>, then call <strong>solve</strong> on the DOCP. The resulting solution of the discretized problem can be used to generate the corresponding OCP solution with <strong>OCPSolutionFromDOCP</strong>.</p><pre><code class="language-julia hljs">docp = directTranscription(ocp, grid_size=100)
+dsol = solve(docp, print_level=5)
+sol5 = OCPSolutionFromDOCP(docp, dsol)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">This is Ipopt version 3.14.14, running with linear solver MUMPS 5.6.2.
+
+Number of nonzeros in equality constraint Jacobian...:     2104
+Number of nonzeros in inequality constraint Jacobian.:        0
+Number of nonzeros in Lagrangian Hessian.............:     1111
+
+Total number of variables............................:      405
+                     variables with only lower bounds:        1
+                variables with lower and upper bounds:      303
+                     variables with only upper bounds:        0
+Total number of equality constraints.................:      304
+Total number of inequality constraints...............:        0
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:        0
+
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+   0 -1.0010000e+00 9.00e-01 1.00e+00   0.0 0.00e+00    -  0.00e+00 0.00e+00   0
+   1 -1.0009191e+00 8.99e-01 1.31e+00  -6.7 4.87e+00    -  2.73e-03 1.40e-03h  1
+   2 -1.0008453e+00 8.98e-01 4.19e+00  -6.7 1.56e+01    -  1.12e-03 5.12e-04h  1
+   3 -1.0000084e+00 8.96e-01 1.36e+02  -0.1 2.35e+01    -  3.36e-03 2.96e-03f  1
+   4 -1.0000001e+00 8.95e-01 2.20e+02  -6.7 3.51e+01    -  5.11e-03 1.34e-04h  1
+   5 -1.0000002e+00 8.95e-01 2.64e+02  -6.7 7.10e+01    -  1.66e-04 1.98e-04h  1
+   6 -1.0000734e+00 8.95e-01 1.45e+03   0.2 1.17e+02    -  1.39e-04 4.07e-04h  1
+   7 -1.0000761e+00 8.95e-01 2.31e+03   0.9 8.04e+02    -  9.37e-04 3.06e-05f  1
+   8 -1.0001204e+00 8.95e-01 2.75e+03  -0.2 3.49e+02    -  7.63e-04 3.05e-04h  1
+   9 -1.0001348e+00 8.95e-01 9.40e+04   1.2 9.53e+02    -  7.68e-03 1.24e-04h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  10 -1.0001497e+00 8.94e-01 7.80e+05   1.6 1.75e+02    -  1.62e-03 1.23e-04h  1
+  11 -1.0001612e+00 8.94e-01 1.54e+07   1.8 2.28e+02    -  1.95e-03 9.54e-05h  1
+  12 -1.0001627e+00 8.94e-01 2.12e+08   2.0 1.46e+03    -  1.63e-04 1.21e-05h  1
+  13r-1.0001627e+00 8.94e-01 1.00e+03   1.9 0.00e+00    -  0.00e+00 2.29e-07R  2
+  14r-1.0021658e+00 6.61e-01 6.10e+02   1.4 1.43e+01    -  9.89e-01 6.58e-02f  1
+  15 -1.0051988e+00 4.21e-01 7.52e+01  -1.1 1.18e+00    -  1.03e-01 3.62e-01f  1
+  16 -1.0053674e+00 2.86e-01 3.98e+01  -0.9 4.22e-01   2.0 1.00e+00 3.21e-01h  1
+  17 -1.0074444e+00 5.78e-02 4.84e+01  -0.6 2.86e-01   1.5 1.00e+00 7.98e-01h  1
+  18 -1.0085150e+00 3.65e-02 6.25e+01  -0.8 9.72e-01    -  4.60e-01 3.69e-01h  1
+  19 -1.0090668e+00 3.65e-04 1.77e+01  -1.6 3.41e-01    -  8.98e-01 9.90e-01h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  20 -1.0090561e+00 3.57e-06 9.26e-01  -7.4 1.93e-03    -  9.87e-01 9.90e-01h  1
+  21 -1.0092525e+00 6.99e-07 8.55e+00  -9.2 1.09e-02    -  9.38e-01 1.00e+00h  1
+  22 -1.0113856e+00 3.64e-04 5.52e-03  -4.5 1.85e-01    -  1.00e+00 1.00e+00h  1
+  23 -1.0115764e+00 5.08e-05 8.88e-04  -5.2 6.89e-02    -  1.00e+00 1.00e+00h  1
+  24 -1.0123085e+00 7.93e-05 4.74e+01  -5.6 1.06e-01    -  1.00e+00 8.70e-01h  1
+  25 -1.0124884e+00 3.40e-05 3.37e-04  -6.0 1.03e-01    -  1.00e+00 1.00e+00h  1
+  26 -1.0125516e+00 1.87e-05 1.19e+00  -6.6 1.04e-01    -  1.00e+00 9.83e-01h  1
+  27 -1.0125519e+00 4.71e-06 1.95e-05  -6.6 8.15e-02    -  1.00e+00 1.00e+00h  1
+  28 -1.0125692e+00 2.50e-06 1.52e-05  -7.6 5.82e-02    -  1.00e+00 1.00e+00h  1
+  29 -1.0125709e+00 1.76e-06 1.90e-03  -8.1 1.56e-01    -  9.99e-01 1.00e+00h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  30 -1.0125715e+00 5.26e-07 2.44e-03  -8.9 9.13e-02    -  1.00e+00 9.97e-01h  1
+  31 -1.0125716e+00 1.23e-08 2.91e-04  -9.5 1.06e-02    -  1.00e+00 9.97e-01h  1
+  32 -1.0125716e+00 1.13e-10 1.96e-10 -11.0 9.98e-04    -  1.00e+00 1.00e+00h  1
+
+Number of Iterations....: 32
+
+                                   (scaled)                 (unscaled)
+Objective...............:  -1.0125716188887888e+00   -1.0125716188887888e+00
+Dual infeasibility......:   1.9622306253391514e-10    1.9622306253391514e-10
+Constraint violation....:   7.4132811000993115e-11    1.1292693169462352e-10
+Variable bound violation:   4.6279317461594971e-09    4.6279317461594971e-09
+Complementarity.........:   1.1457861803401074e-11    1.1457861803401074e-11
+Overall NLP error.......:   7.4132811000993115e-11    1.9622306253391514e-10
+
+
+Number of objective function evaluations             = 35
+Number of objective gradient evaluations             = 33
+Number of equality constraint evaluations            = 35
+Number of inequality constraint evaluations          = 0
+Number of equality constraint Jacobian evaluations   = 34
+Number of inequality constraint Jacobian evaluations = 0
+Number of Lagrangian Hessian evaluations             = 32
+Total seconds in IPOPT                               = 2.106
+
+EXIT: Optimal Solution Found.</code></pre><p>The initial guess can be passed to <strong>solve</strong> same as before.</p><pre><code class="language-julia hljs">dsol = solve(docp, print_level=0, init=sol1)
+sol6 = OCPSolutionFromDOCP(docp, dsol)
+println(&quot;Objective &quot;, sol6.objective, &quot; after &quot;, sol6.iterations, &quot; iterations&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Objective 1.0125716188825076 after 11 iterations</code></pre><p>Another possibility is to set the initial guess associated to the DOCP, using the function <strong>setInitialGuess</strong>.</p><pre><code class="language-julia hljs">setInitialGuess(docp, sol1)
+dsol = solve(docp, print_level=5)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">This is Ipopt version 3.14.14, running with linear solver MUMPS 5.6.2.
+
+Number of nonzeros in equality constraint Jacobian...:     2104
+Number of nonzeros in inequality constraint Jacobian.:        0
+Number of nonzeros in Lagrangian Hessian.............:     1111
+
+Total number of variables............................:      405
+                     variables with only lower bounds:        1
+                variables with lower and upper bounds:      303
+                     variables with only upper bounds:        0
+Total number of equality constraints.................:      304
+Total number of inequality constraints...............:        0
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:        0
+
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+   0 -1.0125716e+00 1.02e-03 7.13e-03   0.0 0.00e+00    -  0.00e+00 0.00e+00   0
+   1 -1.0119799e+00 2.04e-05 1.19e+00  -2.2 2.07e-02    -  9.11e-01 9.90e-01f  1
+   2 -1.0119844e+00 1.80e-07 1.41e-01  -7.6 8.23e-04    -  9.65e-01 9.91e-01h  1
+   3 -1.0120666e+00 2.71e-07 2.10e+00  -5.2 2.24e-02    -  9.67e-01 1.00e+00h  1
+   4 -1.0121240e+00 2.66e-06 9.04e-05  -5.2 5.00e-02    -  1.00e+00 1.00e+00h  1
+   5 -1.0124947e+00 1.85e-05 5.01e+01  -6.4 1.02e-01    -  9.99e-01 9.10e-01h  1
+   6 -1.0125482e+00 4.77e-06 3.63e-05  -6.5 1.07e-01    -  1.00e+00 1.00e+00h  1
+   7 -1.0125681e+00 3.32e-06 1.86e-05  -7.4 8.20e-02    -  1.00e+00 1.00e+00h  1
+   8 -1.0125707e+00 1.10e-06 1.70e-02  -8.0 8.48e-02    -  1.00e+00 9.95e-01h  1
+   9 -1.0125715e+00 6.46e-07 8.11e-07  -8.8 1.12e-01    -  1.00e+00 1.00e+00h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  10 -1.0125716e+00 2.20e-08 1.48e-08  -9.4 1.98e-02    -  1.00e+00 1.00e+00h  1
+  11 -1.0125716e+00 5.05e-11 5.19e-10 -11.0 1.54e-03    -  1.00e+00 1.00e+00h  1
+
+Number of Iterations....: 11
+
+                                   (scaled)                 (unscaled)
+Objective...............:  -1.0125716188825076e+00   -1.0125716188825076e+00
+Dual infeasibility......:   5.1865645601548494e-10    5.1865645601548494e-10
+Constraint violation....:   5.0547038776826980e-11    5.0547038776826980e-11
+Variable bound violation:   5.0023665904008752e-09    5.0023665904008752e-09
+Complementarity.........:   1.2801397621585979e-11    1.2801397621585979e-11
+Overall NLP error.......:   5.1865645601548494e-10    5.1865645601548494e-10
+
+
+Number of objective function evaluations             = 12
+Number of objective gradient evaluations             = 12
+Number of equality constraint evaluations            = 12
+Number of inequality constraint evaluations          = 0
+Number of equality constraint Jacobian evaluations   = 12
+Number of inequality constraint Jacobian evaluations = 0
+Number of Lagrangian Hessian evaluations             = 11
+Total seconds in IPOPT                               = 0.754
+
+EXIT: Optimal Solution Found.</code></pre><p>Finally, the direct transcription also accept an initial guess.</p><pre><code class="language-julia hljs">docp = directTranscription(ocp, grid_size=100, init=sol1)
+dsol = solve(docp, print_level=5)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">This is Ipopt version 3.14.14, running with linear solver MUMPS 5.6.2.
+
+Number of nonzeros in equality constraint Jacobian...:     2104
+Number of nonzeros in inequality constraint Jacobian.:        0
+Number of nonzeros in Lagrangian Hessian.............:     1111
+
+Total number of variables............................:      405
+                     variables with only lower bounds:        1
+                variables with lower and upper bounds:      303
+                     variables with only upper bounds:        0
+Total number of equality constraints.................:      304
+Total number of inequality constraints...............:        0
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:        0
+
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+   0 -1.0125716e+00 1.02e-03 7.13e-03   0.0 0.00e+00    -  0.00e+00 0.00e+00   0
+   1 -1.0119799e+00 2.04e-05 1.19e+00  -2.2 2.07e-02    -  9.11e-01 9.90e-01f  1
+   2 -1.0119844e+00 1.80e-07 1.41e-01  -7.6 8.23e-04    -  9.65e-01 9.91e-01h  1
+   3 -1.0120666e+00 2.71e-07 2.10e+00  -5.2 2.24e-02    -  9.67e-01 1.00e+00h  1
+   4 -1.0121240e+00 2.66e-06 9.04e-05  -5.2 5.00e-02    -  1.00e+00 1.00e+00h  1
+   5 -1.0124947e+00 1.85e-05 5.01e+01  -6.4 1.02e-01    -  9.99e-01 9.10e-01h  1
+   6 -1.0125482e+00 4.77e-06 3.63e-05  -6.5 1.07e-01    -  1.00e+00 1.00e+00h  1
+   7 -1.0125681e+00 3.32e-06 1.86e-05  -7.4 8.20e-02    -  1.00e+00 1.00e+00h  1
+   8 -1.0125707e+00 1.10e-06 1.70e-02  -8.0 8.48e-02    -  1.00e+00 9.95e-01h  1
+   9 -1.0125715e+00 6.46e-07 8.11e-07  -8.8 1.12e-01    -  1.00e+00 1.00e+00h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  10 -1.0125716e+00 2.20e-08 1.48e-08  -9.4 1.98e-02    -  1.00e+00 1.00e+00h  1
+  11 -1.0125716e+00 5.05e-11 5.19e-10 -11.0 1.54e-03    -  1.00e+00 1.00e+00h  1
+
+Number of Iterations....: 11
+
+                                   (scaled)                 (unscaled)
+Objective...............:  -1.0125716188825076e+00   -1.0125716188825076e+00
+Dual infeasibility......:   5.1865645601548494e-10    5.1865645601548494e-10
+Constraint violation....:   5.0547038776826980e-11    5.0547038776826980e-11
+Variable bound violation:   5.0023665904008752e-09    5.0023665904008752e-09
+Complementarity.........:   1.2801397621585979e-11    1.2801397621585979e-11
+Overall NLP error.......:   5.1865645601548494e-10    5.1865645601548494e-10
+
+
+Number of objective function evaluations             = 12
+Number of objective gradient evaluations             = 12
+Number of equality constraint evaluations            = 12
+Number of inequality constraint evaluations          = 0
+Number of equality constraint Jacobian evaluations   = 12
+Number of inequality constraint Jacobian evaluations = 0
+Number of Lagrangian Hessian evaluations             = 11
+Total seconds in IPOPT                               = 0.686
+
+EXIT: Optimal Solution Found.</code></pre><section class="footnotes is-size-7"><ul><li class="footnote" id="footnote-1"><a class="tag is-link" href="#citeref-1">1</a>R.H. Goddard. A Method of Reaching Extreme Altitudes, volume 71(2) of Smithsonian Miscellaneous Collections. Smithsonian institution, City of Washington, 1919.</li><li class="footnote" id="footnote-2"><a class="tag is-link" href="#citeref-2">2</a>H. Seywald and E.M. Cliff. Goddard problem in presence of a dynamic pressure limit. Journal of Guidance, Control, and Dynamics, 16(4):776–781, 1993.</li><li class="footnote" id="footnote-3"><a class="tag is-link" href="#citeref-3">3</a>Currently only the primal variables are reused for the warm start, not the lagrange multipliers. It should be noted that previous experiments with the Bocop software seemed to indicate that initializing also the multipliers gave little benefit.</li></ul></section></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="index.html">« Introduction</a><a class="docs-footer-nextpage" href="continuation.html">Continuation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Wednesday 3 July 2024 12:31">Wednesday 3 July 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
