@@ -4,15 +4,8 @@
 
 ```@index
 Pages   = ["api.md"]
-Modules = [CTDirect]
+Modules = [CTDirect, CommonSolve]
 Order = [:module, :constant, :type, :function, :macro]
-```
-
-## Available methods
-
-```@example
-using CTDirect
-available_methods()
 ```
 
 ## Documentation
@@ -23,8 +16,6 @@ Order = [:module, :constant, :type, :function, :macro]
 Private = false
 ```
 
-<! -- manually add docstrings from package extensions -->
-<! -- does not work for solve which is not in CTDirect -->
 ```@docs
 solve
 save_OCP_solution
