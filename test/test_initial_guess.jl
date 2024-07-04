@@ -59,6 +59,18 @@ if maxiter > 0
 else
     println(check_xf(sol, [0.1, 0.1]) && check_uf(sol, 0.1) && check_v(sol, 0.1))
 end
+sol = solve(ocp, print_level=0, init=(), max_iter=maxiter)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Default initial guess", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, [0.1, 0.1]) && check_uf(sol, 0.1) && check_v(sol, 0.1))
+end
+sol = solve(ocp, print_level=0, init=nothing, max_iter=maxiter)
+if maxiter > 0
+    @printf("%-56s %.3f at %d iterations\n", "Default initial guess", sol.objective, sol.iterations)
+else
+    println(check_xf(sol, [0.1, 0.1]) && check_uf(sol, 0.1) && check_v(sol, 0.1))
+end
 
 # 1.b constant initial guess
 sol = solve(ocp, print_level=0, init=(state=x_const,), max_iter=maxiter)
@@ -110,7 +122,7 @@ else
     println(check_xf(sol, x_const) && check_uf(sol, u_const) && check_v(sol, v_const))
 end    
 
-# 1. functional initial guess
+# 1.c functional initial guess
 sol = solve(ocp, print_level=0, init=(state=x_func,), max_iter=maxiter)
 if maxiter > 0
     @printf("%-56s %.3f at %d iterations\n", "Functional x; default u,v", sol.objective, sol.iterations)
