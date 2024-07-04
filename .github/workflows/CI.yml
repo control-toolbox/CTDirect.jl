@@ -10,11 +10,9 @@ jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
-#    continue-on-error: true #warning: alaways display success in actions tab
     strategy:
       matrix:
         version:
-#          - '1.9' significantly slower
           - '1.10'
         os:
           - ubuntu-latest
@@ -23,12 +21,12 @@ jobs:
         arch:
           - x64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: julia-actions/add-julia-registry@v2
+      - uses: julia-actions/add-julia-registry@latest
         with:
           key: ${{ secrets.SSH_KEY }}
           registry: control-toolbox/ct-registry
