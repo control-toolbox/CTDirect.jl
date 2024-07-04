@@ -1,4 +1,5 @@
 using Documenter
+using DocumenterMermaid
 using CTDirect
 using CTBase
 using NLPModelsIpopt
