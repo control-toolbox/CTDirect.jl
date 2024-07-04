@@ -1,4 +1,4 @@
-println("Test: initial guess options\n")
+println("Test: initial guess options")
 
 # use 0 iterations to check initial guess, >0 to check cv
 maxiter = 0
@@ -48,8 +48,16 @@ u_vec = [0, 0.3, .1]
 # 1 Pass initial guess to all-in-one solve call
 
 # 1.a default initial guess
-@testset verbose = true showtiming = true ":default_init" begin
+@testset verbose = true showtiming = true ":default_init_no_arg" begin
     sol = solve(ocp, print_level=0, max_iter=maxiter)
+    @test(check_xf(sol, [0.1, 0.1]) && check_uf(sol, 0.1) && check_v(sol, 0.1))
+end
+@testset verbose = true showtiming = true ":default_init_()" begin
+    sol = solve(ocp, print_level=0, init=(), max_iter=maxiter)
+    @test(check_xf(sol, [0.1, 0.1]) && check_uf(sol, 0.1) && check_v(sol, 0.1))
+end
+@testset verbose = true showtiming = true ":default_init_nothing" begin
+    sol = solve(ocp, print_level=0, init=nothing,max_iter=maxiter)
     @test(check_xf(sol, [0.1, 0.1]) && check_uf(sol, 0.1) && check_v(sol, 0.1))
 end
 
