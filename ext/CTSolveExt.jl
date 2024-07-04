@@ -18,6 +18,8 @@ function CommonSolve.solve(docp::DOCP;
     display::Bool=CTDirect.__display(),
     print_level::Integer=CTDirect.__print_level_ipopt(),
     mu_strategy::String=CTDirect.__mu_strategy_ipopt(),
+    max_iter::Integer=CTDirect.__max_iter(),
+    tol::Real=CTDirect.__tol(),
     linear_solver::String=CTDirect.__linear_solver(),
     kwargs...)
 
@@ -38,13 +40,13 @@ function CommonSolve.solve(docp::DOCP;
     nlp = getNLP(docp)
     if isnothing(init)
         # use initial guess embedded in the DOCP
-        docp_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
+        docp_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)
     else
         # use given initial guess
         ocp = docp.ocp
         x0 = CTDirect.DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 
-        docp_solution = ipopt(nlp, x0=x0, print_level=print_level, mu_strategy=mu_strategy, sb="yes", linear_solver=linear_solver; kwargs...)
+        docp_solution = ipopt(nlp, x0=x0, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)
     end
 
     # return DOCP solution
@@ -65,6 +67,8 @@ function CommonSolve.solve(ocp::OptimalControlModel,
     display::Bool=CTDirect.__display(),
     print_level::Integer=CTDirect.__print_level_ipopt(),
     mu_strategy::String=CTDirect.__mu_strategy_ipopt(),
+    max_iter::Integer=CTDirect.__max_iter(),
+    tol::Real=CTDirect.__tol(),
     linear_solver::String=CTDirect.__linear_solver(),
     kwargs...)
 
@@ -72,7 +76,7 @@ function CommonSolve.solve(ocp::OptimalControlModel,
     docp = directTranscription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
 
     # solve DOCP (NB. init is already embedded in docp)
-    docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, linear_solver=linear_solver; kwargs...)
+    docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, linear_solver=linear_solver; kwargs...)
 
     # build and return OCP solution
     return OCPSolutionFromDOCP(docp, docp_solution)
