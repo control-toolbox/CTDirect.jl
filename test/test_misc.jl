@@ -50,14 +50,14 @@ println("\nDirect transcription with warm start (compact syntax)")
 docp2 = directTranscription(ocp, init=sol)
 dsol2 = solve(docp2, print_level=0, tol=1e-12)
 
-# test OCPSolutionFromDOCP_raw
-#println("\nRebuild OCP solution from raw vector")
-#sol3 = OCPSolutionFromDOCP_raw(docp2, dsol2.solution)
+# test OCPSolutionFromNLP (no costate +++)
+println("\nRebuild OCP solution from raw NLP solution")
+sol3 = OCPSolutionFromNLP(docp2, dsol2.solution)
+#plot(sol3, show=true)
 
 # save / load solution in JLD2 format
 save_OCP_solution(sol, filename_prefix="solution_test")
 sol4 = load_OCP_solution("solution_test")
-plot(sol4, show=true)
 println("\nCheck JLD2 solution ", sol.objective == sol4.objective)
 
 # export / read discrete solution in JSON format

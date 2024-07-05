@@ -32,13 +32,13 @@ end
     @test sol.iterations == 5
 end
 
-# test NLP getter
+# test NLP getter (+++ add actual test ?)
 docp = directTranscription(ocp)
 nlp = getNLP(docp)
 
-# test OCPSolutionFromDOCP_raw
-#dsol = solve(docp, print_level=0, tol=1e-12)
-#sol_raw = OCPSolutionFromDOCP_raw(docp, dsol.solution)
+# test OCPSolutionFromNLP (+++ add actual test ?)
+dsol = solve(docp, print_level=0, tol=1e-12)
+sol = OCPSolutionFromNLP(docp, dsol.solution)
 
 # test save / load solution in JLD2 format
 @testset verbose = true showtiming = true ":save_load :JLD2" begin

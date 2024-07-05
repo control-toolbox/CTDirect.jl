@@ -32,9 +32,9 @@ export is_solvable
 export directTranscription
 export DOCP
 export getNLP
-export setInitialGuess
+export setDOCPInitialGuess
+export OCPSolutionFromNLP
 export OCPSolutionFromDOCP
-export OCPSolutionFromDOCP_raw
 export save_OCP_solution
 export load_OCP_solution
 export export_OCP_solution

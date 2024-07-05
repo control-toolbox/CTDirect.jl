@@ -359,9 +359,9 @@ end
 $(TYPEDSIGNATURES)
 
 Set the path constraints / bounds for given time step
-target = :constraints | :bounds
+target = :constraints | :bounds | :multipliers
 """
-function setPathConstraintsAtTimeStep!(docp, index, target; c=nothing, args=nothing, lb=nothing, ub=nothing)
+function setPathConstraintsAtTimeStep!(docp, index, target; c=nothing, args=nothing, lb=nothing, ub=nothing, sol=nothing)
 
     ocp = docp.ocp
     if target == :constraints
@@ -375,7 +375,7 @@ function setPathConstraintsAtTimeStep!(docp, index, target; c=nothing, args=noth
     if dim_control_constraints(ocp) > 0
         if target == :constraints
             c[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[2](ti, ui, v)
-        else
+        elseif target == :bounds
             lb[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[1]
             ub[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[3]
         end
@@ -386,7 +386,7 @@ function setPathConstraintsAtTimeStep!(docp, index, target; c=nothing, args=noth
     if dim_state_constraints(ocp) > 0
         if target == :constraints
             c[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[2](ti, xi ,v)
-        else
+        elseif target == :bounds
             lb[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[1]
             ub[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[3]
         end
@@ -397,7 +397,7 @@ function setPathConstraintsAtTimeStep!(docp, index, target; c=nothing, args=noth
     if dim_mixed_constraints(ocp) > 0
         if target == :constraints
             c[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[2](ti, xi, ui, v)
-        else
+        elseif target == :bounds
             lb[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[1]
             ub[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[3]
         end

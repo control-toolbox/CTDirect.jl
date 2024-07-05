@@ -63,7 +63,7 @@ $(TYPEDSIGNATURES)
 
 Set initial guess in the DOCP
 """
-function setInitialGuess(docp::DOCP, init)
+function setDOCPInitialGuess(docp::DOCP, init)
 
     nlp = getNLP(docp)
     ocp = docp.ocp
