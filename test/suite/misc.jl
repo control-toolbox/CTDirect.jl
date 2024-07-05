@@ -19,38 +19,38 @@ sol0 = solve(ocp, print_level=0)
 end
 
 @testset verbose = true showtiming = true ":docp_solve" begin
-    docp = directTranscription(ocp)
+    docp = direct_transcription(ocp)
     dsol = solve(docp, print_level=0, tol=1e-12)
-    sol = OCPSolutionFromDOCP(docp, dsol)
+    sol = ocp_solution_from_docp(docp, dsol)
     @test sol.objective ≈ 0.313 rtol=1e-2
 end
 
 @testset verbose = true showtiming = true ":docp_solve :warm_start" begin
-    docp = directTranscription(ocp, init=sol0)
+    docp = direct_transcription(ocp, init=sol0)
     dsol = solve(docp, print_level=0, tol=1e-12)
-    sol = OCPSolutionFromDOCP(docp, dsol)
+    sol = ocp_solution_from_docp(docp, dsol)
     @test sol.iterations == 5
 end
 
 # test NLP getter (+++ add actual test ?)
-docp = directTranscription(ocp)
-nlp = getNLP(docp)
+docp = direct_transcription(ocp)
+nlp = get_nlp(docp)
 
 # test OCPSolutionFromNLP (+++ add actual test ?)
 dsol = solve(docp, print_level=0, tol=1e-12)
-sol = OCPSolutionFromNLP(docp, dsol.solution)
+sol = ocp_solution_from_nlp(docp, dsol.solution)
 
 # test save / load solution in JLD2 format
 @testset verbose = true showtiming = true ":save_load :JLD2" begin
-    save_OCP_solution(sol0, filename_prefix="solution_test")
-    sol_reloaded = load_OCP_solution("solution_test")
+    save(sol0, filename_prefix="solution_test")
+    sol_reloaded = load("solution_test")
     @test sol0.objective == sol_reloaded.objective
 end
 
 # test export / read solution in JSON format
 @testset verbose = true showtiming = true ":export_read :JSON" begin
-    export_OCP_solution(sol0, filename_prefix="solution_test")
-    sol_reloaded = read_OCP_solution("solution_test")
+    export_ocp_solution(sol0, filename_prefix="solution_test")
+    sol_reloaded = import_ocp_solution("solution_test")
     @test sol0.objective == sol_reloaded.objective
 end
 

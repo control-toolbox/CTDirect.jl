@@ -135,35 +135,35 @@ end
 
 #################################################
 # 2 Setting the initial guess at the DOCP level
-docp = directTranscription(ocp)
+docp = direct_transcription(ocp)
 # mixed init
 @testset verbose = true showtiming = true ":docp_mixed_init" begin
-    setDOCPInitialGuess(docp, (time=t_vec, state=x_vec, control=u_func, variable=v_const))
+    set_initial_guess(docp, (time=t_vec, state=x_vec, control=u_func, variable=v_const))
     dsol = solve(docp, print_level=0, max_iter=maxiter)
-    sol = OCPSolutionFromDOCP(docp, dsol)
+    sol = ocp_solution_from_docp(docp, dsol)
     @test(check_xf(sol, x_vec[end]) && check_uf(sol, u_func(sol.times[end])) && check_v(sol, v_const))
 end
 # warm start
 @testset verbose = true showtiming = true ":docp_warm_start" begin
-    setDOCPInitialGuess(docp, sol0)
+    set_initial_guess(docp, sol0)
     dsol = solve(docp, print_level=0, max_iter=maxiter)
-    sol = OCPSolutionFromDOCP(docp, dsol)
+    sol = ocp_solution_from_docp(docp, dsol)
     @test(check_xf(sol, sol.state(sol.times[end])) && check_uf(sol, sol.control(sol.times[end])) && check_v(sol, sol.variable))
 end
 
 #################################################
 # 3 Passing the initial guess to solve call
-setDOCPInitialGuess(docp, ()) # reset init in docp
+set_initial_guess(docp, ()) # reset init in docp
 # mixed init
 @testset verbose = true showtiming = true ":docp_solve_mixed_init" begin
     dsol = solve(docp, init=(time=t_vec, state=x_vec, control=u_func, variable=v_const), print_level=0, max_iter=maxiter)
-    sol = OCPSolutionFromDOCP(docp, dsol)
+    sol = ocp_solution_from_docp(docp, dsol)
     @test(check_xf(sol, x_vec[end]) && check_uf(sol, u_func(sol.times[end])) && check_v(sol, v_const))
 end
 
 # warm start
 @testset verbose = true showtiming = true ":docp_solve_warm_start" begin
     dsol = solve(docp, init=sol0, print_level=0, max_iter=maxiter)
-    sol = OCPSolutionFromDOCP(docp, dsol)
+    sol = ocp_solution_from_docp(docp, dsol)
     @test(check_xf(sol, sol.state(sol.times[end])) && check_uf(sol, sol.control(sol.times[end])) && check_v(sol, sol.variable))
 end

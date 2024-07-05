@@ -273,8 +273,6 @@ mutable struct OCPDiscreteSolution
 end
 
 # placeholders (see CTDirectExt)
-function save end
-function load end
-function export_OCP_solution end
-function import_OCP_solution end
+function export_ocp_solution end
+function import_ocp_solution end
 

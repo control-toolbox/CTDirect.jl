@@ -34,7 +34,7 @@ if test1
         local ocp1 = ocp_T(T) 
         local sol1 = solve(ocp1, print_level=0, init=init1)
         global init1 = sol1
-        @printf("T %.2f objective %.6f iterations %d\n", T, sol1.objective, sol1.iterations)
+        @printf("T %.2f objective %9.6f iterations %d\n", T, sol1.objective, sol1.iterations)
     end
 
 
@@ -77,7 +77,7 @@ if test2
         local ocp2 = myocp(ρ)
         local sol2 = solve(ocp2, print_level=0, init=init2)
         global init2 = sol2
-        @printf("Rho %.2f objective %.6f iterations %d\n", ρ, sol2.objective, sol2.iterations)
+        @printf("Rho %5.1f objective %9.4f iterations %d\n", ρ, sol2.objective, sol2.iterations)
     end
 end
 
@@ -91,7 +91,7 @@ if (test3)
     @printf("\nObjective for goddard reference solution %.6f",  sol0.objective)
 
     # using a global variable in ocp definition
-    print("\nDiscrete continuation on maximal thrust")
+    println("\nDiscrete continuation on maximal thrust")
     # continuation on Tmax (using default init is slower)
     Tmax_list = []
     obj_list = []
@@ -109,5 +109,5 @@ if (test3)
     # plot multiple solutions
     plot(sol0)
     p = plot!(sol3)
-    display(plot(pobj, p, layout=2, reuse=false))
+    display(plot(pobj, p, layout=2, reuse=false, size=(1000,500)))
 end
