@@ -126,7 +126,7 @@ println("Objective ", sol6.objective, " after ", sol6.iterations, " iterations")
 ```
 Another possibility is to set the initial guess associated to the DOCP, using the function **setInitialGuess**.
 ```@example main
-setInitialGuess(docp, sol1)
+setDOCPInitialGuess(docp, sol1)
 dsol = solve(docp, print_level=5)
 nothing # hide
 ```
