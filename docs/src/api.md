@@ -18,8 +18,6 @@ Private = false
 
 ```@docs
 solve
-save_OCP_solution
-load_OCP_solution
-export_OCP_solution
-read_OCP_solution
+export_ocp_solution
+import_ocp_solution
 ```

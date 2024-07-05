@@ -108,31 +108,3 @@ nothing # hide
 ```@example main
 plot(sol4)
 ```
-
-## The discretized problem
-
-Instead of calling **solve** directly on the OCP problem, you can first obtain the discretized problem (DOCP) by calling **directTranscription**, then call **solve** on the DOCP. The resulting solution of the discretized problem can be used to generate the corresponding OCP solution with **OCPSolutionFromDOCP**.
-```@example main
-docp = directTranscription(ocp, grid_size=100)
-dsol = solve(docp, print_level=5)
-sol5 = OCPSolutionFromDOCP(docp, dsol)
-nothing # hide
-```
-The initial guess can be passed to **solve** same as before.
-```@example main
-dsol = solve(docp, print_level=0, init=sol1)
-sol6 = OCPSolutionFromDOCP(docp, dsol)
-println("Objective ", sol6.objective, " after ", sol6.iterations, " iterations")
-```
-Another possibility is to set the initial guess associated to the DOCP, using the function **setInitialGuess**.
-```@example main
-setDOCPInitialGuess(docp, sol1)
-dsol = solve(docp, print_level=5)
-nothing # hide
-```
-Finally, the direct transcription also accept an initial guess.
-```@example main
-docp = directTranscription(ocp, grid_size=100, init=sol1)
-dsol = solve(docp, print_level=5)
-nothing # hide
-```
