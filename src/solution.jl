@@ -3,7 +3,7 @@ $(TYPEDSIGNATURES)
 
 Build OCP functional solution from DOCP vector solution (given as a GenericExecutionStats)
 """
-function OCPSolutionFromDOCP(docp, docp_solution_ipopt)
+function ocp_solution_from_docp(docp, docp_solution_ipopt)
 
     # could pass some status info too (get_status ?)
     solution = docp_solution_ipopt.solution
@@ -151,7 +151,7 @@ function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
 end
 
 
-function OCPSolutionFromNLP(docp, nlp_solution; nlp_multipliers=nothing)
+function ocp_solution_from_nlp(docp, nlp_solution; nlp_multipliers=nothing)
 
     # time grid
     N = docp.dim_NLP_steps

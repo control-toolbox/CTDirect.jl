@@ -226,7 +226,7 @@ end
 # +++todo:
 # - add more fields from OptimalControlSolution
 # - constructor to recreate OptimalControlSolution from this one
-mutable struct OCP_Solution_discrete
+mutable struct OCPDiscreteSolution
 
     times
     #initial_time_name::Union{String, Nothing}=nothing
@@ -253,7 +253,7 @@ mutable struct OCP_Solution_discrete
     #infos::Dict{Symbol, Any}=Dict{Symbol, Any}()
     #OCP_Solution_discrete() = new() # for StructTypes / JSON
     
-    function OCP_Solution_discrete(solution::OptimalControlSolution)
+    function OCPDiscreteSolution(solution::OptimalControlSolution)
         solution_d = new()
 
         # raw copy +++ reuse the copy! in CTBase ?
@@ -273,20 +273,8 @@ mutable struct OCP_Solution_discrete
 end
 
 # placeholders (see CTDirectExt)
-function save_OCP_solution end
-function load_OCP_solution end
+function save end
+function load end
 function export_OCP_solution end
-function read_OCP_solution end
+function import_OCP_solution end
 
-#=
-"""
-$(TYPEDSIGNATURES)
- 
-Parse interpolated OCP solution saved in JSON format (NOT IMPLEMENTED)
-"""
-function parse_JSON_solution(json_solution)
-    println("parse_JSON_solution not implemented yet")
-        #+++ parse JSON object containing interpolated solution
-        #+++ then call raw constructor for OCP solution
-end
-=#

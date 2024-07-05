@@ -19,7 +19,7 @@ $(TYPEDSIGNATURES)
 
 Discretize an optimal control problem into a nonlinear optimization problem (ie direct transcription)
 """
-function directTranscription(ocp::OptimalControlModel,
+function direct_transcription(ocp::OptimalControlModel,
     description...;
     init=nothing,
     grid_size::Integer=__grid_size_direct(),
@@ -53,7 +53,7 @@ $(TYPEDSIGNATURES)
 
 Extract the NLP problem from the DOCP
 """
-function getNLP(docp::DOCP)
+function get_nlp(docp::DOCP)
     return docp.nlp
 end
 
@@ -63,9 +63,9 @@ $(TYPEDSIGNATURES)
 
 Set initial guess in the DOCP
 """
-function setDOCPInitialGuess(docp::DOCP, init)
+function set_initial_guess(docp::DOCP, init)
 
-    nlp = getNLP(docp)
+    nlp = get_nlp(docp)
     ocp = docp.ocp
     nlp.meta.x0 .= DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 
