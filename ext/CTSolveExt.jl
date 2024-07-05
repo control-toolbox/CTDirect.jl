@@ -37,7 +37,7 @@ function CommonSolve.solve(docp::DOCP;
 
     # solve DOCP with NLP solver
     print_level = display ?  print_level : 0
-    nlp = getNLP(docp)
+    nlp = get_nlp(docp)
     if isnothing(init)
         # use initial guess embedded in the DOCP
         docp_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)
@@ -73,13 +73,13 @@ function CommonSolve.solve(ocp::OptimalControlModel,
     kwargs...)
 
     # build discretized OCP
-    docp = directTranscription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
+    docp = direct_transcription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
 
     # solve DOCP (NB. init is already embedded in docp)
     docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, linear_solver=linear_solver; kwargs...)
 
     # build and return OCP solution
-    return OCPSolutionFromDOCP(docp, docp_solution)
+    return ocp_solution_from_docp(docp, docp_solution)
 end
 
 end

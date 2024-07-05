@@ -3,7 +3,7 @@ $(TYPEDSIGNATURES)
 
 Build OCP functional solution from DOCP vector solution (given as a GenericExecutionStats)
 """
-function OCPSolutionFromDOCP(docp, docp_solution_ipopt)
+function ocp_solution_from_docp(docp, docp_solution_ipopt)
 
     # could pass some status info too (get_status ?)
     solution = docp_solution_ipopt.solution
@@ -99,54 +99,125 @@ function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     sol.success  = success
     sol.infos[:constraints_violation] = constraints_violation
 
+    # Optional
     # nonlinear constraints and multipliers
-    if dim_state_constraints(ocp) > 0
+    if !isnothing(sol_state_constraints) && dim_state_constraints(ocp) > 0
         cx = ctinterpolate(T, matrix2vec(sol_state_constraints, 1))
         mcx = ctinterpolate(T, matrix2vec(mult_state_constraints, 1))
         sol.infos[:dim_state_constraints] = dim_state_constraints(ocp)    
         sol.infos[:state_constraints] = t -> cx(t)
         sol.infos[:mult_state_constraints] = t -> mcx(t)
     end
-    if dim_control_constraints(ocp) > 0
+    if !isnothing(sol_control_constraints) && dim_control_constraints(ocp) > 0
         cu = ctinterpolate(T, matrix2vec(sol_control_constraints, 1))
         mcu = ctinterpolate(T, matrix2vec(mult_control_constraints, 1))
         sol.infos[:dim_control_constraints] = dim_control_constraints(ocp)  
         sol.infos[:control_constraints] = t -> cu(t)
         sol.infos[:mult_control_constraints] = t -> mcu(t)
     end
-    if dim_mixed_constraints(ocp) > 0
+    if !isnothing(sol_mixed_constraints) && dim_mixed_constraints(ocp) > 0
         cxu = ctinterpolate(T, matrix2vec(sol_mixed_constraints, 1))
         mcxu = ctinterpolate(T, matrix2vec(mult_mixed_constraints, 1))
         sol.infos[:dim_mixed_constraints] = dim_mixed_constraints(ocp)    
         sol.infos[:mixed_constraints] = t -> cxu(t)
         sol.infos[:mult_mixed_constraints] = t -> mcxu(t)
     end
-    if dim_variable_constraints(ocp) > 0
+    if !isnothing(sol_variable_constraints) && dim_variable_constraints(ocp) > 0
         sol.infos[:dim_variable_constraints] = dim_variable_constraints(ocp)
         sol.infos[:variable_constraints] = sol_variable_constraints
         sol.infos[:mult_variable_constraints] = mult_variable_constraints
     end
 
     # box constraints multipliers
-    if dim_state_range(ocp) > 0
+    if !isnothing(mult_state_box_lower) && !isnothing(mult_state_box_upper) && dim_state_range(ocp) > 0
         # remove additional state for lagrange cost
         mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower[:,1:ocp.state_dimension], 1))
         mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper[:,1:ocp.state_dimension], 1))
         sol.infos[:mult_state_box_lower] = t -> mbox_x_l(t)
         sol.infos[:mult_state_box_upper] = t -> mbox_x_u(t)    
     end
-    if dim_control_range(ocp) > 0
+    if !isnothing(mult_control_box_lower) && !isnothing(mult_control_box_upper) && dim_control_range(ocp) > 0
         mbox_u_l = ctinterpolate(T, matrix2vec(mult_control_box_lower, 1))
         mbox_u_u = ctinterpolate(T, matrix2vec(mult_control_box_upper, 1))
         sol.infos[:mult_control_box_lower] = t -> mbox_u_l(t)
         sol.infos[:mult_control_box_upper] = t -> mbox_u_u(t)
     end
-    if dim_variable_range(ocp) > 0
+    if !isnothing(mult_variable_box_lower) && !isnothing(mult_variable_box_upper) && dim_variable_range(ocp) > 0
         sol.infos[:mult_variable_box_lower] = mult_variable_box_lower
         sol.infos[:mult_variable_box_upper] = mult_variable_box_upper 
     end
 
     return sol
+end
+
+
+function ocp_solution_from_nlp(docp, nlp_solution; nlp_multipliers=nothing)
+
+    # time grid
+    N = docp.dim_NLP_steps
+    T = zeros(N+1)
+    for i=1:N+1
+        T[i] = get_unnormalized_time(nlp_solution, docp, docp.NLP_normalized_time_grid[i])
+    end
+
+    # recover primal variables
+    X, U, v = parse_DOCP_solution_primal(docp, nlp_solution)
+
+    # recover costate
+    P = parse_DOCP_solution_costate(docp, nlp_multipliers)
+
+    return OCPSolutionFromDOCP_raw(docp, T, X, U, v, P)
+end
+
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Recover OCP primal variables from DOCP solution
+"""
+function parse_DOCP_solution_primal(docp, solution)
+
+    ocp = docp.ocp
+
+    # recover optimization variables
+    v = get_variable(solution, docp)
+
+    # recover states and controls variables
+    N = docp.dim_NLP_steps
+    X = zeros(N+1,docp.dim_NLP_x)
+    U = zeros(N+1,docp.dim_NLP_u)
+    for i in 1:N+1
+        # state and control variables
+        X[i,:] = vget_state_at_time_step(solution, docp, i-1)
+        U[i,:] = vget_control_at_time_step(solution, docp, i-1)
+    end
+
+    return X, U, v
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Recover OCP costate from DOCP solution
+"""
+function parse_DOCP_solution_costate(docp, multipliers)
+
+    # constraints, costate and constraints multipliers
+    N = docp.dim_NLP_steps
+    P = zeros(N, docp.dim_NLP_x)
+    
+    if !isnothing(multipliers)
+        index = 1
+        for i in 1:N
+            # state equation multiplier for costate
+            P[i,:] = lambda[index:index+docp.dim_NLP_x-1]
+            index = index + docp.dim_NLP_x
+        end
+    end
+
+    return P
 end
 
 

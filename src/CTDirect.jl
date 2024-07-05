@@ -29,16 +29,16 @@ export solve # from CommonSolve, extended in CTSolveExt
 # exports
 export available_methods
 export is_solvable
-export directTranscription
+export direct_transcription
+export get_nlp
+export set_initial_guess
+export ocp_solution_from_nlp
+export ocp_solution_from_docp
+export save
+export load
+export export_ocp_solution
+export import_ocp_solution
 export DOCP
-export getNLP
-export setInitialGuess
-export OCPSolutionFromDOCP
-export OCPSolutionFromDOCP_raw
-export save_OCP_solution
-export load_OCP_solution
-export export_OCP_solution
-export read_OCP_solution
-export OCP_Solution_discrete
+export OCPDiscreteSolution
 
 end
