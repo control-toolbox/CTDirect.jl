@@ -35,6 +35,9 @@ function CommonSolve.solve(docp::DOCP;
         end
     end
 
+    #=+++ NB use this ? cf commonsolve
+    For advanced usage, first define a IpoptSolver to preallocate the memory used in the algorithm, and then call solve!: solver = IpoptSolver(nlp) solve!(solver, nlp; kwargs...) solve!(solver, nlp, stats; kwargs...)=#
+
     # solve DOCP with NLP solver
     print_level = display ?  print_level : 0
     nlp = get_nlp(docp)
