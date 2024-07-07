@@ -21,14 +21,14 @@ end
 @testset verbose = true showtiming = true ":docp_solve" begin
     docp = direct_transcription(ocp)
     dsol = solve(docp, print_level=0, tol=1e-12)
-    sol = ocp_solution_from_docp(docp, dsol)
+    sol = build_solution(docp, dsol)
     @test sol.objective ≈ 0.313 rtol=1e-2
 end
 
 @testset verbose = true showtiming = true ":docp_solve :warm_start" begin
     docp = direct_transcription(ocp, init=sol0)
     dsol = solve(docp, print_level=0, tol=1e-12)
-    sol = ocp_solution_from_docp(docp, dsol)
+    sol = build_solution(docp, dsol)
     @test sol.iterations == 5
 end
 
@@ -36,9 +36,14 @@ end
 docp = direct_transcription(ocp)
 nlp = get_nlp(docp)
 
-# test OCPSolutionFromNLP (+++ add actual test ?)
-dsol = solve(docp, print_level=0, tol=1e-12)
-sol = ocp_solution_from_nlp(docp, dsol.solution)
+# build solution from NLP (+++ add actual test ?)
+@testset verbose = true showtiming = true ":build_solution_from_nlp" begin
+    dsol = solve(docp, print_level=0, tol=1e-12)
+    sol = build_solution(docp, primal=dsol.solution)
+    @test sol.objective ≈ 0.313 rtol=1e-2
+    sol = build_solution(docp, primal=dsol.solution, dual=dsol.multipliers)
+    @test sol.objective ≈ 0.313 rtol=1e-2
+end
 
 # test save / load solution in JLD2 format
 @testset verbose = true showtiming = true ":save_load :JLD2" begin

@@ -82,7 +82,7 @@ function CommonSolve.solve(ocp::OptimalControlModel,
     docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, linear_solver=linear_solver; kwargs...)
 
     # build and return OCP solution
-    return ocp_solution_from_docp(docp, docp_solution)
+    return build_solution(docp, docp_solution)
 end
 
 end
