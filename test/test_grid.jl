@@ -7,8 +7,8 @@ test1 = false
 test2 = false
 test3 = false
 test4 = false
-test5 = true
-test6 = false
+test5 = false
+test6 = true
 
 # 1. simple integrator min energy (dual control for test)
 if test1
@@ -120,6 +120,9 @@ if test4
 end
 
 # 5. time grid as optimization variables
+
+# NB The function below is a dirty hack.
+# How is this handled by AD ?
 function dt(t,v)
     if t == 0
         dt = v[1]
@@ -145,16 +148,13 @@ if test5
     constraint!(ocp, :control, lb=-1, ub=1)
     constraint!(ocp, :variable, lb=0.01*ones(N_vars), ub=10*ones(N_vars))
     dynamics!(ocp, (t,x,u,v)-> [x[2], u] * dt(t,v))
-
-    #=
-    # min energy fixed tf
+    # min tf
+    objective!(ocp, :mayer, (x0, xf, v) -> sum(v))
+    #=    # min energy fixed tf
     fixed_tf = 2.5
     constraint!(ocp, :boundary, f=(x0, xf, v)->sum(v), lb=fixed_tf, ub=fixed_tf)
     objective!(ocp, :lagrange, (t, x, u, v) -> u^2 * v[Int(t)])
     =#
-
-    # min tf
-    objective!(ocp, :mayer, (x0, xf, v) -> sum(v))
 
     sol = solve(ocp, grid_size=N_vars)
 
@@ -178,9 +178,12 @@ if test5
 end
 
 
+# goddard test case: does not work very well
+# it could be the optimization finds 'bad' values for the time steps so it can cheat the ODE and get a better objective...
+# also maybe a derivatives problem for function dt
+# this feature needs a proper implementation anyway
 if test6
-    N_vars = 10
-
+    N_vars = 30
     goddard = Model(variable=true, autonomous=false)
     Cd = 310
     Tmax = 3.5
@@ -200,7 +203,7 @@ if test6
     constraint!(goddard, :final, rg=3, lb=mf, ub=mf)
     constraint!(goddard, :state, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
     constraint!(goddard, :control, lb=0, ub=1)
-    constraint!(goddard, :variable, lb=0.01*ones(N_vars), ub=10*ones(N_vars))
+    constraint!(goddard, :variable, lb=0.05/N_vars*ones(N_vars), ub=Inf*ones(N_vars))
     objective!(goddard, :mayer,  (x0, xf, v) -> xf[1], :max)
     function F0(x)
         r, v, m = x
@@ -212,4 +215,19 @@ if test6
         return [ 0, Tmax/m, -b*Tmax ]
     end
     dynamics!(goddard, (t, x, u, v) -> (F0(x) + u*F1(x)) * dt(t,v) )
+
+    # start will small time steps ?
+    sol = solve(goddard, grid_size=N_vars, tol=1e-12, init=(variable=zeros(N_vars),))
+
+    # actual time grid
+    v = sol.variable
+    T_opt = zeros(N_vars+1)
+    for i in 1:N_vars
+        T_opt[i+1] = T_opt[i] + v[i]
+    end
+    println("Optimized time steps ", T_opt)
+    println("And tf: ", sum(sol.variable))
+      
+    U_opt = sol.control.(sol.times)
+    p=plot(T_opt, U_opt, markershape=:circle, show=true)
 end
