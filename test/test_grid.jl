@@ -1,11 +1,13 @@
 include("common_deps.jl")
 using Plots
+using Printf
 
 println("Test: grid options")
 test1 = false
 test2 = false
 test3 = false
-test4 = true
+test4 = false
+test5 = true
 
 # 1. simple integrator min energy (dual control for test)
 if test1
@@ -114,4 +116,61 @@ if test4
     sol = solve(goddard, time_grid=LinRange(0,1,N+1), display=false, init=sol)
     @printf("steps %4d, objective %9.6f, iterations %4d\n", N, sol.objective, sol.iterations)
     end
+end
+
+# 5. time grid as optimization variables
+if test5
+    # number of time steps to be optimized
+    N_vars = 10
+    function f(t,x,u,v)
+        if t == 0
+            dt = v[1]
+        elseif t == N_vars
+            dt = v[end]
+        else
+            dt = 0.5 * (v[Int(t)] + v[Int(t)+1])
+        end
+        return [x[2], u] * dt
+    end
+
+    ocp = Model(variable=true, autonomous=false)
+    state!(ocp, 2)
+    control!(ocp, 1)
+    variable!(ocp, N_vars)
+    time!(ocp, t0=0, tf=N_vars)
+    constraint!(ocp, :initial, lb=[0,0], ub=[0,0])
+    constraint!(ocp, :final, lb=[1,0], ub=[1,0])
+    constraint!(ocp, :control, lb=-1, ub=1)
+    constraint!(ocp, :variable, lb=0.01*ones(N_vars), ub=0.99*ones(N_vars))
+    dynamics!(ocp, f)
+
+    #=
+    # min energy fixed tf
+    fixed_tf = 2.5
+    constraint!(ocp, :boundary, f=(x0, xf, v)->sum(v), lb=fixed_tf, ub=fixed_tf)
+    objective!(ocp, :lagrange, (t, x, u, v) -> u^2 * v[Int(t)])
+    =#
+
+    # min tf
+    objective!(ocp, :mayer, (x0, xf, v) -> sum(v))
+
+    sol = solve(ocp, grid_size=N_vars)
+
+    # actual time grid
+    v = sol.variable
+    T_opt = zeros(N_vars+1)
+    for i in 1:N_vars
+        T_opt[i+1] = T_opt[i] + v[i]
+    end
+    println("Optimized time steps ", T_opt)
+    println("And tf: ", sum(sol.variable))
+  
+    #plot(sol)
+    U_opt = zeros(N_vars+1)
+    # ffs julia
+    for i in 1:N_vars+1
+        U_opt[i] = sol.control(sol.times[i])
+    end
+    p=plot(T_opt, U_opt, markershape=:circle)
+
 end
