@@ -1,9 +1,85 @@
 """
 $(TYPEDSIGNATURES)
 
-Build OCP functional solution from DOCP vector solution (given as a GenericExecutionStats)
+Recover OCP primal variables from DOCP solution
 """
-function ocp_solution_from_docp(docp, docp_solution_ipopt)
+function parse_DOCP_solution_primal(docp, solution)
+
+    ocp = docp.ocp
+
+    # recover optimization variables
+    v = get_variable(solution, docp)
+
+    # recover states and controls variables
+    N = docp.dim_NLP_steps
+    X = zeros(N+1,docp.dim_NLP_x)
+    U = zeros(N+1,docp.dim_NLP_u)
+    for i in 1:N+1
+        # state and control variables
+        X[i,:] = vget_state_at_time_step(solution, docp, i-1)
+        U[i,:] = vget_control_at_time_step(solution, docp, i-1)
+    end
+
+    return X, U, v
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Recover OCP costate from DOCP multipliers
+"""
+# +++todo: parse multipliers for the path and boundary constraints (use tuples)
+function parse_DOCP_solution_dual(docp, multipliers)
+
+    # constraints, costate and constraints multipliers
+    N = docp.dim_NLP_steps
+    P = zeros(N, docp.dim_NLP_x)
+    
+    if !isnothing(multipliers)
+        index = 1
+        for i in 1:N
+            # state equation multiplier for costate
+            P[i,:] = multipliers[index:index+docp.dim_NLP_x-1]
+            index = index + docp.dim_NLP_x
+        end
+    end
+
+    return P
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Build OCP functional solution from the DOCP discrete solution, given as a vector. Costate will be retrieved from dual variables (multipliers) if available.
+"""
+function build_solution(docp; primal, dual=nothing)
+
+    # time grid
+    N = docp.dim_NLP_steps
+    T = zeros(N+1)
+    for i=1:N+1
+        T[i] = get_unnormalized_time(primal, docp, docp.NLP_normalized_time_grid[i])
+    end
+
+    # recover primal variables
+    X, U, v = parse_DOCP_solution_primal(docp, primal)
+
+    # recover costate
+    P = parse_DOCP_solution_dual(docp, dual)
+
+    # recompute objective
+    objective = DOCP_objective(primal, docp)
+
+    return OCPSolutionFromDOCP_raw(docp, T, X, U, v, P, objective=objective)
+end
+
+"""
+$(TYPEDSIGNATURES)
+   
+Build OCP functional solution from DOCP discrete solution (given as a GenericExecutionStats)
+"""
+function build_solution(docp, docp_solution_ipopt)
 
     # could pass some status info too (get_status ?)
     solution = docp_solution_ipopt.solution
@@ -22,23 +98,20 @@ function ocp_solution_from_docp(docp, docp_solution_ipopt)
         objective = - docp_solution_ipopt.objective
     end
 
-    # recompute value of constraints at solution
-    # NB. the constraint formulation is LB <= C <= UB
-    constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraints!(constraints, solution, docp)
+    # recover primal variables
+    X, U, v = parse_DOCP_solution_primal(docp, solution)
 
-    # parse NLP variables, constraints and multipliers 
-    X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper = parse_DOCP_solution(docp, solution, docp_solution_ipopt.multipliers, docp_solution_ipopt.multipliers_L, docp_solution_ipopt.multipliers_U, constraints)
+    # recover costate
+    P = parse_DOCP_solution_dual(docp, docp_solution_ipopt.multipliers)
 
     # build and return OCP solution
     return OCPSolutionFromDOCP_raw(docp, T, X, U, v, P,
     objective=objective, iterations=docp_solution_ipopt.iter,constraints_violation=docp_solution_ipopt.primal_feas, 
-    message=String(docp_solution_ipopt.solver_specific[:internal_msg]),
-    sol_control_constraints=sol_control_constraints, sol_state_constraints=sol_state_constraints, sol_mixed_constraints=sol_mixed_constraints, sol_variable_constraints=sol_variable_constraints, mult_control_constraints=mult_control_constraints, mult_state_constraints=mult_state_constraints, mult_mixed_constraints=mult_mixed_constraints, mult_variable_constraints=mult_variable_constraints, mult_state_box_lower=mult_state_box_lower, mult_state_box_upper=mult_state_box_upper, mult_control_box_lower=mult_control_box_lower, mult_control_box_upper=mult_control_box_upper, mult_variable_box_lower=mult_variable_box_lower, mult_variable_box_upper=mult_variable_box_upper)
-
+    message=String(docp_solution_ipopt.solver_specific[:internal_msg]))
 end
 
 
+# to be updated
 """
 $(TYPEDSIGNATURES)
     
@@ -61,7 +134,6 @@ Build OCP functional solution from DOCP vector solution (given as raw variables 
 # a tupple for indicators
 # and do the copy manually ?
 #function OCPSolutionFromDOCP_raw(ocp_data, ...)
-
 function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     objective=0, iterations=0, constraints_violation=0,
     message="No msg", stopping=nothing, success=nothing,
@@ -151,75 +223,7 @@ function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
 end
 
 
-function ocp_solution_from_nlp(docp, nlp_solution; nlp_multipliers=nothing)
-
-    # time grid
-    N = docp.dim_NLP_steps
-    T = zeros(N+1)
-    for i=1:N+1
-        T[i] = get_unnormalized_time(nlp_solution, docp, docp.NLP_normalized_time_grid[i])
-    end
-
-    # recover primal variables
-    X, U, v = parse_DOCP_solution_primal(docp, nlp_solution)
-
-    # recover costate
-    P = parse_DOCP_solution_costate(docp, nlp_multipliers)
-
-    return OCPSolutionFromDOCP_raw(docp, T, X, U, v, P)
-end
-
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Recover OCP primal variables from DOCP solution
-"""
-function parse_DOCP_solution_primal(docp, solution)
-
-    ocp = docp.ocp
-
-    # recover optimization variables
-    v = get_variable(solution, docp)
-
-    # recover states and controls variables
-    N = docp.dim_NLP_steps
-    X = zeros(N+1,docp.dim_NLP_x)
-    U = zeros(N+1,docp.dim_NLP_u)
-    for i in 1:N+1
-        # state and control variables
-        X[i,:] = vget_state_at_time_step(solution, docp, i-1)
-        U[i,:] = vget_control_at_time_step(solution, docp, i-1)
-    end
-
-    return X, U, v
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Recover OCP costate from DOCP solution
-"""
-function parse_DOCP_solution_costate(docp, multipliers)
-
-    # constraints, costate and constraints multipliers
-    N = docp.dim_NLP_steps
-    P = zeros(N, docp.dim_NLP_x)
-    
-    if !isnothing(multipliers)
-        index = 1
-        for i in 1:N
-            # state equation multiplier for costate
-            P[i,:] = lambda[index:index+docp.dim_NLP_x-1]
-            index = index + docp.dim_NLP_x
-        end
-    end
-
-    return P
-end
-
+#= +++todo: rewrite 3rd parser for box constraints (use tuples)
 
 """
 $(TYPEDSIGNATURES)
@@ -338,21 +342,9 @@ function parse_DOCP_solution(docp, solution, multipliers_constraints, multiplier
 
     return X, U, v, P, sol_control_constraints, sol_state_constraints, sol_mixed_constraints, sol_variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_variable_constraints, mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper
 end
-
-
-    #return OCPSolutionFromDOCP_raw(docp, docp_solution_ipopt.solution, objective=docp_solution_ipopt.objective, constraints_violation=docp_solution_ipopt.primal_feas, iterations=docp_solution_ipopt.iter,multipliers_constraints=docp_solution_ipopt.multipliers, multipliers_LB=docp_solution_ipopt.multipliers_L, multipliers_UB=docp_solution_ipopt.multipliers_U, message=docp_solution_ipopt.solver_specific[:internal_msg])
+=#
 
 #= OLD
-    # NB. still missing: stopping and success info...
-    # set objective if needed
-    if objective==nothing
-        objective = DOCP_objective(solution, docp)
-        println("Recomputed raw objective ", objective)
-    end
-    # adjust objective sign for maximization problems
-    if !is_min(docp.ocp)
-        objective = - objective
-    end
 
     # recompute value of constraints at solution
     # NB. the constraint formulation is LB <= C <= UB

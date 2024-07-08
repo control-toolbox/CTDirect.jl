@@ -39,31 +39,38 @@ println("Test simple integrator: split calls")
 println("Direct transcription with default init")
 docp = direct_transcription(ocp)
 dsol = solve(docp, print_level=0, tol=1e-12)
-sol1 = ocp_solution_from_docp(docp, dsol)
+sol1 = build_solution(docp, dsol)
 println("Target 0.313, found ", sol1.objective, " at ", sol1.iterations, " iterations")
 
 # test NLP getter
 nlp = get_nlp(docp)
 
 # warm start in directTranscription
-println("\nDirect transcription with warm start (compact syntax)")
+println("\nDirect transcription with warm start")
 docp2 = direct_transcription(ocp, init=sol)
 dsol2 = solve(docp2, print_level=0, tol=1e-12)
 
-# test OCPSolutionFromNLP (no costate +++)
-println("\nRebuild OCP solution from raw NLP solution")
-sol3 = ocp_solution_from_nlp(docp2, dsol2.solution)
-#plot(sol3, show=true)
+# build_solution from NLP solution (primal only)
+println("Rebuild OCP solution from NLP solution (primal only)")
+sol3 = build_solution(docp2, primal=dsol2.solution)
+plot(sol3, show=true)
+
+# build_solution from NLP solution (primal only)
+println("Rebuild OCP solution from NLP solution (primal,dual)")
+sol4 = build_solution(docp2, primal=dsol2.solution, dual=dsol2.multipliers)
+plot(sol4, show=true)
 
 # save / load solution in JLD2 format
+println("\nSave / load solution in JLD2 format")
 save(sol, filename_prefix="solution_test")
-sol4 = load("solution_test")
-println("\nCheck JLD2 solution ", sol.objective == sol4.objective)
+sol_reloaded = load("solution_test")
+println("Check JLD2 solution ", sol.objective == sol_reloaded.objective)
 
 # export / read discrete solution in JSON format
 # NB. we recover here a JSON Object...
+println("Export / import solution in JSON format")
 export_ocp_solution(sol, filename_prefix="solution_test")
 sol_disc_reloaded = import_ocp_solution("solution_test")
-println("\nCheck JSON solution ", sol.objective == sol_disc_reloaded.objective)
+println("Check JSON solution ", sol.objective == sol_disc_reloaded.objective)
 
 println("")
