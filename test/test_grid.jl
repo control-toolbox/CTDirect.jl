@@ -8,6 +8,7 @@ test2 = false
 test3 = false
 test4 = false
 test5 = true
+test6 = false
 
 # 1. simple integrator min energy (dual control for test)
 if test1
@@ -119,19 +120,20 @@ if test4
 end
 
 # 5. time grid as optimization variables
+function dt(t,v)
+    if t == 0
+        dt = v[1]
+    elseif t == N_vars
+        dt = v[end]
+    else
+        dt = 0.5 * (v[Int(t)] + v[Int(t)+1])
+    end
+    return dt
+end
+
 if test5
     # number of time steps to be optimized
     N_vars = 10
-    function f(t,x,u,v)
-        if t == 0
-            dt = v[1]
-        elseif t == N_vars
-            dt = v[end]
-        else
-            dt = 0.5 * (v[Int(t)] + v[Int(t)+1])
-        end
-        return [x[2], u] * dt
-    end
 
     ocp = Model(variable=true, autonomous=false)
     state!(ocp, 2)
@@ -141,8 +143,8 @@ if test5
     constraint!(ocp, :initial, lb=[0,0], ub=[0,0])
     constraint!(ocp, :final, lb=[1,0], ub=[1,0])
     constraint!(ocp, :control, lb=-1, ub=1)
-    constraint!(ocp, :variable, lb=0.01*ones(N_vars), ub=0.99*ones(N_vars))
-    dynamics!(ocp, f)
+    constraint!(ocp, :variable, lb=0.01*ones(N_vars), ub=10*ones(N_vars))
+    dynamics!(ocp, (t,x,u,v)-> [x[2], u] * dt(t,v))
 
     #=
     # min energy fixed tf
@@ -171,6 +173,43 @@ if test5
     for i in 1:N_vars+1
         U_opt[i] = sol.control(sol.times[i])
     end
-    p=plot(T_opt, U_opt, markershape=:circle)
+    p=plot(T_opt, U_opt, markershape=:circle, show=true)
 
+end
+
+
+if test6
+    N_vars = 10
+
+    goddard = Model(variable=true, autonomous=false)
+    Cd = 310
+    Tmax = 3.5
+    β = 500
+    b = 2
+    r0 = 1
+    v0 = 0
+    vmax = 0.1
+    m0 = 1
+    mf = 0.6
+    x0 = [r0, v0, m0]
+    state!(goddard, 3)
+    control!(goddard, 1)
+    variable!(goddard, N_vars)
+    time!(goddard, t0=0, tf=N_vars)
+    constraint!(goddard, :initial, lb=x0, ub=x0)
+    constraint!(goddard, :final, rg=3, lb=mf, ub=mf)
+    constraint!(goddard, :state, lb=[r0,v0,mf], ub=[r0+0.2,vmax,m0])
+    constraint!(goddard, :control, lb=0, ub=1)
+    constraint!(goddard, :variable, lb=0.01*ones(N_vars), ub=10*ones(N_vars))
+    objective!(goddard, :mayer,  (x0, xf, v) -> xf[1], :max)
+    function F0(x)
+        r, v, m = x
+        D = Cd * v^2 * exp(-β*(r - 1))
+        return [ v, -D/m - 1/r^2, 0 ]
+    end
+    function F1(x)
+        r, v, m = x
+        return [ 0, Tmax/m, -b*Tmax ]
+    end
+    dynamics!(goddard, (t, x, u, v) -> (F0(x) + u*F1(x)) * dt(t,v) )
 end
