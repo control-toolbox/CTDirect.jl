@@ -75,4 +75,29 @@ solT2_nonunif = solve(ocpT2, time_grid=[0,0.3,1,1.9,2],print_level=0)
 println("T=2 with non-uniform grid ", solT2_nonunif.objective)
 plot(solT2_nonunif, show=true)
 
-# +++4 pseudo grid refinement with manual grid input 
+# 4. pseudo grid refinement with manual grid input
+# here the grids are uniform so we could just pass grid_size
+# but this illustrate the possibility of grid refinement
+include("problems/goddard.jl")
+N_target = 250
+solve(goddard, display=false, max_iter=2) #compilation
+
+# init
+@time begin
+N = 8
+sol = solve(goddard, time_grid=LinRange(0,1,N+1), display=false, max_iter=10)
+@printf("steps %4d, objective %6.3f, iterations %4d\n", N, sol.objective, sol.iterations)
+while N < N_target
+    global N = min(N * 4, N_target)
+    global sol = solve(goddard, time_grid=LinRange(0,1,N+1), display=false, init=sol, max_iter=10)
+    @printf("steps %4d, objective %6.3f, iterations %4d\n", N, sol.objective, sol.iterations)
+end
+# final solve
+N = N_target
+sol = solve(goddard, time_grid=LinRange(0,1,N+1), display=false, init=sol)
+@printf("steps %4d, objective %6.3f, iterations %4d\n", N, sol.objective, sol.iterations)
+end
+
+# basic solve for comparison
+@time sol = solve(goddard, time_grid=LinRange(0,1,N+1), display=false)
+@printf("steps %4d, objective %6.3f, iterations %4d\n", N, sol.objective, sol.iterations)
