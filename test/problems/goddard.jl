@@ -32,3 +32,6 @@ function F1(x)
     return [ 0, Tmax/m, -b*Tmax ]
 end
 dynamics!(goddard, (x, u, v) -> F0(x) + u*F1(x) )
+
+# return problem and objective
+return ((ocp=goddard, obj=1.01257, name="goddard"))
