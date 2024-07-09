@@ -62,15 +62,15 @@ plot(sol4, show=true)
 
 # save / load solution in JLD2 format
 println("\nSave / load solution in JLD2 format")
-save(sol, filename_prefix="solution_test")
-sol_reloaded = load("solution_test")
+save(sol, filename_prefix="./test/solution_test")
+sol_reloaded = load("./test/solution_test")
 println("Check JLD2 solution ", sol.objective == sol_reloaded.objective)
 
 # export / read discrete solution in JSON format
 # NB. we recover here a JSON Object...
 println("Export / import solution in JSON format")
-export_ocp_solution(sol, filename_prefix="solution_test")
-sol_disc_reloaded = import_ocp_solution("solution_test")
+export_ocp_solution(sol, filename_prefix="./test/solution_test")
+sol_disc_reloaded = import_ocp_solution("./test/solution_test")
 println("Check JSON solution ", sol.objective == sol_disc_reloaded.objective)
 
 println("")

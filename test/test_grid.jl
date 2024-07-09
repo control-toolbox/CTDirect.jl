@@ -90,7 +90,7 @@ end
 if test4
     # here the grids are uniform so we could just pass grid_size
     # but this illustrate the possibility of grid refinement
-    include("problems/goddard.jl")
+    include("../problems/goddard.jl")
     N_target = 250
 
     # basic solve for comparison
