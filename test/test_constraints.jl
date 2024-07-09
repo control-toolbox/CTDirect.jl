@@ -1,5 +1,5 @@
 include("common_deps.jl")
-include("problems/goddard.jl")
+include("../problems/goddard.jl")
 
 println("Test: constraint types")
 

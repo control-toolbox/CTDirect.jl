@@ -1,0 +1,13 @@
+Profile:
+Linear solver: mumps
+Blas config: LBTConfig([ILP64] libmkl_rt.so, [LP64] libmkl_rt.so)
+
+Settings: tol=1e-08 grid_size=100 precompile=true
+
+Precompilation step: goddard param 
+
+Benchmark step
+goddard              completed in   1.75 s
+param                completed in   2.36 s
+
+Total time (s):   4.10 

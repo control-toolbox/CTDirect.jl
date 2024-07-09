@@ -23,14 +23,18 @@ function CommonSolve.solve(docp::DOCP;
     linear_solver::String=CTDirect.__linear_solver(),
     kwargs...)
 
-    # Linear solver
+    # check linear solver requirements, default to mumps if needed
+    # HSL
     if (linear_solver == "ma27") || (linear_solver == "ma57") || (linear_solver == "ma77") || (linear_solver == "ma86") || (linear_solver == "ma97")
         if !LIBHSL_isfunctional()
+            #println("WARNING: HSL not available, defaulting linear solver ",linear_solver, " to MUMPS") 
             linear_solver = "mumps"
         end
     end
+    # SPRAL
     if linear_solver == "spral"
         if !haskey(ENV, "OMP_CANCELLATION") || !haskey(ENV, "OMP_PROC_BIND")
+            #println("WARNING: missing required environment variables for SPRAL (OMP_CANCELLATION=TRUE and OMP_PROC_BIND=TRUE), defaulting to MUMPS") 
             linear_solver = "mumps"
         end
     end
