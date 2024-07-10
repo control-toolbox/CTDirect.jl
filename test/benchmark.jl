@@ -24,7 +24,8 @@ precompile = true
 ###########################################################
 # load examples
 problem_list = []
-problem_path = pwd()*"/examples"
+#problem_path = pwd()*"/examples"
+problem_path = pwd()*"/test/benchmark_list"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     push!(problem_list,include(problem_file))
 end
@@ -49,7 +50,7 @@ for problem in problem_list
     if !isapprox(sol.objective, problem[:obj], rtol=1e-2)
         error("Objective mismatch for ", problem[:name], ": ", sol.objective, " instead of ", problem[:obj])
     else
-        @printf("%-20s completed in %6.2f s\n",problem[:name],t)
+        @printf("%-30s completed in %6.2f s\n",problem[:name],t)
         append!(t_list,t)
     end
 end

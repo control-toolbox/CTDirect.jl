@@ -29,7 +29,7 @@ end
 #= METHANE PROBLEM
 mu2 according to growth model, mu according to light model
 time scale is [0,10] for 24h (day then night)=#
-@def bioreactor begin
+@def bioreactor_1 begin
     t ∈ [ 0, T ], time
     x ∈ R³, state
     u ∈ R, control
@@ -49,4 +49,4 @@ time scale is [0,10] for 24h (day then night)=#
     ∫(mu2*b(t)/(beta+c)) → max
 end
 
-return ((ocp=bioreactor, obj=0.614134, name="bioreactor"))
+return ((ocp=bioreactor_1, obj=0.614134, name="bioreactor_1day_periodic"))
