@@ -1,13 +1,13 @@
 # Parametric problem (name ??)
-
-relu(x) = max(0, x)
-μ = 10
-p_relu(x) = log(abs(1 + exp(μ*x)))/μ
-f(x) = 1-x
-m(x) = (p_relu∘f)(x)
-T = 2
-
 function myocp(ρ)
+    
+    relu(x) = max(0, x)
+    μ = 10
+    p_relu(x) = log(abs(1 + exp(μ*x)))/μ
+    f(x) = 1-x
+    m(x) = (p_relu∘f)(x)
+    T = 2
+
     @def param begin
         τ ∈ R, variable
         s ∈ [ 0, 1 ], time
