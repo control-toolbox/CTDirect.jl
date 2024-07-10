@@ -22,9 +22,9 @@ precompile = true
 @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
 
 ###########################################################
-# load problems
+# load examples
 problem_list = []
-problem_path = pwd()*"/problems"
+problem_path = pwd()*"/examples"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     push!(problem_list,include(problem_file))
 end
@@ -41,7 +41,7 @@ if precompile
 end
 
 ###########################################################
-# solve problems with timer and objective check
+# solve examples with timer and objective check
 t_list = []
 println("Benchmark step")
 for problem in problem_list
