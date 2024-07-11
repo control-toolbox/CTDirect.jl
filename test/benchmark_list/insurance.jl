@@ -1,1 +1,0 @@
-../../examples/insurance.jl

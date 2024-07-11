@@ -1,7 +1,7 @@
 using Test
 include("common_deps.jl")
-# +++ later load all examples ?
-include("../examples/goddard.jl")
+# +++ later load all problems ?
+include("../problems/goddard.jl")
 
 # check local test suite
 @testset verbose = true showtiming = true "Test suite" begin

@@ -1,9 +1,14 @@
 # Benchmark
-include("common_deps.jl")
+using CTDirect
+using CTBase
+using NLPModelsIpopt
+using HSL
+using JLD2
+using JSON3
 using Printf
 import LinearAlgebra
 
-###########################################################
+#######################################################
 # set environment
 # linear solver: default mumps; spral, ma27, ma57, ma77, ma86, ma97
 linear_solver = "mumps"
@@ -14,26 +19,32 @@ blas_config = LinearAlgebra.BLAS.lbt_get_config()
 @printf("Blas config: %s\n\n", blas_config)
 # AD backend ?
 
-###########################################################
+#######################################################
 # set parameters
 tol = 1e-8
 grid_size = 100
 precompile = true
 @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
 
-###########################################################
+#######################################################
 # load examples
+println("Loading problems")
+names_list = ["beam", "bioreactor_1day_periodic", "fuller", "goddard", "insurance", "jackson"]
 problem_list = []
-#problem_path = pwd()*"/examples"
-problem_path = pwd()*"/test/benchmark_list"
+problem_path = pwd()*"/problems"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
-    push!(problem_list,include(problem_file))
+    ocp_data = include(problem_file)
+    if ocp_data.name in names_list
+        @printf("%s ", ocp_data.name)
+        push!(problem_list,ocp_data)
+    end
 end
+println("")
 
-###########################################################
+#######################################################
 # precompile if required
 if precompile
-    print("Precompilation step: ")
+    println("\nPrecompilation step")
     for problem in problem_list
         @printf("%s ",problem[:name])
         solve(problem[:ocp], linear_solver=linear_solver, max_iter=1, display=false)
@@ -41,7 +52,7 @@ if precompile
     println("\n")
 end
 
-###########################################################
+#######################################################
 # solve examples with timer and objective check
 t_list = []
 println("Benchmark step")
@@ -55,7 +66,7 @@ for problem in problem_list
     end
 end
 
-###########################################################
+#######################################################
 # print total time
 @printf("\nTotal time (s): %6.2f \n", sum(t_list))
 
