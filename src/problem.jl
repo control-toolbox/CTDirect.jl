@@ -50,6 +50,8 @@ mutable struct DOCP
     dim_NLP_variables::Int64
     dim_NLP_steps::Int64
     NLP_normalized_time_grid
+    # +++ save h_i somehow, at least in basic cases ?
+    # +++ uniform grid and also fixed times
 
     # lower and upper bounds for variables and constraints
     var_l
@@ -264,17 +266,17 @@ function DOCP_constraints!(c, xu, docp)
     c :: 
     """
 
-    # t,x,u,f,... at t_0
-    args_0 = ArgsAtTimeStep(xu, docp, 0)
-    args_i = args_0
+    # +++ todo: remove variable from Args and pass it separately
+    args_i = ArgsAtTimeStep(xu, docp, 0)
+    args_ip1 = ArgsAtTimeStep(xu, docp, 1)
 
     # main loop on time steps
     index = 1 # counter for the constraints
     for i in 0:docp.dim_NLP_steps-1
 
         # t,x,u,f,... at t_{i+1}
-        args_ip1 = ArgsAtTimeStep(xu, docp, i+1)
-
+        #args_ip1 = ArgsAtTimeStep(xu, docp, i+1)
+     
         # state equation
         index = setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
 
@@ -282,11 +284,16 @@ function DOCP_constraints!(c, xu, docp)
         index = setPathConstraintsAtTimeStep!(docp, index, :constraints; c=c, args=args_i)
 
         # updates for next iteration
-        args_i = args_ip1
+        #args_i = args_ip1
+        if i < docp.dim_NLP_steps-1
+            Args_copy!(args_i, args_ip1)
+            ArgsAtTimeStep!(args_ip1, xu, docp, i+2)
+        end
     end
 
     # path constraints at final time
-    args_f = args_i
+    args_0 = ArgsAtTimeStep(xu, docp, 0)
+    args_f = ArgsAtTimeStep(xu, docp, docp.dim_NLP_steps)
     index = setPathConstraintsAtTimeStep!(docp, index, :constraints; c=c, args=args_f)
 
     # boundary conditions and variable constraints
@@ -328,6 +335,31 @@ mutable struct ArgsAtTimeStep
         end
         return args
     end
+end
+
+function ArgsAtTimeStep!(args, xu, docp, i)
+    args.time = get_time_at_time_step(xu, docp, i)
+    args.state = get_state_at_time_step(xu, docp, i)
+    args.control = get_control_at_time_step(xu, docp, i)
+    args.variable = get_variable(xu, docp) 
+    args.dynamics = docp.ocp.dynamics(args.time, args.state, args.control, args.variable)
+    if has_lagrange_cost(docp.ocp)
+        args.lagrange_state = get_lagrange_cost_at_time_step(xu, docp, i)
+        args.lagrange_cost = docp.ocp.lagrange(args.time, args.state, args.control, args.variable)
+    else
+        args.lagrange_state = 0
+        args.lagrange_cost = 0
+    end
+end
+
+function Args_copy!(args_dest, args_src)
+    args_dest.time = args_src.time
+    args_dest.state = args_src.state
+    args_dest.control = args_src.control
+    args_dest.variable = args_src.variable
+    args_dest.dynamics = args_src.dynamics
+    args_dest.lagrange_state = args_src.lagrange_state
+    args_dest.lagrange_cost = args_src.lagrange_cost
 end
 
 """

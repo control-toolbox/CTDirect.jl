@@ -132,8 +132,7 @@ Get actual (un-normalized) time at give time step
 function get_time_at_time_step(xu, docp, i)
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get t_i for i > N"
-    t_normalized = docp.NLP_normalized_time_grid[i+1]
-    return get_unnormalized_time(xu, docp, t_normalized)
+    return get_unnormalized_time(xu, docp, docp.NLP_normalized_time_grid[i+1])
 end
 
 
