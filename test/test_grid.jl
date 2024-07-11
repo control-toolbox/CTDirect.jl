@@ -6,9 +6,9 @@ println("Test: grid options")
 test1 = false
 test2 = false
 test3 = false
-test4 = false
-test5 = false
-test6 = true
+test4 = false # use time_grid=:refined to do this internally, ie in solve call a continuation_steps(...) ?
+test5 = false # time_grid=:optimized ?
+test6 = true # time_grid=:optimized ?
 
 # 1. simple integrator min energy (dual control for test)
 if test1
