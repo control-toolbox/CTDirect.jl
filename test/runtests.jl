@@ -1,5 +1,5 @@
 using Test
-include("common_deps.jl")
+include("deps.jl")
 # +++ later load all problems ?
 include("../problems/goddard.jl")
 

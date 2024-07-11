@@ -1,4 +1,4 @@
-include("common_deps.jl")
+include("deps.jl")
 include("../problems/goddard.jl")
 
 println("Test: abstract OCP definition")
