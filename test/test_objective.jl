@@ -1,4 +1,4 @@
-include("common_deps.jl")
+include("deps.jl")
 
 println("Test: objective")
 
