@@ -1,5 +1,10 @@
 # Benchmark
-include("common_deps.jl")
+using CTDirect
+using CTBase
+using NLPModelsIpopt
+using HSL
+using JLD2
+using JSON3
 using Printf
 import LinearAlgebra
 
@@ -23,21 +28,23 @@ precompile = true
 
 #######################################################
 # load examples
-names_list = [beam, bioreactor_1day_periodic, fuller,
-            goddard, insurance, jackson]
+println("Loading problems")
+names_list = ["beam", "bioreactor_1day_periodic", "fuller", "goddard", "insurance", "jackson"]
 problem_list = []
 problem_path = pwd()*"/problems"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     ocp_data = include(problem_file)
     if ocp_data.name in names_list
+        @printf("%s ", ocp_data.name)
         push!(problem_list,ocp_data)
     end
 end
+println("")
 
 #######################################################
 # precompile if required
 if precompile
-    print("Precompilation step: ")
+    println("\nPrecompilation step")
     for problem in problem_list
         @printf("%s ",problem[:name])
         solve(problem[:ocp], linear_solver=linear_solver, max_iter=1, display=false)

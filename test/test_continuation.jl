@@ -44,7 +44,7 @@ end
 # continuation with parametric definition of the ocp
 if test2
     println("\nDiscrete continuation on parametric ocp")
-    include("../examples/parametric.jl")
+    include("../problems/parametric.jl")
     #= definition of the parametric OCP
     relu(x) = max(0, x)
     μ = 10
@@ -86,7 +86,7 @@ end
 # goddard max final altitude
 if (test3)
     println("Goddard max altitude")
-    include("../examples/goddard.jl")
+    include("../problems/goddard.jl")
     ocp = goddard
     # solve unconstrained problem
     sol0 = solve(ocp, print_level=0)
