@@ -29,7 +29,7 @@ precompile = true
 #######################################################
 # load examples
 println("Loading problems")
-names_list = ["beam", "bioreactor_1day_periodic", "fuller", "goddard", "insurance", "jackson", "robbins", "vanderpol"]
+names_list = ["beam", "bioreactor_1day_periodic", "fuller", "goddard", "insurance", "jackson", "robbins", "swimmer", "vanderpol"]
 problem_list = []
 problem_path = pwd()*"/problems"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
