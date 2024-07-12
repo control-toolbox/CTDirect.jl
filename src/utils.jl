@@ -1,3 +1,19 @@
+function scalarize(arg)
+    if length(arg) == 1
+        return arg[]
+    else
+        return arg
+    end
+end
+
+function vectorize(arg)
+    if length(arg) == 1
+        return [arg]
+    else
+        return arg
+    end
+end  
+
 """
 $(TYPEDSIGNATURES)
 
@@ -5,11 +21,7 @@ Retrieve optimization variables from the NLP variables
 """
 function get_variable(xu, docp)
     if is_variable_dependent(docp.ocp)
-        if docp.dim_NLP_v == 1
-            return xu[end]
-        else
-            return xu[end-docp.dim_NLP_v+1:end]
-        end
+        return xu[end-docp.dim_NLP_v+1:end]
     else
         return Float64[]
     end
@@ -26,11 +38,7 @@ function get_state_at_time_step(xu, docp, i::Int64)
     n = docp.ocp.state_dimension
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get x(t_i) for i > N"
-    if n == 1
-        return xu[i*nx + 1]
-    else
-        return xu[i*nx + 1 : i*nx + n]
-    end
+    return xu[i*nx + 1 : i*nx + n]
 end
 
 
@@ -65,11 +73,7 @@ function get_control_at_time_step(xu, docp, i)
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get u(t_i) for i > N"
-    if m == 1
-        return xu[(N+1)*nx + i*m + 1]
-    else
-        return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
-    end
+    return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
 end
 
 # internal vector version
@@ -134,7 +138,6 @@ function get_time_at_time_step(xu, docp, i)
     @assert i <= N "trying to get t_i for i > N"
     return get_unnormalized_time(xu, docp, docp.NLP_normalized_time_grid[i+1])
 end
-
 
 """
 $(TYPEDSIGNATURES)
