@@ -1,3 +1,8 @@
+"""
+$(TYPEDSIGNATURES)
+
+Convert size 1 vector to scalar for ocp functions if needed
+"""
 function scalarize(arg)
     if length(arg) == 1
         return arg[]
@@ -6,6 +11,11 @@ function scalarize(arg)
     end
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Convert scalar from ocp functions to size 1 vector if needed
+"""
 function vectorize(arg)
     if length(arg) == 1
         return [arg]
@@ -41,7 +51,6 @@ function get_state_at_time_step(xu, docp, i::Int64)
     return xu[i*nx + 1 : i*nx + n]
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -54,8 +63,8 @@ function get_lagrange_cost_at_time_step(xu, docp, i)
     return xu[(i+1)*nx]
 end
 
-# internal vector version
-function vget_state_at_time_step(xu, docp, i)
+# NLP full state version
+function get_NLP_state_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     N = docp.dim_NLP_steps
     @assert i <= N "trying to get x(t_i) for i > N"
@@ -75,16 +84,6 @@ function get_control_at_time_step(xu, docp, i)
     @assert i <= N "trying to get u(t_i) for i > N"
     return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
 end
-
-# internal vector version
-function vget_control_at_time_step(xu, docp, i)
-    nx = docp.dim_NLP_x
-    m = docp.dim_NLP_u
-    N = docp.dim_NLP_steps
-    @assert i <= N "trying to get u(t_i) for i > N"
-    return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
-end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -150,11 +149,7 @@ function set_state_at_time_step!(xu, x_init, docp, i)
     N = docp.dim_NLP_steps
     @assert i <= N "trying to set init for x(t_i) with i > N"
     # NB. only set first the actual state variables from the OCP (not the possible additional state for lagrange cost)
-    if n == 1
-        xu[i*n + 1] = x_init[]
-    else
-        xu[i*nx + 1 : i*nx + n] = x_init
-    end
+    xu[i*nx + 1 : i*nx + n] = vectorize(x_init)
 end
 
 
@@ -169,11 +164,7 @@ function set_control_at_time_step!(xu, u_init, docp, i)
     N = docp.dim_NLP_steps
     @assert i <= N "trying to set init for u(t_i) with i > N"
     offset = (N+1)*nx
-    if m == 1
-        xu[offset + i*m + 1] = u_init[]
-    else        
-        xu[offset + i*m + 1 : offset + i*m + m] = u_init
-    end
+    xu[offset + i*m + 1 : offset + i*m + m] = vectorize(u_init)
 end
 
 
@@ -183,11 +174,7 @@ $(TYPEDSIGNATURES)
 Set optimization variables in the NLP variables (for initial guess)
 """
 function set_variable!(xu, v_init, docp)
-    if docp.dim_NLP_v == 1
-        xu[end] = v_init[]
-    else
-        xu[end-docp.dim_NLP_v+1 : end] = v_init
-    end
+    xu[end-docp.dim_NLP_v+1 : end] = vectorize(v_init)
 end
 
 
