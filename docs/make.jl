@@ -15,12 +15,16 @@ DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true
 makedocs(
     warnonly = [:cross_references, :autodocs_block],
     sitename = "CTDirect.jl",
-    format = Documenter.HTML(prettyurls = false,
-            size_threshold_ignore = ["api-ctbase.md"]),
+    format = Documenter.HTML(
+        prettyurls = false,
+        size_threshold_ignore = ["api-ctbase.md"],
+        assets=[
+            asset("https://control-toolbox.org/assets/css/documentation.css"),
+            asset("https://control-toolbox.org/assets/js/documentation.js"),
+        ],
+    ),
     pages = [
         "Introduction"  => "index.md",
-        #"Tutorial"      => "tutorial.md",
-        #"Continuation"  => "continuation.md",
         "API"           => "api.md",
         "Developers"    => "dev-api.md",
     ]
