@@ -396,12 +396,8 @@ function setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
     ocp = docp.ocp
     hi = args_ip1.time - args_i.time
     
-    #if ocp.state_dimension == 1
-    #    c[index] = args_ip1.state - (args_i.state + 0.5*hi*(args_i.dynamics + args_ip1.dynamics))            
-    #else
-        # use +. since dynamics could be a scalar
-        c[index:index+ocp.state_dimension-1] = args_ip1.state - (args_i.state + 0.5*hi*(args_i.dynamics + args_ip1.dynamics))
-    #end
+    # trapeze rule
+    c[index:index+ocp.state_dimension-1] = args_ip1.state - (args_i.state + 0.5*hi*(args_i.dynamics + args_ip1.dynamics))
 
     if has_lagrange_cost(ocp)
         c[index+ocp.state_dimension] = args_ip1.lagrange_state - (args_i.lagrange_state + 0.5*hi*(args_i.lagrange_cost + args_ip1.lagrange_cost))
