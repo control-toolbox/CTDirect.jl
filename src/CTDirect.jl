@@ -24,7 +24,7 @@ include("solution.jl")
 include("solve.jl")
 
 # re exports
-export solve # from CommonSolve, extended in CTSolveExt
+#export solve # from CommonSolve, extended in CTSolveExt
 
 # exports
 export available_methods

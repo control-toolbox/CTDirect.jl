@@ -20,14 +20,14 @@ end
 
 @testset verbose = true showtiming = true ":docp_solve" begin
     docp = direct_transcription(ocp)
-    dsol = solve(docp, print_level=0, tol=1e-12)
+    dsol = CTDirect.solve_docp(docp, print_level=0, tol=1e-12)
     sol = build_solution(docp, dsol)
     @test sol.objective ≈ 0.313 rtol=1e-2
 end
 
 @testset verbose = true showtiming = true ":docp_solve :warm_start" begin
     docp = direct_transcription(ocp, init=sol0)
-    dsol = solve(docp, print_level=0, tol=1e-12)
+    dsol = CTDirect.solve_docp(docp, print_level=0, tol=1e-12)
     sol = build_solution(docp, dsol)
     @test sol.iterations == 5
 end
@@ -38,7 +38,7 @@ nlp = get_nlp(docp)
 
 # build solution from NLP (+++ add actual test ?)
 @testset verbose = true showtiming = true ":build_solution_from_nlp" begin
-    dsol = solve(docp, print_level=0, tol=1e-12)
+    dsol = CTDirect.solve_docp(docp, print_level=0, tol=1e-12)
     sol = build_solution(docp, primal=dsol.solution)
     @test sol.objective ≈ 0.313 rtol=1e-2
     sol = build_solution(docp, primal=dsol.solution, dual=dsol.multipliers)

@@ -190,7 +190,7 @@ println("\n2. Setting the initial guess at the DOCP level")
 docp = direct_transcription(ocp)
 # mixed init
 set_initial_guess(docp, (time=t_vec, state=x_vec, control=u_func, variable=v_const))
-dsol = solve(docp, print_level=0, max_iter=maxiter)
+dsol = CTDirect.solve_docp(docp, print_level=0, max_iter=maxiter)
 sol = build_solution(docp, dsol)
 if maxiter > 0
     @printf("%-56s %.3f at %d iterations\n", "Mixed initial guess set in DOCP", sol.objective, sol.iterations)
@@ -200,7 +200,7 @@ end
 
 # warm start
 set_initial_guess(docp, sol0)
-dsol = solve(docp, print_level=0, max_iter=maxiter)
+dsol = CTDirect.solve_docp(docp, print_level=0, max_iter=maxiter)
 sol = build_solution(docp, dsol)
 if maxiter > 0
     @printf("%-56s %.3f at %d iterations\n", "Warm start set in DOCP", sol.objective, sol.iterations)
@@ -213,7 +213,7 @@ end
 println("\n3. Passing the initial guess to solve call")
 set_initial_guess(docp, ()) # reset init in docp
 # mixed init
-dsol = solve(docp, init=(time=t_vec, state=x_vec, control=u_func, variable=v_const), print_level=0, max_iter=maxiter)
+dsol = CTDirect.solve_docp(docp, init=(time=t_vec, state=x_vec, control=u_func, variable=v_const), print_level=0, max_iter=maxiter)
 sol = build_solution(docp, dsol)
 if maxiter > 0
     @printf("%-56s %.3f at %d iterations\n", "Mixed initial guess passed to solve", sol.objective, sol.iterations)
@@ -222,7 +222,7 @@ else
 end
 
 # warm start
-dsol = solve(docp, init=sol0, print_level=0, max_iter=maxiter)
+dsol = CTDirect.solve_docp(docp, init=sol0, print_level=0, max_iter=maxiter)
 sol = build_solution(docp, dsol)
 if maxiter > 0
     @printf("%-56s %.3f at %d iterations\n", "Warm start passed to solve", sol.objective, sol.iterations)

@@ -70,3 +70,6 @@ function set_initial_guess(docp::DOCP, init)
     nlp.meta.x0 .= DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 
 end
+
+# placeholders (see CTSolveExt)
+function solve_docp end
