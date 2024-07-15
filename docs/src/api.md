@@ -4,7 +4,7 @@
 
 ```@index
 Pages   = ["api.md"]
-Modules = [CTDirect, CommonSolve]
+Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 ```
 
@@ -17,7 +17,6 @@ Private = false
 ```
 
 ```@docs
-solve
 export_ocp_solution
 import_ocp_solution
 ```

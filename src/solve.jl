@@ -23,7 +23,7 @@ function direct_transcription(ocp::OptimalControlModel,
     description...;
     init=nothing,
     grid_size::Integer=__grid_size_direct(),
-    time_grid=nothing)
+    time_grid=__time_grid_direct())
 
     # build DOCP
     docp = DOCP(ocp, grid_size, time_grid)
@@ -72,4 +72,6 @@ function set_initial_guess(docp::DOCP, init)
 end
 
 # placeholders (see CTSolveExt)
-function solve_docp end
+function solve_docp(args...; kwargs...)
+    error("Please execute `using NLPModelsIpopt` before calling the solve method.")
+end
