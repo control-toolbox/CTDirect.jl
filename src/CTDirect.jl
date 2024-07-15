@@ -7,14 +7,17 @@ using LinearAlgebra             # norm
 using CommonSolve: solve
 
 # Other declarations (+++ sort among modules)
-const __grid_size_direct() = 100
-const __print_level_ipopt = CTBase.__print_level_ipopt
-const __mu_strategy_ipopt = CTBase.__mu_strategy_ipopt
-const __tol() = 1e-8
-const __max_iter() = 1000
-const __display = CTBase.__display
 const nlp_constraints! = CTBase.nlp_constraints!
 const matrix2vec = CTBase.matrix2vec
+
+# default arguments for solve
+const __print_level_ipopt = CTBase.__print_level_ipopt
+const __mu_strategy_ipopt = CTBase.__mu_strategy_ipopt
+const __display = CTBase.__display
+const __grid_size_direct() = 100
+const __tol() = 1e-8
+const __max_iter() = 1000
+const __time_grid_direct() = nothing
 const __linear_solver() = "ma57"
 
 # includes
@@ -24,7 +27,7 @@ include("solution.jl")
 include("solve.jl")
 
 # re exports
-export solve # from CommonSolve, extended in CTSolveExt
+#export solve # from CommonSolve, extended in CTSolveExt
 
 # exports
 export available_methods
