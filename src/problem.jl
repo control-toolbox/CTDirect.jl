@@ -30,9 +30,8 @@ mutable struct DOCP
     const ocp::OptimalControlModel
 
     # OCP variables and functions
-    #variable_dimension::Int64
 
-    # functions
+    # functions (+++type ?)
     control_constraints
     state_constraints
     mixed_constraints
@@ -50,15 +49,15 @@ mutable struct DOCP
     dim_NLP_constraints::Int64
     dim_NLP_variables::Int64
     dim_NLP_steps::Int64
-    NLP_normalized_time_grid
+    NLP_normalized_time_grid::Vector{Float64}
     # +++ save h_i somehow, at least in basic cases ?
     # +++ uniform grid and also fixed times
 
     # lower and upper bounds for variables and constraints
-    var_l
-    var_u
-    con_l
-    con_u
+    var_l::Vector{Float64}
+    var_u::Vector{Float64}
+    con_l::Vector{Float64}
+    con_u::Vector{Float64}
 
     # NLP model for solver
     nlp
@@ -105,13 +104,13 @@ mutable struct DOCP
             docp.dim_NLP_constraints = N * (docp.dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_constraints(ocp) + dim_variable_constraints(ocp)
         end
 
+        # other dimensions
         docp.dim_OCP_x = ocp.state_dimension
         docp.dim_NLP_u = ocp.control_dimension
-        
         if is_variable_dependent(ocp)
             docp.dim_NLP_v = ocp.variable_dimension
         else
-            docp.dim_NLP_v = 0 # dim in ocp would be 'nothing'
+            docp.dim_NLP_v = 0 # dim in ocp would be Nothing
         end
 
         # NLP unknown (state + control + variable)
@@ -303,7 +302,8 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # boundary conditions and variable constraints
     index = setPunctualConditions!(docp, index, :constraints; c=c, args_0=args_0, args_f=args_f)
 
-    # needed even for inplace version, AD error otherwise oO
+    # needed even for inplace version, AD error otherwise
+    # may be because actual return would be index above ?
     return c 
 end
 
@@ -319,7 +319,6 @@ Useful values at a time step: time, state, control, dynamics...
 # +++ use inplace getters !
 mutable struct ArgsAtTimeStep
     time
-    #step_size
     state
     control
     variable

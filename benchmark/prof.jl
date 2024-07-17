@@ -7,25 +7,19 @@ include("../test/deps.jl")
 #using PProf
 using JET
 
-objective = :mayer
 precompile = true
-test_time = false
-test_code_warntype = true
-test_jet = true
-test_ipopt = false
+test_time = true
+test_code_warntype = false
+test_jet = false
+
 
 # define OCP
-if objective == :lagrange
-  prob = include("../problems/fuller.jl")
-  ocp = prob[:ocp]
-  docp = direct_transcription(ocp)
-  println("Load problem (lagrange): ", prob[:name])
-else
-  prob = include("../problems/jackson.jl")
-  ocp = prob[:ocp]
-  docp = direct_transcription(ocp)
-  println("Load problem (mayer): ", prob[:name])
-end
+prob = include("../problems/fuller.jl")
+#prob = include("../problems/jackson.jl")
+#prob = include("../problems/goddard.jl")
+ocp = prob[:ocp]
+docp = direct_transcription(ocp)
+println("Load problem ", prob[:name])
 
 # precompilation
 if precompile
@@ -48,11 +42,13 @@ if test_code_warntype
   @code_warntype CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
 end
 
-# 47 possible errors
-@report_opt CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+if test_jet
+  # 47 possible errors
+  @report_opt CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
 
-# 118 possible errors
-@report_opt CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+  # 118 possible errors
+  @report_opt CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+end
 
 #=
 # ipopt statistics
