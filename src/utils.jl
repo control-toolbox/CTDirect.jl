@@ -21,7 +21,7 @@ $(TYPEDSIGNATURES)
 
 Retrieve state variables at given time step from the NLP variables
 """
-function get_state_at_time_step(xu, docp, i::Int64)
+function get_state_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     n = docp.ocp.state_dimension
     N = docp.dim_NLP_steps

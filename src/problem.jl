@@ -227,7 +227,7 @@ Compute the objective for the DOCP problem.
 # DOCP objective
 function DOCP_objective(xu, docp::DOCP)
 
-    obj = 0
+    obj = 0.
     N = docp.dim_NLP_steps
     ocp = docp.ocp
 
@@ -239,15 +239,17 @@ function DOCP_objective(xu, docp::DOCP)
         obj = obj + ocp.mayer(x0, xf, v)
     end
     
+    # lagrange cost
     if has_lagrange_cost(ocp)
         obj = obj + xu[(N+1)*docp.dim_NLP_x]
     end
 
-    if is_min(ocp)
-        return obj
-    else
-        return -obj
-    end
+    # maximization problem
+    if !is_min(ocp)
+        obj = -obj
+    end 
+    
+    return obj
 end
 
 

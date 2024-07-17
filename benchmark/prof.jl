@@ -7,11 +7,11 @@ include("../test/deps.jl")
 #using PProf
 using JET
 
-objective = :lagrange
+objective = :mayer
 precompile = true
 test_time = false
 test_code_warntype = true
-test_jet = false
+test_jet = true
 test_ipopt = false
 
 # define OCP
@@ -42,18 +42,19 @@ end
 
 if test_code_warntype
   println("@code_warntype objective")
-  # x0, xf, obj: Any ...
+  # NB. x0, xf are type unstable because type of ocp.mayer is Union(Mayer,nothing), even for mayer problems oO
   @code_warntype CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
   # OK !
   @code_warntype CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
 end
 
-if test_jet
-  println("@report_opt objective")
-  @report_opt CTDirect.DOCP_objective(x0, docp)
-  #═════ 48 possible errors found ═════
-end
+# 47 possible errors
+@report_opt CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
 
+# 118 possible errors
+@report_opt CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+
+#=
 # ipopt statistics
 if test_ipopt
   docp = directTranscription(ocp, grid_size=200, init=(state=[1,0.2,0.5], control=0.5))
@@ -61,3 +62,4 @@ if test_ipopt
   println("\n Discrete solution")
   println(dsol)
 end
+=#
