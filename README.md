@@ -9,7 +9,7 @@
 [co-img]: https://codecov.io/gh/control-toolbox/CTDirect.jl/branch/main/graph/badge.svg?token=6J4SJL2SFG
 [co-url]: https://codecov.io/gh/control-toolbox/CTDirect.jl
 
-[doc-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[doc-dev-img]: https://img.shields.io/badge/docs-dev-8A2BE2.svg
 [doc-dev-url]: https://control-toolbox.org/CTDirect.jl/dev/
 
 [doc-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
