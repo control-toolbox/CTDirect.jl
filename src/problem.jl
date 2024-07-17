@@ -43,6 +43,7 @@ mutable struct DOCP
     variable_box
 
     ## NLP
+    dim_OCP_x::Int64
     dim_NLP_x::Int64  # possible additional lagrange cost
     dim_NLP_u::Int64
     dim_NLP_v::Int64
@@ -104,6 +105,7 @@ mutable struct DOCP
             docp.dim_NLP_constraints = N * (docp.dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_constraints(ocp) + dim_variable_constraints(ocp)
         end
 
+        docp.dim_OCP_x = ocp.state_dimension
         docp.dim_NLP_u = ocp.control_dimension
         
         if is_variable_dependent(ocp)
@@ -231,9 +233,9 @@ function DOCP_objective(xu, docp)
 
     # note: non-autonomous mayer case is not supported
     if has_mayer_cost(ocp)
-        v = scalarize(get_variable(xu, docp))
-        x0 = scalarize(get_state_at_time_step(xu, docp, 0))
-        xf = scalarize(get_state_at_time_step(xu, docp, N))
+        v = get_variable(xu, docp)
+        x0 = get_state_at_time_step(xu, docp, 0)
+        xf = get_state_at_time_step(xu, docp, N)
         obj = obj + ocp.mayer(x0, xf, v)
     end
     
@@ -338,11 +340,11 @@ mutable struct ArgsAtTimeStep
         args.variable = get_variable(xu, docp) 
     
         ti = args.time
-        xi = scalarize(args.state)
-        ui = scalarize(args.control)
-        v = scalarize(args.variable)
+        xi = args.state
+        ui = args.control
+        v = args.variable
     
-        args.dynamics = vectorize(docp.ocp.dynamics(ti, xi, ui, v))
+        args.dynamics = docp.ocp.dynamics(ti, xi, ui, v)
         if has_lagrange_cost(docp.ocp)
             args.lagrange_state = get_lagrange_cost_at_time_step(xu, docp, i)
             args.lagrange_cost = docp.ocp.lagrange(ti, xi, ui, v)
@@ -362,11 +364,11 @@ function ArgsAtTimeStep!(args, xu, docp, i)
     args.variable = get_variable(xu, docp) 
 
     ti = args.time
-    xi = scalarize(args.state)
-    ui = scalarize(args.control)
-    v = scalarize(args.variable)
+    xi = args.state
+    ui = args.control
+    v = args.variable
 
-    args.dynamics = vectorize(docp.ocp.dynamics(ti, xi, ui, v))
+    args.dynamics = docp.ocp.dynamics(ti, xi, ui, v)
     if has_lagrange_cost(docp.ocp)
         args.lagrange_state = get_lagrange_cost_at_time_step(xu, docp, i)
         args.lagrange_cost = docp.ocp.lagrange(ti, xi, ui, v)
@@ -397,7 +399,11 @@ function setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
     hi = args_ip1.time - args_i.time
     
     # trapeze rule
-    c[index:index+ocp.state_dimension-1] = args_ip1.state - (args_i.state + 0.5*hi*(args_i.dynamics + args_ip1.dynamics))
+    if ocp.state_dimension == 1
+        c[index] = args_ip1.state - (args_i.state + 0.5*hi*(args_i.dynamics + args_ip1.dynamics))
+    else
+        c[index:index+ocp.state_dimension-1] = args_ip1.state - (args_i.state + 0.5*hi*(args_i.dynamics + args_ip1.dynamics))
+    end
 
     if has_lagrange_cost(ocp)
         c[index+ocp.state_dimension] = args_ip1.lagrange_state - (args_i.lagrange_state + 0.5*hi*(args_i.lagrange_cost + args_ip1.lagrange_cost))
@@ -419,9 +425,9 @@ function setPathConstraintsAtTimeStep!(docp, index, target; c=nothing, args=noth
     ocp = docp.ocp
     if target == :constraints
         ti = args.time
-        xi = scalarize(args.state)
-        ui = scalarize(args.control)
-        v = scalarize(args.variable)
+        xi = args.state
+        ui = args.control
+        v = args.variable
     end
 
     # pure control constraints
@@ -473,9 +479,9 @@ function setPunctualConditions!(docp, index, target; c=nothing, args_0=nothing, 
     ocp = docp.ocp
 
     if target == :constraints
-        v = scalarize(args_0.variable)
-        x0 = scalarize(args_0.state)
-        xf = scalarize(args_f.state)
+        v = args_0.variable
+        x0 = args_0.state
+        xf = args_f.state
     end
 
     # boundary constraints
