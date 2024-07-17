@@ -141,7 +141,7 @@ $(TYPEDSIGNATURES)
 
 Build upper and lower bounds vectors for the DOCP nonlinear constraints.
 """
-function constraints_bounds(docp)
+function constraints_bounds(docp::DOCP)
 
     lb = zeros(docp.dim_NLP_constraints)
     ub = zeros(docp.dim_NLP_constraints)
@@ -169,7 +169,7 @@ $(TYPEDSIGNATURES)
 
 Build upper and lower bounds vectors for the DOCP variable box constraints.
 """
-function variables_bounds(docp)
+function variables_bounds(docp::DOCP)
 
     N = docp.dim_NLP_steps
     l_var = -Inf * ones(docp.dim_NLP_variables)
@@ -225,7 +225,7 @@ $(TYPEDSIGNATURES)
 Compute the objective for the DOCP problem.
 """
 # DOCP objective
-function DOCP_objective(xu, docp)
+function DOCP_objective(xu, docp::DOCP)
 
     obj = 0
     N = docp.dim_NLP_steps
@@ -256,7 +256,7 @@ $(TYPEDSIGNATURES)
 
 Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
-function DOCP_constraints!(c, xu, docp)    
+function DOCP_constraints!(c, xu, docp::DOCP)    
     """
     compute the constraints for the NLP : 
         - discretization of the dynamics via the trapeze method
@@ -399,11 +399,7 @@ function setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
     hi = args_ip1.time - args_i.time
     
     # trapeze rule
-    if ocp.state_dimension == 1
-        c[index] = args_ip1.state - (args_i.state + 0.5*hi*(args_i.dynamics + args_ip1.dynamics))
-    else
-        c[index:index+ocp.state_dimension-1] = args_ip1.state - (args_i.state + 0.5*hi*(args_i.dynamics + args_ip1.dynamics))
-    end
+    c[index:index+ocp.state_dimension-1] .= args_ip1.state .- (args_i.state .+ 0.5*hi*(args_i.dynamics .+ args_ip1.dynamics))
 
     if has_lagrange_cost(ocp)
         c[index+ocp.state_dimension] = args_ip1.lagrange_state - (args_i.lagrange_state + 0.5*hi*(args_i.lagrange_cost + args_ip1.lagrange_cost))

@@ -1,32 +1,6 @@
 """
 $(TYPEDSIGNATURES)
 
-Convert size 1 vector to scalar for ocp functions if needed
-"""
-function scalarize(arg)
-    if length(arg) == 1
-        return arg[]
-    else
-        return arg
-    end
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Convert scalar from ocp functions to size 1 vector if needed
-"""
-function vectorize(arg)
-    if length(arg) == 1
-        return [arg]
-    else
-        return arg
-    end
-end  
-
-"""
-$(TYPEDSIGNATURES)
-
 Retrieve optimization variables from the NLP variables
 """
 function get_variable(xu, docp)
@@ -161,7 +135,7 @@ function set_state_at_time_step!(xu, x_init, docp, i)
     N = docp.dim_NLP_steps
     @assert i <= N "trying to set init for x(t_i) with i > N"
     # NB. only set first the actual state variables from the OCP (not the possible additional state for lagrange cost)
-    xu[i*nx + 1 : i*nx + n] = vectorize(x_init)
+    xu[i*nx + 1 : i*nx + n] .= x_init
 end
 
 
@@ -176,7 +150,7 @@ function set_control_at_time_step!(xu, u_init, docp, i)
     N = docp.dim_NLP_steps
     @assert i <= N "trying to set init for u(t_i) with i > N"
     offset = (N+1)*nx
-    xu[offset + i*m + 1 : offset + i*m + m] = vectorize(u_init)
+    xu[offset + i*m + 1 : offset + i*m + m] .= u_init
 end
 
 
@@ -186,7 +160,7 @@ $(TYPEDSIGNATURES)
 Set optimization variables in the NLP variables (for initial guess)
 """
 function set_variable!(xu, v_init, docp)
-    xu[end-docp.dim_NLP_v+1 : end] = vectorize(v_init)
+    xu[end-docp.dim_NLP_v+1 : end] .= v_init
 end
 
 
