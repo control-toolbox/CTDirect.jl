@@ -23,35 +23,28 @@ Contains:
 """
 mutable struct DOCP
 
-    #+++ constructor could use sub-functions ?
-    #+++ add types, use const when possible
+    # NB. non mutable may be better, but constructor would be quite involved (currently there is some recursion)
 
     ## OCP
     const ocp::OptimalControlModel
+    const control_constraints
+    const state_constraints
+    const mixed_constraints
+    const boundary_constraints
+    const variable_constraints
+    const control_box
+    const state_box
+    const variable_box
 
-    # OCP variables and functions
-
-    # functions (+++type ?)
-    control_constraints
-    state_constraints
-    mixed_constraints
-    boundary_constraints
-    variable_constraints
-    control_box
-    state_box
-    variable_box
-
-    ## NLP
-    dim_OCP_x::Int64
-    dim_NLP_x::Int64  # possible additional lagrange cost
-    dim_NLP_u::Int64
-    dim_NLP_v::Int64
-    dim_NLP_constraints::Int64
-    dim_NLP_variables::Int64
-    dim_NLP_steps::Int64
-    NLP_normalized_time_grid::Vector{Float64}
-    # +++ save h_i somehow, at least in basic cases ?
-    # +++ uniform grid and also fixed times
+    ## NLP    
+    const dim_NLP_x::Int64  # possible lagrange cost
+    const dim_NLP_u::Int64
+    const dim_NLP_v::Int64
+    const dim_OCP_x::Int64  # original OCP state
+    const dim_NLP_steps::Int64
+    const NLP_normalized_time_grid::Vector{Float64}
+    const dim_NLP_variables::Int64
+    const dim_NLP_constraints::Int64
 
     # lower and upper bounds for variables and constraints
     var_l::Vector{Float64}
@@ -65,19 +58,15 @@ mutable struct DOCP
     # constructor
     function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid)       
 
-        # +++ try to put here more const members (indicators etc), also move some parts to CTBase
-        docp = new(ocp)
-
-        ## Optimal Control Problem OCP
         # time grid
         if time_grid == nothing
-            docp.NLP_normalized_time_grid = collect(LinRange(0, 1, grid_size+1))
-            docp.dim_NLP_steps = grid_size
+            NLP_normalized_time_grid = collect(LinRange(0, 1, grid_size+1))
+            dim_NLP_steps = grid_size
         else
             # check strictly increasing
             if !issorted(time_grid,lt=<=)
                 throw(ArgumentError("given time grid is not strictly increasing. Aborting..."))
-                return docp
+                return nothing
             end
             # normalize input grid if needed
             if (time_grid[1] != 0) || (time_grid[end] != 1)
@@ -86,35 +75,41 @@ mutable struct DOCP
                 tf = time_grid[end]
                 time_grid = (time_grid .- t0) ./ (tf - t0) 
             end
-            docp.NLP_normalized_time_grid = time_grid
-            docp.dim_NLP_steps = length(time_grid) - 1
+            NLP_normalized_time_grid = time_grid
+            dim_NLP_steps = length(time_grid) - 1
         end
-        N = docp.dim_NLP_steps
 
-        # parse NLP constraints
-        docp.control_constraints, docp.state_constraints, docp.mixed_constraints, docp.boundary_constraints, docp.variable_constraints, docp.control_box, docp.state_box, docp.variable_box = nlp_constraints!(ocp)
-
-        # set dimensions
-        # Mayer to Lagrange: additional state with Lagrange cost as dynamics and null initial condition
+        # dimensions
         if has_lagrange_cost(ocp)
-            docp.dim_NLP_x = docp.ocp.state_dimension + 1  
-            docp.dim_NLP_constraints = N * (docp.dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_constraints(ocp) + dim_variable_constraints(ocp) + 1           
+            dim_NLP_x = ocp.state_dimension + 1
         else
-            docp.dim_NLP_x = docp.ocp.state_dimension  
-            docp.dim_NLP_constraints = N * (docp.dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_constraints(ocp) + dim_variable_constraints(ocp)
+            dim_NLP_x = ocp.state_dimension
         end
-
-        # other dimensions
-        docp.dim_OCP_x = ocp.state_dimension
-        docp.dim_NLP_u = ocp.control_dimension
+        dim_NLP_u = ocp.control_dimension
         if is_variable_dependent(ocp)
-            docp.dim_NLP_v = ocp.variable_dimension
+            dim_NLP_v = ocp.variable_dimension
         else
-            docp.dim_NLP_v = 0 # dim in ocp would be Nothing
+            dim_NLP_v = 0 # dim in ocp would be Nothing
         end
+        dim_OCP_x = ocp.state_dimension
+
+        N = dim_NLP_steps
 
         # NLP unknown (state + control + variable)
-        docp.dim_NLP_variables = (N + 1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_v
+        dim_NLP_variables = (N + 1) * (dim_NLP_x + dim_NLP_u) + dim_NLP_v
+
+        # NLP constraints 
+        # parse NLP constraints
+        control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box = nlp_constraints!(ocp)
+        # lagrange to mayer transformation
+        if has_lagrange_cost(ocp)
+            dim_NLP_constraints = N * (dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_constraints(ocp) + dim_variable_constraints(ocp) + 1           
+        else
+            dim_NLP_constraints = N * (dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_constraints(ocp) + dim_variable_constraints(ocp)
+        end
+
+        # call constructor with const fields
+        docp = new(ocp, control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_OCP_x, dim_NLP_steps, NLP_normalized_time_grid, dim_NLP_variables, dim_NLP_constraints)
 
         return docp
 
