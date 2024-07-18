@@ -4,7 +4,7 @@ $(TYPEDSIGNATURES)
 Retrieve optimization variables from the NLP variables
 """
 function get_variable(xu, docp)
-    if is_variable_dependent(docp.ocp)
+    if docp.has_variable
         if docp.dim_NLP_v == 1
             return xu[end]
         else
@@ -25,7 +25,7 @@ function get_state_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     n = docp.ocp.state_dimension
     N = docp.dim_NLP_steps
-    @assert i <= N "trying to get x(t_i) for i > N"
+    #@assert i <= N "trying to get x(t_i) for i > N"
     if docp.dim_OCP_x == 1
         return xu[i*nx + 1]
     else
@@ -41,7 +41,7 @@ Retrieve the additional state variable corresponding to the lagrange (running) c
 function get_lagrange_cost_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     N = docp.dim_NLP_steps
-    @assert i <= N "trying to get lagrange cost at t_i for i > N"
+    #@assert i <= N "trying to get lagrange cost at t_i for i > N"
     return xu[(i+1)*nx]
 end
 
@@ -49,7 +49,7 @@ end
 function get_NLP_state_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     N = docp.dim_NLP_steps
-    @assert i <= N "trying to get x(t_i) for i > N"
+    #@assert i <= N "trying to get x(t_i) for i > N"
     return xu[i*nx + 1 : (i+1)*nx]
 end
 
@@ -63,7 +63,7 @@ function get_control_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    @assert i <= N "trying to get u(t_i) for i > N"
+    #@assert i <= N "trying to get u(t_i) for i > N"
     if docp.dim_NLP_u == 1
         return xu[(N+1)*nx + i*m + 1]
     else

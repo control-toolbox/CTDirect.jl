@@ -9,7 +9,7 @@ using JET
 
 precompile = true
 test_time = true
-test_code_warntype = false
+test_code_warntype = true
 test_jet = false
 
 
@@ -39,7 +39,7 @@ if test_code_warntype
   # NB. x0, xf are type unstable because type of ocp.mayer is Union(Mayer,nothing), even for mayer problems oO
   @code_warntype CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
   # OK !
-  @code_warntype CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+  #@code_warntype CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
 end
 
 if test_jet
@@ -47,7 +47,7 @@ if test_jet
   @report_opt CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
 
   # 118 possible errors
-  @report_opt CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+  #@report_opt CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
 end
 
 #=
