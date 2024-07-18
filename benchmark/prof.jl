@@ -8,10 +8,10 @@ include("../test/deps.jl")
 using JET
 
 precompile = true
-test_time = true
-test_code_warntype = true
-test_jet = false
 
+test_time = false
+test_code_warntype = true
+test_jet = true
 
 # define OCP
 prob = include("../problems/fuller.jl")
@@ -21,22 +21,25 @@ ocp = prob[:ocp]
 docp = direct_transcription(ocp)
 println("Load problem ", prob[:name])
 
-# precompilation
-if precompile
-  println("Precompilation")
-  solve(ocp, grid_size=50, display=false, max_iter=2)
-end
 
 # full solve
 if test_time
+  if precompile
+    println("Precompilation")
+    solve(ocp, grid_size=50, display=false, max_iter=2)
+  end
   println("Timed solve")
   @timev sol = solve(ocp, grid_size=50, print_level=0)
 end
 
 
 if test_code_warntype
+  if precompile
+    println("Precompilation")
+    CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+  end
   println("@code_warntype objective")
-  # NB. x0, xf are type unstable because type of ocp.mayer is Union(Mayer,nothing), even for mayer problems oO
+  # NB. Pb with the mayer part: obj is type unstable (Any) because ocp.mayer is Union(Mayer,nothing), even for mayer problems (also, we should not even enter this code part for lagrange problems since has_mayer us defined as const in DOCP oO ...). x0, xf are Any too
   @code_warntype CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
   # OK !
   #@code_warntype CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
@@ -44,6 +47,10 @@ end
 
 if test_jet
   # 47 possible errors
+  if precompile
+    println("Precompilation")
+    CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+  end
   @report_opt CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
 
   # 118 possible errors

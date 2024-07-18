@@ -23,10 +23,10 @@ Retrieve state variables at given time step from the NLP variables
 """
 function get_state_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
-    n = docp.ocp.state_dimension
+    n = docp.dim_OCP_x
     N = docp.dim_NLP_steps
     #@assert i <= N "trying to get x(t_i) for i > N"
-    if docp.dim_OCP_x == 1
+    if n == 1
         return xu[i*nx + 1]
     else
         return xu[i*nx + 1 : i*nx + n]
