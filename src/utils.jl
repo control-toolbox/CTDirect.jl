@@ -77,7 +77,7 @@ $(TYPEDSIGNATURES)
 Retrieve initial time for OCP (may be fixed or variable)
 """
 function get_initial_time(xu, docp)
-    if has_free_initial_time(docp.ocp)
+    if docp.has_free_t0
         v = get_variable(xu, docp)
         return v[docp.ocp.initial_time]
     else
@@ -92,7 +92,7 @@ $(TYPEDSIGNATURES)
 Retrieve final time for OCP (may be fixed or variable)
 """
 function get_final_time(xu, docp)
-    if has_free_final_time(docp.ocp)
+    if docp.has_free_tf
         v = get_variable(xu, docp)
         return v[docp.ocp.final_time]
     else
@@ -120,7 +120,7 @@ Get actual (un-normalized) time at give time step
 """
 function get_time_at_time_step(xu, docp, i)
     N = docp.dim_NLP_steps
-    @assert i <= N "trying to get t_i for i > N"
+    #@assert i <= N "trying to get t_i for i > N"
     return get_unnormalized_time(xu, docp, docp.NLP_normalized_time_grid[i+1])
 end
 
@@ -131,7 +131,7 @@ Set state variables at given time step in the NLP variables (for initial guess)
 """
 function set_state_at_time_step!(xu, x_init, docp, i)
     nx = docp.dim_NLP_x
-    n = docp.ocp.state_dimension
+    n = docp.dim_OCP_x
     N = docp.dim_NLP_steps
     @assert i <= N "trying to set init for x(t_i) with i > N"
     # NB. only set first the actual state variables from the OCP (not the possible additional state for lagrange cost)

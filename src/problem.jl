@@ -37,9 +37,22 @@ mutable struct DOCP
     const variable_box
 
     # faster than calling ocp functions each time ?
+    const has_free_t0::Bool
+    const has_free_tf::Bool
     const has_lagrange::Bool
     const has_mayer::Bool
     const has_variable::Bool
+    const has_maximization::Bool
+
+    const dim_x_box::Int
+    const dim_u_box::Int
+    const dim_v_box::Int
+    const dim_path_cons::Int
+    const dim_x_cons::Int
+    const dim_u_cons::Int
+    const dim_v_cons::Int
+    const dim_mixed_cons::Int
+    const dim_boundary_cons::Int
 
     ## NLP    
     const dim_NLP_x::Int  # possible lagrange cost
@@ -85,9 +98,12 @@ mutable struct DOCP
         end
 
         # additional indicators (faster ?)
+        has_free_t0 = has_free_initial_time(ocp)
+        has_free_tf = has_free_final_time(ocp)
         has_lagrange = has_lagrange_cost(ocp)
         has_mayer = has_mayer_cost(ocp)
         has_variable = is_variable_dependent(ocp)
+        has_maximization = is_max(ocp)
 
         # dimensions
         if has_lagrange
@@ -111,15 +127,26 @@ mutable struct DOCP
         # NLP constraints 
         # parse NLP constraints
         control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box = nlp_constraints!(ocp)
+
+        dim_x_box = dim_state_range(ocp)
+        dim_u_box = dim_control_range(ocp)
+        dim_v_box = dim_variable_range(ocp)
+        dim_path_cons = dim_path_constraints(ocp)
+        dim_x_cons = dim_state_constraints(ocp)
+        dim_u_cons = dim_control_constraints(ocp)
+        dim_v_cons = dim_variable_constraints(ocp)
+        dim_mixed_cons = dim_mixed_constraints(ocp)
+        dim_boundary_cons = dim_boundary_constraints(ocp)
+
         # lagrange to mayer transformation
+        dim_NLP_constraints = N * (dim_NLP_x + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
         if has_lagrange
-            dim_NLP_constraints = N * (dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_constraints(ocp) + dim_variable_constraints(ocp) + 1           
-        else
-            dim_NLP_constraints = N * (dim_NLP_x + dim_path_constraints(ocp)) + dim_path_constraints(ocp) + dim_boundary_constraints(ocp) + dim_variable_constraints(ocp)
+            dim_NLP_constraints += 1          
         end
 
         # call constructor with const fields
-        docp = new(ocp, control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box, has_lagrange, has_mayer, has_variable, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_OCP_x, dim_NLP_steps, NLP_normalized_time_grid, dim_NLP_variables, dim_NLP_constraints)
+        docp = new(ocp, control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box, has_free_t0, has_free_tf, has_lagrange, has_mayer, has_variable,
+        has_maximization, dim_x_box, dim_u_box, dim_v_box, dim_path_cons, dim_x_cons, dim_u_cons, dim_v_cons,dim_mixed_cons, dim_boundary_cons, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_OCP_x, dim_NLP_steps, NLP_normalized_time_grid, dim_NLP_variables, dim_NLP_constraints)
 
         return docp
 
@@ -155,14 +182,14 @@ function constraints_bounds(docp::DOCP)
         # skip (ie leave 0) for equality dynamics constraint
         index = index + docp.dim_NLP_x
         # path constraints
-        index = setPathConstraintsAtTimeStep!(docp, index, :bounds; lb=lb, ub=ub)
+        index = setPathBoundsAtTimeStep!(docp, index, lb, ub)
     end
     
     # path constraints at final time
-    index = setPathConstraintsAtTimeStep!(docp, index, :bounds; lb=lb, ub=ub) 
+    index = setPathBoundsAtTimeStep!(docp, index, lb, ub) 
 
     # boundary and variable constraints
-     index = setPunctualConditions!(docp, index, :bounds; lb=lb, ub=ub)
+     index = setPunctualBounds!(docp, index, lb, ub)
 
     return lb, ub
 end
@@ -185,9 +212,9 @@ function variables_bounds(docp::DOCP)
 
     # state box
     offset = 0
-    if dim_state_range(ocp) > 0
+    if docp.dim_x_box > 0
         for i in 0:N
-            for j in 1:dim_state_range(ocp)
+            for j in 1:docp.dim_x_box
                 indice = docp.state_box[2][j]
                 l_var[offset+indice] = docp.state_box[1][j]
                 u_var[offset+indice] = docp.state_box[3][j]
@@ -198,9 +225,9 @@ function variables_bounds(docp::DOCP)
 
     # control box
     offset = (N+1) * docp.dim_NLP_x
-    if dim_control_range(ocp) > 0
+    if docp.dim_u_box > 0
         for i in 0:N
-            for j in 1:dim_control_range(ocp)
+            for j in 1:docp.dim_u_box
                 indice = docp.control_box[2][j]
                 l_var[offset+indice] = docp.control_box[1][j]
                 u_var[offset+indice] = docp.control_box[3][j]
@@ -211,8 +238,8 @@ function variables_bounds(docp::DOCP)
 
     # variable box
     offset = (N+1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    if dim_variable_range(ocp) > 0
-        for j in 1:dim_variable_range(ocp)
+    if docp.dim_v_box > 0
+        for j in 1:docp.dim_v_box
             indice = docp.variable_box[2][j]
             l_var[offset+indice] = docp.variable_box[1][j]
             u_var[offset+indice] = docp.variable_box[3][j]
@@ -249,7 +276,7 @@ function DOCP_objective(xu, docp::DOCP)
     end
 
     # maximization problem
-    if !is_min(ocp)
+    if docp.has_maximization
         obj = -obj
     end 
     
@@ -289,7 +316,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         index = setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
 
         # path constraints 
-        index = setPathConstraintsAtTimeStep!(docp, index, :constraints; c=c, args=args_i)
+        index = setPathConstraintsAtTimeStep!(docp, index, c, args_i)
 
         # updates for next iteration
         #args_i = args_ip1
@@ -302,10 +329,10 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # path constraints at final time
     args_0 = ArgsAtTimeStep(xu, docp, 0)
     args_f = ArgsAtTimeStep(xu, docp, docp.dim_NLP_steps)
-    index = setPathConstraintsAtTimeStep!(docp, index, :constraints; c=c, args=args_f)
+    index = setPathConstraintsAtTimeStep!(docp, index, c, args_f)
 
     # boundary conditions and variable constraints
-    index = setPunctualConditions!(docp, index, :constraints; c=c, args_0=args_0, args_f=args_f)
+    index = setPunctualConditions!(docp, index, c, args_0, args_f)
 
     # needed even for inplace version, AD error otherwise
     # may be because actual return would be index above ?
@@ -405,10 +432,10 @@ function setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
     hi = args_ip1.time - args_i.time
     
     # trapeze rule
-    c[index:index+ocp.state_dimension-1] .= args_ip1.state .- (args_i.state .+ 0.5*hi*(args_i.dynamics .+ args_ip1.dynamics))
+    c[index:index+docp.dim_OCP_x-1] .= args_ip1.state .- (args_i.state .+ 0.5*hi*(args_i.dynamics .+ args_ip1.dynamics))
 
     if docp.has_lagrange
-        c[index+ocp.state_dimension] = args_ip1.lagrange_state - (args_i.lagrange_state + 0.5*hi*(args_i.lagrange_cost + args_ip1.lagrange_cost))
+        c[index+docp.dim_OCP_x] = args_ip1.lagrange_state - (args_i.lagrange_state + 0.5*hi*(args_i.lagrange_cost + args_ip1.lagrange_cost))
     end
     
     index = index + docp.dim_NLP_x
@@ -420,49 +447,62 @@ end
 $(TYPEDSIGNATURES)
 
 Set the path constraints / bounds for given time step
-target = :constraints | :bounds | :multipliers
 """
-function setPathConstraintsAtTimeStep!(docp, index, target; c=nothing, args=nothing, lb=nothing, ub=nothing, sol=nothing)
+function setPathConstraintsAtTimeStep!(docp, index, c, args)
 
     ocp = docp.ocp
-    if target == :constraints
-        ti = args.time
-        xi = args.state
-        ui = args.control
-        v = args.variable
-    end
+
+    ti = args.time
+    xi = args.state
+    ui = args.control
+    v = args.variable
 
     # pure control constraints
-    if dim_control_constraints(ocp) > 0
-        if target == :constraints
-            c[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[2](ti, ui, v)
-        elseif target == :bounds
-            lb[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[1]
-            ub[index:index+dim_control_constraints(ocp)-1] = docp.control_constraints[3]
-        end
-        index = index + dim_control_constraints(ocp)
+    if docp.dim_u_cons > 0
+        c[index:index+docp.dim_u_cons-1] = docp.control_constraints[2](ti, ui, v)
+        index = index + docp.dim_u_cons
     end
 
     # pure state constraints
-    if dim_state_constraints(ocp) > 0
-        if target == :constraints
-            c[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[2](ti, xi ,v)
-        elseif target == :bounds
-            lb[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[1]
-            ub[index:index+dim_state_constraints(ocp)-1] = docp.state_constraints[3]
-        end
-        index = index + dim_state_constraints(ocp)
+    if docp.dim_x_cons > 0
+        c[index:index+docp.dim_x_cons-1] = docp.state_constraints[2](ti, xi ,v)
+        index = index + docp.dim_x_cons
     end
 
     # mixed state / control constraints
-    if dim_mixed_constraints(ocp) > 0
-        if target == :constraints
-            c[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[2](ti, xi, ui, v)
-        elseif target == :bounds
-            lb[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[1]
-            ub[index:index+dim_mixed_constraints(ocp)-1] = docp.mixed_constraints[3]
-        end
-        index = index + dim_mixed_constraints(ocp)
+    if docp.dim_mixed_cons > 0
+        c[index:index+docp.dim_mixed_cons-1] = docp.mixed_constraints[2](ti, xi, ui, v)
+        index = index + docp.dim_mixed_cons
+    end
+    
+    return index
+
+end
+
+# bounds
+function setPathBoundsAtTimeStep!(docp, index, lb, ub)
+
+    ocp = docp.ocp
+
+    # pure control constraints
+    if docp.dim_u_cons > 0
+        lb[index:index+docp.dim_u_cons-1] = docp.control_constraints[1]
+        ub[index:index+docp.dim_u_cons-1] = docp.control_constraints[3]
+        index = index + docp.dim_u_cons
+    end
+
+    # pure state constraints
+    if docp.dim_x_cons > 0
+        lb[index:index+docp.dim_x_cons-1] = docp.state_constraints[1]
+        ub[index:index+docp.dim_x_cons-1] = docp.state_constraints[3]
+        index = index + docp.dim_x_cons
+    end
+
+    # mixed state / control constraints
+    if docp.dim_mixed_cons > 0
+        lb[index:index+docp.dim_mixed_cons-1] = docp.mixed_constraints[1]
+        ub[index:index+docp.dim_mixed_cons-1] = docp.mixed_constraints[3]
+        index = index + docp.dim_mixed_cons
     end
     
     return index
@@ -474,48 +514,60 @@ end
 $(TYPEDSIGNATURES)
 
 Set the boundary and variable constraints / their bounds
-target = :constraints | :bounds
 """
-function setPunctualConditions!(docp, index, target; c=nothing, args_0=nothing, args_f=nothing, lb=nothing, ub=nothing)
+function setPunctualConditions!(docp, index, c, args_0, args_f)
 
     ocp = docp.ocp
 
-    if target == :constraints
-        v = args_0.variable
-        x0 = args_0.state
-        xf = args_f.state
-    end
+    v = args_0.variable
+    x0 = args_0.state
+    xf = args_f.state
 
     # boundary constraints
-    if dim_boundary_constraints(ocp) > 0
-        if target == :constraints
-            c[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[2](x0, xf, v)
-        else
-            lb[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[1]
-            ub[index:index+dim_boundary_constraints(ocp)-1] = docp.boundary_constraints[3]
-        end
-        index = index + dim_boundary_constraints(ocp)
+    if docp.dim_boundary_cons > 0
+        c[index:index+docp.dim_boundary_cons-1] = docp.boundary_constraints[2](x0, xf, v)
+        index = index + docp.dim_boundary_cons
     end
 
     # variable constraints
-    if dim_variable_constraints(ocp) > 0
-        if target == :constraints
-            c[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[2](v)
-        else
-            lb[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[1]
-            ub[index:index+dim_variable_constraints(ocp)-1] = docp.variable_constraints[3]
-        end
-        index = index + dim_variable_constraints(ocp)
+    if docp.dim_v_cons > 0
+        c[index:index+docp.dim_v_cons-1] = docp.variable_constraints[2](v)
+        index = index + docp.dim_v_cons
     end
 
     # null initial condition for lagrangian cost state
     if docp.has_lagrange
-        if target == :constraints
-            c[index] = args_0.lagrange_state
-        else
-            lb[index] = 0.
-            ub[index] = 0.
-        end
+        c[index] = args_0.lagrange_state
+        index = index + 1
+    end
+
+    return index
+
+end
+
+# bounds
+function setPunctualBounds!(docp, index, lb, ub)
+
+    ocp = docp.ocp
+
+    # boundary constraints
+    if docp.dim_boundary_cons > 0
+        lb[index:index+docp.dim_boundary_cons-1] = docp.boundary_constraints[1]
+        ub[index:index+docp.dim_boundary_cons-1] = docp.boundary_constraints[3]
+        index = index + docp.dim_boundary_cons
+    end
+
+    # variable constraints
+    if docp.dim_v_cons > 0
+        lb[index:index+docp.dim_v_cons-1] = docp.variable_constraints[1]
+        ub[index:index+docp.dim_v_cons-1] = docp.variable_constraints[3]
+        index = index + docp.dim_v_cons
+    end
+
+    # null initial condition for lagrangian cost state
+    if docp.has_lagrange
+        lb[index] = 0.
+        ub[index] = 0.
         index = index + 1
     end
 

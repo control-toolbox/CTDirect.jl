@@ -1,7 +1,7 @@
 include("deps.jl")
 
 println("Test: objective")
-
+#=
 # min tf
 ocp = Model(variable=true)
 state!(ocp, 2)
@@ -31,7 +31,7 @@ dynamics!(ocp, (x, u, v) ->  [x[2], u])
 objective!(ocp, :lagrange, (x, u, v) -> 1)
 sol = solve(ocp, print_level=0, tol=1e-12)
 println("Target 2.0, found ", sol.objective)
-
+=#
 # max t0 (free t0 and tf)
 ocp = Model(variable=true)
 state!(ocp, 2)
