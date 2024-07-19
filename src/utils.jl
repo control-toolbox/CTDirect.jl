@@ -20,7 +20,7 @@ $(TYPEDSIGNATURES)
 
 Retrieve a single optimization variable (no dim check)
 """
-function get_single_variable(xu, docp, i)
+function get_single_variable(xu, docp, i::Int)
     if docp.has_variable
         return xu[end-docp.dim_NLP_v+i]
     else
