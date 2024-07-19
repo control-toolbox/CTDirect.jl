@@ -9,18 +9,19 @@ using JET
 
 precompile = true
 
-test_time = false
+test_time = true
 #test = :objective
 test = :constraints
-test_code_warntype = true
-test_jet = true
+test_code_warntype = false
+test_jet = false
 
 # define OCP
 prob = include("../problems/fuller.jl")
 #prob = include("../problems/jackson.jl")
 #prob = include("../problems/goddard.jl")
 ocp = prob[:ocp]
-docp, nlp = direct_transcription(ocp)
+grid_size = 200
+docp, nlp = direct_transcription(ocp, grid_size=grid_size)
 println("Load problem ", prob[:name])
 
 
@@ -28,10 +29,10 @@ println("Load problem ", prob[:name])
 if test_time
   if precompile
     println("Precompilation")
-    solve(ocp, grid_size=50, display=false, max_iter=2)
+    solve(ocp, grid_size=grid_size, display=false, max_iter=2)
   end
   println("Timed solve")
-  @timev sol = solve(ocp, grid_size=50, print_level=0)
+  @timev sol = solve(ocp, grid_size=grid_size, print_level=0)
 end
 
 if precompile

@@ -1,5 +1,6 @@
 # Benchmark
 include("../test/deps.jl")
+using Printf
 import LinearAlgebra
 
 #######################################################
@@ -16,7 +17,7 @@ blas_config = LinearAlgebra.BLAS.lbt_get_config()
 #######################################################
 # set parameters
 tol = 1e-8
-grid_size = 100
+grid_size = 200
 precompile = true
 @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
 
