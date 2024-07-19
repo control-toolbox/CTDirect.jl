@@ -21,57 +21,54 @@ Contains:
 - a NLP formulation of the DOCP
 - data required to link the two problems
 """
-mutable struct DOCP
+struct DOCP
 
     # NB. non mutable may be better, but constructor would be quite involved (currently there is some recursion)
 
     ## OCP
-    const ocp::OptimalControlModel
-    const control_constraints
-    const state_constraints
-    const mixed_constraints
-    const boundary_constraints
-    const variable_constraints
-    const control_box
-    const state_box
-    const variable_box
+    ocp::OptimalControlModel
+    control_constraints
+    state_constraints
+    mixed_constraints
+    boundary_constraints
+    variable_constraints
+    control_box
+    state_box
+    variable_box
 
     # faster than calling ocp functions each time ?
-    const has_free_t0::Bool
-    const has_free_tf::Bool
-    const has_lagrange::Bool
-    const has_mayer::Bool
-    const has_variable::Bool
-    const has_maximization::Bool
+    has_free_t0::Bool
+    has_free_tf::Bool
+    has_lagrange::Bool
+    has_mayer::Bool
+    has_variable::Bool
+    has_maximization::Bool
 
-    const dim_x_box::Int
-    const dim_u_box::Int
-    const dim_v_box::Int
-    const dim_path_cons::Int
-    const dim_x_cons::Int
-    const dim_u_cons::Int
-    const dim_v_cons::Int
-    const dim_mixed_cons::Int
-    const dim_boundary_cons::Int
+    dim_x_box::Int
+    dim_u_box::Int
+    dim_v_box::Int
+    dim_path_cons::Int
+    dim_x_cons::Int
+    dim_u_cons::Int
+    dim_v_cons::Int
+    dim_mixed_cons::Int
+    dim_boundary_cons::Int
 
     ## NLP    
-    const dim_NLP_x::Int  # possible lagrange cost
-    const dim_NLP_u::Int
-    const dim_NLP_v::Int
-    const dim_OCP_x::Int  # original OCP state
-    const dim_NLP_steps::Int
-    const NLP_normalized_time_grid::Vector{Float64}
-    const dim_NLP_variables::Int
-    const dim_NLP_constraints::Int
+    dim_NLP_x::Int  # possible lagrange cost
+    dim_NLP_u::Int
+    dim_NLP_v::Int
+    dim_OCP_x::Int  # original OCP state
+    dim_NLP_steps::Int
+    NLP_normalized_time_grid::Vector{Float64}
+    dim_NLP_variables::Int
+    dim_NLP_constraints::Int
 
     # lower and upper bounds for variables and constraints
     var_l::Vector{Float64}
     var_u::Vector{Float64}
     con_l::Vector{Float64}
     con_u::Vector{Float64}
-
-    # NLP model for solver
-    #const nlp
 
     # constructor
     function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid)       
@@ -125,7 +122,7 @@ mutable struct DOCP
         dim_NLP_variables = (N + 1) * (dim_NLP_x + dim_NLP_u) + dim_NLP_v
 
         # NLP constraints 
-        # parse NLP constraints
+        # parse NLP constraints (and initialize dimensions)
         control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box = nlp_constraints!(ocp)
 
         dim_x_box = dim_state_range(ocp)
@@ -182,14 +179,14 @@ function constraints_bounds!(docp::DOCP)
         # skip (ie leave 0) for equality dynamics constraint
         index = index + docp.dim_NLP_x
         # path constraints
-        index = setPathBoundsAtTimeStep!(docp, index, lb, ub)
+        index = setPathBounds!(docp, index, lb, ub)
     end
     
     # path constraints at final time
-    index = setPathBoundsAtTimeStep!(docp, index, lb, ub) 
+    index = setPathBounds!(docp, index, lb, ub) 
 
     # boundary and variable constraints
-     index = setPunctualBounds!(docp, index, lb, ub)
+     index = setPointBounds!(docp, index, lb, ub)
 
     return lb, ub
 end
@@ -301,38 +298,31 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     c :: 
     """
 
-    # +++ todo: remove variable from Args and pass it separately
+    # could use a single v, however v is set only in Args constructor, not update, so not much is wasted
     args_i = ArgsAtTimeStep(xu, docp, 0)
-    args_ip1 = ArgsAtTimeStep(xu, docp, 1)
 
     # main loop on time steps
     index = 1 # counter for the constraints
     for i in 0:docp.dim_NLP_steps-1
 
-        # t,x,u,f,... at t_{i+1}
-        #args_ip1 = ArgsAtTimeStep(xu, docp, i+1)
-     
         # state equation
-        index = setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
-
+        index = setStateEquation!(docp, c, index, args_i)
         # path constraints 
-        index = setPathConstraintsAtTimeStep!(docp, index, c, args_i)
+        index = setPathConstraints!(docp, c, index, args_i)
 
         # updates for next iteration
-        #args_i = args_ip1
         if i < docp.dim_NLP_steps-1
-            Args_copy!(args_i, args_ip1)
-            ArgsAtTimeStep!(args_ip1, xu, docp, i+2)
+            Args_update!(args_i, xu, docp, i)
         end
     end
 
     # path constraints at final time
     args_0 = ArgsAtTimeStep(xu, docp, 0)
     args_f = ArgsAtTimeStep(xu, docp, docp.dim_NLP_steps)
-    index = setPathConstraintsAtTimeStep!(docp, index, c, args_f)
+    index = setPathConstraints!(docp, c, index, args_f)
 
     # boundary conditions and variable constraints
-    index = setPunctualConditions!(docp, index, c, args_0, args_f)
+    index = setPointConstraints!(docp, c, index, args_0, args_f)
 
     # needed even for inplace version, AD error otherwise
     # may be because actual return would be index above ?
@@ -341,56 +331,117 @@ end
 
 
 # +++ later use abstract interface
+# this struct and the related functions will change according to discretization scheme
 """
 $(TYPEDSIGNATURES)
 
 Useful values at a time step: time, state, control, dynamics...
 """
-# later this one and the related functions will change according to discretization scheme
-
-# +++ use inplace getters !
 mutable struct ArgsAtTimeStep
+    
+    variable # could be moved outside, but is set only at initial constructor so not much is wasted
+
     time
     state
     control
-    variable
     dynamics
     lagrange_state
     lagrange_cost
 
-    # specific part for trapeze
-    #next_state
-    #next_control
-    #next_dynamics
-    #next_lagrange_state
-    #next_lagrange_cost
+    # trapeze: store end of time interval, for next step
+    next_time
+    next_state
+    next_control
+    next_dynamics
+    next_lagrange_state
+    next_lagrange_cost
 
-    function ArgsAtTimeStep(xu, docp, i)
+    function ArgsAtTimeStep(xu, docp::DOCP, i::Int)
+
         args = new()
+        args.variable = get_variable(xu, docp)
+        v = args.variable
+
         args.time = get_time_at_time_step(xu, docp, i)
         args.state = get_state_at_time_step(xu, docp, i)
         args.control = get_control_at_time_step(xu, docp, i)
-        args.variable = get_variable(xu, docp) 
-    
         ti = args.time
         xi = args.state
         ui = args.control
-        v = args.variable
-    
+
+        # dynamics and lagrange cost
         args.dynamics = docp.ocp.dynamics(ti, xi, ui, v)
         if docp.has_lagrange
             args.lagrange_state = get_lagrange_cost_at_time_step(xu, docp, i)
             args.lagrange_cost = docp.ocp.lagrange(ti, xi, ui, v)
-        else
-            args.lagrange_state = 0
-            args.lagrange_cost = 0
         end
+
+        # if not at final step
+        if i < docp.dim_NLP_steps
+            args.next_time = get_time_at_time_step(xu, docp, i+1)
+            args.next_state = get_state_at_time_step(xu, docp, i+1)
+            args.next_control = get_control_at_time_step(xu, docp, i+1)
+            
+            tip1 = args.next_time
+            xip1 = args.next_state
+            uip1 = args.next_control
+
+            # dynamics and lagrange cost
+            args.next_dynamics = docp.ocp.dynamics(tip1, xip1, uip1, v)
+            if docp.has_lagrange
+                args.next_lagrange_state = get_lagrange_cost_at_time_step(xu, docp, i+1)
+                args.next_lagrange_cost = docp.ocp.lagrange(tip1, xip1, uip1, v)
+            end
+
+        end # values a end of step
+        
         return args
     end
+
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Update values for next time step: time, state, control, dynamics...
+"""
+function Args_update!(args::ArgsAtTimeStep, xu, docp::DOCP, i::Int)
+
+    # retrieve v for functions evaluations
+    v = args.variable
+
+    # copy values from previous t_i+1 to next t_i
+    args.time = args.next_time
+    args.state = args.next_state
+    args.control = args.next_control
+    args.dynamics = args.next_dynamics
+    
+    # update new end of step
+    args.next_time = get_time_at_time_step(xu, docp, i+1)
+    args.next_state = get_state_at_time_step(xu, docp, i+1)
+    args.next_control = get_control_at_time_step(xu, docp, i+1)
+    tip1 = args.next_time
+    xip1 = args.next_state
+    uip1 = args.next_control
+    args.next_dynamics = docp.ocp.dynamics(tip1, xip1, uip1, v)
+
+    # lagrange cost part
+    if docp.has_lagrange
+        # copy
+        args.lagrange_state = args.next_lagrange_state
+        args.lagrange_cost = args.next_lagrange_cost
+        # update
+        args.next_lagrange_state = get_lagrange_cost_at_time_step(xu, docp, i+1)
+        args.next_lagrange_cost = docp.ocp.lagrange(tip1, xip1, uip1, v)
+    end
+
+    return args
+end
+
+#=
 # +++keep only this one plus an 'empty' constructor taking only docp (that will later reserve vectors for inplace getters), remove the one above
-function ArgsAtTimeStep!(args, xu, docp, i)
+function ArgsAtTimeStep!(args::ArgsAtTimeStep, xu, docp::DOCP, i::Int)
     args.time = get_time_at_time_step(xu, docp, i)
     args.state = get_state_at_time_step(xu, docp, i)
     args.control = get_control_at_time_step(xu, docp, i)
@@ -411,7 +462,7 @@ function ArgsAtTimeStep!(args, xu, docp, i)
     end
 end
 
-function Args_copy!(args_dest, args_src)
+function Args_copy!(args_dest::ArgsAtTimeStep, args_src::ArgsAtTimeStep)
     args_dest.time = args_src.time
     args_dest.state = args_src.state
     args_dest.control = args_src.control
@@ -420,22 +471,24 @@ function Args_copy!(args_dest, args_src)
     args_dest.lagrange_state = args_src.lagrange_state
     args_dest.lagrange_cost = args_src.lagrange_cost
 end
+=#
+
 
 """
 $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquationAtTimeStep!(docp, c, index, args_i, args_ip1)
+function setStateEquation!(docp::DOCP, c, index::Int, args_i::ArgsAtTimeStep)
     
     ocp = docp.ocp
-    hi = args_ip1.time - args_i.time
+    hi = args_i.next_time - args_i.time
     
     # trapeze rule
-    c[index:index+docp.dim_OCP_x-1] .= args_ip1.state .- (args_i.state .+ 0.5*hi*(args_i.dynamics .+ args_ip1.dynamics))
+    c[index:index+docp.dim_OCP_x-1] .= args_i.next_state .- (args_i.state .+ 0.5*hi*(args_i.dynamics .+ args_i.next_dynamics))
 
     if docp.has_lagrange
-        c[index+docp.dim_OCP_x] = args_ip1.lagrange_state - (args_i.lagrange_state + 0.5*hi*(args_i.lagrange_cost + args_ip1.lagrange_cost))
+        c[index+docp.dim_OCP_x] = args_i.next_lagrange_state - (args_i.lagrange_state + 0.5*hi*(args_i.lagrange_cost + args_i.next_lagrange_cost))
     end
     
     index = index + docp.dim_NLP_x
@@ -446,16 +499,16 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Set the path constraints / bounds for given time step
+Set the path constraints at given time step
 """
-function setPathConstraintsAtTimeStep!(docp, index, c, args)
+function setPathConstraints!(docp::DOCP, c, index::Int, args::ArgsAtTimeStep)
 
     ocp = docp.ocp
 
+    v = args.variable
     ti = args.time
     xi = args.state
     ui = args.control
-    v = args.variable
 
     # pure control constraints
     if docp.dim_u_cons > 0
@@ -479,8 +532,12 @@ function setPathConstraintsAtTimeStep!(docp, index, c, args)
 
 end
 
-# bounds
-function setPathBoundsAtTimeStep!(docp, index, lb, ub)
+"""
+$(TYPEDSIGNATURES)
+
+Set bounds for the path constraints at given time step
+"""
+function setPathBounds!(docp::DOCP, index::Int, lb, ub)
 
     ocp = docp.ocp
 
@@ -513,9 +570,9 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Set the boundary and variable constraints / their bounds
+Set the boundary and variable constraints
 """
-function setPunctualConditions!(docp, index, c, args_0, args_f)
+function setPointConstraints!(docp::DOCP, c, index::Int, args_0::ArgsAtTimeStep, args_f::ArgsAtTimeStep)
 
     ocp = docp.ocp
 
@@ -545,8 +602,13 @@ function setPunctualConditions!(docp, index, c, args_0, args_f)
 
 end
 
-# bounds
-function setPunctualBounds!(docp, index, lb, ub)
+
+"""
+$(TYPEDSIGNATURES)
+
+Set bounds for the boundary and variable constraints
+"""
+function setPointBounds!(docp::DOCP, index::Int, lb, ub)
 
     ocp = docp.ocp
 

@@ -18,7 +18,7 @@ prob = include("../problems/fuller.jl")
 #prob = include("../problems/jackson.jl")
 #prob = include("../problems/goddard.jl")
 ocp = prob[:ocp]
-docp = direct_transcription(ocp)
+docp, nlp = direct_transcription(ocp)
 println("Load problem ", prob[:name])
 
 
