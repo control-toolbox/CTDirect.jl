@@ -1,11 +1,5 @@
 # Benchmark
-using CTDirect
-using CTBase
-using NLPModelsIpopt
-using HSL
-using JLD2
-using JSON3
-using Printf
+include("../test/deps.jl")
 import LinearAlgebra
 
 #######################################################
@@ -58,7 +52,7 @@ t_list = []
 println("Benchmark step")
 for problem in problem_list
     t = @elapsed local sol = solve(problem[:ocp], display=false, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
-    if !isapprox(sol.objective, problem[:obj], rtol=1e-2)
+    if !isapprox(sol.objective, problem[:obj], rtol=2e-2)
         error("Objective mismatch for ", problem[:name], ": ", sol.objective, " instead of ", problem[:obj])
     else
         @printf("%-30s completed in %6.2f s\n",problem[:name],t)

@@ -297,18 +297,18 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     """
 
     # could use a single v, however v is set only in Args constructor, not update, so not much is wasted
-
+    v = get_variable(xu, docp)
 
     # main loop on time steps
     index = 1 # counter for the constraints
     for i in 0:docp.dim_NLP_steps-1
 
-        args_i = ArgsAtTimeStep(xu, docp, i)
+        args_i = ArgsAtTimeStep(xu, docp, i, v)
 
         # state equation
         index = setStateEquation!(docp, c, index, args_i)
         # path constraints 
-        index = setPathConstraints!(docp, c, index, args_i)
+        index = setPathConstraints!(docp, c, index, args_i, v)
 
         # smart update for next iteration NOT WORKING+++
         #if i < docp.dim_NLP_steps-1
@@ -317,12 +317,12 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     end
 
     # path constraints at final time
-    args_0 = ArgsAtTimeStep(xu, docp, 0)
-    args_f = ArgsAtTimeStep(xu, docp, docp.dim_NLP_steps)
-    index = setPathConstraints!(docp, c, index, args_f)
+    args_0 = ArgsAtTimeStep(xu, docp, 0, v)
+    args_f = ArgsAtTimeStep(xu, docp, docp.dim_NLP_steps, v)
+    index = setPathConstraints!(docp, c, index, args_f, v)
 
     # boundary conditions and variable constraints
-    index = setPointConstraints!(docp, c, index, args_0, args_f)
+    index = setPointConstraints!(docp, c, index, args_0, args_f, v)
 
     # needed even for inplace version, AD error otherwise
     # may be because actual return would be index above ?
@@ -338,8 +338,6 @@ $(TYPEDSIGNATURES)
 Useful values at a time step: time, state, control, dynamics...
 """
 mutable struct ArgsAtTimeStep
-    
-    variable # could be moved outside, but is set only at initial constructor so not much is wasted
 
     time
     state
@@ -357,11 +355,9 @@ mutable struct ArgsAtTimeStep
     next_lagrange_state
     next_lagrange_cost
 
-    function ArgsAtTimeStep(xu, docp::DOCP, i::Int)
+    function ArgsAtTimeStep(xu, docp::DOCP, i::Int, v)
 
         args = new()
-        args.variable = get_variable(xu, docp)
-        v = args.variable
 
         args.time = get_time_at_time_step(xu, docp, i)
         args.state = get_state_at_time_step(xu, docp, i)
@@ -407,10 +403,7 @@ $(TYPEDSIGNATURES)
 
 Update values for next time step: time, state, control, dynamics...
 """
-function Args_update!(args::ArgsAtTimeStep, xu, docp::DOCP, i::Int)
-
-    # retrieve v for functions evaluations
-    v = args.variable
+function Args_update!(args::ArgsAtTimeStep, xu, docp::DOCP, i::Int, v)
 
     # copy values from previous t_i+1 to next t_i
     # +++ NOT WORKING PROPERLY -_-
@@ -505,11 +498,10 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-function setPathConstraints!(docp::DOCP, c, index::Int, args::ArgsAtTimeStep)
+function setPathConstraints!(docp::DOCP, c, index::Int, args::ArgsAtTimeStep, v)
 
     ocp = docp.ocp
 
-    v = args.variable
     ti = args.time
     xi = args.state
     ui = args.control
@@ -576,11 +568,10 @@ $(TYPEDSIGNATURES)
 
 Set the boundary and variable constraints
 """
-function setPointConstraints!(docp::DOCP, c, index::Int, args_0::ArgsAtTimeStep, args_f::ArgsAtTimeStep)
+function setPointConstraints!(docp::DOCP, c, index::Int, args_0::ArgsAtTimeStep, args_f::ArgsAtTimeStep, v)
 
     ocp = docp.ocp
 
-    v = args_0.variable
     x0 = args_0.state
     xf = args_f.state
 
