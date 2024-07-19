@@ -13,8 +13,7 @@ $(TYPEDSIGNATURES)
 
 Solve a discretized optimal control problem DOCP
 """
-#function CommonSolve.solve(docp::DOCP;
-function CTDirect.solve_docp(docp::DOCP;
+function CTDirect.solve_docp(docp::DOCP, nlp;
     init=nothing,
     display::Bool=CTDirect.__display(),
     print_level::Integer=CTDirect.__print_level_ipopt(),
@@ -45,7 +44,7 @@ function CTDirect.solve_docp(docp::DOCP;
 
     # solve DOCP with NLP solver
     print_level = display ?  print_level : 0
-    nlp = get_nlp(docp)
+    #nlp = get_nlp(docp)
     if isnothing(init)
         # use initial guess embedded in the DOCP
         docp_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)
@@ -60,37 +59,6 @@ function CTDirect.solve_docp(docp::DOCP;
     # return DOCP solution
     return docp_solution
 end
-
-#=
-
-"""
-$(TYPEDSIGNATURES)
-
-Solve an optimal control problem OCP by direct method
-"""
-function CommonSolve.solve(ocp::OptimalControlModel,
-    description...;
-    init=nothing,
-    grid_size::Integer=CTDirect.__grid_size_direct(),
-    time_grid=nothing,
-    display::Bool=CTDirect.__display(),
-    print_level::Integer=CTDirect.__print_level_ipopt(),
-    mu_strategy::String=CTDirect.__mu_strategy_ipopt(),
-    max_iter::Integer=CTDirect.__max_iter(),
-    tol::Real=CTDirect.__tol(),
-    linear_solver::String=CTDirect.__linear_solver(),
-    kwargs...)
-
-    # build discretized OCP
-    docp = direct_transcription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
-
-    # solve DOCP (NB. init is already embedded in docp)
-    docp_solution = solve(docp, display=display, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, linear_solver=linear_solver; kwargs...)
-
-    # build and return OCP solution
-    return build_solution(docp, docp_solution)
-end
-=#
 
 end
 

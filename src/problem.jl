@@ -71,7 +71,7 @@ mutable struct DOCP
     con_u::Vector{Float64}
 
     # NLP model for solver
-    nlp
+    #const nlp
 
     # constructor
     function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid)       

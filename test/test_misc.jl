@@ -37,18 +37,18 @@ println("Target 0.313, found ", sol.objective, " at ", sol.iterations, " iterati
 # split calls
 println("Test simple integrator: split calls")
 println("Direct transcription with default init")
-docp = direct_transcription(ocp)
-dsol = CTDirect.solve_docp(docp, print_level=0, tol=1e-12)
+docp, nlp = direct_transcription(ocp)
+dsol = CTDirect.solve_docp(docp, nlp, print_level=0, tol=1e-12)
 sol1 = build_solution(docp, dsol)
 println("Target 0.313, found ", sol1.objective, " at ", sol1.iterations, " iterations")
 
 # test NLP getter
-nlp = get_nlp(docp)
+#nlp = get_nlp(docp)
 
 # warm start in directTranscription
 println("\nDirect transcription with warm start")
-docp2 = direct_transcription(ocp, init=sol)
-dsol2 = CTDirect.solve_docp(docp2, print_level=0, tol=1e-12)
+docp2, nlp2 = direct_transcription(ocp, init=sol)
+dsol2 = CTDirect.solve_docp(docp2, nlp2, print_level=0, tol=1e-12)
 
 # build_solution from NLP solution (primal only)
 println("Rebuild OCP solution from NLP solution (primal only)")
