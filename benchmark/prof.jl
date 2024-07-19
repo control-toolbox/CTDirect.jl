@@ -10,7 +10,9 @@ using JET
 precompile = true
 
 test_time = false
-test_code_warntype = false
+#test = :objective
+test = :constraints
+test_code_warntype = true
 test_jet = true
 
 # define OCP
@@ -32,35 +34,35 @@ if test_time
   @timev sol = solve(ocp, grid_size=50, print_level=0)
 end
 
-
-if test_code_warntype
-  if precompile
-    println("Precompilation")
+if precompile
+  println("Precompilation")
+  if test == :objective
     CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+  else
     CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
   end
-  println("@code_warntype objective")
-  # NB. Pb with the mayer part: obj is type unstable (Any) because ocp.mayer is Union(Mayer,nothing), even for mayer problems (also, we should not even enter this code part for lagrange problems since has_mayer us defined as const in DOCP oO ...).
-  #@code_warntype CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
-  
-  # OK ! only index is Any but typing it seems worse...
-  @code_warntype CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+end
+
+if test_code_warntype
+  if test == :objective
+    # NB. Pb with the mayer part: obj is type unstable (Any) because ocp.mayer is Union(Mayer,nothing), even for mayer problems (also, we should not even enter this code part for lagrange problems since has_mayer us defined as const in DOCP oO ...).
+    @code_warntype CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+  else
+    # OK ! only index is Any but typing it seems worse...
+    @code_warntype CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+  end
 end
 
 if test_jet
-
-  if precompile
-    println("Precompilation")
-    CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
-    CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+  if test == :objective
+    # 4 possible errors
+    # due to the ocp.mayer type problem cf above
+    @report_opt CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+  else
+    # 46 possible errors: some getindex (Integer vs Int...)
+    # ArgsAtTimeStep, setPathConstraintsAtTimeStep...
+    @report_opt CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
   end
-  # 4 possible errors
-  # due to the ocp.mayer type problem cf above
-  #@report_opt CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
-
-  # 46 possible errors: some getindex (Integer vs Int...)
-  # ArgsAtTimeStep, setPathConstraintsAtTimeStep...
-  @report_opt CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
 end
 
 #=

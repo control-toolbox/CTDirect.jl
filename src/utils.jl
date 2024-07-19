@@ -15,6 +15,18 @@ function get_variable(xu, docp)
     end
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve a single optimization variable (no dim check)
+"""
+function get_single_variable(xu, docp, i)
+    if docp.has_variable
+        return xu[end-docp.dim_NLP_v+i]
+    else
+        error("Tring to access variable in variable independent problem")
+    end
+end
 
 """
 $(TYPEDSIGNATURES)
@@ -78,8 +90,9 @@ Retrieve initial time for OCP (may be fixed or variable)
 """
 function get_initial_time(xu, docp)
     if docp.has_free_t0
-        v = get_variable(xu, docp)
-        return v[docp.ocp.initial_time]
+        #v = get_variable(xu, docp)
+        #return v[docp.ocp.initial_time]
+        return get_single_variable(xu, docp, Base.to_index(docp.ocp.initial_time))
     else
         return docp.ocp.initial_time
     end
@@ -93,8 +106,9 @@ Retrieve final time for OCP (may be fixed or variable)
 """
 function get_final_time(xu, docp)
     if docp.has_free_tf
-        v = get_variable(xu, docp)
-        return v[docp.ocp.final_time]
+        #v = get_variable(xu, docp)
+        #return v[docp.ocp.final_time]
+        return get_single_variable(xu, docp, Base.to_index(docp.ocp.final_time))
     else
         return docp.ocp.final_time
     end
