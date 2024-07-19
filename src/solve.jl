@@ -32,8 +32,8 @@ function direct_transcription(ocp::OptimalControlModel,
     x0 = DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 
     # set bounds
-    docp.var_l, docp.var_u = variables_bounds(docp)
-    docp.con_l, docp.con_u = constraints_bounds(docp)
+    variables_bounds!(docp)
+    constraints_bounds!(docp)
 
     # call NLP problem constructor
     docp.nlp = ADNLPModel!(x -> DOCP_objective(x, docp), 

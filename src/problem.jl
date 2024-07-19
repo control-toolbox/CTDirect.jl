@@ -146,7 +146,7 @@ mutable struct DOCP
 
         # call constructor with const fields
         docp = new(ocp, control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box, has_free_t0, has_free_tf, has_lagrange, has_mayer, has_variable,
-        has_maximization, dim_x_box, dim_u_box, dim_v_box, dim_path_cons, dim_x_cons, dim_u_cons, dim_v_cons,dim_mixed_cons, dim_boundary_cons, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_OCP_x, dim_NLP_steps, NLP_normalized_time_grid, dim_NLP_variables, dim_NLP_constraints)
+        has_maximization, dim_x_box, dim_u_box, dim_v_box, dim_path_cons, dim_x_cons, dim_u_cons, dim_v_cons,dim_mixed_cons, dim_boundary_cons, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_OCP_x, dim_NLP_steps, NLP_normalized_time_grid, dim_NLP_variables, dim_NLP_constraints,-Inf * ones(dim_NLP_variables), Inf * ones(dim_NLP_variables), zeros(dim_NLP_constraints), zeros(dim_NLP_constraints))
 
         return docp
 
@@ -172,10 +172,10 @@ $(TYPEDSIGNATURES)
 
 Build upper and lower bounds vectors for the DOCP nonlinear constraints.
 """
-function constraints_bounds(docp::DOCP)
+function constraints_bounds!(docp::DOCP)
 
-    lb = zeros(docp.dim_NLP_constraints)
-    ub = zeros(docp.dim_NLP_constraints)
+    lb = docp.con_l
+    ub = docp.con_u
 
     index = 1 # counter for the constraints
     for i in 0:docp.dim_NLP_steps-1
@@ -200,11 +200,11 @@ $(TYPEDSIGNATURES)
 
 Build upper and lower bounds vectors for the DOCP variable box constraints.
 """
-function variables_bounds(docp::DOCP)
+function variables_bounds!(docp::DOCP)
 
     N = docp.dim_NLP_steps
-    l_var = -Inf * ones(docp.dim_NLP_variables)
-    u_var = Inf * ones(docp.dim_NLP_variables)
+    var_l = docp.var_l
+    var_u = docp.var_u
     ocp = docp.ocp
 
     # NB. keep offset for each block since they are optional !
@@ -216,8 +216,8 @@ function variables_bounds(docp::DOCP)
         for i in 0:N
             for j in 1:docp.dim_x_box
                 indice = docp.state_box[2][j]
-                l_var[offset+indice] = docp.state_box[1][j]
-                u_var[offset+indice] = docp.state_box[3][j]
+                var_l[offset+indice] = docp.state_box[1][j]
+                var_u[offset+indice] = docp.state_box[3][j]
             end
             offset = offset + docp.dim_NLP_x
         end
@@ -229,8 +229,8 @@ function variables_bounds(docp::DOCP)
         for i in 0:N
             for j in 1:docp.dim_u_box
                 indice = docp.control_box[2][j]
-                l_var[offset+indice] = docp.control_box[1][j]
-                u_var[offset+indice] = docp.control_box[3][j]
+                var_l[offset+indice] = docp.control_box[1][j]
+                var_u[offset+indice] = docp.control_box[3][j]
             end
             offset = offset + docp.dim_NLP_u
         end
@@ -241,12 +241,12 @@ function variables_bounds(docp::DOCP)
     if docp.dim_v_box > 0
         for j in 1:docp.dim_v_box
             indice = docp.variable_box[2][j]
-            l_var[offset+indice] = docp.variable_box[1][j]
-            u_var[offset+indice] = docp.variable_box[3][j]
+            var_l[offset+indice] = docp.variable_box[1][j]
+            var_u[offset+indice] = docp.variable_box[3][j]
         end
     end
 
-    return l_var, u_var
+    return var_l, var_u
 end
 
 
