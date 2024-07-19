@@ -21,57 +21,52 @@ Contains:
 - a NLP formulation of the DOCP
 - data required to link the two problems
 """
-mutable struct DOCP
-
-    # NB. non mutable may be better, but constructor would be quite involved (currently there is some recursion)
+struct DOCP
 
     ## OCP
-    const ocp::OptimalControlModel
-    const control_constraints
-    const state_constraints
-    const mixed_constraints
-    const boundary_constraints
-    const variable_constraints
-    const control_box
-    const state_box
-    const variable_box
+    ocp::OptimalControlModel
+    control_constraints
+    state_constraints
+    mixed_constraints
+    boundary_constraints
+    variable_constraints
+    control_box
+    state_box
+    variable_box
 
     # faster than calling ocp functions each time ?
-    const has_free_t0::Bool
-    const has_free_tf::Bool
-    const has_lagrange::Bool
-    const has_mayer::Bool
-    const has_variable::Bool
-    const has_maximization::Bool
+    has_free_t0::Bool
+    has_free_tf::Bool
+    has_lagrange::Bool
+    has_mayer::Bool
+    has_variable::Bool
+    has_maximization::Bool
 
-    const dim_x_box::Int
-    const dim_u_box::Int
-    const dim_v_box::Int
-    const dim_path_cons::Int
-    const dim_x_cons::Int
-    const dim_u_cons::Int
-    const dim_v_cons::Int
-    const dim_mixed_cons::Int
-    const dim_boundary_cons::Int
+    dim_x_box::Int
+    dim_u_box::Int
+    dim_v_box::Int
+    dim_path_cons::Int
+    dim_x_cons::Int
+    dim_u_cons::Int
+    dim_v_cons::Int
+    dim_mixed_cons::Int
+    dim_boundary_cons::Int
 
     ## NLP    
-    const dim_NLP_x::Int  # possible lagrange cost
-    const dim_NLP_u::Int
-    const dim_NLP_v::Int
-    const dim_OCP_x::Int  # original OCP state
-    const dim_NLP_steps::Int
-    const NLP_normalized_time_grid::Vector{Float64}
-    const dim_NLP_variables::Int
-    const dim_NLP_constraints::Int
+    dim_NLP_x::Int  # possible lagrange cost
+    dim_NLP_u::Int
+    dim_NLP_v::Int
+    dim_OCP_x::Int  # original OCP state
+    dim_NLP_steps::Int
+    NLP_normalized_time_grid::Vector{Float64}
+    dim_NLP_variables::Int
+    dim_NLP_constraints::Int
 
     # lower and upper bounds for variables and constraints
     var_l::Vector{Float64}
     var_u::Vector{Float64}
     con_l::Vector{Float64}
     con_u::Vector{Float64}
-
-    # NLP model for solver
-    #const nlp
 
     # constructor
     function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid)       
