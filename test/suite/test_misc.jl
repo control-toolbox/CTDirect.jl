@@ -32,7 +32,7 @@ end
     @test sol.iterations == 5
 end
 
-# build solution from NLP (+++ add actual test ?)
+# build solution from NLP (+++ add more tests ?)
 @testset verbose = true showtiming = true ":build_solution_from_nlp" begin
     docp, nlp = direct_transcription(ocp, init=sol0)
     dsol = CTDirect.solve_docp(docp, nlp, print_level=0, tol=1e-12)
