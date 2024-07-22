@@ -204,7 +204,30 @@ function variables_bounds!(docp::DOCP)
 
     # NB. keep offset for each block since they are optional !
     # Also, not practical to reuse the setters for x,u,v due to the non-ordered indices and possibly not full dimension
+    # update: need to reuse them anyway since layout may change...
+    # build ordered bounds vectors for state and control
+    x_lb = -Inf * ones(dim_OCP_x)
+    x_ub = Inf * ones(dim_OCP_x)
+    for j in 1:docp.dim_x_box
+        indice = docp.state_box[2][j]
+        x_lb[indice] = docp.state_box[1][j]
+        x_ub[indice] = docp.state_box[3][j]
+    end
+    u_lb = -Inf * ones(dim_NLP_u)
+    u_ub = Inf * ones(dim_NLP_u)
+    for j in 1:docp.dim_u_box
+        indice = docp.control_box[2][j]
+        u_lb[indice] = docp.control_box[1][j]
+        u_ub[indice] = docp.control_box[3][j]
+    end
 
+    # apply bounds for NLP variables
+    for i in 0:N
+        set_variables_at_time_step!(var_l, x_lb, u_lb, i)
+        set_variables_at_time_step!(var_u, x_ub, u_ub, i)
+    end
+
+    #=
     # state box
     offset = 0
     if docp.dim_x_box > 0
@@ -230,6 +253,7 @@ function variables_bounds!(docp::DOCP)
             offset = offset + docp.dim_NLP_u
         end
     end
+    =#
 
     # variable box
     offset = (N+1) * (docp.dim_NLP_x + docp.dim_NLP_u)
@@ -260,8 +284,10 @@ function DOCP_objective(xu, docp::DOCP)
     # note: non-autonomous mayer case is not supported
     if docp.has_mayer
         v = get_variable(xu, docp)
-        x0 = get_state_at_time_step(xu, docp, 0)
-        xf = get_state_at_time_step(xu, docp, N)
+        #x0 = get_state_at_time_step(xu, docp, 0)
+        #xf = get_state_at_time_step(xu, docp, N)
+        x0,u0 = get_variables_at_time_step(xu, docp, 0)
+        xf,uf = get_variables_at_time_step(xu, docp, N)
         obj = obj + ocp.mayer(x0, xf, v)
     end
     
@@ -353,8 +379,9 @@ struct ArgsAtTimeStep
 
         # variables
         ti = get_time_at_time_step(xu, docp, i)
-        xi = get_state_at_time_step(xu, docp, i)
-        ui = get_control_at_time_step(xu, docp, i)
+        #xi = get_state_at_time_step(xu, docp, i)
+        #ui = get_control_at_time_step(xu, docp, i)
+        xi, ui = get_variables_at_time_step(xu, docp, i)
 
         # dynamics and lagrange cost
         fi = docp.ocp.dynamics(ti, xi, ui, v)

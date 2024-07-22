@@ -31,13 +31,54 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve state variables at given time step from the NLP variables
+Retrieve state and control variables at given time step from the NLP variables
+"""
+# +++ this one would depend on the discretization scheme
+function get_variables_at_time_step(xu, docp, i)
+
+    nx = docp.dim_NLP_x
+    n = docp.dim_OCP_x
+    m = docp.dim_NLP_u
+    offset = (nx + m) * i
+    
+    # retrieve scalar/vector OCP state (w/o lagrange state) 
+    if n == 1
+        xi = xu[offset+1]
+    else
+        xi = xu[offset+1:offset+n]
+    end
+    
+    # retrieve scalar/vector control
+    if m == 1
+        ui = xu[offset+n+1]
+    else
+        ui = xu[offset+n+1:offset+n+m]
+    end
+
+    return xi, ui
+end
+
+# internal NLP version for solution parsing
+function get_NLP_variables_at_time_step(xu, docp, i)
+
+    nx = docp.dim_NLP_x
+    m = docp.dim_NLP_u
+    offset = (nx + m) * i
+    
+    xi = xu[offset+1:offset+nx]
+    ui = xu[offset+nx+1:offset+nx+m]
+
+    return xi, ui
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve scalar/vector state variables at given time step from the NLP variables 
 """
 function get_state_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
-    N = docp.dim_NLP_steps
-    #@assert i <= N "trying to get x(t_i) for i > N"
     if n == 1
         return xu[i*nx + 1]
     else
@@ -52,16 +93,12 @@ Retrieve the additional state variable corresponding to the lagrange (running) c
 """
 function get_lagrange_cost_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
-    N = docp.dim_NLP_steps
-    #@assert i <= N "trying to get lagrange cost at t_i for i > N"
     return xu[(i+1)*nx]
 end
 
-# NLP full state version
+# internal NLP version for solution parsing
 function get_NLP_state_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
-    N = docp.dim_NLP_steps
-    #@assert i <= N "trying to get x(t_i) for i > N"
     return xu[i*nx + 1 : (i+1)*nx]
 end
 
@@ -69,17 +106,18 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve control variables at given time step from the NLP variables
+Retrieve scalar/vector control variables at given time step from the NLP variables
 """
 function get_control_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    #@assert i <= N "trying to get u(t_i) for i > N"
+    offset = (N+1)*nx
+
     if docp.dim_NLP_u == 1
-        return xu[(N+1)*nx + i*m + 1]
+        return xu[offset + i*m + 1]
     else
-        return xu[(N+1)*nx + i*m + 1 : (N+1)*nx + (i+1)*m]
+        return xu[offset + i*m + 1 : offset + (i+1)*m]
     end
 end
 
@@ -133,8 +171,6 @@ $(TYPEDSIGNATURES)
 Get actual (un-normalized) time at give time step
 """
 function get_time_at_time_step(xu, docp, i)
-    N = docp.dim_NLP_steps
-    @assert i <= N "trying to get t_i for i > N"
     return get_unnormalized_time(xu, docp, docp.NLP_normalized_time_grid[i+1])
 end
 
@@ -146,8 +182,6 @@ Set state variables at given time step in the NLP variables (for initial guess)
 function set_state_at_time_step!(xu, x_init, docp, i)
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
-    N = docp.dim_NLP_steps
-    @assert i <= N "trying to set init for x(t_i) with i > N"
     # NB. only set first the actual state variables from the OCP (not the possible additional state for lagrange cost)
     xu[i*nx + 1 : i*nx + n] .= x_init
 end
@@ -162,11 +196,26 @@ function set_control_at_time_step!(xu, u_init, docp, i)
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    @assert i <= N "trying to set init for u(t_i) with i > N"
     offset = (N+1)*nx
     xu[offset + i*m + 1 : offset + i*m + m] .= u_init
 end
 
+
+function set_variables_at_time_step!(xu, x_init, u_init, i)
+    nx = docp.dim_NLP_x
+    n = docp.dim_OCP_x
+    m = docp.dim_NLP_u
+    N = docp.dim_NLP_steps
+    offset = (nx + m) * i
+
+    # NB. only set first the actual state variables from the OCP (not the possible additional state for lagrange cost)
+    if !isnothing(x_init)
+        xu[offset + 1 : offset + n] .= x_init
+    end
+    if !isnothing(u_init)
+        xu[offset + n + 1 : offset + n + m] .= u_init
+    end
+end
 
 """
 $(TYPEDSIGNATURES)
@@ -199,12 +248,15 @@ function DOCP_initial_guess(docp,
     # set state / control variables if provided
     for i in 0:docp.dim_NLP_steps
         ti = get_time_at_time_step(xuv, docp, i)
+        set_variables_at_time_step!(xu, init.state_init(ti), init.control_init(ti), i)
+        #=
         if !isnothing(init.state_init(ti))
             set_state_at_time_step!(xuv, init.state_init(ti), docp, i)
         end
         if !isnothing(init.control_init(ti))
             set_control_at_time_step!(xuv, init.control_init(ti), docp, i)
         end
+        =#
     end
 
     return xuv

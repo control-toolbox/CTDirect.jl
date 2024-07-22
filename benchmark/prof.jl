@@ -9,21 +9,20 @@ using JET
 
 precompile = true
 
-test_time = true
+test_time = false
 #test = :objective
 test = :constraints
 test_code_warntype = false
-test_jet = false
+test_jet = true
 
 # define OCP
 prob = include("../problems/fuller.jl")
 #prob = include("../problems/jackson.jl")
 #prob = include("../problems/goddard.jl")
 ocp = prob[:ocp]
-grid_size = 200
+grid_size = 100
 docp, nlp = direct_transcription(ocp, grid_size=grid_size)
 println("Load problem ", prob[:name])
-
 
 # full solve
 if test_time
@@ -49,7 +48,7 @@ if test_code_warntype
     # NB. Pb with the mayer part: obj is type unstable (Any) because ocp.mayer is Union(Mayer,nothing), even for mayer problems (also, we should not even enter this code part for lagrange problems since has_mayer us defined as const in DOCP oO ...).
     @code_warntype CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
   else
-    # OK ! only index is Any but typing it seems worse...
+    # OK !
     @code_warntype CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
   end
 end
@@ -60,8 +59,8 @@ if test_jet
     # due to the ocp.mayer type problem cf above
     @report_opt CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
   else
-    # 46 possible errors: some getindex (Integer vs Int...)
-    # ArgsAtTimeStep, setPathConstraintsAtTimeStep...
+    # 50 possible errors: some getindex (Integer vs Int...)
+    # all variables x,u,v
     @report_opt CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
   end
 end

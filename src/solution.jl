@@ -16,8 +16,11 @@ function parse_DOCP_solution_primal(docp, solution)
     U = zeros(N+1,docp.dim_NLP_u)
     for i in 1:N+1
         # state and control variables
+        X[i,:], U[i,:] .= get_NLP_variables_at_time_step(solution, docp, i-1)
+        #=
         X[i,:] .= get_NLP_state_at_time_step(solution, docp, i-1)
         U[i,:] .= get_control_at_time_step(solution, docp, i-1)
+        =#
     end
 
     return X, U, v
