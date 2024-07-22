@@ -17,7 +17,7 @@ blas_config = LinearAlgebra.BLAS.lbt_get_config()
 #######################################################
 # set parameters
 tol = 1e-8
-grid_size = 999
+grid_size = 5000
 precompile = true
 @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
 

@@ -12,7 +12,7 @@ precompile = true
 test_time = false
 #test = :objective
 test = :constraints
-test_code_warntype = false
+test_code_warntype = true
 test_jet = true
 
 # define OCP
