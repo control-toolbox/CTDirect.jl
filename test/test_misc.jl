@@ -14,18 +14,6 @@ constraint!(ocp, :final, lb=0, ub=0)
 constraint!(ocp, :control, lb=[0,0], ub=[Inf, Inf])
 dynamics!(ocp, (x, u) -> -x - u[1] + u[2])
 objective!(ocp, :lagrange, (x, u) -> (u[1]+u[2])^2)
-#=
-@def ocp begin
-    t ∈ [ 0, 1], time
-    x ∈ R, state
-    u ∈ R^2, control
-    u(t) ≥ [0,0]
-    x(0) == -1
-    x(1) == 0 
-    ẋ(t) == -x(t) - u₁(t) + u₂(t)
-    int(u₁(t)+u₂(t))^2 → min
-end
-=#
 
 # all-in-one solve call
 println(available_methods())

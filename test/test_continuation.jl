@@ -3,7 +3,7 @@ using Printf
 using Plots
 
 test1 = true
-test2 = true
+test2 = false
 test3 = true
 
 # continuation on fixed final time
@@ -44,32 +44,8 @@ end
 # continuation with parametric definition of the ocp
 if test2
     println("\nDiscrete continuation on parametric ocp")
-    include("../problems/parametric.jl")
-    #= definition of the parametric OCP
-    relu(x) = max(0, x)
-    μ = 10
-    p_relu(x) = log(abs(1 + exp(μ*x)))/μ
-    f(x) = 1-x
-    m(x) = (p_relu∘f)(x)
-    T = 2
-
-    function myocp(ρ)
-        @def ocp begin
-            τ ∈ R, variable
-            s ∈ [ 0, 1 ], time
-            x ∈ R², state
-            u ∈ R², control
-            x₁(0) == 0
-            x₂(0) == 1
-            x₁(1) == 1
-            ẋ(s) == [τ*(u₁(s)+2), (T-τ)*u₂(s)]
-            -1 ≤ u₁(s) ≤ 1
-            -1 ≤ u₂(s) ≤ 1
-            0 ≤ τ ≤ T
-            -(x₂(1)-2)^3 - ∫( ρ * ( τ*m(x₁(s))^2 + (T-τ)*m(x₂(s))^2 ) ) → min
-        end
-        return ocp
-    end=#
+    include("../problems/parametric.jl") #does not call function!
+    error("needs to be redone")
 
     # continuation on rho
     init2 = ()

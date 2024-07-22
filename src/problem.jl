@@ -206,15 +206,15 @@ function variables_bounds!(docp::DOCP)
     # Also, not practical to reuse the setters for x,u,v due to the non-ordered indices and possibly not full dimension
     # update: need to reuse them anyway since layout may change...
     # build ordered bounds vectors for state and control
-    x_lb = -Inf * ones(dim_OCP_x)
-    x_ub = Inf * ones(dim_OCP_x)
+    x_lb = -Inf * ones(docp.dim_OCP_x)
+    x_ub = Inf * ones(docp.dim_OCP_x)
     for j in 1:docp.dim_x_box
         indice = docp.state_box[2][j]
         x_lb[indice] = docp.state_box[1][j]
         x_ub[indice] = docp.state_box[3][j]
     end
-    u_lb = -Inf * ones(dim_NLP_u)
-    u_ub = Inf * ones(dim_NLP_u)
+    u_lb = -Inf * ones(docp.dim_NLP_u)
+    u_ub = Inf * ones(docp.dim_NLP_u)
     for j in 1:docp.dim_u_box
         indice = docp.control_box[2][j]
         u_lb[indice] = docp.control_box[1][j]
@@ -223,8 +223,8 @@ function variables_bounds!(docp::DOCP)
 
     # apply bounds for NLP variables
     for i in 0:N
-        set_variables_at_time_step!(var_l, x_lb, u_lb, i)
-        set_variables_at_time_step!(var_u, x_ub, u_ub, i)
+        set_variables_at_time_step!(var_l, x_lb, u_lb, docp, i)
+        set_variables_at_time_step!(var_u, x_ub, u_ub, docp, i)
     end
 
     #=
@@ -286,14 +286,17 @@ function DOCP_objective(xu, docp::DOCP)
         v = get_variable(xu, docp)
         #x0 = get_state_at_time_step(xu, docp, 0)
         #xf = get_state_at_time_step(xu, docp, N)
-        x0,u0 = get_variables_at_time_step(xu, docp, 0)
-        xf,uf = get_variables_at_time_step(xu, docp, N)
+        x0,u0,xl0 = get_variables_at_time_step(xu, docp, 0)
+        xf,uf,xlf = get_variables_at_time_step(xu, docp, N)
         obj = obj + ocp.mayer(x0, xf, v)
     end
     
     # lagrange cost
     if docp.has_lagrange
-        obj = obj + xu[(N+1)*docp.dim_NLP_x]
+        #obj = obj + xu[(N+1)*docp.dim_NLP_x] obsolete
+        #obj = obj + get_lagrange_cost_at_time_step(xu, docp, N)
+        xf,uf,xlf = get_variables_at_time_step(xu, docp, N)
+        obj = obj + xlf
     end
 
     # maximization problem
@@ -381,13 +384,13 @@ struct ArgsAtTimeStep
         ti = get_time_at_time_step(xu, docp, i)
         #xi = get_state_at_time_step(xu, docp, i)
         #ui = get_control_at_time_step(xu, docp, i)
-        xi, ui = get_variables_at_time_step(xu, docp, i)
+        xi, ui, xli = get_variables_at_time_step(xu, docp, i)
 
         # dynamics and lagrange cost
         fi = docp.ocp.dynamics(ti, xi, ui, v)
 
         if docp.has_lagrange
-            xli = get_lagrange_cost_at_time_step(xu, docp, i)
+            #xli = get_lagrange_cost_at_time_step(xu, docp, i)
             li = docp.ocp.lagrange(ti, xi, ui, v)
             args = new(ti, xi, ui, fi, xli, li)
         else

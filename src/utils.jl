@@ -5,10 +5,17 @@ Retrieve optimization variables from the NLP variables
 """
 function get_variable(xu, docp)
     if docp.has_variable
+        nx = docp.dim_NLP_x
+        m = docp.dim_NLP_u
+        N = docp.dim_NLP_steps
+        offset = (nx+m) * (N+1)
+
         if docp.dim_NLP_v == 1
-            return xu[end]
+            return xu[offset + 1]
+            #return xu[end]
         else
-            return xu[end-docp.dim_NLP_v+1:end]
+            #return xu[end-docp.dim_NLP_v+1:end]
+            return xu[offset + 1: offset + docp.dim_NLP_v]
         end
     else
         return Float64[]
@@ -22,7 +29,12 @@ Retrieve a single optimization variable (no dim check)
 """
 function get_single_variable(xu, docp, i::Int)
     if docp.has_variable
-        return xu[end-docp.dim_NLP_v+i]
+        #return xu[end-docp.dim_NLP_v+i]
+        nx = docp.dim_NLP_x
+        m = docp.dim_NLP_u
+        N = docp.dim_NLP_steps
+        offset = (nx+m) * (N+1)
+        return xu[offset + i]
     else
         error("Tring to access variable in variable independent problem")
     end
@@ -47,15 +59,22 @@ function get_variables_at_time_step(xu, docp, i)
     else
         xi = xu[offset+1:offset+n]
     end
-    
-    # retrieve scalar/vector control
-    if m == 1
-        ui = xu[offset+n+1]
+    # NB. meaningful ONLY if has_lagrange is true !
+    # add check without performance cost ?
+    if docp.has_lagrange
+        xli = xu[offset+nx]
     else
-        ui = xu[offset+n+1:offset+n+m]
+        xli = 0.
     end
 
-    return xi, ui
+    # retrieve scalar/vector control
+    if m == 1
+        ui = xu[offset+nx+1]
+    else
+        ui = xu[offset+nx+1:offset+nx+m]
+    end
+
+    return xi, ui, xli
 end
 
 # internal NLP version for solution parsing
@@ -71,6 +90,8 @@ function get_NLP_variables_at_time_step(xu, docp, i)
     return xi, ui
 end
 
+
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -120,6 +141,7 @@ function get_control_at_time_step(xu, docp, i)
         return xu[offset + i*m + 1 : offset + (i+1)*m]
     end
 end
+=#
 
 """
 $(TYPEDSIGNATURES)
@@ -174,6 +196,8 @@ function get_time_at_time_step(xu, docp, i)
     return get_unnormalized_time(xu, docp, docp.NLP_normalized_time_grid[i+1])
 end
 
+
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -199,9 +223,9 @@ function set_control_at_time_step!(xu, u_init, docp, i)
     offset = (N+1)*nx
     xu[offset + i*m + 1 : offset + i*m + m] .= u_init
 end
+=#
 
-
-function set_variables_at_time_step!(xu, x_init, u_init, i)
+function set_variables_at_time_step!(xu, x_init, u_init, docp, i)
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
@@ -213,7 +237,7 @@ function set_variables_at_time_step!(xu, x_init, u_init, i)
         xu[offset + 1 : offset + n] .= x_init
     end
     if !isnothing(u_init)
-        xu[offset + n + 1 : offset + n + m] .= u_init
+        xu[offset + nx + 1 : offset + nx + m] .= u_init
     end
 end
 
@@ -237,18 +261,18 @@ function DOCP_initial_guess(docp,
 
     # default initialization
     # note: internal variables (lagrange cost, k_i for RK schemes) will keep these default values 
-    xuv = 0.1 * ones(docp.dim_NLP_variables)
+    NLP_X = 0.1 * ones(docp.dim_NLP_variables)
 
     # set variables if provided
     # (needed first in case of free times !)
     if !isnothing(init.variable_init)
-        set_variable!(xuv, init.variable_init, docp)
+        set_variable!(NLP_X, init.variable_init, docp)
     end
 
     # set state / control variables if provided
     for i in 0:docp.dim_NLP_steps
-        ti = get_time_at_time_step(xuv, docp, i)
-        set_variables_at_time_step!(xu, init.state_init(ti), init.control_init(ti), i)
+        ti = get_time_at_time_step(NLP_X, docp, i)
+        set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i)
         #=
         if !isnothing(init.state_init(ti))
             set_state_at_time_step!(xuv, init.state_init(ti), docp, i)
@@ -259,7 +283,7 @@ function DOCP_initial_guess(docp,
         =#
     end
 
-    return xuv
+    return NLP_X
 end
 
 
