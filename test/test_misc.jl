@@ -14,18 +14,6 @@ constraint!(ocp, :final, lb=0, ub=0)
 constraint!(ocp, :control, lb=[0,0], ub=[Inf, Inf])
 dynamics!(ocp, (x, u) -> -x - u[1] + u[2])
 objective!(ocp, :lagrange, (x, u) -> (u[1]+u[2])^2)
-#=
-@def ocp begin
-    t ∈ [ 0, 1], time
-    x ∈ R, state
-    u ∈ R^2, control
-    u(t) ≥ [0,0]
-    x(0) == -1
-    x(1) == 0 
-    ẋ(t) == -x(t) - u₁(t) + u₂(t)
-    int(u₁(t)+u₂(t))^2 → min
-end
-=#
 
 # all-in-one solve call
 println(available_methods())
@@ -37,18 +25,18 @@ println("Target 0.313, found ", sol.objective, " at ", sol.iterations, " iterati
 # split calls
 println("Test simple integrator: split calls")
 println("Direct transcription with default init")
-docp = direct_transcription(ocp)
-dsol = CTDirect.solve_docp(docp, print_level=0, tol=1e-12)
+docp, nlp = direct_transcription(ocp)
+dsol = CTDirect.solve_docp(docp, nlp, print_level=0, tol=1e-12)
 sol1 = build_solution(docp, dsol)
 println("Target 0.313, found ", sol1.objective, " at ", sol1.iterations, " iterations")
 
 # test NLP getter
-nlp = get_nlp(docp)
+#nlp = get_nlp(docp)
 
 # warm start in directTranscription
 println("\nDirect transcription with warm start")
-docp2 = direct_transcription(ocp, init=sol)
-dsol2 = CTDirect.solve_docp(docp2, print_level=0, tol=1e-12)
+docp2, nlp2 = direct_transcription(ocp, init=sol)
+dsol2 = CTDirect.solve_docp(docp2, nlp2, print_level=0, tol=1e-12)
 
 # build_solution from NLP solution (primal only)
 println("Rebuild OCP solution from NLP solution (primal only)")

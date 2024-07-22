@@ -16,8 +16,13 @@ function parse_DOCP_solution_primal(docp, solution)
     U = zeros(N+1,docp.dim_NLP_u)
     for i in 1:N+1
         # state and control variables
-        X[i,:] = get_NLP_state_at_time_step(solution, docp, i-1)
-        U[i,:] = get_control_at_time_step(solution, docp, i-1)
+        xi, ui = get_NLP_variables_at_time_step(solution, docp, i-1)
+        X[i,:] .= xi
+        U[i,:] .= ui
+        #=
+        X[i,:] .= get_NLP_state_at_time_step(solution, docp, i-1)
+        U[i,:] .= get_control_at_time_step(solution, docp, i-1)
+        =#
     end
 
     return X, U, v
@@ -80,6 +85,10 @@ $(TYPEDSIGNATURES)
 Build OCP functional solution from DOCP discrete solution (given as a GenericExecutionStats)
 """
 function build_solution(docp, docp_solution_ipopt)
+
+    if isnothing(docp_solution_ipopt)
+        return nothing
+    end
 
     # could pass some status info too (get_status ?)
     solution = docp_solution_ipopt.solution

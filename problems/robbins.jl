@@ -19,4 +19,4 @@ end
 #sol = solve(robbins)
 #plot(sol)
 
-return ((ocp=robbins, obj=20.2041, name="robbins"))
+return ((ocp=robbins, obj=20., name="robbins"))
