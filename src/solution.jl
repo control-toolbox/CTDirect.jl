@@ -42,6 +42,8 @@ function parse_DOCP_solution_dual(docp, multipliers)
             # state equation multiplier for costate
             P[i,:] = multipliers[index:index+docp.dim_NLP_x-1]
             index = index + docp.dim_NLP_x
+            # skip path constraints multipliers
+            index = index + dim_path_constraints(docp.ocp)
         end
     end
 
