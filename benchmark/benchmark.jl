@@ -17,23 +17,27 @@ blas_config = LinearAlgebra.BLAS.lbt_get_config()
 #######################################################
 # set parameters
 tol = 1e-8
-grid_size = 5000
+grid_size = 500
 precompile = true
 @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
 
 #######################################################
-# load examples
+# load examples library
+problem_path = pwd()*"/problems"
+for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
+    include(problem_file)
+end
 # +++ could add :init field in the problems !
+# +++ NB. we can also define more then 1 function in each problem .jl file
+
+# load problems for benchmark
 print("Loading problems: ")
 names_list = ["beam", "bioreactor_1day_periodic", "fuller", "goddard", "insurance", "jackson", "swimmer", "vanderpol"]
 problem_list = []
-problem_path = pwd()*"/problems"
-for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
-    ocp_data = include(problem_file)
-    if ocp_data.name in names_list
-        @printf("%s ", ocp_data.name)
-        push!(problem_list,ocp_data)
-    end
+for problem_name in names_list
+    ocp_data = getfield(Main, Symbol(problem_name))()
+    @printf("%s ", ocp_data.name)
+    push!(problem_list,ocp_data)
 end
 println("")
 
@@ -55,7 +59,7 @@ end
 t_list = []
 println("Benchmark step")
 for problem in problem_list
-    t = @elapsed local sol = solve(problem[:ocp], display=false, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
+    t = @elapsed local sol = solve(problem[:ocp], init=problem[:init], display=false, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
     if !isapprox(sol.objective, problem[:obj], rtol=5e-2)
         error("Objective mismatch for ", problem[:name], ": ", sol.objective, " instead of ", problem[:obj])
     else
