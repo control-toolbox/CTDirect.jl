@@ -27,8 +27,6 @@ problem_path = pwd()*"/problems"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
-# +++ could add :init field in the problems !
-# +++ NB. we can also define more then 1 function in each problem .jl file
 
 # load problems for benchmark
 print("Loading problems: ")
@@ -60,7 +58,7 @@ t_list = []
 println("Benchmark step")
 for problem in problem_list
     t = @elapsed local sol = solve(problem[:ocp], init=problem[:init], display=false, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
-    if !isapprox(sol.objective, problem[:obj], rtol=5e-2)
+    if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol=5e-2)
         error("Objective mismatch for ", problem[:name], ": ", sol.objective, " instead of ", problem[:obj])
     else
         @printf("%-30s completed in %6.2f s after %4d iterations\n",problem[:name],t,sol.iterations)

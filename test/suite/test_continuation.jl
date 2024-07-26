@@ -77,18 +77,16 @@ if test2
 end
 
 
-# global variable used in ocp
+# parametric ocp definition
 if test3
-    Tmax = 3.5
-    sol0 = solve(goddard, print_level=0)
+    sol0 = solve(goddard().ocp, print_level=0)
 
     @testset verbose = true showtiming = true ":global_variable :warm_start" begin
         sol = sol0
         Tmax_list = []
         obj_list = []
-        for Tmax_local=3.5:-0.5:1
-            global Tmax = Tmax_local 
-            sol = solve(goddard, print_level=0, init=sol)
+        for Tmax=3.5:-0.5:1 
+            sol = solve(goddard(Tmax=Tmax).ocp, print_level=0, init=sol)
             push!(Tmax_list, Tmax)
             push!(obj_list, sol.objective)
         end
