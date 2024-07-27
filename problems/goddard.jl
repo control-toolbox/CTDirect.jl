@@ -13,7 +13,7 @@ function F1(x, Tmax, b)
     return [ 0, Tmax/m, -b*Tmax ]
 end
 
-function goddard(;vmax=0.1, Tmax=3.5, functional_constraints=false)
+function goddard(;vmax=0.1, Tmax=3.5, functional_constraints=false, field_dynamics=true)
     # constants
     Cd = 310
     beta = 500
@@ -43,12 +43,20 @@ function goddard(;vmax=0.1, Tmax=3.5, functional_constraints=false)
     end
     constraint!(goddard, :variable, lb=0.01, ub=Inf)
     objective!(goddard, :mayer,  (x0, xf, v) -> xf[1], :max)
-    dynamics!(goddard, (x, u, v) -> F0(x, Cd, beta) + u*F1(x, Tmax, b) )
+    if field_dynamics
+        dynamics!(goddard, (x, u, v) -> F0(x, Cd, beta) + u*F1(x, Tmax, b) )
+    else
+        dynamics!(goddard, (x, u, v) -> [x[2], (-Cd*x[2]^2*exp(-beta*(x[1]-1))+u*Tmax)/x[3] - 1/x[1]^2, -b*Tmax*u])
+    end
 
     return ((ocp=goddard, obj=1.01257, name="goddard", init=(state=[1.01,0.05,0.8],)))
 end
 
-# abstratc definition
+# compare solve at 10000 steps
+# field dynamics: 107.485758 seconds (108.96 M allocations: 104.915 GiB, 2.49% gc time)
+# explicit dynamics: 103.772958 seconds (94.76 M allocations: 103.479 GiB, 2.91% gc time)
+
+# abstract definition
 function goddard_a(;vmax=0.1, Tmax=3.5)
     # constants
     Cd = 310
