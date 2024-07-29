@@ -43,4 +43,6 @@ export import_ocp_solution
 export DOCP
 export OCPDiscreteSolution
 
+export solve_docp
+
 end

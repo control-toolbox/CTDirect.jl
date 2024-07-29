@@ -60,6 +60,8 @@ function CTDirect.solve_docp(docp::DOCP, nlp;
     return docp_solution
 end
 
+#export solve_docp
+
 end
 
 
