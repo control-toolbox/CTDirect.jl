@@ -1,15 +1,5 @@
-#=
-NLP variables layout: [X0, X1 .. XN, U0, U1 .. UN, V]
-
-additional state variable x_{n+1}(t) for the objective (Lagrange to Mayer formulation)
-    [x_1(t_0), ... , x_{n+1}(t_0),
-    ... , 
-    x_{1}(t_N), ... , x_{n+1}(t_N),
-    u_1(t_0), ... , u_m(t_0), 
-    ... , 
-    u_m(t_N), ..., u_m(t_N),
-    v]
-=#
+# Internal layout for NLP variables: 
+# [X0,U0, X1,U1, .., XN,UN,V]
 
 """
 $(TYPEDSIGNATURES)
