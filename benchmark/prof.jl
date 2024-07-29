@@ -3,8 +3,8 @@ include("../test/deps.jl")
 
 #using BenchmarkTools
 #using Traceur
-#using Profile
-#using PProf
+using Profile
+using PProf
 using JET
 
 precompile = true
@@ -12,13 +12,16 @@ precompile = true
 test_time = false
 #test = :objective
 test = :constraints
-test_code_warntype = true
-test_jet = true
+test_code_warntype = false
+test_jet = false
+test_pprof = false
+test_pprof_allocs = false
 
 # define OCP
-prob = include("../problems/fuller.jl")
+include("../problems/fuller.jl")
 #prob = include("../problems/jackson.jl")
 #prob = include("../problems/goddard.jl")
+prob = fuller()
 ocp = prob[:ocp]
 grid_size = 100
 docp, nlp = direct_transcription(ocp, grid_size=grid_size)
@@ -63,6 +66,17 @@ if test_jet
     # all variables x,u,v
     @report_opt CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
   end
+end
+
+if test_pprof
+  Profile.clear()
+  @profile CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+  pprof()
+end
+if test_pprof_allocs
+  Profile.Allocs.clear()
+  Profile.Allocs.@profile CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+  PProf.Allocs.pprof()
 end
 
 #=

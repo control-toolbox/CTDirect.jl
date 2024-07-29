@@ -2,7 +2,6 @@ module CTSolveExt
 
 using CTDirect
 using CTBase
-#using CommonSolve
 using DocStringExtensions
 
 using NLPModelsIpopt

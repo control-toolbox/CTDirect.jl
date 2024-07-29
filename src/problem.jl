@@ -202,9 +202,6 @@ function variables_bounds!(docp::DOCP)
     var_u = docp.var_u
     ocp = docp.ocp
 
-    # NB. keep offset for each block since they are optional !
-    # Also, not practical to reuse the setters for x,u,v due to the non-ordered indices and possibly not full dimension
-    # update: need to reuse them anyway since layout may change...
     # build ordered bounds vectors for state and control
     x_lb = -Inf * ones(docp.dim_OCP_x)
     x_ub = Inf * ones(docp.dim_OCP_x)
@@ -226,34 +223,6 @@ function variables_bounds!(docp::DOCP)
         set_variables_at_time_step!(var_l, x_lb, u_lb, docp, i)
         set_variables_at_time_step!(var_u, x_ub, u_ub, docp, i)
     end
-
-    #=
-    # state box
-    offset = 0
-    if docp.dim_x_box > 0
-        for i in 0:N
-            for j in 1:docp.dim_x_box
-                indice = docp.state_box[2][j]
-                var_l[offset+indice] = docp.state_box[1][j]
-                var_u[offset+indice] = docp.state_box[3][j]
-            end
-            offset = offset + docp.dim_NLP_x
-        end
-    end
-
-    # control box
-    offset = (N+1) * docp.dim_NLP_x
-    if docp.dim_u_box > 0
-        for i in 0:N
-            for j in 1:docp.dim_u_box
-                indice = docp.control_box[2][j]
-                var_l[offset+indice] = docp.control_box[1][j]
-                var_u[offset+indice] = docp.control_box[3][j]
-            end
-            offset = offset + docp.dim_NLP_u
-        end
-    end
-    =#
 
     # variable box
     offset = (N+1) * (docp.dim_NLP_x + docp.dim_NLP_u)
@@ -284,18 +253,14 @@ function DOCP_objective(xu, docp::DOCP)
     # note: non-autonomous mayer case is not supported
     if docp.has_mayer
         v = get_variable(xu, docp)
-        #x0 = get_state_at_time_step(xu, docp, 0)
-        #xf = get_state_at_time_step(xu, docp, N)
-        x0,u0,xl0 = get_variables_at_time_step(xu, docp, 0)
-        xf,uf,xlf = get_variables_at_time_step(xu, docp, N)
+        x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0)
+        xf, uf, xlf = get_variables_at_time_step(xu, docp, N)
         obj = obj + ocp.mayer(x0, xf, v)
     end
     
     # lagrange cost
     if docp.has_lagrange
-        #obj = obj + xu[(N+1)*docp.dim_NLP_x] obsolete
-        #obj = obj + get_lagrange_cost_at_time_step(xu, docp, N)
-        xf,uf,xlf = get_variables_at_time_step(xu, docp, N)
+        xf, uf, xlf = get_variables_at_time_step(xu, docp, N)
         obj = obj + xlf
     end
 
@@ -328,6 +293,12 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # could use a single v, however v is set only in Args constructor, not update, so not much is wasted
     v = get_variable(xu, docp)
 
+    # +++ try to compute vector of dynamics for cleaner args update in trapeze method, then give jac structure
+    #dynamics_v = zeros(docp.dim_OCP_x * docp.dim_NLP_steps + 1)
+
+    # +++ compute time grid with only one call to t0 tf
+    # edit utils function to pass t0 and tf 
+
     # main loop on time steps
     args_i = ArgsAtTimeStep(xu, docp, 0, v)
     args_ip1 = ArgsAtTimeStep(xu, docp, 1, v)
@@ -337,12 +308,15 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 
         # state equation
         index = setStateEquation!(docp, c, index, (args_i, args_ip1))
+
         # path constraints 
         index = setPathConstraints!(docp, c, index, args_i, v)
-
+        
         # smart update for next iteration
         if i < docp.dim_NLP_steps-1
             args_i = args_ip1
+            #+++ probably new allocs here, but maybe this is required for AD to work properly ? using the inplace update may require AD retaping ?
+            #ArgsAtTimeStep!(args_ip1, xu, docp, i+2, v) DV...
             args_ip1 = ArgsAtTimeStep(xu, docp, i+2, v)
         end
     end
@@ -369,7 +343,7 @@ $(TYPEDSIGNATURES)
 
 Useful values at a time step: time, state, control, dynamics...
 """
-struct ArgsAtTimeStep
+mutable struct ArgsAtTimeStep
 
     time
     state
@@ -382,15 +356,12 @@ struct ArgsAtTimeStep
 
         # variables
         ti = get_time_at_time_step(xu, docp, i)
-        #xi = get_state_at_time_step(xu, docp, i)
-        #ui = get_control_at_time_step(xu, docp, i)
         xi, ui, xli = get_variables_at_time_step(xu, docp, i)
 
         # dynamics and lagrange cost
         fi = docp.ocp.dynamics(ti, xi, ui, v)
 
         if docp.has_lagrange
-            #xli = get_lagrange_cost_at_time_step(xu, docp, i)
             li = docp.ocp.lagrange(ti, xi, ui, v)
             args = new(ti, xi, ui, fi, xli, li)
         else
@@ -402,6 +373,18 @@ struct ArgsAtTimeStep
 
 end
 
+#= diverges... maybe this would require AD retaping ?
+function ArgsAtTimeStep!(args, xu, docp, i, v)
+
+    args.time = get_time_at_time_step(xu, docp, i)
+    args.state, args.control, args.lagrange_state = get_variables_at_time_step(xu, docp, i)
+    args.dynamics = docp.ocp.dynamics(args.time, args.state, args.control, v)
+    if docp.has_lagrange
+        args.lagrange_cost = docp.ocp.lagrange(args.time, args.state, args.control, v)
+    end
+    return args
+end
+=#
 
 """
 $(TYPEDSIGNATURES)

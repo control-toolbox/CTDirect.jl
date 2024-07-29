@@ -12,9 +12,7 @@ function get_variable(xu, docp)
 
         if docp.dim_NLP_v == 1
             return xu[offset + 1]
-            #return xu[end]
         else
-            #return xu[end-docp.dim_NLP_v+1:end]
             return xu[offset + 1: offset + docp.dim_NLP_v]
         end
     else
@@ -57,6 +55,7 @@ function get_variables_at_time_step(xu, docp, i)
     if n == 1
         xi = xu[offset+1]
     else
+        # +++ try view ?
         xi = xu[offset+1:offset+n]
     end
     # NB. meaningful ONLY if has_lagrange is true !

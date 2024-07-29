@@ -6,7 +6,7 @@ import LinearAlgebra
 #######################################################
 # set environment
 # linear solver: default mumps; spral, ma27, ma57, ma77, ma86, ma97
-linear_solver = "mumps"
+linear_solver = "ma57"
 @printf("Profile: Linear solver: %s\n", linear_solver)
 # blas backend
 using MKL # Replace OpenBLAS with Intel MKL
@@ -17,7 +17,7 @@ blas_config = LinearAlgebra.BLAS.lbt_get_config()
 #######################################################
 # set parameters
 tol = 1e-8
-grid_size = 500
+grid_size = 300
 precompile = true
 @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
 
@@ -57,7 +57,7 @@ end
 t_list = []
 println("Benchmark step")
 for problem in problem_list
-    t = @elapsed local sol = solve(problem[:ocp], init=problem[:init], display=false, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
+    t = @elapsed local sol = solve(problem[:ocp], init=problem[:init], display=true, print_level=1, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
     if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol=5e-2)
         error("Objective mismatch for ", problem[:name], ": ", sol.objective, " instead of ", problem[:obj])
     else
