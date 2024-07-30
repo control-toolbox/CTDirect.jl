@@ -1,7 +1,8 @@
 """
 $(TYPEDSIGNATURES)
 
-Retrieve optimization variables from the NLP variables
+Retrieve optimization variables from the NLP variables.
+Internal layout: [X0,U0, X1,U1, .., XN,UN,V]
 """
 function get_variable(xu, docp)
     if docp.has_variable
@@ -25,7 +26,8 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve a single optimization variable (no dim check)
+Retrieve a single optimization variable (no dim check).
+Internal layout: [X0,U0, X1,U1, .., XN,UN,V]
 """
 function get_single_variable(xu, docp, i::Int)
     if docp.has_variable
@@ -43,7 +45,8 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve state and control variables at given time step from the NLP variables
+Retrieve state and control variables at given time step from the NLP variables. 
+Internal layout: [X0,U0, X1,U1, .., XN,UN,V]
 """
 # +++ this one would depend on the discretization scheme
 function get_variables_at_time_step(xu, docp, i)
