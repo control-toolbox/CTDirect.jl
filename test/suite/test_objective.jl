@@ -66,18 +66,45 @@ end
     t ∈ [0, tf], time
     x ∈ R, state
     u ∈ R, control
-    0.1 ≤ tf ≤ Inf
     ẋ(t) == tf * u(t)
     x(0) == 0
     x(tf) == 1
     tf + 0.5∫(u(t)^2) → min
 end
-
-@testset verbose = true showtiming = true ":bolza :tf_in_dynamics" begin
-    sol = solve(ocp, print_level=0, grid_size=200)
-    #@test sol.objective ≈ 7.48 rtol=1e-2
-    #@test sol.variable[1] ≈ 0.84 rtol=1e-2
-    println("obj ", sol.objective, "tf ", sol.variable[1])
+@testset verbose = true showtiming = true ":bolza :tf_in_dyn_and_cost" begin
+    sol = solve(ocp, print_level=0)
+    @test sol.objective ≈ 1.476 rtol=1e-2
+    @test sol.variable[1] ≈ 1.107 rtol=1e-2
 end
 
+#=
+@def ocp begin
+    v = (t0, tf) ∈ R^2, variable
+    t ∈ [t0, tf], time
+    x ∈ R, state
+    u ∈ R, control
+    ẋ(t) == tf * u(t) + t0
+    x(t0) == 0
+    x(tf) == 1
+    0 ≤ t0 ≤ 10
+    0.01 ≤ tf - t0 ≤ 10
+    (t0^2 + tf) + 0.5∫(u(t)^2) → min
+end
+#@testset verbose = true showtiming = true ":bolza :t0_tf_in_dyn_and_cost" begin
+    sol = solve(ocp, print_level=5)
+#    @test sol.variable[1] ≈ 1.107 rtol=1e-2
+#end
+=#
 
+#=
+@def ocp2 begin
+    s ∈ [0, 1], time
+    y ∈ R^2, state
+    u ∈ R, control
+    ẏ(s) == [u(s), 0]
+    y[1](0) == 0
+    y[1](1) == 0
+    ∫(u(s)^2) → min
+end
+sol = solve(ocp2)
+=#
