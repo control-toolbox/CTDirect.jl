@@ -39,7 +39,7 @@ function CTDirect.solve_docp(solver::MadNLPSolver, docp::DOCP;
     #{MadNLP.UmfpackSolver,MadNLP.LDLSolver,MadNLP.CHOLMODSolver, MadNLP.MumpsSolver, MadNLP.PardisoSolver, MadNLP.PardisoMKLSolver, MadNLP.Ma27Solver, MadNLP.Ma57Solver, MadNLP.Ma77Solver, MadNLP.Ma86Solver, MadNLP.Ma97Solver, MadNLP.LapackCPUSolver, MadNLPGPU.LapackGPUSolver,MadNLPGPU.RFSolver,MadNLPGPU.GLUSolver,MadNLPGPU.CuCholeskySolver,MadNLPGPU.CUDSSSolver}
 
     # solve discretized problem with NLP solver
-    +++use mumps
+    #+++use mumps
     docp_solution = solve!(solver, 
     tol=tol, max_iter=max_iter; kwargs...)
 
