@@ -4,7 +4,6 @@ using CTBase
 using DocStringExtensions
 using ADNLPModels               # docp model with AD
 using LinearAlgebra             # norm
-using CommonSolve: solve
 
 # Other declarations
 const nlp_constraints! = CTBase.nlp_constraints!

@@ -19,7 +19,6 @@ end
     @test sol1.objective ≈ 2.0 rtol=1e-2
 end
 
-include("../problems/goddard.jl")
 @testset verbose = true showtiming = true ":goddard :max_rf :abstract :constr" begin
     ocp3 = goddard_a().ocp
     sol3 = solve(ocp3, print_level=0, tol=1e-12)    

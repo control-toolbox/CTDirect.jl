@@ -73,7 +73,7 @@ end
 end
 
 @testset verbose = true showtiming = true ":bolza :tf_in_dynamics" begin
-    sol = solve(ocp, print_level=5)
+    sol = solve(ocp, print_level=0)
     #@test sol.objective ≈ 7.48 rtol=1e-2
     #@test sol.variable[1] ≈ 0.84 rtol=1e-2
     println("obj ", sol.objective, "tf ", sol.variable[1])

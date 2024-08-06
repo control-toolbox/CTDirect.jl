@@ -20,18 +20,16 @@ function solve(ocp::OptimalControlModel, description::Symbol...;
     kwargs...)
 
     method = getFullDescription(description, available_methods())
-    println(method)
+    #println(method)
 
     # build discretized OCP
     docp, nlp = direct_transcription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
 
     # solve DOCP (NB. init is already embedded in docp)
-    # +++ here use a solver type for ipopt / madnlp etc ?
     if :ipopt ∈ method
-        println("using ipopt")
         solver = IpoptSolver(nlp)
     else
-        error("ipopt not in method")
+        error("no known solver in method", method)
     end
  
     docp_solution = CTDirect.solve_docp(solver, docp, nlp, 

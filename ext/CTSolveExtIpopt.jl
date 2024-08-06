@@ -1,8 +1,7 @@
-module CTSolveExt
+module CTSolveExtIpopt
 
 using CTDirect
 using CTBase
-#using CommonSolve
 using DocStringExtensions
 
 using NLPModelsIpopt

@@ -1,6 +1,5 @@
 [deps]
 CTBase = "54762871-cc72-4466-b8e8-f6c8b58076cd"
-CommonSolve = "38540f10-b2f7-11e9-35d8-d573e4eb0ff2"
 HSL = "34c5aeac-e683-54a6-a0e9-6e0fdc586c50"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
