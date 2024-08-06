@@ -33,7 +33,7 @@ function solve(ocp::OptimalControlModel, description::Symbol...;
     print_level = display ?  print_level : 0
 
     # solve DOCP
-    # +++ using solver-specific structs will fail if package is not loaded...
+    # +++ using solver-specific structs will fail if package is not loaded... use dummy structs and build actual struct in solve_docp
     # +++ here set some specific default arguments, instead of above in solve() ?
     if :ipopt ∈ method
         solver = IpoptSolver(nlp)

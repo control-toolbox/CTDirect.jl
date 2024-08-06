@@ -7,7 +7,7 @@ import LinearAlgebra
 # set environment
 
 # choose NLP solver
-nlp_solver = :madnlp
+nlp_solver = :ipopt
 
 # linear solver: default mumps; spral, ma27, ma57, ma77, ma86, ma97
 linear_solver = "mumps"
@@ -49,19 +49,19 @@ println("")
 # precompile if required
 if precompile
     t_precomp = 0.
-    print("Precompilation step: ")
+    print("Precompilation: ")
     for problem in problem_list
         @printf("%s ",problem[:name])
         t = @elapsed solve(problem[:ocp], nlp_solver, linear_solver=linear_solver, max_iter=0, display=false)
         global t_precomp += t
     end
-    @printf("\nPrecompilation total time %6.2f\n",t_precomp)
+    @printf("\nPrecompilation total time %6.2f\n\n",t_precomp)
 end
 
 #######################################################
 # solve examples with timer and objective check
 t_list = []
-println("Benchmark step")
+println("Benchmark:")
 for problem in problem_list
     t = @elapsed local sol = solve(problem[:ocp], nlp_solver, init=problem[:init], display=false, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
     if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol=5e-2)
