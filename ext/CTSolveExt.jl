@@ -13,7 +13,7 @@ $(TYPEDSIGNATURES)
 
 Solve a discretized optimal control problem DOCP
 """
-function CTDirect.solve_docp(docp::DOCP, nlp;
+function CTDirect.solve_docp(solver::IpoptSolver, docp::DOCP, nlp;
     init=nothing,
     display::Bool=CTDirect.__display(),
     print_level::Integer=CTDirect.__print_level_ipopt(),
@@ -39,21 +39,19 @@ function CTDirect.solve_docp(docp::DOCP, nlp;
         end
     end
 
-    #=+++ NB use this ? cf commonsolve
-    For advanced usage, first define a IpoptSolver to preallocate the memory used in the algorithm, and then call solve!: solver = IpoptSolver(nlp) solve!(solver, nlp; kwargs...) solve!(solver, nlp, stats; kwargs...)=#
-
-    # solve DOCP with NLP solver
+    # solve discretized problem with NLP solver
     print_level = display ?  print_level : 0
-    #nlp = get_nlp(docp)
-    if isnothing(init)
-        # use initial guess embedded in the DOCP
-        docp_solution = ipopt(nlp, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)
-    else
-        # use given initial guess
-        ocp = docp.ocp
-        x0 = CTDirect.DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 
-        docp_solution = ipopt(nlp, x0=x0, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)
+    # preallocate memory
+    if isnothing(init)
+        # use initial guess embedded in the NLP
+        docp_solution = solve!(solver, nlp, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)
+    else
+        # build initial guess from provided data
+        x0 = CTDirect.DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=docp.dim_OCP_x, control_dim=docp.dim_NLP_u, variable_dim=docp.dim_NLP_v))
+
+        # override initial guess embedded in the NLP
+        docp_solution = solve!(solver, nlp, x0=x0, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)
     end
 
     # return DOCP solution

@@ -18,7 +18,8 @@ const __grid_size_direct() = 100
 const __tol() = 1e-8
 const __max_iter() = 1000
 const __time_grid_direct() = nothing
-const __linear_solver() = "ma57"
+const __linear_solver() = "mumps" #"ma57"
+const __ocp_init_direct() = nothing
 
 # includes
 include("utils.jl")

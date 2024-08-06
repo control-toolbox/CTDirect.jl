@@ -4,6 +4,7 @@ include("deps.jl")
 include("problems/goddard.jl")
 
 # check local test suite
+# +++ add explicit list and remove suite folder (cf OC)
 @testset verbose = true showtiming = true "Test suite" begin
     # run all scripts in subfolder suite/
     include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))  

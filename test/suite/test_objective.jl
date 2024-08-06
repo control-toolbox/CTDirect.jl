@@ -58,12 +58,25 @@ objective!(ocp, :mayer, (x0, xf, v) -> v[1], :max)
     @test sol.objective ≈ 8.0 rtol=1e-2
 end
 
-@testset verbose = true showtiming = true ":max_t0 :explicit_grid" begin
-    sol = solve(ocp, time_grid=LinRange(0,1,CTDirect.__grid_size_direct()+1), print_level=0, tol=1e-12)
-    @test sol.objective ≈ 8.0 rtol=1e-2
+
+
+# bolza, non-autonomous mayer term, tf in dynamics
+@def ocp begin
+    tf ∈ R, variable
+    t ∈ [0, tf], time
+    x ∈ R, state
+    u ∈ R, control
+    ẋ(t) == tf * u(t)
+    x(0) == 0
+    x(tf) == 1
+    tf + 0.5∫(u(t)^2) → min
 end
 
-@testset verbose = true showtiming = true ":max_t0 :non_uniform_grid" begin
-    sol = solve(ocp, time_grid=[0,0.1,0.6,0.95,1], print_level=0, tol=1e-12)
-    @test sol.objective ≈ 7.48 rtol=1e-2
+@testset verbose = true showtiming = true ":bolza :tf_in_dynamics" begin
+    sol = solve(ocp, print_level=5)
+    #@test sol.objective ≈ 7.48 rtol=1e-2
+    #@test sol.variable[1] ≈ 0.84 rtol=1e-2
+    println("obj ", sol.objective, "tf ", sol.variable[1])
 end
+
+

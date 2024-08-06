@@ -48,17 +48,6 @@ return docp, nlp
 end
 
 
-#=
-"""
-$(TYPEDSIGNATURES)
-
-Extract the NLP problem from the DOCP
-"""
-function get_nlp(docp::DOCP)
-    return docp.nlp
-end
-=#
-
 
 """
 $(TYPEDSIGNATURES)
@@ -67,13 +56,28 @@ Set initial guess in the DOCP
 """
 function set_initial_guess(docp::DOCP, nlp, init)
 
-    #nlp = get_nlp(docp)
     ocp = docp.ocp
     nlp.meta.x0 .= DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 
 end
 
 # placeholders (see CTSolveExt)
+#=
 function solve_docp(args...; kwargs...)
     error("Please execute `using NLPModelsIpopt` before calling the solve method.")
 end
+=#
+
+abstract type AbstractSolver end
+struct MadNLPSolverSolver <: AbstractSolver end
+
+function solve_docp(s, args...; kwargs...)
+    if typeof(s) == IpoptSolver
+        error("Please execute `using NLPModelsIpopt` before calling the solve method.")
+    elseif typeof(s) == MadNLPSolver
+        error("Please execute `using MadNLP` before calling the solve method.")
+    else
+        error("Unknown solver type", typeof(s))
+    end
+end
+

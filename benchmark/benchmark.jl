@@ -23,14 +23,14 @@ precompile = true
 
 #######################################################
 # load examples library
-problem_path = pwd()*"/problems"
+problem_path = pwd()*"/test/problems"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
 # load problems for benchmark
 print("Loading problems: ")
-names_list = ["beam", "bioreactor_1day_periodic", "fuller", "goddard", "insurance", "jackson", "swimmer", "vanderpol"]
+names_list = ["beam", "bioreactor_1day_periodic", "fuller", "goddard", "insurance", "jackson", "vanderpol"]
 problem_list = []
 for problem_name in names_list
     ocp_data = getfield(Main, Symbol(problem_name))()
