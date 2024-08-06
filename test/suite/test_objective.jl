@@ -66,6 +66,7 @@ end
     t ∈ [0, tf], time
     x ∈ R, state
     u ∈ R, control
+    0.1 ≤ tf ≤ Inf
     ẋ(t) == tf * u(t)
     x(0) == 0
     x(tf) == 1
@@ -73,7 +74,7 @@ end
 end
 
 @testset verbose = true showtiming = true ":bolza :tf_in_dynamics" begin
-    sol = solve(ocp, print_level=0)
+    sol = solve(ocp, print_level=0, grid_size=200)
     #@test sol.objective ≈ 7.48 rtol=1e-2
     #@test sol.variable[1] ≈ 0.84 rtol=1e-2
     println("obj ", sol.objective, "tf ", sol.variable[1])
