@@ -1,7 +1,10 @@
 using CTDirect
 using CTBase
+
 using NLPModelsIpopt
+using MadNLP
 using HSL
+
 using JLD2
 using JSON3
 
@@ -21,7 +24,7 @@ function solve(ocp::OptimalControlModel, description::Symbol...;
     kwargs...)
 
     method = getFullDescription(description, available_methods())
-    println(method)
+    #println(method)
 
     # build discretized OCP, including initial guess
     docp, nlp = direct_transcription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
@@ -37,9 +40,14 @@ function solve(ocp::OptimalControlModel, description::Symbol...;
         docp_solution = CTDirect.solve_docp(solver, docp, nlp, 
         print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, linear_solver=linear_solver; kwargs...)
     elseif :madnlp ∈ method
-        solver = MadNLPSolver(nlp)
+        if print_level == 0
+            print_level = MadNLP.ERROR
+        else
+            print_level = MadNLP.INFO
+        end
+        solver = MadNLPSolver(nlp, print_level=print_level)
         docp_solution = CTDirect.solve_docp(solver, docp, 
-        print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, linear_solver=linear_solver; kwargs...)
+        tol=tol, max_iter=max_iter, linear_solver=linear_solver; kwargs...)
     else
         error("no known solver in method", method)
     end

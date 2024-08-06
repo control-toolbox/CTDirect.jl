@@ -151,20 +151,3 @@ end
     sol = build_solution(docp, dsol)
     @test(check_xf(sol, sol.state(sol.times[end])) && check_uf(sol, sol.control(sol.times[end])) && check_v(sol, sol.variable))
 end
-
-#################################################
-# 3 Passing the initial guess to solve call
-set_initial_guess(docp, nlp, nothing) # reset init in docp
-# mixed init
-@testset verbose = true showtiming = true ":docp_solve_mixed_init" begin
-    dsol = CTDirect.solve_docp(solver, docp, nlp, init=(time=t_vec, state=x_vec, control=u_func, variable=v_const), print_level=0, max_iter=maxiter)
-    sol = build_solution(docp, dsol)
-    @test(check_xf(sol, x_vec[end]) && check_uf(sol, u_func(sol.times[end])) && check_v(sol, v_const))
-end
-
-# warm start
-@testset verbose = true showtiming = true ":docp_solve_warm_start" begin
-    dsol = CTDirect.solve_docp(solver, docp, nlp, init=sol0, print_level=0, max_iter=maxiter)
-    sol = build_solution(docp, dsol)
-    @test(check_xf(sol, sol.state(sol.times[end])) && check_uf(sol, sol.control(sol.times[end])) && check_v(sol, sol.variable))
-end

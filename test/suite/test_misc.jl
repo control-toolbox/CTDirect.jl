@@ -16,6 +16,7 @@ sol0 = solve(ocp, print_level=0)
 # +++ move this in a new test_nlp.jl
 @testset verbose = true showtiming = true ":control_dim_2" begin
     @test (:adnlp,:ipopt) in available_methods()
+    @test (:adnlp,:madnlp) in available_methods()
     @test is_solvable(ocp)
 end
 

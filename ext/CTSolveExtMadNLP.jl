@@ -13,15 +13,13 @@ $(TYPEDSIGNATURES)
 Solve a discretized optimal control problem DOCP
 """
 function CTDirect.solve_docp(solver::MadNLPSolver, docp::DOCP;
-    init=nothing,
-    print_level::Integer=CTDirect.__print_level_ipopt(),
-    mu_strategy::String=CTDirect.__mu_strategy_ipopt(),
     max_iter::Integer=CTDirect.__max_iter(),
     tol::Real=CTDirect.__tol(),
     linear_solver::String=CTDirect.__linear_solver(),
     kwargs...)
 
     # check linear solver requirements, default to mumps if needed
+    # +++ bump this in solve since there are common parts between solvers ??
     # HSL
     if (linear_solver == "ma27") || (linear_solver == "ma57") || (linear_solver == "ma77") || (linear_solver == "ma86") || (linear_solver == "ma97")
         if !LIBHSL_isfunctional()
@@ -29,6 +27,7 @@ function CTDirect.solve_docp(solver::MadNLPSolver, docp::DOCP;
             linear_solver = "mumps"
         end
     end
+
     # SPRAL
     if linear_solver == "spral"
         if !haskey(ENV, "OMP_CANCELLATION") || !haskey(ENV, "OMP_PROC_BIND")
@@ -37,20 +36,11 @@ function CTDirect.solve_docp(solver::MadNLPSolver, docp::DOCP;
         end
     end
 
-    # solve discretized problem with NLP solver
-    if isnothing(init)
-        # use initial guess embedded in the NLP
-        #docp_solution = solve!(solver,
-        #print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)
-        docp_solution = solve!(solver)
-    else
-        # build initial guess from provided data
-        x0 = CTDirect.DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=docp.dim_OCP_x, control_dim=docp.dim_NLP_u, variable_dim=docp.dim_NLP_v))
+    #{MadNLP.UmfpackSolver,MadNLP.LDLSolver,MadNLP.CHOLMODSolver, MadNLP.MumpsSolver, MadNLP.PardisoSolver, MadNLP.PardisoMKLSolver, MadNLP.Ma27Solver, MadNLP.Ma57Solver, MadNLP.Ma77Solver, MadNLP.Ma86Solver, MadNLP.Ma97Solver, MadNLP.LapackCPUSolver, MadNLPGPU.LapackGPUSolver,MadNLPGPU.RFSolver,MadNLPGPU.GLUSolver,MadNLPGPU.CuCholeskySolver,MadNLPGPU.CUDSSSolver}
 
-        # override initial guess embedded in the NLP
-        #docp_solution = solve!(solver, x0=x0, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)
-        docp_solution = solve!(solver, x0=x0)
-    end
+    # solve discretized problem with NLP solver
+    docp_solution = solve!(solver, 
+    tol=tol, max_iter=max_iter; kwargs...)
 
     # return DOCP solution
     return docp_solution
