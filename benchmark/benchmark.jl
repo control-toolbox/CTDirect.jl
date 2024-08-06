@@ -14,10 +14,13 @@ blas_config = LinearAlgebra.BLAS.lbt_get_config()
 @printf("Blas config: %s\n", blas_config)
 # AD backend ?
 
+# choose NLP solver
+algo = :madnlp
+
 #######################################################
 # set parameters
 tol = 1e-8
-grid_size = 500
+grid_size = 1000
 precompile = true
 @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
 
@@ -46,7 +49,7 @@ if precompile
     print("Precompilation step: ")
     for problem in problem_list
         @printf("%s ",problem[:name])
-        t = @elapsed solve(problem[:ocp], linear_solver=linear_solver, max_iter=0, display=false)
+        t = @elapsed solve(problem[:ocp], algo, linear_solver=linear_solver, max_iter=0, display=false)
         global t_precomp += t
     end
     @printf("\nPrecompilation total time %6.2f\n",t_precomp)
@@ -57,7 +60,7 @@ end
 t_list = []
 println("Benchmark step")
 for problem in problem_list
-    t = @elapsed local sol = solve(problem[:ocp], init=problem[:init], display=false, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
+    t = @elapsed local sol = solve(problem[:ocp], algo, init=problem[:init], display=false, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
     if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol=5e-2)
         error("Objective mismatch for ", problem[:name], ": ", sol.objective, " instead of ", problem[:obj])
     else

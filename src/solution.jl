@@ -81,16 +81,17 @@ function build_solution(docp; primal, dual=nothing)
     return OCPSolutionFromDOCP_raw(docp, T, X, U, v, P, objective=objective)
 end
 
+# dummy
+function build_solution(docp, docp_solution::Nothing)
+    return nothing
+end
+
 """
 $(TYPEDSIGNATURES)
    
-Build OCP functional solution from DOCP discrete solution (given as a GenericExecutionStats)
+Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
 """
 function build_solution(docp, docp_solution_ipopt)
-
-    if isnothing(docp_solution_ipopt)
-        return nothing
-    end
 
     # could pass some status info too (get_status ?)
     solution = docp_solution_ipopt.solution

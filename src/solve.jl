@@ -3,13 +3,14 @@
 # available methods by order of preference: from top to bottom
 algorithms = ()
 algorithms = add(algorithms, (:adnlp, :ipopt))
+algorithms = add(algorithms, (:adnlp, :madnlp))
 
 """
 $(TYPEDSIGNATURES)
 
 Return the list of available methods to solve the optimal control problem.
 """
-function available_methods()::Tuple{Tuple{Vararg{Symbol}}}
+function available_methods()
     return algorithms
 end
 
@@ -68,9 +69,7 @@ function solve_docp(args...; kwargs...)
 end
 =#
 
-abstract type AbstractSolver end
-struct MadNLPSolverSolver <: AbstractSolver end
-
+# NB this one is actually useless since the actual call to solve_docp is made *after* creating structs related to each solver package, which will fail if the package is not loaded... We lose the custom message below.
 function solve_docp(s, args...; kwargs...)
     if typeof(s) == IpoptSolver
         error("Please execute `using NLPModelsIpopt` before calling the solve method.")
