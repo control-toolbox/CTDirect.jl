@@ -10,17 +10,11 @@ using JSON3
 
 # local function for testing purposes only
 # SHOULD BE A COPY OF THE ONE IN OPTIMALCONTROL ! 
-# +++ some arguments are solver specific and should be defined only in the different calls to solve_docp ?
+# +++ later add a CTDirect.solve_direct intermediate function 
 function solve(ocp::OptimalControlModel, description::Symbol...;
-    init=CTDirect.__ocp_init_direct(),
-    grid_size::Integer=CTDirect.__grid_size_direct(),
-    display::Bool=CTDirect.__display(),
-    print_level::Integer=CTDirect.__print_level_ipopt(),
-    mu_strategy::String=CTDirect.__mu_strategy_ipopt(),
-    max_iter::Integer=CTDirect.__max_iter(),
-    tol::Real=CTDirect.__tol(),
-    linear_solver::String=CTDirect.__linear_solver(),
-    time_grid=nothing,
+    init=nothing,
+    grid_size::Int=CTDirect.__grid_size(),
+    time_grid=CTDirect.__time_grid(),
     kwargs...)
 
     method = getFullDescription(description, available_methods())
@@ -37,7 +31,7 @@ function solve(ocp::OptimalControlModel, description::Symbol...;
     else
         error("no known solver in method", method)
     end
-    docp_solution = CTDirect.solve_docp(tag, docp, nlp, display=display, tol=tol, max_iter=max_iter, kwargs...)
+    docp_solution = CTDirect.solve_docp(tag, docp, nlp; kwargs...)
 
     # build and return OCP solution
     return build_solution(docp, docp_solution)

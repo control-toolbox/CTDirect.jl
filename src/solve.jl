@@ -23,8 +23,8 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 function direct_transcription(ocp::OptimalControlModel,
     description...;
     init=nothing,
-    grid_size::Integer=__grid_size_direct(),
-    time_grid=__time_grid_direct())
+    grid_size::Integer=__grid_size(),
+    time_grid=__time_grid())
 
     # build DOCP
     docp = DOCP(ocp, grid_size, time_grid)
@@ -63,8 +63,6 @@ function set_initial_guess(docp::DOCP, nlp, init)
 end
 
 # placeholders (see CTSolveExt*** extensions)
-
-# NB this one is actually useless since the actual call to solve_docp is made *after* creating structs related to each solver package, which will fail if the package is not loaded... We lose the custom message below. Use dummy structs ?
 abstract type SolverTag end
 struct IpoptTag <: SolverTag end
 struct MadNLPTag <: SolverTag end
@@ -78,4 +76,3 @@ function solve_docp(solver_tag, args...; kwargs...)
         error("Unknown solver type", typeof(solver_tag))
     end
 end
-

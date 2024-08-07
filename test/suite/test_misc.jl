@@ -1,5 +1,20 @@
 println("Test: misc")
 
+@testset verbose = true ":default :direct" begin
+    @test CTDirect.__grid_size() isa Integer
+    @test isnothing(CTDirect.__time_grid())
+    @test CTDirect.__tolerance() < 1
+    @test CTDirect.__max_iterations() isa Integer
+end
+
+@testset verbose = true ":default :ipopt" begin
+    @test CTDirect.__ipopt_print_level() isa Integer
+    @test CTDirect.__ipopt_print_level() ≤ 12
+    @test CTDirect.__ipopt_print_level() ≥ 0
+    @test CTDirect.__ipopt_mu_strategy() isa String
+    @test CTDirect.__ipopt_linear_solver() isa String
+end
+
 # simple integrator min energy
 # control split as positive/negative parts for m=2 tets case
 ocp = Model()
@@ -57,3 +72,4 @@ end
     sol = build_solution(docp, primal=dsol.solution, dual=dsol.multipliers)
     @test sol.objective ≈ 0.313 rtol=1e-2
 end
+
