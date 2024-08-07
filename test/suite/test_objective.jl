@@ -15,7 +15,7 @@ dynamics!(ocp, (x, u, v) ->  [x[2], u])
 objective!(ocp, :mayer, (x0, xf, v) -> v)
 
 @testset verbose = true showtiming = true ":min_tf :mayer" begin
-    sol = solve(ocp, print_level=0, tol=1e-12)
+    sol = solve(ocp, display=false, tol=1e-12)
     @test sol.objective ≈ 2.0 rtol=1e-2
 end
 
@@ -34,7 +34,7 @@ dynamics!(ocp, (x, u, v) ->  [x[2], u])
 objective!(ocp, :lagrange, (x, u, v) -> 1)
 
 @testset verbose = true showtiming = true ":min_tf :lagrange" begin
-    sol = solve(ocp, print_level=0, tol=1e-12)
+    sol = solve(ocp, display=false, tol=1e-12)
     @test sol.objective ≈ 2.0 rtol=1e-2
 end
 
@@ -54,7 +54,7 @@ dynamics!(ocp, (x, u, v) ->  [x[2], u])
 objective!(ocp, :mayer, (x0, xf, v) -> v[1], :max)
 
 @testset verbose = true showtiming = true ":max_t0" begin
-    sol = solve(ocp, print_level=0, tol=1e-12)
+    sol = solve(ocp, display=false, tol=1e-12)
     @test sol.objective ≈ 8.0 rtol=1e-2
 end
 
@@ -72,7 +72,7 @@ end
     tf + 0.5∫(u(t)^2) → min
 end
 @testset verbose = true showtiming = true ":bolza :tf_in_dyn_and_cost" begin
-    sol = solve(ocp, print_level=0)
+    sol = solve(ocp, display=false)
     @test sol.objective ≈ 1.476 rtol=1e-2
     @test sol.variable[1] ≈ 1.107 rtol=1e-2
 end

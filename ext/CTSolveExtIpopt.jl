@@ -12,7 +12,8 @@ $(TYPEDSIGNATURES)
 
 Solve a discretized optimal control problem DOCP
 """
-function CTDirect.solve_docp(solver::IpoptSolver, docp::DOCP, nlp;
+#function CTDirect.solve_docp(solver::IpoptSolver, docp::DOCP, nlp;
+function CTDirect.solve_docp(tag::CTDirect.IpoptTag, docp::DOCP, nlp;
     display::Bool=CTDirect.__display(),
     print_level::Integer=CTDirect.__print_level_ipopt(),
     mu_strategy::String=CTDirect.__mu_strategy_ipopt(),
@@ -36,6 +37,12 @@ function CTDirect.solve_docp(solver::IpoptSolver, docp::DOCP, nlp;
             linear_solver = "mumps"
         end
     end
+
+    # override print_level if needed
+    print_level = display ?  print_level : 0
+
+    # preallocate solver
+    solver = IpoptSolver(nlp)
 
     # solve discretized problem with NLP solver
     docp_solution = solve!(solver, nlp, print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, sb="yes", linear_solver=linear_solver; kwargs...)

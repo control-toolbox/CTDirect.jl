@@ -12,36 +12,24 @@ $(TYPEDSIGNATURES)
 
 Solve a discretized optimal control problem DOCP
 """
-function CTDirect.solve_docp(solver::MadNLPSolver, docp::DOCP;
+#function CTDirect.solve_docp(solver::MadNLPSolver, docp::DOCP;
+function CTDirect.solve_docp(tag::CTDirect.MadNLPTag, docp::DOCP, nlp;
     max_iter::Integer=CTDirect.__max_iter(),
     tol::Real=CTDirect.__tol(),
-    linear_solver::String=CTDirect.__linear_solver(),
+    display::Bool=CTDirect.__display(),
     kwargs...)
 
-    # check linear solver requirements, default to mumps if needed
-    # +++ bump this in solve since there are common parts between solvers ??
-    # HSL
-    if (linear_solver == "ma27") || (linear_solver == "ma57") || (linear_solver == "ma77") || (linear_solver == "ma86") || (linear_solver == "ma97")
-        if !LIBHSL_isfunctional()
-            println("WARNING: HSL not available, defaulting linear solver ",linear_solver, " to MUMPS") 
-            linear_solver = "mumps"
-        end
-    end
-
-    # SPRAL
-    if linear_solver == "spral"
-        if !haskey(ENV, "OMP_CANCELLATION") || !haskey(ENV, "OMP_PROC_BIND")
-            println("WARNING: missing required environment variables for SPRAL (OMP_CANCELLATION=TRUE and OMP_PROC_BIND=TRUE), defaulting to MUMPS") 
-            linear_solver = "mumps"
-        end
-    end
-
+    # check linear solver requirements
     #{MadNLP.UmfpackSolver,MadNLP.LDLSolver,MadNLP.CHOLMODSolver, MadNLP.MumpsSolver, MadNLP.PardisoSolver, MadNLP.PardisoMKLSolver, MadNLP.Ma27Solver, MadNLP.Ma57Solver, MadNLP.Ma77Solver, MadNLP.Ma86Solver, MadNLP.Ma97Solver, MadNLP.LapackCPUSolver, MadNLPGPU.LapackGPUSolver,MadNLPGPU.RFSolver,MadNLPGPU.GLUSolver,MadNLPGPU.CuCholeskySolver,MadNLPGPU.CUDSSSolver}
 
+    # override print_level if needed
+    print_level = display ?  MadNLP.INFO : MadNLP.ERROR
+
+    # preallocate solver (+++need to pass printlevel here ?)
+    solver = MadNLPSolver(nlp, print_level=print_level)
+
     # solve discretized problem with NLP solver
-    #+++use mumps
-    docp_solution = solve!(solver, 
-    tol=tol, max_iter=max_iter; kwargs...)
+    docp_solution = solve!(solver, tol=tol, max_iter=max_iter; kwargs...)
 
     # return DOCP solution
     return docp_solution

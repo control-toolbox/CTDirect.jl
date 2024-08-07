@@ -28,7 +28,7 @@ if test1
         obj_list = []
         for T=1:5
             ocp = ocp_T(T) 
-            sol = solve(ocp, print_level=0, init=init)
+            sol = solve(ocp, display=false, init=init)
             init = sol
             push!(obj_list, sol.objective)
         end
@@ -68,7 +68,7 @@ if test2
         obj_list = []
         for ρ in [0.1, 5, 10, 30, 100]
             ocp = myocp(ρ)
-            sol = solve(ocp, print_level=0, init=init)
+            sol = solve(ocp, display=false, init=init)
             init = sol
             push!(obj_list, sol.objective)
         end
@@ -79,14 +79,14 @@ end
 
 # parametric ocp definition
 if test3
-    sol0 = solve(goddard().ocp, print_level=0)
+    sol0 = solve(goddard().ocp, display=false)
 
     @testset verbose = true showtiming = true ":global_variable :warm_start" begin
         sol = sol0
         Tmax_list = []
         obj_list = []
         for Tmax=3.5:-0.5:1 
-            sol = solve(goddard(Tmax=Tmax).ocp, print_level=0, init=sol)
+            sol = solve(goddard(Tmax=Tmax).ocp, display=false, init=sol)
             push!(Tmax_list, Tmax)
             push!(obj_list, sol.objective)
         end

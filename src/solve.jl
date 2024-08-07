@@ -65,13 +65,17 @@ end
 # placeholders (see CTSolveExt*** extensions)
 
 # NB this one is actually useless since the actual call to solve_docp is made *after* creating structs related to each solver package, which will fail if the package is not loaded... We lose the custom message below. Use dummy structs ?
-function solve_docp(s, args...; kwargs...)
-    if typeof(s) == IpoptSolver
+abstract type SolverTag end
+struct IpoptTag <: SolverTag end
+struct MadNLPTag <: SolverTag end
+
+function solve_docp(solver_tag, args...; kwargs...)
+    if typeof(solver_tag) == IpoptTag
         error("Please execute `using NLPModelsIpopt` before calling the solve method.")
-    elseif typeof(s) == MadNLPSolver
+    elseif typeof(solver_tag) == MadNLPTag
         error("Please execute `using MadNLP` before calling the solve method.")
     else
-        error("Unknown solver type", typeof(s))
+        error("Unknown solver type", typeof(solver_tag))
     end
 end
 
