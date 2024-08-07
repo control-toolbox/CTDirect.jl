@@ -12,7 +12,7 @@ $(TYPEDSIGNATURES)
 
 Solve a discretized optimal control problem DOCP
 """
-function CTDirect.solve_docp(tag::CTDirect.MadNLPTag, docp::DOCP, nlp;
+function CTDirect.solve_docp(tag::CTDirect.MadNLPTag, docp::CTDirect.DOCP, nlp;
     display::Bool=CTDirect.__display(),
     max_iter::Integer=CTDirect.__max_iterations(),
     tol::Real=CTDirect.__tolerance(),
@@ -22,7 +22,7 @@ function CTDirect.solve_docp(tag::CTDirect.MadNLPTag, docp::DOCP, nlp;
     # disable output if needed
     print_level = display ?  MadNLP.INFO : MadNLP.ERROR
 
-    # preallocate solver (+++need to pass printlevel here ?)
+    # preallocate solver (NB. need to pass printlevel here)
     solver = MadNLPSolver(nlp, print_level=print_level)
 
     # solve discretized problem with NLP solver
