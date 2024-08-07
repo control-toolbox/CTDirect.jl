@@ -111,7 +111,7 @@ struct DOCP
 
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
-        control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box = nlp_constraints!(ocp)
+        control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box = CTBase.nlp_constraints!(ocp)
 
         dim_x_box = dim_state_range(ocp)
         dim_u_box = dim_control_range(ocp)

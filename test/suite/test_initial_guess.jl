@@ -141,13 +141,13 @@ tag = CTDirect.IpoptTag()
 @testset verbose = true showtiming = true ":docp_mixed_init" begin
     set_initial_guess(docp, nlp, (time=t_vec, state=x_vec, control=u_func, variable=v_const))
     dsol = CTDirect.solve_docp(tag, docp, nlp, display=false, max_iter=maxiter)
-    sol = build_solution(docp, dsol)
+    sol = OptimalControlSolution(docp, dsol)
     @test(check_xf(sol, x_vec[end]) && check_uf(sol, u_func(sol.times[end])) && check_v(sol, v_const))
 end
 # warm start
 @testset verbose = true showtiming = true ":docp_warm_start" begin
     set_initial_guess(docp, nlp, sol0)
     dsol = CTDirect.solve_docp(tag, docp, nlp, display=false, max_iter=maxiter)
-    sol = build_solution(docp, dsol)
+    sol = OptimalControlSolution(docp, dsol)
     @test(check_xf(sol, sol.state(sol.times[end])) && check_uf(sol, sol.control(sol.times[end])) && check_v(sol, sol.variable))
 end

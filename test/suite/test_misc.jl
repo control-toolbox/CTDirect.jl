@@ -53,11 +53,11 @@ end
     docp, nlp = direct_transcription(ocp)
     tag = CTDirect.IpoptTag()
     dsol = CTDirect.solve_docp(tag, docp, nlp, display=false)
-    sol = build_solution(docp, dsol)
+    sol = OptimalControlSolution(docp, dsol)
     @test sol.objective ≈ 0.313 rtol=1e-2
-    sol = build_solution(docp, primal=dsol.solution)
+    sol = OptimalControlSolution(docp, primal=dsol.solution)
     @test sol.objective ≈ 0.313 rtol=1e-2
-    sol = build_solution(docp, primal=dsol.solution, dual=dsol.multipliers)
+    sol = OptimalControlSolution(docp, primal=dsol.solution, dual=dsol.multipliers)
     @test sol.objective ≈ 0.313 rtol=1e-2
 end
 
@@ -65,11 +65,11 @@ end
     docp, nlp = direct_transcription(ocp)
     tag = CTDirect.MadNLPTag()
     dsol = CTDirect.solve_docp(tag, docp, nlp, display=false)
-    sol = build_solution(docp, dsol)
+    sol = OptimalControlSolution(docp, dsol)
     @test sol.objective ≈ 0.313 rtol=1e-2
-    sol = build_solution(docp, primal=dsol.solution)
+    sol = OptimalControlSolution(docp, primal=dsol.solution)
     @test sol.objective ≈ 0.313 rtol=1e-2
-    sol = build_solution(docp, primal=dsol.solution, dual=dsol.multipliers)
+    sol = OptimalControlSolution(docp, primal=dsol.solution, dual=dsol.multipliers)
     @test sol.objective ≈ 0.313 rtol=1e-2
 end
 

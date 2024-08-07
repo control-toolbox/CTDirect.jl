@@ -33,7 +33,7 @@ function CTDirect.solve_docp(tag::CTDirect.MadNLPTag, docp::DOCP, nlp;
 end
 
 
-function CTDirect.build_solution(docp, docp_solution_madnlp::MadNLP.MadNLPExecutionStats)
+function CTBase.OptimalControlSolution(docp, docp_solution_madnlp::MadNLP.MadNLPExecutionStats)
 
     # could pass some status info too (get_status ?)
     solution = docp_solution_madnlp.solution

@@ -5,8 +5,9 @@ using DocStringExtensions
 using ADNLPModels               # docp model with AD
 using LinearAlgebra             # norm
 
-# Other declarations
-const nlp_constraints! = CTBase.nlp_constraints!
+import CTBase: OptimalControlSolution, CTBase   # extended
+
+# other declarations
 const matrix2vec = CTBase.matrix2vec
 
 # includes

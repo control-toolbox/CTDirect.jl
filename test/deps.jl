@@ -34,6 +34,6 @@ function solve(ocp::OptimalControlModel, description::Symbol...;
     docp_solution = CTDirect.solve_docp(tag, docp, nlp; kwargs...)
 
     # build and return OCP solution
-    return build_solution(docp, docp_solution)
+    return OptimalControlSolution(docp, docp_solution)
 
  end

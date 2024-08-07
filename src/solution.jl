@@ -60,7 +60,7 @@ $(TYPEDSIGNATURES)
 
 Build OCP functional solution from the DOCP discrete solution, given as a vector. Costate will be retrieved from dual variables (multipliers) if available.
 """
-function build_solution(docp; primal, dual=nothing)
+function CTBase.OptimalControlSolution(docp; primal, dual=nothing)
 
     # time grid
     N = docp.dim_NLP_steps
@@ -81,8 +81,8 @@ function build_solution(docp; primal, dual=nothing)
     return OCPSolutionFromDOCP_raw(docp, T, X, U, v, P, objective=objective)
 end
 
-# dummy
-function build_solution(docp, docp_solution::Nothing)
+# dummy (remove ?)
+function CTBase.OptimalControlSolution(docp, docp_solution::Nothing)
     return nothing
 end
 
@@ -91,7 +91,7 @@ $(TYPEDSIGNATURES)
    
 Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
 """
-function build_solution(docp, docp_solution_ipopt)
+function CTBase.OptimalControlSolution(docp, docp_solution_ipopt)
 
     # could pass some status info too (get_status ?)
     solution = docp_solution_ipopt.solution
