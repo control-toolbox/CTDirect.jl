@@ -30,28 +30,14 @@ function solve(ocp::OptimalControlModel, description::Symbol...;
     docp, nlp = direct_transcription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
 
     # solve DOCP
-    # +++ using solver-specific structs will fail if package is not loaded... use dummy structs and build actual struct in solve_docp
-    # +++ here set some specific default arguments, instead of above in solve() ?
     if :ipopt ∈ method
-        #=solver = IpoptSolver(nlp)
-        docp_solution = CTDirect.solve_docp(solver, docp, nlp, 
-        print_level=print_level, mu_strategy=mu_strategy, tol=tol, max_iter=max_iter, linear_solver=linear_solver; kwargs...)=#
         tag = CTDirect.IpoptTag()
     elseif :madnlp ∈ method
-        #=
-        if print_level == 0
-            print_level = MadNLP.ERROR
-        else
-            print_level = MadNLP.INFO
-        end
-        solver = MadNLPSolver(nlp, print_level=print_level)
-        docp_solution = CTDirect.solve_docp(solver, docp, 
-        tol=tol, max_iter=max_iter, linear_solver=linear_solver; kwargs...)=#
         tag = CTDirect.MadNLPTag()
     else
         error("no known solver in method", method)
     end
-    docp_solution = CTDirect.solve_docp(tag, docp, nlp, display=display, max_iter=max_iter)
+    docp_solution = CTDirect.solve_docp(tag, docp, nlp, display=display, tol=tol, max_iter=max_iter, kwargs...)
 
     # build and return OCP solution
     return build_solution(docp, docp_solution)
