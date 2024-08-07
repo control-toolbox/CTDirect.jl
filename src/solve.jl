@@ -62,14 +62,9 @@ function set_initial_guess(docp::DOCP, nlp, init)
 
 end
 
-# placeholders (see CTSolveExt)
-#=
-function solve_docp(args...; kwargs...)
-    error("Please execute `using NLPModelsIpopt` before calling the solve method.")
-end
-=#
+# placeholders (see CTSolveExt*** extensions)
 
-# NB this one is actually useless since the actual call to solve_docp is made *after* creating structs related to each solver package, which will fail if the package is not loaded... We lose the custom message below.
+# NB this one is actually useless since the actual call to solve_docp is made *after* creating structs related to each solver package, which will fail if the package is not loaded... We lose the custom message below. Use dummy structs ?
 function solve_docp(s, args...; kwargs...)
     if typeof(s) == IpoptSolver
         error("Please execute `using NLPModelsIpopt` before calling the solve method.")
