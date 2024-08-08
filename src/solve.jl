@@ -48,7 +48,6 @@ return docp, nlp
 end
 
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -61,6 +60,39 @@ function set_initial_guess(docp::DOCP, nlp, init)
 
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Solve an OCP with a direct method
+"""
+function direct_solve(ocp::OptimalControlModel, description::Symbol...;
+    init=CTBase.__ocp_init(),
+    grid_size::Int=CTDirect.__grid_size(),
+    time_grid=CTDirect.__time_grid(),
+    kwargs...)
+
+    method = getFullDescription(description, available_methods())
+    #println(method)
+
+    # build discretized OCP, including initial guess
+    docp, nlp = direct_transcription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
+
+    # solve DOCP
+    if :ipopt ∈ method
+        tag = CTDirect.IpoptTag()
+    elseif :madnlp ∈ method
+        tag = CTDirect.MadNLPTag()
+    else
+        error("no known solver in method", method)
+    end
+    docp_solution = CTDirect.solve_docp(tag, docp, nlp; kwargs...)
+
+    # build and return OCP solution
+    return OptimalControlSolution(docp, docp_solution)
+
+ end
+
+
 # placeholders (see CTSolveExt*** extensions)
 abstract type SolverTag end
 struct IpoptTag <: SolverTag end
@@ -68,11 +100,9 @@ struct MadNLPTag <: SolverTag end
 
 function solve_docp(solver_tag, args...; kwargs...)
     if typeof(solver_tag) == IpoptTag
-        #error("Please execute `using NLPModelsIpopt` before calling the solve method.")
-        throw(ExtensionError("Please execute `using NLPModelsIpopt`"))
+        throw(ExtensionError(:NLPModelsIpopt))
     elseif typeof(solver_tag) == MadNLPTag
-        #error("Please execute `using MadNLP` before calling the solve method.")
-        throw(ExtensionError("Please execute `using MadNLP`"))
+        throw(ExtensionError(:MadNLP))
     else
         error("Unknown solver type", typeof(solver_tag))
     end

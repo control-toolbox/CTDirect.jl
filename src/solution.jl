@@ -133,15 +133,15 @@ Build OCP functional solution from DOCP vector solution (given as raw variables 
 # USE SEVERAL METHODS DEPENDING ON AVAILABLE INFO !
 # rename as OCS constructor also ?
 function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
-    objective=0, iterations=0, constraints_violation=0,
-    message="No msg", stopping=nothing, success=nothing,
-    constraints_types=nothing, constraints_mult=nothing,
-    box_multipliers=nothing)
+    objective=0, iterations=0, constraints_violation=0, message="No msg", stopping=nothing, success=nothing,
+    constraints_types=(nothing,nothing,nothing,nothing),
+    constraints_mult=(nothing,nothing,nothing,nothing),
+    box_multipliers=((nothing,nothing),(nothing,nothing),(nothing,nothing)))
 
     ocp = docp.ocp
-    dim_x = ocp.state_dimension()
-    dim_u = ocp.control_dimension()
-    dim_v = ocp.variable_dimension()
+    dim_x = state_dimension(ocp)
+    dim_u = control_dimension(ocp)
+    dim_v = variable_dimension(ocp)
 
     # check that time grid is strictly increasing
     # if not proceed with list of indexes as time grid
@@ -163,7 +163,7 @@ function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     var = (dim_v==1) ? v[1] : v
 
     # misc infos
-    infos = Dict()
+    infos = Dict{Symbol,Any}()
     infos[:constraints_violation] = constraints_violation
 
     # +++ use proper fields instead of info
@@ -236,7 +236,7 @@ $(TYPEDSIGNATURES)
     
 Process data related to a box type for solution building
 """
-function set_box_block!(infos, T, mult, keys, dim)
+function set_box_block!(infos, T, mults, keys, dim)
     mult_l, mult_u = mults
     key_l, key_u = keys
     if !isnothing(mult_l) && !isnothing(mult_u) && dim > 0

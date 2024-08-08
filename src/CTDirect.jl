@@ -26,5 +26,6 @@ export save
 export load
 export export_ocp_solution
 export import_ocp_solution
+export direct_solve
 
 end

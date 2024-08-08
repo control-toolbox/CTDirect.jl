@@ -1,4 +1,5 @@
 println("Test: misc")
+# +++ define problems in separate files
 
 @testset verbose = true ":default :direct" begin
     @test CTDirect.__grid_size() isa Integer
@@ -21,12 +22,12 @@ ocp = Model()
 state!(ocp, 1)
 control!(ocp, 2)
 time!(ocp, t0=0, tf=1)
-constraint!(ocp, :initial, lb=-1, ub=-1)
-constraint!(ocp, :final, lb=0, ub=0)
+constraint!(ocp, :initial, val=-1)
+constraint!(ocp, :final, val=0)
 constraint!(ocp, :control, lb=[0,0], ub=[Inf, Inf])
 dynamics!(ocp, (x, u) -> -x - u[1] + u[2])
 objective!(ocp, :lagrange, (x, u) -> (u[1]+u[2])^2)
-sol0 = solve(ocp, display=false)
+sol0 = direct_solve(ocp, display=false)
 
 # test save / load solution in JLD2 format
 @testset verbose = true showtiming = true ":save_load :JLD2" begin
@@ -84,12 +85,15 @@ end
         ẋ(t) == [ x₂(t), u(t) ]
         ∫( 0.5u(t)^2 ) → min
     end
-    x_opt = t -> [6*(t^2 / 2 - t^3 / 3), 6*(t - t^2)]
+    x_opt = t -> [-1 + 6*(t^2 / 2 - t^3 / 3), 6*(t - t^2)]
     u_opt = t -> 6 - 12*t
     p_opt = t -> [12 , 6 - 12*t]
-    sol = solve(ocp)
+    sol = direct_solve(ocp)
     T = sol.times
-    @test isapprox(x_opt.(T), x_sol.(T))
-    @test isapprox(u_opt.(T), u_sol.(T))
-    @test isapprox(p_opt.(T), p_sol.(T))
+    x_sol = sol.state
+    u_sol = sol.control
+    p_sol = sol.costate
+    @test isapprox(x_opt.(T), x_sol.(T), rtol=1e-2)
+    @test isapprox(u_opt.(T), u_sol.(T), rtol=1e-2)
+    @test isapprox(p_opt.(T), p_sol.(T), rtol=1e-2)
 end

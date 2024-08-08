@@ -1,7 +1,9 @@
 using Test
 include("deps.jl")
-# +++ later load all problems ?
+# +++ load all problems ?
+include("problems/double_integrator.jl")
 include("problems/goddard.jl")
+
 
 # check local test suite
 # +++ add explicit list (cf OC) (keep suite folder)
