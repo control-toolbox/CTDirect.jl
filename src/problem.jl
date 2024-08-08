@@ -111,7 +111,7 @@ struct DOCP
 
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
-        control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box = nlp_constraints!(ocp)
+        control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box = CTBase.nlp_constraints!(ocp)
 
         dim_x_box = dim_state_range(ocp)
         dim_u_box = dim_control_range(ocp)
@@ -147,7 +147,6 @@ Check if an OCP is solvable by the method [`solve`](@ref).
 """
 function is_solvable(ocp)
     solvable = true
-    # +++ note: non-autonomous mayer case is not supported
     return solvable
 end
 
@@ -193,8 +192,7 @@ function variables_bounds!(docp::DOCP)
     ocp = docp.ocp
 
     # NB. keep offset for each block since they are optional !
-    # Also, not practical to reuse the setters for x,u,v due to the non-ordered indices and possibly not full dimension
-    # update: need to reuse them anyway since layout may change...
+
     # build ordered bounds vectors for state and control
     x_lb = -Inf * ones(docp.dim_OCP_x)
     x_ub = Inf * ones(docp.dim_OCP_x)
@@ -216,34 +214,6 @@ function variables_bounds!(docp::DOCP)
         set_variables_at_time_step!(var_l, x_lb, u_lb, docp, i)
         set_variables_at_time_step!(var_u, x_ub, u_ub, docp, i)
     end
-
-    #=
-    # state box
-    offset = 0
-    if docp.dim_x_box > 0
-        for i in 0:N
-            for j in 1:docp.dim_x_box
-                indice = docp.state_box[2][j]
-                var_l[offset+indice] = docp.state_box[1][j]
-                var_u[offset+indice] = docp.state_box[3][j]
-            end
-            offset = offset + docp.dim_NLP_x
-        end
-    end
-
-    # control box
-    offset = (N+1) * docp.dim_NLP_x
-    if docp.dim_u_box > 0
-        for i in 0:N
-            for j in 1:docp.dim_u_box
-                indice = docp.control_box[2][j]
-                var_l[offset+indice] = docp.control_box[1][j]
-                var_u[offset+indice] = docp.control_box[3][j]
-            end
-            offset = offset + docp.dim_NLP_u
-        end
-    end
-    =#
 
     # variable box
     offset = (N+1) * (docp.dim_NLP_x + docp.dim_NLP_u)
@@ -271,20 +241,19 @@ function DOCP_objective(xu, docp::DOCP)
     N = docp.dim_NLP_steps
     ocp = docp.ocp
 
-    # note: non-autonomous mayer case is not supported
+    # mayer cost
     if docp.has_mayer
         v = get_variable(xu, docp)
-        #x0 = get_state_at_time_step(xu, docp, 0)
-        #xf = get_state_at_time_step(xu, docp, N)
+        t0 = get_initial_time(xu, docp)
+        tf = get_final_time(xu, docp)
         x0,u0,xl0 = get_variables_at_time_step(xu, docp, 0)
         xf,uf,xlf = get_variables_at_time_step(xu, docp, N)
+        #obj = obj + ocp.mayer(t0, tf, x0, xf, v)
         obj = obj + ocp.mayer(x0, xf, v)
     end
     
     # lagrange cost
     if docp.has_lagrange
-        #obj = obj + xu[(N+1)*docp.dim_NLP_x] obsolete
-        #obj = obj + get_lagrange_cost_at_time_step(xu, docp, N)
         xf,uf,xlf = get_variables_at_time_step(xu, docp, N)
         obj = obj + xlf
     end
@@ -564,7 +533,7 @@ Check the nonlinear constraints violation for the DOCP problem.
 """
 function DOCP_constraints_check!(cb, constraints, docp)
 
-    # +++ todo unify in a single utils function check_bounds(v,lb,ub) that returns the error vector
+    # +++ todo add a single utils function check_bounds(v,lb,ub) that returns the error vector
 
     # check constraints vs bounds
     # by construction only one of the two can be active

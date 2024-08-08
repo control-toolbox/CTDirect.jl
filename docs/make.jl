@@ -2,13 +2,14 @@ using Documenter
 using DocumenterMermaid
 using CTDirect
 using CTBase
+
 using NLPModelsIpopt
 using HSL
 using JLD2
 using JSON3
 using Plots
-using CommonSolve
 
+# to add docstrings from external packages
 DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
 DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true)
 

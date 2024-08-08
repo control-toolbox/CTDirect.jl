@@ -34,7 +34,7 @@ Export OCP solution in JSON format
 """
 function CTDirect.export_ocp_solution(sol::OptimalControlSolution; filename_prefix="solution")
     open(filename_prefix * ".json", "w") do io
-        JSON3.pretty(io, OCPDiscreteSolution(sol))
+        JSON3.pretty(io, CTDirect.OCPDiscreteSolution(sol))
     end
     return nothing
 end

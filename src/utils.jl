@@ -153,8 +153,6 @@ Retrieve initial time for OCP (may be fixed or variable)
 """
 function get_initial_time(xu, docp)
     if docp.has_free_t0
-        #v = get_variable(xu, docp)
-        #return v[docp.ocp.initial_time]
         return get_single_variable(xu, docp, Base.to_index(docp.ocp.initial_time))
     else
         return docp.ocp.initial_time
@@ -169,8 +167,6 @@ Retrieve final time for OCP (may be fixed or variable)
 """
 function get_final_time(xu, docp)
     if docp.has_free_tf
-        #v = get_variable(xu, docp)
-        #return v[docp.ocp.final_time]
         return get_single_variable(xu, docp, Base.to_index(docp.ocp.final_time))
     else
         return docp.ocp.final_time

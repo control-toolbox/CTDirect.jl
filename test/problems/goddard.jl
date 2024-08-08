@@ -30,8 +30,8 @@ function goddard(;vmax=0.1, Tmax=3.5, functional_constraints=false)
     control!(goddard, 1)
     variable!(goddard, 1)
     time!(goddard, t0=0, indf=1)
-    constraint!(goddard, :initial, lb=x0, ub=x0)
-    constraint!(goddard, :final, rg=3, lb=mf, ub=Inf)
+    constraint!(goddard, :initial, val=x0)
+    constraint!(goddard, :final, rg=3, val=mf)
     if functional_constraints
         # note: the equations do not handle r<1 well
         # without the box constraint on x, the default init (0.1) is not suitable
