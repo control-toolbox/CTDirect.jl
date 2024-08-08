@@ -1,16 +1,15 @@
 # CTDirect interface
 
-# available methods by order of preference: from top to bottom
-algorithms = ()
-algorithms = add(algorithms, (:adnlp, :ipopt))
-algorithms = add(algorithms, (:adnlp, :madnlp))
-
 """
 $(TYPEDSIGNATURES)
 
 Return the list of available methods to solve the optimal control problem.
 """
 function available_methods()
+    # available methods by order of preference
+    algorithms = ()
+    algorithms = add(algorithms, (:adnlp, :ipopt))
+    algorithms = add(algorithms, (:adnlp, :madnlp))
     return algorithms
 end
 
