@@ -73,3 +73,23 @@ end
     @test sol.objective ≈ 0.313 rtol=1e-2
 end
 
+# check solution building
+@testset verbose = true showtiming = true ":docp_solve :madnlp" begin
+    @def ocp begin
+        t ∈ [ 0, 1 ], time
+        x ∈ R², state
+        u ∈ R, control
+        x(0) == [ -1, 0 ]
+        x(1) == [ 0, 0 ]
+        ẋ(t) == [ x₂(t), u(t) ]
+        ∫( 0.5u(t)^2 ) → min
+    end
+    x_opt = t -> [6*(t^2 / 2 - t^3 / 3), 6*(t - t^2)]
+    u_opt = t -> 6 - 12*t
+    p_opt = t -> [12 , 6 - 12*t]
+    sol = solve(ocp)
+    T = sol.times
+    @test isapprox(x_opt.(T), x_sol.(T))
+    @test isapprox(u_opt.(T), u_sol.(T))
+    @test isapprox(p_opt.(T), p_sol.(T))
+end

@@ -1,3 +1,8 @@
+#+++todo:
+# redo constraints/multipliers parsing 
+# rewrite 3rd parser for box constraints (use tuples)
+# and use proper fields in solution for constraints/multipliers
+
 """
 $(TYPEDSIGNATURES)
 
@@ -19,10 +24,6 @@ function parse_DOCP_solution_primal(docp, solution)
         xi, ui = get_NLP_variables_at_time_step(solution, docp, i-1)
         X[i,:] .= xi
         U[i,:] .= ui
-        #=
-        X[i,:] .= get_NLP_state_at_time_step(solution, docp, i-1)
-        U[i,:] .= get_control_at_time_step(solution, docp, i-1)
-        =#
     end
 
     return X, U, v
@@ -34,7 +35,6 @@ $(TYPEDSIGNATURES)
 
 Recover OCP costate from DOCP multipliers
 """
-# +++todo: parse multipliers for the path and boundary constraints (use tuples)
 function parse_DOCP_solution_dual(docp, multipliers)
 
     # constraints, costate and constraints multipliers
@@ -129,28 +129,14 @@ $(TYPEDSIGNATURES)
     
 Build OCP functional solution from DOCP vector solution (given as raw variables and multipliers plus some optional infos)
 """
-# +++ use tuples for more compact arguments
-
 # +++ try to reuse this for the discrete json solution !
 # USE SEVERAL METHODS DEPENDING ON AVAILABLE INFO !
-
-# +++ 1) pass only ocp first
-#function OCPSolutionFromDOCP_raw(ocp, ...)
-
-# 2) then only raw data
-# +++ this means dimensions, 
-# +++ ocp for copy! (-_-) ie dimensions also ?
-# +++ boolean indicators for various constraints types
-# (could check for nothing values instead ?)
-# add a tuple for dimensions
-# a tupple for indicators
-# and do the copy manually ?
-#function OCPSolutionFromDOCP_raw(ocp_data, ...)
+# rename as OCS constructor also ?
 function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     objective=0, iterations=0, constraints_violation=0,
     message="No msg", stopping=nothing, success=nothing,
-    sol_control_constraints=nothing, sol_state_constraints=nothing, sol_mixed_constraints=nothing, sol_variable_constraints=nothing, mult_control_constraints=nothing, mult_state_constraints=nothing, mult_mixed_constraints=nothing, mult_variable_constraints=nothing, mult_state_box_lower=nothing, 
-    mult_state_box_upper=nothing, mult_control_box_lower=nothing, mult_control_box_upper=nothing, mult_variable_box_lower=nothing, mult_variable_box_upper=nothing)
+    constraints_types=nothing, constraints_mult=nothing,
+    box_multipliers=nothing)
 
     ocp = docp.ocp
     dim_x = ocp.state_dimension()
@@ -176,89 +162,15 @@ function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     fp = (dim_x==1) ? deepcopy(t->p(t)[1]) : deepcopy(t->p(t))
     var = (dim_v==1) ? v[1] : v
 
-    #=
-    # generate ocp solution
-    #sol = OptimalControlSolution()
-    copy!(sol, ocp) # +++ use constructor with ocp as argument instead of this ?
-    sol.times = T
-    # use scalar output for x,u,v,p if dim=1
-    sol.state = (sol.state_dimension==1) ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t)) 
-    sol.costate = (sol.state_dimension==1) ? deepcopy(t -> p(t)[1]) : deepcopy(t -> p(t))
-    sol.control = (sol.control_dimension==1) ? deepcopy(t -> u(t)[1]) : deepcopy(t -> u(t))
-    sol.variable = (sol.variable_dimension==1) ? v[1] : v
-    sol.objective = objective
-    sol.iterations = iterations
-    sol.stopping = stopping
-    sol.message = message
-    sol.success  = success
-    sol.infos[:constraints_violation] = constraints_violation
-    =#
-
-    # Optional
+    # misc infos
     infos = Dict()
     infos[:constraints_violation] = constraints_violation
 
+    # +++ use proper fields instead of info
     # nonlinear constraints and multipliers
-    # +++ redo with proper fields in OptimalControlSolution
-    # +++ dimensions should be present already
-    set_constraint_block!(infos, T, sol_state_constraints, mult_state_constraints, :state_constraints, :mult_state_constraints)
-    set_constraint_block!(infos, T, sol_control_constraints, mult_control_constraints, :control_constraints, :mult_control_constraints)
-    set_constraint_block!(infos, T, sol_mixed_constraints, mult_mixed_constraints, :mixed_constraints, :mult_mixed_constraints)
-    set_variables_block!(infos, sol_variable_constraints, mult_variable_constraints, :variable_constraints, :mult_variable_constraints)
-    #=
-    if !isnothing(sol_state_constraints) && dim_state_constraints(ocp) > 0
-        cx = ctinterpolate(T, matrix2vec(sol_state_constraints, 1))
-        mcx = ctinterpolate(T, matrix2vec(mult_state_constraints, 1))
-        infos[:dim_state_constraints] = dim_state_constraints(ocp)    
-        infos[:state_constraints] = t -> cx(t)
-        infos[:mult_state_constraints] = t -> mcx(t)
-    end
-    if !isnothing(sol_control_constraints) && dim_control_constraints(ocp) > 0
-        cu = ctinterpolate(T, matrix2vec(sol_control_constraints, 1))
-        mcu = ctinterpolate(T, matrix2vec(mult_control_constraints, 1))
-        infos[:dim_control_constraints] = dim_control_constraints(ocp)  
-        infos[:control_constraints] = t -> cu(t)
-        infos[:mult_control_constraints] = t -> mcu(t)
-    end
-    if !isnothing(sol_mixed_constraints) && dim_mixed_constraints(ocp) > 0
-        cxu = ctinterpolate(T, matrix2vec(sol_mixed_constraints, 1))
-        mcxu = ctinterpolate(T, matrix2vec(mult_mixed_constraints, 1))
-        infos[:dim_mixed_constraints] = dim_mixed_constraints(ocp)    
-        infos[:mixed_constraints] = t -> cxu(t)
-        infos[:mult_mixed_constraints] = t -> mcxu(t)
-    end
-
-    if !isnothing(sol_variable_constraints) && dim_variable_constraints(ocp) > 0
-        infos[:dim_variable_constraints] = dim_variable_constraints(ocp)
-        infos[:variable_constraints] = sol_variable_constraints
-        infos[:mult_variable_constraints] = mult_variable_constraints
-    end
-    =#
-
+    set_constraints_and_multipliers!(infos, T, constraints_types, constraints_mult)
     # box constraints multipliers
-    set_box_block!(infos, T, mult_state_box_lower, mult_state_box_upper, :mult_state_box_lower, :mult_state_box_upper, ocp.state_dimension)
-    set_box_block!(infos, T, mult_control_box_lower, mult_control_box_upper, :mult_control_box_lower, :mult_control_box_upper, ocp.control_dimension)
-    set_variables_block!(infos, mult_variable_box_lower, mult_variable_box_upper, :mult_variable_box_lower, :mult_variable_box_upper)
-
-    #=
-    if !isnothing(mult_state_box_lower) && !isnothing(mult_state_box_upper) && dim_state_range(ocp) > 0
-        # remove additional state for lagrange cost
-        mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower[:,1:ocp.state_dimension], 1))
-        mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper[:,1:ocp.state_dimension], 1))
-        infos[:mult_state_box_lower] = t -> mbox_x_l(t)
-        infos[:mult_state_box_upper] = t -> mbox_x_u(t)    
-    end
-    if !isnothing(mult_control_box_lower) && !isnothing(mult_control_box_upper) && dim_control_range(ocp) > 0
-        mbox_u_l = ctinterpolate(T, matrix2vec(mult_control_box_lower, 1))
-        mbox_u_u = ctinterpolate(T, matrix2vec(mult_control_box_upper, 1))
-        infos[:mult_control_box_lower] = t -> mbox_u_l(t)
-        infos[:mult_control_box_upper] = t -> mbox_u_u(t)
-    end
-    if !isnothing(mult_variable_box_lower) && !isnothing(mult_variable_box_upper) && dim_variable_range(ocp) > 0
-        infos[:mult_variable_box_lower] = mult_variable_box_lower
-        infos[:mult_variable_box_upper] = mult_variable_box_upper 
-    end
-    =#
+    set_box_multipliers!(infos, T, box_multipliers, dim_x, dim_u)
 
     # build and return solution
     return OptimalControlSolution(ocp;
@@ -269,9 +181,30 @@ end
 """
 $(TYPEDSIGNATURES)
     
+Process data related to constraints for solution building
+"""
+function set_constraints_and_multipliers!(infos, T, constraints_types, constraints_mult)
+
+    # pure state contraints
+    set_constraint_block!(infos, T, (constraints_types[1], constraints_mult[1]), (:state_constraints, :mult_state_constraints))
+    # pure control constraints
+    set_constraint_block!(infos, T, (constraints_types[2], constraints_mult[2]), (:control_constraints, :mult_control_constraints))
+    # mixed constraints
+    set_constraint_block!(infos, T, (constraints_types[3], constraints_mult[3]), (:mixed_constraints, :mult_mixed_constraints))
+    # variable constraints
+    set_variables_block!(infos, (constraints_types[4], constraints_mult[4]), (:variable_constraints, :mult_variable_constraints))
+
+    return infos
+end
+
+"""
+$(TYPEDSIGNATURES)
+    
 Process data related to a constraint type for solution building
 """
-function set_constraint_block!(infos, T, constraint, multiplier, key_const, key_mult)
+function set_constraint_block!(infos, T, const_mult, keys)
+    constraint, multiplier = const_mult
+    key_const, key_mult = keys
     if !isnothing(constraint)
         c = ctinterpolate(T, matrix2vec(constraint, 1))
         m = ctinterpolate(T, matrix2vec(multiplier, 1))    
@@ -284,14 +217,33 @@ end
 """
 $(TYPEDSIGNATURES)
     
+Process data related to box constraints for solution building
+"""
+function set_box_multipliers!(infos, T, box_multipliers, dim_x, dim_u)
+
+    # state box
+    set_box_block!(infos, T, box_multipliers[1], (:mult_state_box_lower, :mult_state_box_upper), dim_x)
+    # control box
+    set_box_block!(infos, T, box_multipliers[2], (:mult_control_box_lower, :mult_control_box_upper), dim_u)
+    # variable box
+    set_variables_block!(infos, box_multipliers[3], (:mult_variable_box_lower, :mult_variable_box_upper))
+
+    return infos
+end
+
+"""
+$(TYPEDSIGNATURES)
+    
 Process data related to a box type for solution building
 """
-function set_box_block!(infos, T, mult_l, mult_u, key_l, key_u, dim)
+function set_box_block!(infos, T, mult, keys, dim)
+    mult_l, mult_u = mults
+    key_l, key_u = keys
     if !isnothing(mult_l) && !isnothing(mult_u) && dim > 0
         m_l = ctinterpolate(T, matrix2vec(mult_l[:,1:dim], 1))
         m_u = ctinterpolate(T, matrix2vec(mult_u[:,1:dim], 1))
-        infos[:key_l] = t -> m_l(t)
-        infos[:key_u] = t -> m_u(t)    
+        infos[key_l] = t -> m_l(t)
+        infos[key_u] = t -> m_u(t)    
     end
     return infos
 end
@@ -301,7 +253,9 @@ $(TYPEDSIGNATURES)
     
 Process data related to variables for solution building
 """
-function set_variables_block!(infos, vec1, vec2, key1, key2)
+function set_variables_block!(infos, vecs, keys)
+    vec1, vec2 = vecs
+    key1, key2 = keys
     if !isnothing(vec1) && !isnothing(vec2)
         infos[key1] = vec1
         infos[key2] = vec2 
@@ -309,8 +263,7 @@ function set_variables_block!(infos, vec1, vec2, key1, key2)
     return infos
 end
 
-#= +++todo: rewrite 3rd parser for box constraints (use tuples)
-
+#= 
 """
 $(TYPEDSIGNATURES)
 

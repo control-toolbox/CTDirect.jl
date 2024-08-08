@@ -4,9 +4,9 @@
 $(TYPEDSIGNATURES)
 
 Used to set the default grid size.
-The default value is `100`.
+The default value is `250`.
 """
-__grid_size() = 100
+__grid_size() = 250
 
 """
 $(TYPEDSIGNATURES)
