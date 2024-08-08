@@ -153,22 +153,32 @@ function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     mult_state_box_upper=nothing, mult_control_box_lower=nothing, mult_control_box_upper=nothing, mult_variable_box_lower=nothing, mult_variable_box_upper=nothing)
 
     ocp = docp.ocp
+    dim_x = ocp.state_dimension()
+    dim_u = ocp.control_dimension()
+    dim_v = ocp.variable_dimension()
 
     # check that time grid is strictly increasing
     # if not proceed with list of indexes as time grid
     if !issorted(T,lt=<=)
+        println("WARNING: time grid at solution is not strictly increasing, replacing with list of indices...")
         println(T)
-        println("WARNING: time grid at solution is not strictly increasing...")
         T = LinRange(0,docp.dim_NLP_steps,docp.dim_NLP_steps+1)
     end
 
     # variables: remove additional state for lagrange cost
-    x = ctinterpolate(T, matrix2vec(X[:,1:ocp.state_dimension], 1))
-    p = ctinterpolate(T[1:end-1], matrix2vec(P[:,1:ocp.state_dimension], 1))
+    x = ctinterpolate(T, matrix2vec(X[:,1:dim_x], 1))
+    p = ctinterpolate(T[1:end-1], matrix2vec(P[:,1:dim_x], 1))
     u = ctinterpolate(T, matrix2vec(U, 1))
+    
+    # force scalar output when dimension is 1
+    fx = (dim_x==1) ? deepcopy(t->x(t)[1]) : deepcopy(t->x(t))
+    fu = (dim_u==1) ? deepcopy(t->u(t)[1]) : deepcopy(t->u(t))
+    fp = (dim_x==1) ? deepcopy(t->p(t)[1]) : deepcopy(t->p(t))
+    var = (dim_v==1) ? v[1] : v
 
+    #=
     # generate ocp solution
-    sol = OptimalControlSolution()
+    #sol = OptimalControlSolution()
     copy!(sol, ocp) # +++ use constructor with ocp as argument instead of this ?
     sol.times = T
     # use scalar output for x,u,v,p if dim=1
@@ -182,58 +192,122 @@ function OCPSolutionFromDOCP_raw(docp, T, X, U, v, P;
     sol.message = message
     sol.success  = success
     sol.infos[:constraints_violation] = constraints_violation
+    =#
 
     # Optional
+    infos = Dict()
+    infos[:constraints_violation] = constraints_violation
+
     # nonlinear constraints and multipliers
+    # +++ redo with proper fields in OptimalControlSolution
+    # +++ dimensions should be present already
+    set_constraint_block!(infos, T, sol_state_constraints, mult_state_constraints, :state_constraints, :mult_state_constraints)
+    set_constraint_block!(infos, T, sol_control_constraints, mult_control_constraints, :control_constraints, :mult_control_constraints)
+    set_constraint_block!(infos, T, sol_mixed_constraints, mult_mixed_constraints, :mixed_constraints, :mult_mixed_constraints)
+    set_variables_block!(infos, sol_variable_constraints, mult_variable_constraints, :variable_constraints, :mult_variable_constraints)
+    #=
     if !isnothing(sol_state_constraints) && dim_state_constraints(ocp) > 0
         cx = ctinterpolate(T, matrix2vec(sol_state_constraints, 1))
         mcx = ctinterpolate(T, matrix2vec(mult_state_constraints, 1))
-        sol.infos[:dim_state_constraints] = dim_state_constraints(ocp)    
-        sol.infos[:state_constraints] = t -> cx(t)
-        sol.infos[:mult_state_constraints] = t -> mcx(t)
+        infos[:dim_state_constraints] = dim_state_constraints(ocp)    
+        infos[:state_constraints] = t -> cx(t)
+        infos[:mult_state_constraints] = t -> mcx(t)
     end
     if !isnothing(sol_control_constraints) && dim_control_constraints(ocp) > 0
         cu = ctinterpolate(T, matrix2vec(sol_control_constraints, 1))
         mcu = ctinterpolate(T, matrix2vec(mult_control_constraints, 1))
-        sol.infos[:dim_control_constraints] = dim_control_constraints(ocp)  
-        sol.infos[:control_constraints] = t -> cu(t)
-        sol.infos[:mult_control_constraints] = t -> mcu(t)
+        infos[:dim_control_constraints] = dim_control_constraints(ocp)  
+        infos[:control_constraints] = t -> cu(t)
+        infos[:mult_control_constraints] = t -> mcu(t)
     end
     if !isnothing(sol_mixed_constraints) && dim_mixed_constraints(ocp) > 0
         cxu = ctinterpolate(T, matrix2vec(sol_mixed_constraints, 1))
         mcxu = ctinterpolate(T, matrix2vec(mult_mixed_constraints, 1))
-        sol.infos[:dim_mixed_constraints] = dim_mixed_constraints(ocp)    
-        sol.infos[:mixed_constraints] = t -> cxu(t)
-        sol.infos[:mult_mixed_constraints] = t -> mcxu(t)
-    end
-    if !isnothing(sol_variable_constraints) && dim_variable_constraints(ocp) > 0
-        sol.infos[:dim_variable_constraints] = dim_variable_constraints(ocp)
-        sol.infos[:variable_constraints] = sol_variable_constraints
-        sol.infos[:mult_variable_constraints] = mult_variable_constraints
+        infos[:dim_mixed_constraints] = dim_mixed_constraints(ocp)    
+        infos[:mixed_constraints] = t -> cxu(t)
+        infos[:mult_mixed_constraints] = t -> mcxu(t)
     end
 
+    if !isnothing(sol_variable_constraints) && dim_variable_constraints(ocp) > 0
+        infos[:dim_variable_constraints] = dim_variable_constraints(ocp)
+        infos[:variable_constraints] = sol_variable_constraints
+        infos[:mult_variable_constraints] = mult_variable_constraints
+    end
+    =#
+
     # box constraints multipliers
+    set_box_block!(infos, T, mult_state_box_lower, mult_state_box_upper, :mult_state_box_lower, :mult_state_box_upper, ocp.state_dimension)
+    set_box_block!(infos, T, mult_control_box_lower, mult_control_box_upper, :mult_control_box_lower, :mult_control_box_upper, ocp.control_dimension)
+    set_variables_block!(infos, mult_variable_box_lower, mult_variable_box_upper, :mult_variable_box_lower, :mult_variable_box_upper)
+
+    #=
     if !isnothing(mult_state_box_lower) && !isnothing(mult_state_box_upper) && dim_state_range(ocp) > 0
         # remove additional state for lagrange cost
         mbox_x_l = ctinterpolate(T, matrix2vec(mult_state_box_lower[:,1:ocp.state_dimension], 1))
         mbox_x_u = ctinterpolate(T, matrix2vec(mult_state_box_upper[:,1:ocp.state_dimension], 1))
-        sol.infos[:mult_state_box_lower] = t -> mbox_x_l(t)
-        sol.infos[:mult_state_box_upper] = t -> mbox_x_u(t)    
+        infos[:mult_state_box_lower] = t -> mbox_x_l(t)
+        infos[:mult_state_box_upper] = t -> mbox_x_u(t)    
     end
     if !isnothing(mult_control_box_lower) && !isnothing(mult_control_box_upper) && dim_control_range(ocp) > 0
         mbox_u_l = ctinterpolate(T, matrix2vec(mult_control_box_lower, 1))
         mbox_u_u = ctinterpolate(T, matrix2vec(mult_control_box_upper, 1))
-        sol.infos[:mult_control_box_lower] = t -> mbox_u_l(t)
-        sol.infos[:mult_control_box_upper] = t -> mbox_u_u(t)
+        infos[:mult_control_box_lower] = t -> mbox_u_l(t)
+        infos[:mult_control_box_upper] = t -> mbox_u_u(t)
     end
     if !isnothing(mult_variable_box_lower) && !isnothing(mult_variable_box_upper) && dim_variable_range(ocp) > 0
-        sol.infos[:mult_variable_box_lower] = mult_variable_box_lower
-        sol.infos[:mult_variable_box_upper] = mult_variable_box_upper 
+        infos[:mult_variable_box_lower] = mult_variable_box_lower
+        infos[:mult_variable_box_upper] = mult_variable_box_upper 
     end
+    =#
 
-    return sol
+    # build and return solution
+    return OptimalControlSolution(ocp;
+    state=fx, control=fu, objective=objective, costate=fp, times=T, variable=var, iterations=iterations, stopping=stopping, message=message, success=success, infos=infos)
+
 end
 
+"""
+$(TYPEDSIGNATURES)
+    
+Process data related to a constraint type for solution building
+"""
+function set_constraint_block!(infos, T, constraint, multiplier, key_const, key_mult)
+    if !isnothing(constraint)
+        c = ctinterpolate(T, matrix2vec(constraint, 1))
+        m = ctinterpolate(T, matrix2vec(multiplier, 1))    
+        infos[key_const] = t -> c(t)
+        infos[key_mult] = t -> m(t)
+    end
+return infos
+end
+
+"""
+$(TYPEDSIGNATURES)
+    
+Process data related to a box type for solution building
+"""
+function set_box_block!(infos, T, mult_l, mult_u, key_l, key_u, dim)
+    if !isnothing(mult_l) && !isnothing(mult_u) && dim > 0
+        m_l = ctinterpolate(T, matrix2vec(mult_l[:,1:dim], 1))
+        m_u = ctinterpolate(T, matrix2vec(mult_u[:,1:dim], 1))
+        infos[:key_l] = t -> m_l(t)
+        infos[:key_u] = t -> m_u(t)    
+    end
+    return infos
+end
+
+"""
+$(TYPEDSIGNATURES)
+    
+Process data related to variables for solution building
+"""
+function set_variables_block!(infos, vec1, vec2, key1, key2)
+    if !isnothing(vec1) && !isnothing(vec2)
+        infos[key1] = vec1
+        infos[key2] = vec2 
+    end
+    return infos
+end
 
 #= +++todo: rewrite 3rd parser for box constraints (use tuples)
 

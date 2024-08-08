@@ -22,8 +22,8 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 """
 function direct_transcription(ocp::OptimalControlModel,
     description...;
-    init=nothing,
-    grid_size::Integer=__grid_size(),
+    init=CTBase.__ocp_init(),
+    grid_size=__grid_size(),
     time_grid=__time_grid())
 
     # build DOCP
@@ -69,9 +69,11 @@ struct MadNLPTag <: SolverTag end
 
 function solve_docp(solver_tag, args...; kwargs...)
     if typeof(solver_tag) == IpoptTag
-        error("Please execute `using NLPModelsIpopt` before calling the solve method.")
+        #error("Please execute `using NLPModelsIpopt` before calling the solve method.")
+        throw(ExtensionError("Please execute `using NLPModelsIpopt`"))
     elseif typeof(solver_tag) == MadNLPTag
-        error("Please execute `using MadNLP` before calling the solve method.")
+        #error("Please execute `using MadNLP` before calling the solve method.")
+        throw(ExtensionError("Please execute `using MadNLP`"))
     else
         error("Unknown solver type", typeof(solver_tag))
     end
