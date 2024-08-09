@@ -94,18 +94,11 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=not
     # loop over time steps
     for i in 1:N+1
         # state and control variables at current step
-        xi, ui = get_NLP_variables_at_time_step(solution, docp, i-1)
-        X[i,:] .= xi
-        U[i,:] .= ui
+        X[i,:], U[i,:] = get_NLP_variables_at_time_step(solution, docp, i-1)
 
         # box multipliers
-        xli, uli = get_NLP_variables_at_time_step(mult_LB, docp, i-1)
-        mult_state_box_lower[i,:] .= xli
-        mult_control_box_lower[i,:] .= uli
-
-        xui, uui = get_NLP_variables_at_time_step(mult_UB, docp, i-1)
-        mult_state_box_upper[i,:] .= xui
-        mult_control_box_upper[i,:] .= uui
+        mult_state_box_lower[i,:], mult_control_box_lower[i,:] = get_NLP_variables_at_time_step(mult_LB, docp, i-1)
+        mult_state_box_upper[i,:], mult_control_box_upper[i,:] = get_NLP_variables_at_time_step(mult_UB, docp, i-1)
 
     end
 
