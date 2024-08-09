@@ -33,35 +33,18 @@ function CTDirect.solve_docp(tag::CTDirect.MadNLPTag, docp::CTDirect.DOCP, nlp;
 end
 
 
-function CTBase.OptimalControlSolution(docp, docp_solution_madnlp::MadNLP.MadNLPExecutionStats)
-
-    # could pass some status info too (get_status ?)
-    solution = docp_solution_madnlp.solution
-
-    # time grid
-    N = docp.dim_NLP_steps
-    T = zeros(N+1)
-    for i=1:N+1
-        T[i] = CTDirect.get_unnormalized_time(solution, docp, docp.NLP_normalized_time_grid[i])
-    end
+function CTBase.OptimalControlSolution(docp, docp_solution::MadNLP.MadNLPExecutionStats)
 
     # adjust objective sign for maximization problems
     if is_min(docp.ocp)
-        objective = docp_solution_madnlp.objective
+        objective = docp_solution.objective
     else        
-        objective = - docp_solution_madnlp.objective
+        objective = - docp_solution.objective
     end
 
-    # recover primal variables
-    X, U, v = CTDirect.parse_DOCP_solution_primal(docp, solution)
+    # call lower level constructor
+    return OptimalControlSolution(docp, primal=docp_solution.solution, dual=docp_solution.multipliers, objective=objective, iterations=docp_solution.iter, constraints_violation=docp_solution.primal_feas, message="MadNLP", mult_LB=docp_solution.multipliers_L, mult_UB=docp_solution.multipliers_U)
 
-    # recover costate
-    P = CTDirect.parse_DOCP_solution_dual(docp, docp_solution_madnlp.multipliers)
-
-    # build and return OCP solution
-    return CTDirect.OCPSolutionFromDOCP_raw(docp, T, X, U, v, P,
-    objective=objective, iterations=docp_solution_madnlp.iter,constraints_violation=docp_solution_madnlp.primal_feas, 
-    message="MadNLP")
 end
 
 

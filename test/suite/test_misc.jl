@@ -75,7 +75,7 @@ end
 end
 
 # check solution building
-@testset verbose = true showtiming = true ":docp_solve :madnlp" begin
+@testset verbose = true showtiming = true ":check_solution :ipopt :madnlp" begin
     @def ocp begin
         t ∈ [ 0, 1 ], time
         x ∈ R², state
@@ -88,12 +88,14 @@ end
     x_opt = t -> [-1 + 6*(t^2 / 2 - t^3 / 3), 6*(t - t^2)]
     u_opt = t -> 6 - 12*t
     p_opt = t -> [12 , 6 - 12*t]
-    sol = direct_solve(ocp)
+    sol = direct_solve(ocp, display=false)
     T = sol.times
-    x_sol = sol.state
-    u_sol = sol.control
-    p_sol = sol.costate
-    @test isapprox(x_opt.(T), x_sol.(T), rtol=1e-2)
-    @test isapprox(u_opt.(T), u_sol.(T), rtol=1e-2)
-    @test isapprox(p_opt.(T), p_sol.(T), rtol=1e-2)
+    @test isapprox(x_opt.(T), sol.state.(T), rtol=1e-2)
+    @test isapprox(u_opt.(T), sol.control.(T), rtol=1e-2)
+    @test isapprox(p_opt.(T), sol.costate.(T), rtol=1e-2)
+    sol = direct_solve(ocp, :madnlp, display=false)
+    T = sol.times
+    @test isapprox(x_opt.(T), sol.state.(T), rtol=1e-2)
+    @test isapprox(u_opt.(T), sol.control.(T), rtol=1e-2)
+    @test isapprox(p_opt.(T), sol.costate.(T), rtol=1e-2)
 end
