@@ -1,34 +1,20 @@
 println("Test: discrete continuation")
-# +++ define problems in separate file
 
 test1 = true
 test2 = true
 test3 = true
 draw_plot = false
 
-# parametric ocp definition 
+# double integrator 
 if test1
-    function ocp_T(T)
-        @def ocp begin
-            t ∈ [ 0, T ], time
-            x ∈ R², state
-            u ∈ R, control
-            q = x₁
-            v = x₂
-            q(0) == 0
-            v(0) == 0
-            q(T) == 1
-            v(T) == 0
-            ẋ(t) == [ v(t), u(t) ]
-            ∫(u(t)^2) → min
-        end
-        return ocp
+    if !isdefined(Main, :double_integrator_T)
+        include("../problems/double_integrator.jl")
     end
-    @testset verbose = true showtiming = true ":parametric_ocp :warm_start" begin
+    @testset verbose = true showtiming = true ":continuation :double_integrator" begin
         init = ()
         obj_list = []
         for T=1:5
-            ocp = ocp_T(T) 
+            ocp = double_integrator_T(T).ocp 
             sol = direct_solve(ocp, display=false, init=init)
             init = sol
             push!(obj_list, sol.objective)
@@ -38,37 +24,17 @@ if test1
 end
 
 
-# parametric ocp definition
+# parametric
 if test2
-    relu(x) = max(0, x)
-    μ = 10
-    p_relu(x) = log(abs(1 + exp(μ*x)))/μ
-    f(x) = 1-x
-    m(x) = (p_relu∘f)(x)
-    T = 2
-    function myocp(ρ)
-        @def ocp begin
-            τ ∈ R, variable
-            s ∈ [ 0, 1 ], time
-            x ∈ R², state
-            u ∈ R², control
-            x₁(0) == 0
-            x₂(0) == 1
-            x₁(1) == 1
-            ẋ(s) == [τ*(u₁(s)+2), (T-τ)*u₂(s)]
-            -1 ≤ u₁(s) ≤ 1
-            -1 ≤ u₂(s) ≤ 1
-            0 ≤ τ ≤ T
-            -(x₂(1)-2)^3 - ∫( ρ * ( τ*m(x₁(s))^2 + (T-τ)*m(x₂(s))^2 ) ) → min
-        end
-        return ocp
+    if !isdefined(Main, :parametric)
+        include("../problems/parametric.jl")
     end
 
-    @testset verbose = true showtiming = true ":parametric_ocp :warm_start" begin
+    @testset verbose = true showtiming = true ":continuation :parametric_ocp" begin
         init = ()
         obj_list = []
         for ρ in [0.1, 5, 10, 30, 100]
-            ocp = myocp(ρ)
+            ocp = parametric(ρ).ocp
             sol = direct_solve(ocp, display=false, init=init)
             init = sol
             push!(obj_list, sol.objective)
@@ -78,11 +44,14 @@ if test2
 end
 
 
-# parametric ocp definition
+# goddard
 if test3
+    if !isdefined(Main, :goddard)
+        include("../problems/goddard.jl")
+    end
     sol0 = direct_solve(goddard().ocp, display=false)
 
-    @testset verbose = true showtiming = true ":global_variable :warm_start" begin
+    @testset verbose = true showtiming = true ":continuation :goddard" begin
         sol = sol0
         Tmax_list = []
         obj_list = []

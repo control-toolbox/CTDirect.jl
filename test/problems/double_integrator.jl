@@ -18,6 +18,25 @@ function double_integrator_a()
     return ((ocp=ocp, obj=2.0, name="double_integrator_a", init=nothing))
 end
 
+
+function double_integrator_T(T)
+    @def ocp begin
+        t ∈ [ 0, T ], time
+        x ∈ R², state
+        u ∈ R, control
+        q = x₁
+        v = x₂
+        q(0) == 0
+        v(0) == 0
+        q(T) == 1
+        v(T) == 0
+        ẋ(t) == [ v(t), u(t) ]
+        ∫(u(t)^2) → min
+    end
+
+    return ((ocp=ocp, obj=nothing, name="double_integrator_T", init=nothing))
+end
+
 # min tf
 function double_integrator_mintf(;lagrange=false)
 
