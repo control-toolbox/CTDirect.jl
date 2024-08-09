@@ -8,10 +8,10 @@ Build OCP functional solution from DOCP discrete solution (given as a SolverCore
 function CTBase.OptimalControlSolution(docp, docp_solution)
 
     # retrieve data (could pass some status info too (get_status ?))
-    if is_min(docp.ocp)
-        objective = docp_solution.objective
-    else        
+    if docp.has_maximization
         objective = - docp_solution.objective
+    else        
+        objective = docp_solution.objective
     end
 
     # call lower level constructor
@@ -39,6 +39,9 @@ function CTBase.OptimalControlSolution(docp; primal=Vector(), dual=nothing, obje
 
     # recompute / check objective
     objective_r = DOCP_objective(primal, docp)
+    if docp.has_maximization
+        objective_r = - objective_r
+    end
     if isnothing(objective)
         objective = objective_r
     elseif abs((objective-objective_r)/objective) > 1e-2

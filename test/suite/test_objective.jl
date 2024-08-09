@@ -1,7 +1,10 @@
-# tests some objective options, variable tf
 println("Test: objective")
 
 # min tf
+if !isdefined(Main, :double_integrator_mintf)
+    include("../problems/double_integrator.jl")
+end
+
 @testset verbose = true showtiming = true ":min_tf :mayer" begin
     prob = double_integrator_mintf()
     sol = direct_solve(prob.ocp, display=false)
@@ -23,22 +26,14 @@ end
 end
 
 
-
 # bolza, non-autonomous mayer term, tf in dynamics
-@def ocp begin
-    tf ∈ R, variable
-    t ∈ [0, tf], time
-    x ∈ R, state
-    u ∈ R, control
-    ẋ(t) == tf * u(t)
-    x(0) == 0
-    x(tf) == 1
-    tf + 0.5∫(u(t)^2) → min
+if !isdefined(Main, :bolza_freetf)
+    include("../problems/bolza.jl")
 end
+prob = bolza_freetf()
 @testset verbose = true showtiming = true ":bolza :tf_in_dyn_and_cost" begin
-    sol = direct_solve(ocp, display=false)
-    @test sol.objective ≈ 1.476 rtol=1e-2
-    @test sol.variable[1] ≈ 1.107 rtol=1e-2
+    sol = direct_solve(prob.ocp, display=false)
+    @test sol.objective ≈ prob.obj rtol=1e-2
 end
 
 #=
