@@ -25,7 +25,6 @@ end
     @test sol.objective ≈ prob.obj rtol=1e-2
 end
 
-
 # bolza, non-autonomous mayer term, tf in dynamics
 if !isdefined(Main, :bolza_freetf)
     include("../problems/bolza.jl")
