@@ -1,5 +1,3 @@
-# move to src
-
 # Benchmark
 include("../test/deps.jl")
 using Printf
@@ -7,6 +5,14 @@ using Printf
 using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
 
 using MadNLPMumps
+
+#######################################################
+# load examples library
+problem_path = pwd()*"/test/problems"
+for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
+    include(problem_file)
+end
+
 
 function bench(;nlp_solver = :ipopt, linear_solver = nothing,
     tol=1e-8, grid_size=1000, precompile = true, display=false, verbose=true)
@@ -31,13 +37,6 @@ function bench(;nlp_solver = :ipopt, linear_solver = nothing,
 
     # settings
     verbose && @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
-
-    #######################################################
-    # load examples library
-    problem_path = pwd()*"/test/problems"
-    for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
-        include(problem_file)
-    end
 
     # load problems for benchmark
     names_list = ["beam", "bioreactor_1day", "fuller", "goddard", "jackson", "vanderpol"]

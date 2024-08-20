@@ -16,6 +16,7 @@ include("default.jl")
 include("problem.jl")
 include("solution.jl")
 include("solve.jl")
+#include("benchmark.jl")
 
 # exports
 export available_methods
