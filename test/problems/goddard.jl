@@ -48,7 +48,52 @@ function goddard(;vmax=0.1, Tmax=3.5, functional_constraints=false)
     return ((ocp=goddard, obj=1.01257, name="goddard", init=(state=[1.01,0.05,0.8],)))
 end
 
-# abstratc definition
+
+# all constraint types formulation
+function goddard_all()
+    # constants
+    Cd = 310
+    beta = 500
+    b = 2
+    r0 = 1
+    v0 = 0
+    m0 = 1
+    mf = 0.6
+    x0 = [ r0, v0, m0 ]
+    vmax = 0.1
+    Tmax = 3.5
+
+    #ocp
+    goddard = Model(variable=true)
+    state!(goddard, 3)
+    control!(goddard, 1)
+    variable!(goddard, 1)
+    time!(goddard, t0=0, indf=1)
+    # initial constraint
+    constraint!(goddard, :initial, val=x0)
+    # final constraint
+    constraint!(goddard, :final, rg=3, val=mf)
+    # state box (active at t0 and tf)
+    constraint!(goddard, :state, rg=1:2, lb=[r0,v0], ub=[Inf,Inf])
+    # control box (active on last bang arc)
+    constraint!(goddard, :control, lb=0, ub=Inf)
+    # variable box (inactive)
+    constraint!(goddard, :variable, lb=0.01, ub=Inf)
+    # state constraint (active on constrained arc)
+    constraint!(goddard, :state, f=(x,v)->x[2], lb=-Inf, ub=vmax)
+    # control constraint (active on first bang arc)
+    constraint!(goddard, :control, f=(u,v)->u, lb=-Inf, ub=1)
+    # 'mixed' constraint (active at tf)
+    constraint!(goddard, :mixed, f=(x,u,v)->x[3], lb=mf, ub=Inf)
+    objective!(goddard, :mayer,  (x0, xf, v) -> xf[1], :max)
+    dynamics!(goddard, (x, u, v) -> F0(x, Cd, beta) + u*F1(x, Tmax, b) )
+
+    return ((ocp=goddard, obj=1.01257, name="goddard_all", init=(state=[1.01,0.05,0.8],)))
+end
+
+
+
+# abstract definition
 function goddard_a(;vmax=0.1, Tmax=3.5)
     # constants
     Cd = 310
