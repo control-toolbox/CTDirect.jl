@@ -1,3 +1,5 @@
+# move to src
+
 # Benchmark
 include("../test/deps.jl")
 using Printf
@@ -7,7 +9,7 @@ using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
 using MadNLPMumps
 
 function bench(;nlp_solver = :ipopt, linear_solver = nothing,
-    tol=1e-8, grid_size=1000, precompile = true, display=false)
+    tol=1e-8, grid_size=1000, precompile = true, display=false, verbose=true)
 
     #######################################################
     # set (non) linear solvers and backends
@@ -22,13 +24,13 @@ function bench(;nlp_solver = :ipopt, linear_solver = nothing,
         linear_solver = "UmfpackSolver"
     end
 
-    @printf("Profile: NLP Solver %s with linear solver %s\n", nlp_solver, linear_solver)
+    verbose && @printf("Profile: NLP Solver %s with linear solver %s\n", nlp_solver, linear_solver)
 
     # blas backend (cf using MKL above, should be option...)
-    @printf("Blas config: %s\n", LinearAlgebra.BLAS.lbt_get_config())
+    verbose && @printf("Blas config: %s\n", LinearAlgebra.BLAS.lbt_get_config())
 
     # settings
-    @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
+    verbose && @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
 
     #######################################################
     # load examples library
@@ -42,34 +44,31 @@ function bench(;nlp_solver = :ipopt, linear_solver = nothing,
     problem_list = []
     for problem_name in names_list
         ocp_data = getfield(Main, Symbol(problem_name))()
-        #@printf("%s ", ocp_data.name)
         push!(problem_list,ocp_data)
     end
-    #println("")
 
     #######################################################
     # precompile if required
     if precompile
         t_precomp = 0.
-        print("Precompilation: ")
+        verbose && print("Precompilation: ")
         for problem in problem_list
-            @printf("%s ",problem[:name])
-            t = @elapsed solve(problem[:ocp], nlp_solver, linear_solver=linear_solver, max_iter=0, display=display)
+            verbose && @printf("%s ",problem[:name])
+            t = @elapsed direct_solve(problem[:ocp], nlp_solver, linear_solver=linear_solver, max_iter=0, display=display)
             t_precomp += t
         end
-        @printf("\nPrecompilation total time %6.2f\n\n",t_precomp)
+        verbose && @printf("\nPrecompilation total time %6.2f\n\n",t_precomp)
     end
 
     #######################################################
     # solve examples with timer and objective check
     t_list = []
-    #println("Benchmark:")
     for problem in problem_list
-        t = @elapsed sol = solve(problem[:ocp], nlp_solver, init=problem[:init], display=display, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
+        t = @elapsed sol = direct_solve(problem[:ocp], nlp_solver, init=problem[:init], display=display, linear_solver=linear_solver, grid_size=grid_size, tol=tol)
         if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol=5e-2)
             error("Objective mismatch for ", problem[:name], ": ", sol.objective, " instead of ", problem[:obj])
         else
-            @printf("%-30s completed in %6.2f s after %4d iterations\n",problem[:name],t,sol.iterations)
+            verbose && @printf("%-30s completed in %6.2f s after %4d iterations\n",problem[:name],t,sol.iterations)
             append!(t_list,t)
         end
     end
@@ -77,9 +76,39 @@ function bench(;nlp_solver = :ipopt, linear_solver = nothing,
     #######################################################
     # print total time
     total_time = sum(t_list)
-    @printf("\nTotal time (s): %6.2f", total_time)
+    verbose && @printf("\nTotal time (s): %6.2f\n", total_time)
 
     # return also full text ouptut ?
     return total_time
 
+end
+
+# +++ put repeat directly in bench()
+function bench_average(; repeat=2, verbose=false, kwargs...)
+
+    # execute series of benchmark runs
+    t_list = []
+    for i in 1:repeat
+        t = bench(;verbose=verbose, kwargs...)
+        append!(t_list, t)
+        @printf("Run %d / %d: time (s) = %6.2f\n", i, repeat, t)
+    end
+   
+    # print / return average total time
+    avg_time = sum(t_list) / length(t_list)
+    @printf("Average time (s): %6.2f\n", avg_time)
+    return avg_time
+
+end
+
+
+function bench_series(;grid_size_list=[250, 500, 1000, 2500, 5000, 10000], kwargs...)
+    println(grid_size_list)
+    t_list = []
+    for grid_size in grid_size_list
+        t = bench_average(;grid_size=grid_size, kwargs...)
+        append!(t_list, t)
+        @printf("Grid size %d: time (s) = %6.2f\n\n", grid_size, t)
+    end
+    return t_list
 end
