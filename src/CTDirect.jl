@@ -3,7 +3,7 @@ module CTDirect
 using CTBase
 using DocStringExtensions
 using ADNLPModels               # docp model with AD
-using LinearAlgebra             # norm
+using LinearAlgebra             # norm and misc
 
 import CTBase: OptimalControlSolution, CTBase   # extended
 
@@ -16,6 +16,7 @@ include("default.jl")
 include("problem.jl")
 include("solution.jl")
 include("solve.jl")
+#include("benchmark.jl")
 
 # exports
 export available_methods
