@@ -5,7 +5,7 @@ if !isdefined(Main, :goddard)
 end
 
 # constraints / multipliers check
-check_constraint_mult = true 
+check_constraint_mult = false
 
 
 #=
