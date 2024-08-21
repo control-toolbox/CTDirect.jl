@@ -21,13 +21,29 @@
 [deps-img]: https://juliahub.com/docs/General/CTDirect/stable/deps.svg
 [deps-url]: https://juliahub.com/ui/Packages/General/CTDirect?t=2
 
-The CTDirect.jl package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
-The control-toolbox ecosystem gathers Julia packages for mathematical control and applications. The root package is [OptimalControl.jl](https://github.com/control-toolbox/OptimalControl.jl) which aims to provide tools to modelise and solve optimal control problems by direct and indirect methods. [![doc OptimalControl.jl](https://img.shields.io/badge/doc-OptimalControl.jl-blue)](http://control-toolbox.org/OptimalControl.jl)
+[licence-img]: https://img.shields.io/badge/License-MIT-yellow.svg
+[licence-url]: https://github.com/control-toolbox/CTDirect.jl/blob/master/LICENSE
 
-| **Documentation**  | **Code Status**  | **Release**  |
-|:-------------------|:-----------------|:-------------|
-| [![Documentation][doc-stable-img]][doc-stable-url] [![Documentation][doc-dev-img]][doc-dev-url] | [![Build Status][ci-img]][ci-url] [![Covering Status][co-img]][co-url] [![pkgeval][pkg-eval-img]][pkg-eval-url] [![deps][deps-img]][deps-url] | [![version][release-img]][release-url] |
+The CTDirect.jl package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
+The control-toolbox ecosystem gathers Julia packages for mathematical control and applications. The root package is [OptimalControl.jl](https://github.com/control-toolbox/OptimalControl.jl) which aims to provide tools to modelise and solve optimal control problems with ordinary differential equations by direct and indirect methods.
+
+[![doc OptimalControl.jl](https://img.shields.io/badge/Documentation-OptimalControl.jl-blue)](http://control-toolbox.org/OptimalControl.jl)
+
+| **Name**          | **Badge**         |
+:-------------------|:------------------|
+| Documentation     | [![Documentation][doc-stable-img]][doc-stable-url] [![Documentation][doc-dev-img]][doc-dev-url]                   | 
+| Code Status       | [![Build Status][ci-img]][ci-url] [![Covering Status][co-img]][co-url] [![pkgeval][pkg-eval-img]][pkg-eval-url]   |
+| Dependencies      | [![deps][deps-img]][deps-url] |
+| Licence           | [![License: MIT][licence-img]][licence-url]   |
+| Release           | [![Release][release-img]][release-url]        |
 
 ## Installation
 
-To install a package from the control-toolbox ecosystem, please visit the [installation page](https://github.com/control-toolbox#installation).
+To install CTDirect.jl please 
+<a href="https://docs.julialang.org/en/v1/manual/getting-started/">open Julia's interactive session (known as REPL)</a> 
+and press <kbd>]</kbd> key in the REPL to use the package mode, then add the package:
+
+```julia
+julia> ]
+pkg> add CTDirect
+```
