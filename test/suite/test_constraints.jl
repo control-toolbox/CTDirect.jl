@@ -37,7 +37,7 @@ end
 
 if check_constraint_mult
     using SplitApplyCombine
-    ocp = goddard_all()
+    ocp = goddard_a()
     sol = direct_solve(ocp.ocp, display=false, init=ocp.init)
 
     # plot state, control and costate
@@ -45,9 +45,8 @@ if check_constraint_mult
 
     # check constraints and multipliers
     T = sol.times
-    
-    # +++ parse and plot constraints
 
+    # POINT CONSTRAINTS
     # boundary constraints (NB. ORDERING IS NOT OBVIOUS)
     println("Boundary constraints: ", sol.infos[:boundary_constraints])
     println("multipliers: ", sol.infos[:mult_boundary_constraints])
@@ -57,35 +56,40 @@ if check_constraint_mult
     println("multipliers: ", sol.infos[:mult_variable_constraints])
     println("\nVariable box multipliers LB: ", sol.infos[:mult_variable_box_lower], " UB ", sol.infos[:mult_variable_box_upper])
 
-    # box constraints
+    # PATH CONSTRAINTS
     # state box
-    # NB SCALE IS BAD plot variable then multipliers below (split 2x1 graph)
     x = invert(sol.state.(T))
     x_box_lb = invert(sol.infos[:mult_state_box_lower].(T))
     x_box_ub = invert(sol.infos[:mult_state_box_upper].(T))
-    p1 = plot(T, x[1], label="state r")    
-    p1 = plot!(T, x_box_lb[1], label="LB multiplier")
-    p1 = plot!(T, x_box_ub[1], label="UB multiplier")
-    p2 = plot(T, x[2], label="state v")
-    p2 = plot!(T, x_box_lb[2], label="LB multiplier")
-    p2 = plot!(T, x_box_ub[2], label="UB multiplier")
-    p3 = plot(T, x[3], label="state m")    
-    p3 = plot!(T, x_box_lb[3], label="LB multiplier")
-    p3 = plot!(T, x_box_ub[3], label="UB multiplier")
-    display(p3)
+
+    p1_a = plot(T, x[1], label="state r")    
+    p1_b = plot(T, [x_box_lb[1] x_box_ub[1]], label=["LB multiplier" "UB multiplier"])
+    p1 = plot(p1_a, p1_b, layout=(2,1))
+
+    p2_a = plot(T, x[2], label="state v")
+    p2_b = plot(T, [x_box_lb[2] x_box_ub[2]], label=["LB multiplier" "UB multiplier"])
+    p2 = plot(p2_a, p2_b, layout=(2,1))
+
+    p3_a = plot(T, x[3], label="state m")
+    p3_b = plot(T, [x_box_lb[3] x_box_ub[3]], label=["LB multiplier" "UB multiplier"])
+    p3 = plot(p3_a, p3_b, layout=(2,1))
+
     # control box
     u = sol.control.(T)
     u_box_lb = flatten(sol.infos[:mult_control_box_lower].(T))
     u_box_ub = flatten(sol.infos[:mult_control_box_upper].(T))
-    p4 = plot(T, u, label="control u")    
-    p4 = plot!(T, u_box_lb, label="LB multiplier")
-    p4 = plot!(T, u_box_ub, label="UB multiplier")
-    display(p4)
+    p4_a = plot(T, u, label="control u")    
+    p4_b = plot(T, [u_box_lb u_box_ub], label=["LB multiplier" "UB multiplier"])
+    p4 = plot(p4_a, p4_b, layout=(2,1))
 
-    # overall use 2x2 plot for x,u boxes
-
+    # display all graphs together
+    p = plot(p1, p2, p3, p4, title=["r box" "" "v box" "" "m box" "" "u box" ""])
+    display(p)
 
     # nonlinear path constraints
+    # control constraints
+    # state constraints
+    # mixed constraints
 
 
 end
