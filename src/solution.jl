@@ -126,20 +126,20 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
     dcc = dim_control_constraints(ocp)
     dsc = dim_state_constraints(ocp)
     dmc = dim_mixed_constraints(ocp)
-    dvc = dim_variable_constraints(ocp)
     dbc = dim_boundary_constraints(ocp)
+    dvc = dim_variable_constraints(ocp)
 
-    sol_state_constraints = zeros(N+1,dsc)
     sol_control_constraints = zeros(N+1,dcc)
-    sol_mixed_constraints = zeros(N+1,dmc) 
-    sol_variable_constraints = zeros(dvc)
+    sol_state_constraints = zeros(N+1,dsc)
+    sol_mixed_constraints = zeros(N+1,dmc)
     sol_boundary_constraints = zeros(dbc)
+    sol_variable_constraints = zeros(dvc)
 
-    mult_state_constraints = zeros(N+1,dsc)
-    mult_control_constraints = zeros(N+1,dcc)
-    mult_mixed_constraints = zeros(N+1,dmc)
-    mult_variable_constraints = zeros(dvc)
-    mult_boundary_constraints = zeros(dbc)
+    mul_control_constraints = zeros(N+1,dcc)
+    mul_state_constraints = zeros(N+1,dsc)
+    mul_mixed_constraints = zeros(N+1,dmc)
+    mul_boundary_constraints = zeros(dbc)
+    mul_variable_constraints = zeros(dvc)
 
     # if called with multipliers = nothing, fill with zeros
     if isnothing(multipliers) 
@@ -154,6 +154,7 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
         # state equation multiplier for costate (except last step)
         if i < N+1 
             P[i,:] = multipliers[i_m : i_m+docp.dim_NLP_x-1]
+            i_c += docp.dim_NLP_x # skip dynamics constraints
             i_m += docp.dim_NLP_x
         end
 
@@ -161,21 +162,21 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
         # pure control constraints
         if dcc > 0
             sol_control_constraints[i,:] = constraints[i_c : i_c+dcc-1]
-            mult_control_constraints[i,:] = multipliers[i_m : i_m+dcc-1]
+            mul_control_constraints[i,:] = multipliers[i_m : i_m+dcc-1]
             i_c += dcc
             i_m += dcc
         end
         # pure state constraints
         if dsc > 0
             sol_state_constraints[i,:] = constraints[i_c : i_c+dsc-1]
-            mult_state_constraints[i,:] = multipliers[i_m : i_m+dsc-1]
+            mul_state_constraints[i,:] = multipliers[i_m : i_m+dsc-1]
             i_c += dsc
             i_m += dsc
         end
         # mixed constraints
         if dmc > 0
             sol_mixed_constraints[i,:] = constraints[i_c : i_c+dmc-1]
-            mult_mixed_constraints[i,:] = multipliers[i_m : i_m+dmc-1]
+            mul_mixed_constraints[i,:] = multipliers[i_m : i_m+dmc-1]
             i_c += dmc
             i_m += dmc
         end
@@ -185,20 +186,20 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
     # pointwise constraints: boundary then variables
     if dbc > 0
         sol_boundary_constraints[:] = constraints[i_c : i_c+dbc-1]
-        mult_boundary_constraints[:] = multipliers[i_m : i_m+dbc-1]
+        mul_boundary_constraints[:] = multipliers[i_m : i_m+dbc-1]
         i_c += dbc
         i_m += dbc
     end
     if dvc > 0
         sol_variable_constraints[:] = constraints[i_c : i_c+dvc-1]
-        mult_variable_constraints[:] = multipliers[i_m : i_m+dvc-1]
+        mul_variable_constraints[:] = multipliers[i_m : i_m+dvc-1]
         i_c += dvc
         i_m += dvc
     end    
 
     # return tuples
-    constraints_types = (sol_state_constraints, sol_control_constraints,  sol_mixed_constraints, sol_variable_constraints, sol_boundary_constraints)
-    constraints_mult = (mult_state_constraints, mult_control_constraints, mult_mixed_constraints, mult_variable_constraints, mult_boundary_constraints)
+    constraints_types = (sol_control_constraints, sol_state_constraints,  sol_mixed_constraints, sol_boundary_constraints, sol_variable_constraints)
+    constraints_mult = (mul_control_constraints, mul_state_constraints, mul_mixed_constraints, mul_boundary_constraints, mul_variable_constraints)
 
     return P, constraints_types, constraints_mult
 end
@@ -265,15 +266,17 @@ Process data related to constraints for solution building
 function set_constraints_and_multipliers!(infos, T, constraints_types, constraints_mult)
 
     # keys list: state, control, mixed, variable, boundary
-    key_list = ((:state_constraints, :mult_state_constraints),
-                (:control_constraints, :mult_control_constraints),
+    key_list = ((:control_constraints, :mult_control_constraints),
+                (:state_constraints, :mult_state_constraints),
                 (:mixed_constraints, :mult_mixed_constraints),
-                (:variable_constraints, :mult_variable_constraints),
-                (:boundary_constraints, :mult_boundary_constraints))
+                (:boundary_constraints, :mult_boundary_constraints),
+                (:variable_constraints, :mult_variable_constraints))
 
+    # control, state, mixed constraints
     for i=1:3
         set_constraint_block!(infos, T, (constraints_types[i], constraints_mult[i]), key_list[i])
     end
+    # boundary and variable constraints
     for i=4:5
         set_variables_block!(infos, (constraints_types[i], constraints_mult[i]), key_list[i])
     end
