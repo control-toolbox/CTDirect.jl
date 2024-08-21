@@ -74,7 +74,7 @@ function goddard_all()
     # final constraint
     constraint!(goddard, :final, rg=3, val=mf)
     # state box (active at t0 and tf)
-    constraint!(goddard, :state, rg=1:2, lb=[r0,v0], ub=[Inf,Inf])
+    constraint!(goddard, :state, lb=[r0,v0,0], ub=[Inf,Inf,m0])
     # control box (active on last bang arc)
     constraint!(goddard, :control, lb=0, ub=Inf)
     # variable box (inactive)
