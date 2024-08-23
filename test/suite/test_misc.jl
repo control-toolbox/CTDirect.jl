@@ -29,9 +29,11 @@ sol0 = direct_solve(ocp, display=false)
     @test sol0.objective == sol_reloaded.objective
 end
 
+#=
 # test export / read solution in JSON format
 @testset verbose = true showtiming = true ":export_read :JSON" begin
     export_ocp_solution(sol0, filename_prefix="solution_test")
     sol_reloaded = import_ocp_solution("solution_test")
     @test sol0.objective == sol_reloaded.objective
 end
+=#

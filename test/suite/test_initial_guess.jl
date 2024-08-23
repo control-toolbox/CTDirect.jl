@@ -5,10 +5,10 @@ maxiter = 0
 
 # test functions
 function check_xf(sol, xf)
-    return xf == sol.state(sol.times[end])
+    return xf == sol.state(sol.time_grid[end])
 end
 function check_uf(sol, uf)
-    return uf == sol.control(sol.times[end])
+    return uf == sol.control(sol.time_grid[end])
 end
 function check_v(sol, v)
     return v == sol.variable
@@ -84,15 +84,15 @@ end
 # 1. functional initial guess
 @testset verbose = true showtiming = true ":functional_x" begin
     sol = direct_solve(ocp, display=false, init=(state=x_func,), max_iter=maxiter)
-    @test(check_xf(sol, x_func(sol.times[end])))
+    @test(check_xf(sol, x_func(sol.time_grid[end])))
 end
 @testset verbose = true showtiming = true ":functional_u" begin
     sol = direct_solve(ocp, display=false, init=(control=u_func,), max_iter=maxiter)
-    @test(check_uf(sol, u_func(sol.times[end])))
+    @test(check_uf(sol, u_func(sol.time_grid[end])))
 end
 @testset verbose = true showtiming = true ":functional_xu" begin
     sol = direct_solve(ocp, display=false, init=(state=x_func, control=u_func), max_iter=maxiter)
-    @test(check_xf(sol, x_func(sol.times[end])) && check_uf(sol, u_func(sol.times[end])))
+    @test(check_xf(sol, x_func(sol.time_grid[end])) && check_uf(sol, u_func(sol.time_grid[end])))
 end
 
 # 1.d interpolated initial guess
@@ -114,13 +114,13 @@ end
 # 1.e mixed initial guess
 @testset verbose = true showtiming = true ":vector_tx :functional_u :constant_v" begin
     sol = direct_solve(ocp, display=false, init=(time=t_vec, state=x_vec, control=u_func, variable=v_const), max_iter=maxiter)
-    @test(check_xf(sol, x_vec[end]) && check_uf(sol, u_func(sol.times[end])) && check_v(sol, v_const))
+    @test(check_xf(sol, x_vec[end]) && check_uf(sol, u_func(sol.time_grid[end])) && check_v(sol, v_const))
 end
 
 # 1.f warm start
 @testset verbose = true showtiming = true ":warm_start" begin
     sol = direct_solve(ocp, display=false, init=sol0, max_iter=maxiter)
-    @test(check_xf(sol, sol.state(sol.times[end])) && check_uf(sol, sol.control(sol.times[end])) && check_v(sol, sol.variable))
+    @test(check_xf(sol, sol.state(sol.time_grid[end])) && check_uf(sol, sol.control(sol.time_grid[end])) && check_v(sol, sol.variable))
 end
 
 #################################################
@@ -132,12 +132,12 @@ tag = CTDirect.IpoptTag()
     set_initial_guess(docp, nlp, (time=t_vec, state=x_vec, control=u_func, variable=v_const))
     dsol = CTDirect.solve_docp(tag, docp, nlp, display=false, max_iter=maxiter)
     sol = OptimalControlSolution(docp, dsol)
-    @test(check_xf(sol, x_vec[end]) && check_uf(sol, u_func(sol.times[end])) && check_v(sol, v_const))
+    @test(check_xf(sol, x_vec[end]) && check_uf(sol, u_func(sol.time_grid[end])) && check_v(sol, v_const))
 end
 # warm start
 @testset verbose = true showtiming = true ":docp_warm_start" begin
     set_initial_guess(docp, nlp, sol0)
     dsol = CTDirect.solve_docp(tag, docp, nlp, display=false, max_iter=maxiter)
     sol = OptimalControlSolution(docp, dsol)
-    @test(check_xf(sol, sol.state(sol.times[end])) && check_uf(sol, sol.control(sol.times[end])) && check_v(sol, sol.variable))
+    @test(check_xf(sol, sol.state(sol.time_grid[end])) && check_uf(sol, sol.control(sol.time_grid[end])) && check_v(sol, sol.variable))
 end

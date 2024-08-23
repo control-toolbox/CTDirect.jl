@@ -210,7 +210,6 @@ $(TYPEDSIGNATURES)
     
 Build OCP functional solution from DOCP vector solution (given as raw variables and multipliers plus some optional infos)
 """
-# try to reuse this for the discrete json solution ?
 function CTBase.OptimalControlSolution(docp, T, X, U, v, P;
     objective=0, iterations=0, constraints_violation=0, message="No msg", stopping=nothing, success=nothing,
     constraints_types=(nothing,nothing,nothing,nothing,nothing),
@@ -245,15 +244,32 @@ function CTBase.OptimalControlSolution(docp, T, X, U, v, P;
     infos = Dict{Symbol,Any}()
     infos[:constraints_violation] = constraints_violation
 
-    # NB later use proper fields instead of info
+    # +++ put interpolations here directly
     # nonlinear constraints and multipliers
-    set_constraints_and_multipliers!(infos, T, constraints_types, constraints_mult)
+    (control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_boundary_constraints, mult_variable_constraints) = set_constraints_and_multipliers(T, constraints_types, constraints_mult)
     # box constraints multipliers
-    set_box_multipliers!(infos, T, box_multipliers, dim_x, dim_u)
+    (mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper) = set_box_multipliers(T, box_multipliers, dim_x, dim_u)
 
     # build and return solution
-    return OptimalControlSolution(ocp;
-    state=fx, control=fu, objective=objective, costate=fp, times=T, variable=var, iterations=iterations, stopping=stopping, message=message, success=success, infos=infos)
+    if docp.has_variable
+        return OptimalControlSolution(ocp;
+        state=fx, control=fu, objective=objective, costate=fp, time_grid=T, variable=var, iterations=iterations, stopping=stopping, message=message, success=success, infos=infos, control_constraints=control_constraints, state_constraints=state_constraints, mixed_constraints=mixed_constraints, boundary_constraints=boundary_constraints, variable_constraints=variable_constraints,
+        mult_control_constraints=mult_control_constraints, mult_state_constraints=mult_state_constraints, mult_mixed_constraints=mult_mixed_constraints, mult_boundary_constraints=mult_boundary_constraints, mult_variable_constraints=mult_variable_constraints,
+        mult_state_box_lower=mult_state_box_lower,
+        mult_state_box_upper=mult_state_box_upper,
+        mult_control_box_lower=mult_control_box_lower,
+        mult_control_box_upper=mult_control_box_upper,
+        mult_variable_box_lower=mult_variable_box_lower,
+        mult_variable_box_upper=mult_variable_box_upper)
+    else
+        return OptimalControlSolution(ocp;
+        state=fx, control=fu, objective=objective, costate=fp, time_grid=T, iterations=iterations, stopping=stopping, message=message, success=success, infos=infos, control_constraints=control_constraints, state_constraints=state_constraints, mixed_constraints=mixed_constraints, boundary_constraints=boundary_constraints,
+        mult_control_constraints=mult_control_constraints, mult_state_constraints=mult_state_constraints, mult_mixed_constraints=mult_mixed_constraints, mult_boundary_constraints=mult_boundary_constraints,
+        mult_state_box_lower=mult_state_box_lower,
+        mult_state_box_upper=mult_state_box_upper,
+        mult_control_box_lower=mult_control_box_lower,
+        mult_control_box_upper=mult_control_box_upper)
+    end
 
 end
 
@@ -263,59 +279,43 @@ $(TYPEDSIGNATURES)
     
 Process data related to constraints for solution building
 """
-function set_constraints_and_multipliers!(infos, T, constraints_types, constraints_mult)
-
-    # keys list: state, control, mixed, variable, boundary
-    key_list = ((:control_constraints, :mult_control_constraints),
-                (:state_constraints, :mult_state_constraints),
-                (:mixed_constraints, :mult_mixed_constraints),
-                (:boundary_constraints, :mult_boundary_constraints),
-                (:variable_constraints, :mult_variable_constraints))
+function set_constraints_and_multipliers(T, constraints_types, constraints_mult)
 
     # control, state, mixed constraints
-    for i=1:3
-        set_constraint_block!(infos, T, (constraints_types[i], constraints_mult[i]), key_list[i])
-    end
+    control_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[1], 1))(t)
+    mult_control_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[1], 1))(t)
+
+    state_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[2], 1))(t)
+    mult_state_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[2], 1))(t)
+
+    mixed_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[3], 1))(t)
+    mult_mixed_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[3], 1))(t)
+
     # boundary and variable constraints
-    for i=4:5
-        set_variables_block!(infos, (constraints_types[i], constraints_mult[i]), key_list[i])
-    end
+    boundary_constraints = constraints_types[4]
+    mult_boundary_constraints = constraints_mult[4]
+    variable_constraints = constraints_types[5]
+    mult_variable_constraints = constraints_mult[5]
 
-    return infos
+    return (control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_boundary_constraints, mult_variable_constraints)
 end
 
-"""
-$(TYPEDSIGNATURES)
-    
-Process data related to a constraint type for solution building
-"""
-function set_constraint_block!(infos, T, const_mult, keys)
-    constraint, multiplier = const_mult
-    key_const, key_mult = keys
-    if !isnothing(constraint)
-        c = ctinterpolate(T, matrix2vec(constraint, 1))
-        m = ctinterpolate(T, matrix2vec(multiplier, 1))    
-        infos[key_const] = t -> c(t)
-        infos[key_mult] = t -> m(t)
-    end
-return infos
-end
 
 """
 $(TYPEDSIGNATURES)
     
 Process data related to box constraints for solution building
 """
-function set_box_multipliers!(infos, T, box_multipliers, dim_x, dim_u)
+function set_box_multipliers(T, box_multipliers, dim_x, dim_u)
 
     # state box
-    set_box_block!(infos, T, box_multipliers[1], (:mult_state_box_lower, :mult_state_box_upper), dim_x)
+    mult_state_box_lower, mult_state_box_upper = set_box_block(T, box_multipliers[1], dim_x)
     # control box
-    set_box_block!(infos, T, box_multipliers[2], (:mult_control_box_lower, :mult_control_box_upper), dim_u)
+    mult_control_box_lower, mult_control_box_upper = set_box_block(T, box_multipliers[2], dim_u)
     # variable box
-    set_variables_block!(infos, box_multipliers[3], (:mult_variable_box_lower, :mult_variable_box_upper))
+    mult_variable_box_lower, mult_variable_box_upper = box_multipliers[3]
 
-    return infos
+    return (mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper)
 end
 
 """
@@ -323,33 +323,16 @@ $(TYPEDSIGNATURES)
     
 Process data related to a box type for solution building
 """
-function set_box_block!(infos, T, mults, keys, dim)
+# +++ integrate above
+function set_box_block(T, mults, dim)
     mult_l, mult_u = mults
-    key_l, key_u = keys
-    if !isnothing(mult_l) && !isnothing(mult_u) && dim > 0
+    if !isnothing(mult_l) && !isnothing(mult_u)
         m_l = ctinterpolate(T, matrix2vec(mult_l[:,1:dim], 1))
-        m_u = ctinterpolate(T, matrix2vec(mult_u[:,1:dim], 1))
-        infos[key_l] = t -> m_l(t)
-        infos[key_u] = t -> m_u(t)    
+        m_u = ctinterpolate(T, matrix2vec(mult_u[:,1:dim], 1))  
     end
-    return infos
+    return t -> m_l(t), t -> m_u(t) 
 end
 
-
-"""
-$(TYPEDSIGNATURES)
-    
-Process data related to variables for solution building
-"""
-function set_variables_block!(infos, vecs, keys)
-    vec1, vec2 = vecs
-    key1, key2 = keys
-    if !isnothing(vec1) && !isnothing(vec2)
-        infos[key1] = vec1
-        infos[key2] = vec2 
-    end
-    return infos
-end
 
 #= OLD
 
