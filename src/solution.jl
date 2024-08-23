@@ -244,7 +244,7 @@ function CTBase.OptimalControlSolution(docp, T, X, U, v, P;
     infos = Dict{Symbol,Any}()
     infos[:constraints_violation] = constraints_violation
 
-    # +++ put interpolations here directly
+    # +++ put interpolations here directly and reuse vectors ?
     # nonlinear constraints and multipliers
     (control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_boundary_constraints, mult_variable_constraints) = set_constraints_and_multipliers(T, constraints_types, constraints_mult)
     # box constraints multipliers
