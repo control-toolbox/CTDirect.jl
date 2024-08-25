@@ -270,75 +270,10 @@ function DOCP_initial_guess(docp, init::OptimalControlInit = OptimalControlInit(
     # set state / control variables if provided
     for i = 0:docp.dim_NLP_steps
         ti = get_time_at_time_step(NLP_X, docp, i)
-        set_variables_at_time_step!(
-            NLP_X,
-            init.state_init(ti),
-            init.control_init(ti),
-            docp,
-            i,
-        )
-        #=
-        if !isnothing(init.state_init(ti))
-            set_state_at_time_step!(xuv, init.state_init(ti), docp, i)
-        end
-        if !isnothing(init.control_init(ti))
-            set_control_at_time_step!(xuv, init.control_init(ti), docp, i)
-        end
-        =#
+        set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i)
     end
 
     return NLP_X
-end
-
-
-#struct for interpolated ocp solution with only basic data types that can be exported as json
-# +++todo:
-# - add more fields from OptimalControlSolution
-# - constructor to recreate OptimalControlSolution from this one
-mutable struct OCPDiscreteSolution
-
-    times::Any
-    #initial_time_name::Union{String, Nothing}=nothing
-    #final_time_name::Union{String, Nothing}=nothing
-    #time_name::Union{String, Nothing}=nothing
-    control_dimension::Any
-    #control_components_names::Union{Vector{String}, Nothing}=nothing
-    #control_name::Union{String, Nothing}=nothing
-    control::Any
-    state_dimension::Any
-    #state_components_names::Union{Vector{String}, Nothing}=nothing
-    #state_name::Union{String, Nothing}=nothing
-    state::Any
-    variable_dimension::Any
-    #variable_components_names::Union{Vector{String}, Nothing}=nothing
-    #variable_name::Union{String, Nothing}=nothing
-    variable::Any
-    costate::Any
-    objective::Any
-    #iterations::Union{Nothing, Integer}=nothing
-    #stopping::Union{Nothing, Symbol}=nothing # the stopping criterion
-    #message::Union{Nothing, String}=nothing # the message corresponding to the stopping criterion
-    #success::Union{Nothing, Bool}=nothing # whether or not the method has finished successfully: CN1, stagnation vs iterations max
-    #infos::Dict{Symbol, Any}=Dict{Symbol, Any}()
-    #OCP_Solution_discrete() = new() # for StructTypes / JSON
-
-    function OCPDiscreteSolution(solution::OptimalControlSolution)
-        solution_d = new()
-
-        # raw copy +++ reuse the copy! in CTBase ?
-        solution_d.objective = solution.objective
-        solution_d.times = solution.times
-        solution_d.state_dimension = solution.state_dimension
-        solution_d.control_dimension = solution.control_dimension
-        solution_d.variable_dimension = solution.variable_dimension
-        solution_d.variable = solution.variable
-
-        # interpolate functions into vectors
-        solution_d.state = solution.state.(solution_d.times)
-        solution_d.control = solution.control.(solution_d.times)
-        solution_d.costate = solution.costate.(solution_d.times)
-        return solution_d
-    end
 end
 
 # placeholders (see CTDirectExt)
