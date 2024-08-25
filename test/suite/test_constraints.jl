@@ -31,7 +31,12 @@ if check_constraint_mult
     # variable constraints / box
     println("\nVariable constraints: ", sol.variable_constraints)
     println("multipliers: ", sol.mult_variable_constraints)
-    println("\nVariable box multipliers LB: ", sol.mult_variable_box_lower, " UB ", sol.mult_variable_box_upper)
+    println(
+        "\nVariable box multipliers LB: ",
+        sol.mult_variable_box_lower,
+        " UB ",
+        sol.mult_variable_box_upper,
+    )
 
     # PATH CONSTRAINTS
     # state box
@@ -55,9 +60,9 @@ if check_constraint_mult
     u = sol.control.(T)
     u_box_lb = flatten(sol.mult_control_box_lower.(T))
     u_box_ub = flatten(sol.mult_control_box_upper.(T))
-    p4_a = plot(T, u, label="u")    
-    p4_b = plot(T, [u_box_lb u_box_ub], label=["LB" "UB"])
-    p4 = plot(p4_a, p4_b, layout=(2,1))
+    p4_a = plot(T, u, label = "u")
+    p4_b = plot(T, [u_box_lb u_box_ub], label = ["LB" "UB"])
+    p4 = plot(p4_a, p4_b, layout = (2, 1))
 
     p_box = plot(
         p1,
@@ -74,47 +79,53 @@ if check_constraint_mult
     # control constraints
     c_u = flatten(sol.control_constraints.(T))
     m_c_u = flatten(sol.mult_control_constraints.(T))
-    p5_a = plot(T, c_u, label="c_u")    
-    p5_b = plot(T, m_c_u, label="mul")
-    p5 = plot(p5_a, p5_b, layout=(2,1))
+    p5_a = plot(T, c_u, label = "c_u")
+    p5_b = plot(T, m_c_u, label = "mul")
+    p5 = plot(p5_a, p5_b, layout = (2, 1))
 
     # state constraints
     c_x = flatten(sol.state_constraints.(T))
     m_c_x = flatten(sol.mult_state_constraints.(T))
-    p6_a = plot(T, c_x, label="c_x")    
-    p6_b = plot(T, m_c_x, label="mul")
-    p6 = plot(p6_a, p6_b, layout=(2,1))
+    p6_a = plot(T, c_x, label = "c_x")
+    p6_b = plot(T, m_c_x, label = "mul")
+    p6 = plot(p6_a, p6_b, layout = (2, 1))
 
     # mixed constraints
     c_xu = flatten(sol.mixed_constraints.(T))
     m_c_xu = flatten(sol.mult_mixed_constraints.(T))
-    p7_a = plot(T, c_xu, label="c_xu")    
-    p7_b = plot(T, m_c_xu, label="mul")
-    p7 = plot(p7_a, p7_b, layout=(2,1))
+    p7_a = plot(T, c_xu, label = "c_xu")
+    p7_b = plot(T, m_c_xu, label = "mul")
+    p7 = plot(p7_a, p7_b, layout = (2, 1))
 
-    p_cons = plot(p5, p6, p7, layout=(1,3), title=["control cons" "" "state cons" "" "mixed cons" ""])
+    p_cons = plot(
+        p5,
+        p6,
+        p7,
+        layout = (1, 3),
+        title = ["control cons" "" "state cons" "" "mixed cons" ""],
+    )
 
 else
 
-# box constraints
-@testset verbose = true showtiming = true ":goddard :box_constraints" begin
-    ocp = goddard()
-    sol = direct_solve(ocp.ocp, display=false)
-    @test sol.objective ≈ ocp.obj rtol=1e-2
-end
+    # box constraints
+    @testset verbose = true showtiming = true ":goddard :box_constraints" begin
+        ocp = goddard()
+        sol = direct_solve(ocp.ocp, display = false)
+        @test sol.objective ≈ ocp.obj rtol = 1e-2
+    end
 
-# functional constraints
-@testset verbose = true showtiming = true ":goddard :functional_constraints" begin
-    ocp = goddard(functional_constraints=true)
-    sol = direct_solve(ocp.ocp, display=false, init=ocp.init)
-    @test sol.objective ≈ ocp.obj rtol=1e-2
-end
+    # functional constraints
+    @testset verbose = true showtiming = true ":goddard :functional_constraints" begin
+        ocp = goddard(functional_constraints = true)
+        sol = direct_solve(ocp.ocp, display = false, init = ocp.init)
+        @test sol.objective ≈ ocp.obj rtol = 1e-2
+    end
 
-# all constraints
-@testset verbose = true showtiming = true ":goddard :all_constraints" begin
-    ocp = goddard_all()
-    sol = direct_solve(ocp.ocp, display=false, init=ocp.init)
-    @test sol.objective ≈ ocp.obj rtol=1e-2
-end
+    # all constraints
+    @testset verbose = true showtiming = true ":goddard :all_constraints" begin
+        ocp = goddard_all()
+        sol = direct_solve(ocp.ocp, display = false, init = ocp.init)
+        @test sol.objective ≈ ocp.obj rtol = 1e-2
+    end
 
 end

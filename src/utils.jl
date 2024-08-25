@@ -270,7 +270,13 @@ function DOCP_initial_guess(docp, init::OptimalControlInit = OptimalControlInit(
     # set state / control variables if provided
     for i = 0:docp.dim_NLP_steps
         ti = get_time_at_time_step(NLP_X, docp, i)
-        set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i)
+        set_variables_at_time_step!(
+            NLP_X,
+            init.state_init(ti),
+            init.control_init(ti),
+            docp,
+            i,
+        )
     end
 
     return NLP_X

@@ -262,11 +262,23 @@ $(TYPEDSIGNATURES)
     
 Build OCP functional solution from DOCP vector solution (given as raw variables and multipliers plus some optional infos)
 """
-function CTBase.OptimalControlSolution(docp, T, X, U, v, P;
-    objective=0, iterations=0, constraints_violation=0, message="No msg", stopping=nothing, success=nothing,
-    constraints_types=(nothing,nothing,nothing,nothing,nothing),
-    constraints_mult=(nothing,nothing,nothing,nothing,nothing),
-    box_multipliers=((nothing,nothing),(nothing,nothing),(nothing,nothing)))
+function CTBase.OptimalControlSolution(
+    docp,
+    T,
+    X,
+    U,
+    v,
+    P;
+    objective = 0,
+    iterations = 0,
+    constraints_violation = 0,
+    message = "No msg",
+    stopping = nothing,
+    success = nothing,
+    constraints_types = (nothing, nothing, nothing, nothing, nothing),
+    constraints_mult = (nothing, nothing, nothing, nothing, nothing),
+    box_multipliers = ((nothing, nothing), (nothing, nothing), (nothing, nothing)),
+)
 
     ocp = docp.ocp
     dim_x = state_dimension(ocp)
@@ -300,29 +312,86 @@ function CTBase.OptimalControlSolution(docp, T, X, U, v, P;
 
     # +++ put interpolations here directly and reuse vectors ?
     # nonlinear constraints and multipliers
-    (control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_boundary_constraints, mult_variable_constraints) = set_constraints_and_multipliers(T, constraints_types, constraints_mult)
+    (
+        control_constraints,
+        state_constraints,
+        mixed_constraints,
+        boundary_constraints,
+        variable_constraints,
+        mult_control_constraints,
+        mult_state_constraints,
+        mult_mixed_constraints,
+        mult_boundary_constraints,
+        mult_variable_constraints,
+    ) = set_constraints_and_multipliers(T, constraints_types, constraints_mult)
     # box constraints multipliers
-    (mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper) = set_box_multipliers(T, box_multipliers, dim_x, dim_u)
+    (
+        mult_state_box_lower,
+        mult_state_box_upper,
+        mult_control_box_lower,
+        mult_control_box_upper,
+        mult_variable_box_lower,
+        mult_variable_box_upper,
+    ) = set_box_multipliers(T, box_multipliers, dim_x, dim_u)
 
     # build and return solution
     if docp.has_variable
-        return OptimalControlSolution(ocp;
-        state=fx, control=fu, objective=objective, costate=fp, time_grid=T, variable=var, iterations=iterations, stopping=stopping, message=message, success=success, infos=infos, control_constraints=control_constraints, state_constraints=state_constraints, mixed_constraints=mixed_constraints, boundary_constraints=boundary_constraints, variable_constraints=variable_constraints,
-        mult_control_constraints=mult_control_constraints, mult_state_constraints=mult_state_constraints, mult_mixed_constraints=mult_mixed_constraints, mult_boundary_constraints=mult_boundary_constraints, mult_variable_constraints=mult_variable_constraints,
-        mult_state_box_lower=mult_state_box_lower,
-        mult_state_box_upper=mult_state_box_upper,
-        mult_control_box_lower=mult_control_box_lower,
-        mult_control_box_upper=mult_control_box_upper,
-        mult_variable_box_lower=mult_variable_box_lower,
-        mult_variable_box_upper=mult_variable_box_upper)
+        return OptimalControlSolution(
+            ocp;
+            state = fx,
+            control = fu,
+            objective = objective,
+            costate = fp,
+            time_grid = T,
+            variable = var,
+            iterations = iterations,
+            stopping = stopping,
+            message = message,
+            success = success,
+            infos = infos,
+            control_constraints = control_constraints,
+            state_constraints = state_constraints,
+            mixed_constraints = mixed_constraints,
+            boundary_constraints = boundary_constraints,
+            variable_constraints = variable_constraints,
+            mult_control_constraints = mult_control_constraints,
+            mult_state_constraints = mult_state_constraints,
+            mult_mixed_constraints = mult_mixed_constraints,
+            mult_boundary_constraints = mult_boundary_constraints,
+            mult_variable_constraints = mult_variable_constraints,
+            mult_state_box_lower = mult_state_box_lower,
+            mult_state_box_upper = mult_state_box_upper,
+            mult_control_box_lower = mult_control_box_lower,
+            mult_control_box_upper = mult_control_box_upper,
+            mult_variable_box_lower = mult_variable_box_lower,
+            mult_variable_box_upper = mult_variable_box_upper,
+        )
     else
-        return OptimalControlSolution(ocp;
-        state=fx, control=fu, objective=objective, costate=fp, time_grid=T, iterations=iterations, stopping=stopping, message=message, success=success, infos=infos, control_constraints=control_constraints, state_constraints=state_constraints, mixed_constraints=mixed_constraints, boundary_constraints=boundary_constraints,
-        mult_control_constraints=mult_control_constraints, mult_state_constraints=mult_state_constraints, mult_mixed_constraints=mult_mixed_constraints, mult_boundary_constraints=mult_boundary_constraints,
-        mult_state_box_lower=mult_state_box_lower,
-        mult_state_box_upper=mult_state_box_upper,
-        mult_control_box_lower=mult_control_box_lower,
-        mult_control_box_upper=mult_control_box_upper)
+        return OptimalControlSolution(
+            ocp;
+            state = fx,
+            control = fu,
+            objective = objective,
+            costate = fp,
+            time_grid = T,
+            iterations = iterations,
+            stopping = stopping,
+            message = message,
+            success = success,
+            infos = infos,
+            control_constraints = control_constraints,
+            state_constraints = state_constraints,
+            mixed_constraints = mixed_constraints,
+            boundary_constraints = boundary_constraints,
+            mult_control_constraints = mult_control_constraints,
+            mult_state_constraints = mult_state_constraints,
+            mult_mixed_constraints = mult_mixed_constraints,
+            mult_boundary_constraints = mult_boundary_constraints,
+            mult_state_box_lower = mult_state_box_lower,
+            mult_state_box_upper = mult_state_box_upper,
+            mult_control_box_lower = mult_control_box_lower,
+            mult_control_box_upper = mult_control_box_upper,
+        )
     end
 
 end
@@ -351,7 +420,18 @@ function set_constraints_and_multipliers(T, constraints_types, constraints_mult)
     variable_constraints = constraints_types[5]
     mult_variable_constraints = constraints_mult[5]
 
-    return (control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, mult_control_constraints, mult_state_constraints, mult_mixed_constraints, mult_boundary_constraints, mult_variable_constraints)
+    return (
+        control_constraints,
+        state_constraints,
+        mixed_constraints,
+        boundary_constraints,
+        variable_constraints,
+        mult_control_constraints,
+        mult_state_constraints,
+        mult_mixed_constraints,
+        mult_boundary_constraints,
+        mult_variable_constraints,
+    )
 end
 
 
@@ -365,11 +445,19 @@ function set_box_multipliers(T, box_multipliers, dim_x, dim_u)
     # state box
     mult_state_box_lower, mult_state_box_upper = set_box_block(T, box_multipliers[1], dim_x)
     # control box
-    mult_control_box_lower, mult_control_box_upper = set_box_block(T, box_multipliers[2], dim_u)
+    mult_control_box_lower, mult_control_box_upper =
+        set_box_block(T, box_multipliers[2], dim_u)
     # variable box
     mult_variable_box_lower, mult_variable_box_upper = box_multipliers[3]
 
-    return (mult_state_box_lower, mult_state_box_upper, mult_control_box_lower, mult_control_box_upper, mult_variable_box_lower, mult_variable_box_upper)
+    return (
+        mult_state_box_lower,
+        mult_state_box_upper,
+        mult_control_box_lower,
+        mult_control_box_upper,
+        mult_variable_box_lower,
+        mult_variable_box_upper,
+    )
 end
 
 """
@@ -381,10 +469,10 @@ Process data related to a box type for solution building
 function set_box_block(T, mults, dim)
     mult_l, mult_u = mults
     if !isnothing(mult_l) && !isnothing(mult_u)
-        m_l = ctinterpolate(T, matrix2vec(mult_l[:,1:dim], 1))
-        m_u = ctinterpolate(T, matrix2vec(mult_u[:,1:dim], 1))  
+        m_l = ctinterpolate(T, matrix2vec(mult_l[:, 1:dim], 1))
+        m_u = ctinterpolate(T, matrix2vec(mult_u[:, 1:dim], 1))
     end
-    return t -> m_l(t), t -> m_u(t) 
+    return t -> m_l(t), t -> m_u(t)
 end
 
 
