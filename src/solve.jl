@@ -19,31 +19,45 @@ $(TYPEDSIGNATURES)
 
 Discretize an optimal control problem into a nonlinear optimization problem (ie direct transcription)
 """
-function direct_transcription(ocp::OptimalControlModel,
+function direct_transcription(
+    ocp::OptimalControlModel,
     description...;
-    init=CTBase.__ocp_init(),
-    grid_size=__grid_size(),
-    time_grid=__time_grid())
+    init = CTBase.__ocp_init(),
+    grid_size = __grid_size(),
+    time_grid = __time_grid(),
+)
 
     # build DOCP
     docp = DOCP(ocp, grid_size, time_grid)
-    
+
     # set bounds in DOCP
     variables_bounds!(docp)
     constraints_bounds!(docp)
 
     # set initial guess
-    x0 = DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
+    x0 = DOCP_initial_guess(
+        docp,
+        OptimalControlInit(
+            init,
+            state_dim = ocp.state_dimension,
+            control_dim = ocp.control_dimension,
+            variable_dim = ocp.variable_dimension,
+        ),
+    )
 
     # call NLP problem constructor
-    nlp = ADNLPModel!(x -> DOCP_objective(x, docp), 
+    nlp = ADNLPModel!(
+        x -> DOCP_objective(x, docp),
         x0,
-        docp.var_l, docp.var_u, 
-        (c, x) -> DOCP_constraints!(c, x, docp), 
-        docp.con_l, docp.con_u,
-        backend = :optimized)
+        docp.var_l,
+        docp.var_u,
+        (c, x) -> DOCP_constraints!(c, x, docp),
+        docp.con_l,
+        docp.con_u,
+        backend = :optimized,
+    )
 
-return docp, nlp
+    return docp, nlp
 
 end
 
@@ -56,7 +70,15 @@ Set initial guess in the DOCP
 function set_initial_guess(docp::DOCP, nlp, init)
 
     ocp = docp.ocp
-    nlp.meta.x0 .= DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
+    nlp.meta.x0 .= DOCP_initial_guess(
+        docp,
+        OptimalControlInit(
+            init,
+            state_dim = ocp.state_dimension,
+            control_dim = ocp.control_dimension,
+            variable_dim = ocp.variable_dimension,
+        ),
+    )
 
 end
 
@@ -65,17 +87,26 @@ $(TYPEDSIGNATURES)
 
 Solve an OCP with a direct method
 """
-function direct_solve(ocp::OptimalControlModel, description::Symbol...;
-    init=CTBase.__ocp_init(),
-    grid_size::Int=CTDirect.__grid_size(),
-    time_grid=CTDirect.__time_grid(),
-    kwargs...)
+function direct_solve(
+    ocp::OptimalControlModel,
+    description::Symbol...;
+    init = CTBase.__ocp_init(),
+    grid_size::Int = CTDirect.__grid_size(),
+    time_grid = CTDirect.__time_grid(),
+    kwargs...,
+)
 
     method = getFullDescription(description, available_methods())
     #println(method)
 
     # build discretized OCP, including initial guess
-    docp, nlp = direct_transcription(ocp, description, init=init, grid_size=grid_size, time_grid=time_grid)
+    docp, nlp = direct_transcription(
+        ocp,
+        description,
+        init = init,
+        grid_size = grid_size,
+        time_grid = time_grid,
+    )
 
     # solve DOCP
     if :ipopt ∈ method
@@ -90,7 +121,7 @@ function direct_solve(ocp::OptimalControlModel, description::Symbol...;
     # build and return OCP solution
     return OptimalControlSolution(docp, docp_solution)
 
- end
+end
 
 
 # placeholders (see CTSolveExt*** extensions)

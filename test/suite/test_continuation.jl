@@ -13,13 +13,13 @@ if test1
     @testset verbose = true showtiming = true ":continuation :double_integrator" begin
         init = ()
         obj_list = []
-        for T=1:5
-            ocp = double_integrator_T(T).ocp 
-            sol = direct_solve(ocp, display=false, init=init)
+        for T = 1:5
+            ocp = double_integrator_T(T).ocp
+            sol = direct_solve(ocp, display = false, init = init)
             init = sol
             push!(obj_list, sol.objective)
         end
-        @test obj_list ≈ [12, 1.5, 0.44, 0.19, 0.096] rtol=1e-2
+        @test obj_list ≈ [12, 1.5, 0.44, 0.19, 0.096] rtol = 1e-2
     end
 end
 
@@ -35,11 +35,11 @@ if test2
         obj_list = []
         for ρ in [0.1, 5, 10, 30, 100]
             ocp = parametric(ρ).ocp
-            sol = direct_solve(ocp, display=false, init=init)
+            sol = direct_solve(ocp, display = false, init = init)
             init = sol
             push!(obj_list, sol.objective)
         end
-        @test obj_list ≈ [-0.034, -1.7, -6.2, -35, -148] rtol=1e-2
+        @test obj_list ≈ [-0.034, -1.7, -6.2, -35, -148] rtol = 1e-2
     end
 end
 
@@ -49,27 +49,34 @@ if test3
     if !isdefined(Main, :goddard)
         include("../problems/goddard.jl")
     end
-    sol0 = direct_solve(goddard().ocp, display=false)
+    sol0 = direct_solve(goddard().ocp, display = false)
 
     @testset verbose = true showtiming = true ":continuation :goddard" begin
         sol = sol0
         Tmax_list = []
         obj_list = []
-        for Tmax=3.5:-0.5:1 
-            sol = direct_solve(goddard(Tmax=Tmax).ocp, display=false, init=sol)
+        for Tmax = 3.5:-0.5:1
+            sol = direct_solve(goddard(Tmax = Tmax).ocp, display = false, init = sol)
             push!(Tmax_list, Tmax)
             push!(obj_list, sol.objective)
         end
-        @test obj_list ≈ [1.0125, 1.0124, 1.0120, 1.0112, 1.0092, 1.0036] rtol=1e-2
+        @test obj_list ≈ [1.0125, 1.0124, 1.0120, 1.0112, 1.0092, 1.0036] rtol = 1e-2
 
         if draw_plot
             using Plots
             # plot obj(vmax)
-            pobj = plot(Tmax_list, obj_list, label="r(tf)", xlabel="Maximal thrust (Tmax)", ylabel="Maximal altitude r(tf)",seriestype=:scatter)
+            pobj = plot(
+                Tmax_list,
+                obj_list,
+                label = "r(tf)",
+                xlabel = "Maximal thrust (Tmax)",
+                ylabel = "Maximal altitude r(tf)",
+                seriestype = :scatter,
+            )
             # plot multiple solutions
             plot(sol0)
             p = plot!(sol)
-            display(plot(pobj, p, layout=2, reuse=false, size=(1000,500)))
+            display(plot(pobj, p, layout = 2, reuse = false, size = (1000, 500)))
         end
     end
 end
