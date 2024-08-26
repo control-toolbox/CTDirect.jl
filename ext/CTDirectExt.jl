@@ -13,17 +13,17 @@ $(TYPEDSIGNATURES)
   
 Save OCP solution in JLD2 format
 """
-function JLD2.save(sol::OptimalControlSolution; filename_prefix="solution")
+function JLD2.save(sol::OptimalControlSolution; filename_prefix = "solution")
     save_object(filename_prefix * ".jld2", sol)
     return nothing
 end
-        
+
 """
 $(TYPEDSIGNATURES)
      
 Load OCP solution in JLD2 format
 """
-function JLD2.load(filename_prefix="solution")
+function JLD2.load(filename_prefix = "solution")
     return load_object(filename_prefix * ".jld2")
 end
 

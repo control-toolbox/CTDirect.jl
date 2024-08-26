@@ -15,14 +15,14 @@ struct DOCP
 
     ## OCP
     ocp::OptimalControlModel
-    control_constraints
-    state_constraints
-    mixed_constraints
-    boundary_constraints
-    variable_constraints
-    control_box
-    state_box
-    variable_box
+    control_constraints::Any
+    state_constraints::Any
+    mixed_constraints::Any
+    boundary_constraints::Any
+    variable_constraints::Any
+    control_box::Any
+    state_box::Any
+    variable_box::Any
 
     # faster than calling ocp functions each time ?
     has_free_t0::Bool
@@ -59,16 +59,20 @@ struct DOCP
     con_u::Vector{Float64}
 
     # constructor
-    function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid)       
+    function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid)
 
         # time grid
         if time_grid == nothing
-            NLP_normalized_time_grid = collect(LinRange(0, 1, grid_size+1))
+            NLP_normalized_time_grid = collect(LinRange(0, 1, grid_size + 1))
             dim_NLP_steps = grid_size
         else
             # check strictly increasing
-            if !issorted(time_grid,lt=<=)
-                throw(ArgumentError("given time grid is not strictly increasing. Aborting..."))
+            if !issorted(time_grid, lt = <=)
+                throw(
+                    ArgumentError(
+                        "given time grid is not strictly increasing. Aborting...",
+                    ),
+                )
                 return nothing
             end
             # normalize input grid if needed
@@ -76,7 +80,7 @@ struct DOCP
                 #println("INFO: normalizing given time grid...")
                 t0 = time_grid[1]
                 tf = time_grid[end]
-                time_grid = (time_grid .- t0) ./ (tf - t0) 
+                time_grid = (time_grid .- t0) ./ (tf - t0)
             end
             NLP_normalized_time_grid = time_grid
             dim_NLP_steps = length(time_grid) - 1
@@ -111,7 +115,14 @@ struct DOCP
 
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
-        control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box = CTBase.nlp_constraints!(ocp)
+        control_constraints,
+        state_constraints,
+        mixed_constraints,
+        boundary_constraints,
+        variable_constraints,
+        control_box,
+        state_box,
+        variable_box = CTBase.nlp_constraints!(ocp)
 
         dim_x_box = dim_state_range(ocp)
         dim_u_box = dim_control_range(ocp)
@@ -124,14 +135,51 @@ struct DOCP
         dim_boundary_cons = dim_boundary_constraints(ocp)
 
         # lagrange to mayer transformation
-        dim_NLP_constraints = N * (dim_NLP_x + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
+        dim_NLP_constraints =
+            N * (dim_NLP_x + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
         if has_lagrange
-            dim_NLP_constraints += 1          
+            dim_NLP_constraints += 1
         end
 
         # call constructor with const fields
-        docp = new(ocp, control_constraints, state_constraints, mixed_constraints, boundary_constraints, variable_constraints, control_box, state_box, variable_box, has_free_t0, has_free_tf, has_lagrange, has_mayer, has_variable,
-        has_maximization, dim_x_box, dim_u_box, dim_v_box, dim_path_cons, dim_x_cons, dim_u_cons, dim_v_cons,dim_mixed_cons, dim_boundary_cons, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_OCP_x, dim_NLP_steps, NLP_normalized_time_grid, dim_NLP_variables, dim_NLP_constraints,-Inf * ones(dim_NLP_variables), Inf * ones(dim_NLP_variables), zeros(dim_NLP_constraints), zeros(dim_NLP_constraints))
+        docp = new(
+            ocp,
+            control_constraints,
+            state_constraints,
+            mixed_constraints,
+            boundary_constraints,
+            variable_constraints,
+            control_box,
+            state_box,
+            variable_box,
+            has_free_t0,
+            has_free_tf,
+            has_lagrange,
+            has_mayer,
+            has_variable,
+            has_maximization,
+            dim_x_box,
+            dim_u_box,
+            dim_v_box,
+            dim_path_cons,
+            dim_x_cons,
+            dim_u_cons,
+            dim_v_cons,
+            dim_mixed_cons,
+            dim_boundary_cons,
+            dim_NLP_x,
+            dim_NLP_u,
+            dim_NLP_v,
+            dim_OCP_x,
+            dim_NLP_steps,
+            NLP_normalized_time_grid,
+            dim_NLP_variables,
+            dim_NLP_constraints,
+            -Inf * ones(dim_NLP_variables),
+            Inf * ones(dim_NLP_variables),
+            zeros(dim_NLP_constraints),
+            zeros(dim_NLP_constraints),
+        )
 
         return docp
 
@@ -162,18 +210,18 @@ function constraints_bounds!(docp::DOCP)
     ub = docp.con_u
 
     index = 1 # counter for the constraints
-    for i in 0:docp.dim_NLP_steps-1
+    for i = 0:docp.dim_NLP_steps-1
         # skip (ie leave 0) for equality dynamics constraint
         index = index + docp.dim_NLP_x
         # path constraints
         index = setPathBounds!(docp, index, lb, ub)
     end
-    
+
     # path constraints at final time
-    index = setPathBounds!(docp, index, lb, ub) 
+    index = setPathBounds!(docp, index, lb, ub)
 
     # boundary and variable constraints
-     index = setPointBounds!(docp, index, lb, ub)
+    index = setPointBounds!(docp, index, lb, ub)
 
     return lb, ub
 end
@@ -196,29 +244,29 @@ function variables_bounds!(docp::DOCP)
     # build ordered bounds vectors for state and control
     x_lb = -Inf * ones(docp.dim_OCP_x)
     x_ub = Inf * ones(docp.dim_OCP_x)
-    for j in 1:docp.dim_x_box
+    for j = 1:docp.dim_x_box
         indice = docp.state_box[2][j]
         x_lb[indice] = docp.state_box[1][j]
         x_ub[indice] = docp.state_box[3][j]
     end
     u_lb = -Inf * ones(docp.dim_NLP_u)
     u_ub = Inf * ones(docp.dim_NLP_u)
-    for j in 1:docp.dim_u_box
+    for j = 1:docp.dim_u_box
         indice = docp.control_box[2][j]
         u_lb[indice] = docp.control_box[1][j]
         u_ub[indice] = docp.control_box[3][j]
     end
 
     # apply bounds for NLP variables
-    for i in 0:N
+    for i = 0:N
         set_variables_at_time_step!(var_l, x_lb, u_lb, docp, i)
         set_variables_at_time_step!(var_u, x_ub, u_ub, docp, i)
     end
 
     # variable box
-    offset = (N+1) * (docp.dim_NLP_x + docp.dim_NLP_u)
+    offset = (N + 1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     if docp.dim_v_box > 0
-        for j in 1:docp.dim_v_box
+        for j = 1:docp.dim_v_box
             indice = docp.variable_box[2][j]
             var_l[offset+indice] = docp.variable_box[1][j]
             var_u[offset+indice] = docp.variable_box[3][j]
@@ -237,7 +285,7 @@ Compute the objective for the DOCP problem.
 # DOCP objective
 function DOCP_objective(xu, docp::DOCP)
 
-    obj = 0.
+    obj = 0.0
     N = docp.dim_NLP_steps
     ocp = docp.ocp
 
@@ -246,23 +294,23 @@ function DOCP_objective(xu, docp::DOCP)
         v = get_variable(xu, docp)
         t0 = get_initial_time(xu, docp)
         tf = get_final_time(xu, docp)
-        x0,u0,xl0 = get_variables_at_time_step(xu, docp, 0)
-        xf,uf,xlf = get_variables_at_time_step(xu, docp, N)
+        x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0)
+        xf, uf, xlf = get_variables_at_time_step(xu, docp, N)
         #obj = obj + ocp.mayer(t0, tf, x0, xf, v)
         obj = obj + ocp.mayer(x0, xf, v)
     end
-    
+
     # lagrange cost
     if docp.has_lagrange
-        xf,uf,xlf = get_variables_at_time_step(xu, docp, N)
+        xf, uf, xlf = get_variables_at_time_step(xu, docp, N)
         obj = obj + xlf
     end
 
     # maximization problem
     if docp.has_maximization
         obj = -obj
-    end 
-    
+    end
+
     return obj
 end
 
@@ -272,7 +320,7 @@ $(TYPEDSIGNATURES)
 
 Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
-function DOCP_constraints!(c, xu, docp::DOCP)    
+function DOCP_constraints!(c, xu, docp::DOCP)
     """
     compute the constraints for the NLP : 
         - discretization of the dynamics via the trapeze method
@@ -292,7 +340,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     args_ip1 = ArgsAtTimeStep(xu, docp, 1, v)
 
     index = 1 # counter for the constraints
-    for i in 0:docp.dim_NLP_steps-1
+    for i = 0:docp.dim_NLP_steps-1
 
         # state equation
         index = setStateEquation!(docp, c, index, (args_i, args_ip1))
@@ -300,9 +348,9 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         index = setPathConstraints!(docp, c, index, args_i, v)
 
         # smart update for next iteration
-        if i < docp.dim_NLP_steps-1
+        if i < docp.dim_NLP_steps - 1
             args_i = args_ip1
-            args_ip1 = ArgsAtTimeStep(xu, docp, i+2, v)
+            args_ip1 = ArgsAtTimeStep(xu, docp, i + 2, v)
         end
     end
 
@@ -316,7 +364,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 
     # needed even for inplace version, AD error otherwise
     # may be because actual return would be index above ?
-    return c 
+    return c
 end
 
 
@@ -330,12 +378,12 @@ Useful values at a time step: time, state, control, dynamics...
 """
 struct ArgsAtTimeStep
 
-    time
-    state
-    control
-    dynamics
-    lagrange_state
-    lagrange_cost
+    time::Any
+    state::Any
+    control::Any
+    dynamics::Any
+    lagrange_state::Any
+    lagrange_cost::Any
 
     function ArgsAtTimeStep(xu, docp::DOCP, i::Int, v)
 
@@ -368,19 +416,25 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 """
 function setStateEquation!(docp::DOCP, c, index::Int, args_trapeze)
-    
+
     ocp = docp.ocp
     args_i = args_trapeze[1]
     args_ip1 = args_trapeze[2]
     hi = args_ip1.time - args_i.time
-    
+
     # trapeze rule
-    c[index:index+docp.dim_OCP_x-1] .= args_ip1.state .- (args_i.state .+ 0.5*hi*(args_i.dynamics .+ args_ip1.dynamics))
+    c[index:index+docp.dim_OCP_x-1] .=
+        args_ip1.state .-
+        (args_i.state .+ 0.5 * hi * (args_i.dynamics .+ args_ip1.dynamics))
 
     if docp.has_lagrange
-        c[index+docp.dim_OCP_x] = args_ip1.lagrange_state - (args_i.lagrange_state + 0.5*hi*(args_i.lagrange_cost + args_ip1.lagrange_cost))
+        c[index+docp.dim_OCP_x] =
+            args_ip1.lagrange_state - (
+                args_i.lagrange_state +
+                0.5 * hi * (args_i.lagrange_cost + args_ip1.lagrange_cost)
+            )
     end
-    
+
     index = index + docp.dim_NLP_x
     return index
 end
@@ -407,7 +461,7 @@ function setPathConstraints!(docp::DOCP, c, index::Int, args::ArgsAtTimeStep, v)
 
     # pure state constraints
     if docp.dim_x_cons > 0
-        c[index:index+docp.dim_x_cons-1] = docp.state_constraints[2](ti, xi ,v)
+        c[index:index+docp.dim_x_cons-1] = docp.state_constraints[2](ti, xi, v)
         index = index + docp.dim_x_cons
     end
 
@@ -416,7 +470,7 @@ function setPathConstraints!(docp::DOCP, c, index::Int, args::ArgsAtTimeStep, v)
         c[index:index+docp.dim_mixed_cons-1] = docp.mixed_constraints[2](ti, xi, ui, v)
         index = index + docp.dim_mixed_cons
     end
-    
+
     return index
 
 end
@@ -450,7 +504,7 @@ function setPathBounds!(docp::DOCP, index::Int, lb, ub)
         ub[index:index+docp.dim_mixed_cons-1] = docp.mixed_constraints[3]
         index = index + docp.dim_mixed_cons
     end
-    
+
     return index
 
 end
@@ -461,7 +515,14 @@ $(TYPEDSIGNATURES)
 
 Set the boundary and variable constraints
 """
-function setPointConstraints!(docp::DOCP, c, index::Int, args_0::ArgsAtTimeStep, args_f::ArgsAtTimeStep, v)
+function setPointConstraints!(
+    docp::DOCP,
+    c,
+    index::Int,
+    args_0::ArgsAtTimeStep,
+    args_f::ArgsAtTimeStep,
+    v,
+)
 
     ocp = docp.ocp
 
@@ -516,8 +577,8 @@ function setPointBounds!(docp::DOCP, index::Int, lb, ub)
 
     # null initial condition for lagrangian cost state
     if docp.has_lagrange
-        lb[index] = 0.
-        ub[index] = 0.
+        lb[index] = 0.0
+        ub[index] = 0.0
         index = index + 1
     end
 
@@ -537,7 +598,7 @@ function DOCP_constraints_check!(cb, constraints, docp)
 
     # check constraints vs bounds
     # by construction only one of the two can be active
-    for i in 1:docp.dim_NLP_constraints
+    for i = 1:docp.dim_NLP_constraints
         if constraints[i] < docp.con_l[i]
             cb[i] = constraints[i] - docp.con_l[i]
         end
@@ -557,7 +618,7 @@ Check the variables box constraints violation for the DOCP problem.
 function DOCP_variables_check!(vb, variables, docp)
     # check variables vs bounds
     # by construction only one of the two can be active
-    for i in 1:docp.dim_NLP_variables
+    for i = 1:docp.dim_NLP_variables
         if variables[i] < docp.var_l[i]
             vb[i] = variables[i] - docp.var_l[i] # < 0
         end
