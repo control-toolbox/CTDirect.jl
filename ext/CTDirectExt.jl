@@ -32,11 +32,11 @@ $(TYPEDSIGNATURES)
   
 Export OCP solution in JSON format
 """
-# +++ redo this, start with basics
 function CTDirect.export_ocp_solution(sol::OptimalControlSolution; filename_prefix="solution")
-    open(filename_prefix * ".json", "w") do io
-        #JSON3.pretty(io, CTDirect.OCPDiscreteSolution(sol))
-    end
+    # +++ redo this, start with basics, fuse into save
+    #open(filename_prefix * ".json", "w") do io
+    #    JSON3.pretty(io, CTDirect.OCPDiscreteSolution(sol))
+    #end
     return nothing
 end
 
@@ -45,10 +45,10 @@ $(TYPEDSIGNATURES)
   
 Read OCP solution in JSON format
 """
-# +++ add constructor from json blob
 function CTDirect.import_ocp_solution(filename_prefix="solution")
-    json_string = read(filename_prefix * ".json", String)
-    return OptimalControlSolution(JSON3.read(json_string))
+    # +++ add constructor from json blob, fuse into load 
+    #json_string = read(filename_prefix * ".json", String)
+    #return OptimalControlSolution(JSON3.read(json_string))
 end
 
 
