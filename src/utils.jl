@@ -9,14 +9,14 @@ function get_variable(xu, docp)
         nx = docp.dim_NLP_x
         m = docp.dim_NLP_u
         N = docp.dim_NLP_steps
-        offset = (nx+m) * (N+1)
+        offset = (nx + m) * (N + 1)
 
         if docp.dim_NLP_v == 1
-            return xu[offset + 1]
+            return xu[offset+1]
             #return xu[end]
         else
             #return xu[end-docp.dim_NLP_v+1:end]
-            return xu[offset + 1: offset + docp.dim_NLP_v]
+            return xu[offset+1:offset+docp.dim_NLP_v]
         end
     else
         return Float64[]
@@ -35,8 +35,8 @@ function get_single_variable(xu, docp, i::Int)
         nx = docp.dim_NLP_x
         m = docp.dim_NLP_u
         N = docp.dim_NLP_steps
-        offset = (nx+m) * (N+1)
-        return xu[offset + i]
+        offset = (nx + m) * (N + 1)
+        return xu[offset+i]
     else
         error("Tring to access variable in variable independent problem")
     end
@@ -55,7 +55,7 @@ function get_variables_at_time_step(xu, docp, i)
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     offset = (nx + m) * i
-    
+
     # retrieve scalar/vector OCP state (w/o lagrange state) 
     if n == 1
         xi = xu[offset+1]
@@ -67,7 +67,7 @@ function get_variables_at_time_step(xu, docp, i)
     if docp.has_lagrange
         xli = xu[offset+nx]
     else
-        xli = 0.
+        xli = 0.0
     end
 
     # retrieve scalar/vector control
@@ -86,7 +86,7 @@ function get_NLP_variables_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     offset = (nx + m) * i
-    
+
     xi = xu[offset+1:offset+nx]
     ui = xu[offset+nx+1:offset+nx+m]
 
@@ -181,7 +181,7 @@ Get actual (un-normalized) time value
 """
 function get_unnormalized_time(xu, docp, t_normalized)
     t0 = get_initial_time(xu, docp)
-    tf = get_final_time(xu, docp)    
+    tf = get_final_time(xu, docp)
     return t0 + t_normalized * (tf - t0)
 end
 
@@ -233,10 +233,10 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i)
 
     # NB. only set first the actual state variables from the OCP (not the possible additional state for lagrange cost)
     if !isnothing(x_init)
-        xu[offset + 1 : offset + n] .= x_init
+        xu[offset+1:offset+n] .= x_init
     end
     if !isnothing(u_init)
-        xu[offset + nx + 1 : offset + nx + m] .= u_init
+        xu[offset+nx+1:offset+nx+m] .= u_init
     end
 end
 
@@ -246,7 +246,7 @@ $(TYPEDSIGNATURES)
 Set optimization variables in the NLP variables (for initial guess)
 """
 function set_variable!(xu, v_init, docp)
-    xu[end-docp.dim_NLP_v+1 : end] .= v_init
+    xu[end-docp.dim_NLP_v+1:end] .= v_init
 end
 
 
@@ -255,8 +255,7 @@ $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function DOCP_initial_guess(docp,
-    init::OptimalControlInit=OptimalControlInit())
+function DOCP_initial_guess(docp, init::OptimalControlInit = OptimalControlInit())
 
     # default initialization
     # note: internal variables (lagrange cost, k_i for RK schemes) will keep these default values 
@@ -269,9 +268,15 @@ function DOCP_initial_guess(docp,
     end
 
     # set state / control variables if provided
-    for i in 0:docp.dim_NLP_steps
+    for i = 0:docp.dim_NLP_steps
         ti = get_time_at_time_step(NLP_X, docp, i)
-        set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i)
+        set_variables_at_time_step!(
+            NLP_X,
+            init.state_init(ti),
+            init.control_init(ti),
+            docp,
+            i,
+        )
     end
 
     return NLP_X
@@ -280,4 +285,3 @@ end
 # placeholders (see CTDirectExt)
 function export_ocp_solution end
 function import_ocp_solution end
-

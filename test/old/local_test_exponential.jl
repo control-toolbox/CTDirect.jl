@@ -79,39 +79,39 @@ sol = solve(ocp2, grid_size=100, print_level=5, tol=1e-12)
 =#
 
 # try min tf lagrange and mayer
-ocp3 = Model(variable=true)
+ocp3 = Model(variable = true)
 state!(ocp3, 2)
 control!(ocp3, 1)
 variable!(ocp3, 1)
 time!(ocp3, 0, Index(1))
 #variable!(ocp3, 2)
 #time!(ocp3, Index(1), Index(2))
-constraint!(ocp3, :initial, [0,0], :initial_constraint)
-constraint!(ocp3, :final, [1,0], :final_constraint)
+constraint!(ocp3, :initial, [0, 0], :initial_constraint)
+constraint!(ocp3, :final, [1, 0], :final_constraint)
 constraint!(ocp3, :control, -1, 1, :control_constraint)
 constraint!(ocp3, :variable, 0.1, 10, :variable_constraint)
 #constraint!(ocp3, :variable, [0.1, 0.1], [10, 10], :variable_constraint)
-dynamics!(ocp3, (x, u, v) ->  [x[2], u])
+dynamics!(ocp3, (x, u, v) -> [x[2], u])
 #objective!(ocp3, :lagrange, (x, u, v) -> 1) # min free tf ok
 #objective!(ocp3, :mayer, (x0, xf, v) -> v[1]) # min free tf ok
 objective!(ocp3, :mayer, (x0, xf, v) -> v) # scalar variable
 #objective!(ocp3, :mayer, (x0, xf, v) -> - v[1]) # max t0 free to and tf ok
 #objective!(ocp3, :mayer, (x0, xf, v) -> v[1], :max) # max t0 free to and tf ok
-sol3 = solve(ocp3, grid_size=100, print_level=5, tol=1e-12)
+sol3 = solve(ocp3, grid_size = 100, print_level = 5, tol = 1e-12)
 plot(sol3)
 
 # min tf, abstract definition
 @def ocp4 begin
     tf ∈ R, variable
-    t ∈ [ 0, tf ], time
+    t ∈ [0, tf], time
     x ∈ R², state
     u ∈ R, control
     -1 ≤ u(t) ≤ 1
-    x(0) == [ 0, 0 ]
-    x(tf) == [ 1, 0 ]
-    0.1 ≤ tf ≤ Inf 
-    ẋ(t) == [ x₂(t), u(t) ] 
+    x(0) == [0, 0]
+    x(tf) == [1, 0]
+    0.1 ≤ tf ≤ Inf
+    ẋ(t) == [x₂(t), u(t)]
     tf → min
 end
-sol4 = solve(ocp4, grid_size=100, print_level=5, tol=1e-12)
+sol4 = solve(ocp4, grid_size = 100, print_level = 5, tol = 1e-12)
 plot(sol4)
