@@ -9,14 +9,14 @@ function get_variable(xu, docp)
         nx = docp.dim_NLP_x
         m = docp.dim_NLP_u
         N = docp.dim_NLP_steps
-        offset = (nx+m) * (N+1)
+        offset = (nx + m) * (N + 1)
 
         if docp.dim_NLP_v == 1
-            return xu[offset + 1]
+            return xu[offset+1]
             #return xu[end]
         else
             #return xu[end-docp.dim_NLP_v+1:end]
-            return xu[offset + 1: offset + docp.dim_NLP_v]
+            return xu[offset+1:offset+docp.dim_NLP_v]
         end
     else
         return Float64[]
@@ -35,8 +35,8 @@ function get_single_variable(xu, docp, i::Int)
         nx = docp.dim_NLP_x
         m = docp.dim_NLP_u
         N = docp.dim_NLP_steps
-        offset = (nx+m) * (N+1)
-        return xu[offset + i]
+        offset = (nx + m) * (N + 1)
+        return xu[offset+i]
     else
         error("Tring to access variable in variable independent problem")
     end
@@ -55,7 +55,7 @@ function get_variables_at_time_step(xu, docp, i)
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     offset = (nx + m) * i
-    
+
     # retrieve scalar/vector OCP state (w/o lagrange state) 
     if n == 1
         xi = xu[offset+1]
@@ -67,7 +67,7 @@ function get_variables_at_time_step(xu, docp, i)
     if docp.has_lagrange
         xli = xu[offset+nx]
     else
-        xli = 0.
+        xli = 0.0
     end
 
     # retrieve scalar/vector control
@@ -86,7 +86,7 @@ function get_NLP_variables_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     offset = (nx + m) * i
-    
+
     xi = xu[offset+1:offset+nx]
     ui = xu[offset+nx+1:offset+nx+m]
 
@@ -181,7 +181,7 @@ Get actual (un-normalized) time value
 """
 function get_unnormalized_time(xu, docp, t_normalized)
     t0 = get_initial_time(xu, docp)
-    tf = get_final_time(xu, docp)    
+    tf = get_final_time(xu, docp)
     return t0 + t_normalized * (tf - t0)
 end
 
@@ -233,10 +233,10 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i)
 
     # NB. only set first the actual state variables from the OCP (not the possible additional state for lagrange cost)
     if !isnothing(x_init)
-        xu[offset + 1 : offset + n] .= x_init
+        xu[offset+1:offset+n] .= x_init
     end
     if !isnothing(u_init)
-        xu[offset + nx + 1 : offset + nx + m] .= u_init
+        xu[offset+nx+1:offset+nx+m] .= u_init
     end
 end
 
@@ -246,7 +246,7 @@ $(TYPEDSIGNATURES)
 Set optimization variables in the NLP variables (for initial guess)
 """
 function set_variable!(xu, v_init, docp)
-    xu[end-docp.dim_NLP_v+1 : end] .= v_init
+    xu[end-docp.dim_NLP_v+1:end] .= v_init
 end
 
 
@@ -255,8 +255,7 @@ $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function DOCP_initial_guess(docp,
-    init::OptimalControlInit=OptimalControlInit())
+function DOCP_initial_guess(docp, init::OptimalControlInit = OptimalControlInit())
 
     # default initialization
     # note: internal variables (lagrange cost, k_i for RK schemes) will keep these default values 
@@ -269,74 +268,20 @@ function DOCP_initial_guess(docp,
     end
 
     # set state / control variables if provided
-    for i in 0:docp.dim_NLP_steps
+    for i = 0:docp.dim_NLP_steps
         ti = get_time_at_time_step(NLP_X, docp, i)
-        set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i)
-        #=
-        if !isnothing(init.state_init(ti))
-            set_state_at_time_step!(xuv, init.state_init(ti), docp, i)
-        end
-        if !isnothing(init.control_init(ti))
-            set_control_at_time_step!(xuv, init.control_init(ti), docp, i)
-        end
-        =#
+        set_variables_at_time_step!(
+            NLP_X,
+            init.state_init(ti),
+            init.control_init(ti),
+            docp,
+            i,
+        )
     end
 
     return NLP_X
 end
 
-
-#struct for interpolated ocp solution with only basic data types that can be exported as json
-# +++todo:
-# - add more fields from OptimalControlSolution
-# - constructor to recreate OptimalControlSolution from this one
-mutable struct OCPDiscreteSolution
-
-    times
-    #initial_time_name::Union{String, Nothing}=nothing
-    #final_time_name::Union{String, Nothing}=nothing
-    #time_name::Union{String, Nothing}=nothing
-    control_dimension
-    #control_components_names::Union{Vector{String}, Nothing}=nothing
-    #control_name::Union{String, Nothing}=nothing
-    control
-    state_dimension
-    #state_components_names::Union{Vector{String}, Nothing}=nothing
-    #state_name::Union{String, Nothing}=nothing
-    state
-    variable_dimension
-    #variable_components_names::Union{Vector{String}, Nothing}=nothing
-    #variable_name::Union{String, Nothing}=nothing
-    variable
-    costate
-    objective
-    #iterations::Union{Nothing, Integer}=nothing
-    #stopping::Union{Nothing, Symbol}=nothing # the stopping criterion
-    #message::Union{Nothing, String}=nothing # the message corresponding to the stopping criterion
-    #success::Union{Nothing, Bool}=nothing # whether or not the method has finished successfully: CN1, stagnation vs iterations max
-    #infos::Dict{Symbol, Any}=Dict{Symbol, Any}()
-    #OCP_Solution_discrete() = new() # for StructTypes / JSON
-    
-    function OCPDiscreteSolution(solution::OptimalControlSolution)
-        solution_d = new()
-
-        # raw copy +++ reuse the copy! in CTBase ?
-        solution_d.objective = solution.objective
-        solution_d.times = solution.times
-        solution_d.state_dimension = solution.state_dimension
-        solution_d.control_dimension = solution.control_dimension
-        solution_d.variable_dimension = solution.variable_dimension
-        solution_d.variable = solution.variable
-
-        # interpolate functions into vectors
-        solution_d.state = solution.state.(solution_d.times)
-        solution_d.control = solution.control.(solution_d.times)
-        solution_d.costate = solution.costate.(solution_d.times)
-        return solution_d
-    end
-end
-
 # placeholders (see CTDirectExt)
 function export_ocp_solution end
 function import_ocp_solution end
-
