@@ -79,7 +79,7 @@ function CTBase.OptimalControlSolution(
 
     # call lowest level constructor
     return OptimalControlSolution(
-        docp,
+        docp.ocp,
         T,
         X,
         U,
@@ -263,7 +263,7 @@ $(TYPEDSIGNATURES)
 Build OCP functional solution from DOCP vector solution (given as raw variables and multipliers plus some optional infos)
 """
 function CTBase.OptimalControlSolution(
-    docp,
+    ocp::OptimalControlModel,
     T,
     X,
     U,
@@ -280,7 +280,6 @@ function CTBase.OptimalControlSolution(
     box_multipliers = ((nothing, nothing), (nothing, nothing), (nothing, nothing)),
 )
 
-    ocp = docp.ocp
     dim_x = state_dimension(ocp)
     dim_u = control_dimension(ocp)
     dim_v = variable_dimension(ocp)
@@ -292,13 +291,14 @@ function CTBase.OptimalControlSolution(
             "WARNING: time grid at solution is not strictly increasing, replacing with list of indices...",
         )
         println(T)
-        T = LinRange(0, docp.dim_NLP_steps, docp.dim_NLP_steps + 1)
+        dim_NLP_steps = length(T) - 1
+        T = LinRange(0, dim_NLP_steps, dim_NLP_steps + 1)
     end
 
     # variables: remove additional state for lagrange cost
     x = ctinterpolate(T, matrix2vec(X[:, 1:dim_x], 1))
     p = ctinterpolate(T[1:end-1], matrix2vec(P[:, 1:dim_x], 1))
-    u = ctinterpolate(T, matrix2vec(U, 1))
+    u = ctinterpolate(T, matrix2vec(U[:, 1:dim_u], 1))
 
     # force scalar output when dimension is 1
     fx = (dim_x == 1) ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t))
@@ -335,7 +335,7 @@ function CTBase.OptimalControlSolution(
     ) = set_box_multipliers(T, box_multipliers, dim_x, dim_u)
 
     # build and return solution
-    if docp.has_variable
+    if is_variable_dependent(ocp)
         return OptimalControlSolution(
             ocp;
             state = fx,
