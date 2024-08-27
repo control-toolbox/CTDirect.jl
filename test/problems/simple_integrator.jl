@@ -2,7 +2,6 @@
 
 # min enery, dual control
 function simple_integrator()
-
     ocp = Model()
     state!(ocp, 1)
     control!(ocp, 2)

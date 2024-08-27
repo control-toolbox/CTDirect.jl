@@ -19,20 +19,14 @@ if test4
     println("\nBasic solve")
     @time begin
         sol = solve(goddard, time_grid = LinRange(0, 1, N + 1), display = false)
-        @printf(
-            "steps %4d, objective %9.6f, iterations %4d\n",
-            N,
-            sol.objective,
-            sol.iterations
-        )
+        @printf("steps %4d, objective %9.6f, iterations %4d\n", N, sol.objective, sol.iterations)
     end
 
     # init
     println("\nStep continuation")
     @time begin
         N = 10
-        sol =
-            solve(goddard, time_grid = LinRange(0, 1, N + 1), display = false, max_iter = 5)
+        sol = solve(goddard, time_grid = LinRange(0, 1, N + 1), display = false, max_iter = 5)
         @printf(
             "steps %4d, objective %9.6f, iterations set to %4d\n",
             N,
@@ -59,12 +53,7 @@ if test4
         # final solve
         N = N_target
         sol = solve(goddard, time_grid = LinRange(0, 1, N + 1), display = false, init = sol)
-        @printf(
-            "steps %4d, objective %9.6f, iterations %4d\n",
-            N,
-            sol.objective,
-            sol.iterations
-        )
+        @printf("steps %4d, objective %9.6f, iterations %4d\n", N, sol.objective, sol.iterations)
     end
 end
 
@@ -78,7 +67,7 @@ function dt(t, v)
     elseif t == N_vars
         dt = v[end]
     else
-        dt = 0.5 * (v[Int(t)] + v[Int(t)+1])
+        dt = 0.5 * (v[Int(t)] + v[Int(t) + 1])
     end
     return dt
 end
@@ -111,7 +100,7 @@ if test5
     v = sol.variable
     T_opt = zeros(N_vars + 1)
     for i = 1:N_vars
-        T_opt[i+1] = T_opt[i] + v[i]
+        T_opt[i + 1] = T_opt[i] + v[i]
     end
     println("Optimized time steps ", T_opt)
     println("And tf: ", sum(sol.variable))
@@ -119,13 +108,11 @@ if test5
     #plot(sol)
     U_opt = zeros(N_vars + 1)
     # ffs julia
-    for i = 1:N_vars+1
+    for i = 1:(N_vars + 1)
         U_opt[i] = sol.control(sol.times[i])
     end
     p = plot(T_opt, U_opt, markershape = :circle, show = true)
-
 end
-
 
 # goddard test case: does not work very well
 # it could be the optimization finds 'bad' values for the time steps so it can cheat the ODE and get a better objective...
@@ -152,12 +139,7 @@ if test6
     constraint!(goddard, :final, rg = 3, lb = mf, ub = mf)
     constraint!(goddard, :state, lb = [r0, v0, mf], ub = [r0 + 0.2, vmax, m0])
     constraint!(goddard, :control, lb = 0, ub = 1)
-    constraint!(
-        goddard,
-        :variable,
-        lb = 0.05 / N_vars * ones(N_vars),
-        ub = Inf * ones(N_vars),
-    )
+    constraint!(goddard, :variable, lb = 0.05 / N_vars * ones(N_vars), ub = Inf * ones(N_vars))
     objective!(goddard, :mayer, (x0, xf, v) -> xf[1], :max)
     function F0(x)
         r, v, m = x
@@ -171,14 +153,13 @@ if test6
     dynamics!(goddard, (t, x, u, v) -> (F0(x) + u * F1(x)) * dt(t, v))
 
     # start will small time steps ?
-    sol =
-        solve(goddard, grid_size = N_vars, tol = 1e-12, init = (variable = zeros(N_vars),))
+    sol = solve(goddard, grid_size = N_vars, tol = 1e-12, init = (variable = zeros(N_vars),))
 
     # actual time grid
     v = sol.variable
     T_opt = zeros(N_vars + 1)
     for i = 1:N_vars
-        T_opt[i+1] = T_opt[i] + v[i]
+        T_opt[i + 1] = T_opt[i] + v[i]
     end
     println("Optimized time steps ", T_opt)
     println("And tf: ", sum(sol.variable))

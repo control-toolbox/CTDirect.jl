@@ -68,11 +68,7 @@ struct DOCP
         else
             # check strictly increasing
             if !issorted(time_grid, lt = <=)
-                throw(
-                    ArgumentError(
-                        "given time grid is not strictly increasing. Aborting...",
-                    ),
-                )
+                throw(ArgumentError("given time grid is not strictly increasing. Aborting..."))
                 return nothing
             end
             # normalize input grid if needed
@@ -182,11 +178,8 @@ struct DOCP
         )
 
         return docp
-
     end
-
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -198,19 +191,17 @@ function is_solvable(ocp)
     return solvable
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
 Build upper and lower bounds vectors for the DOCP nonlinear constraints.
 """
 function constraints_bounds!(docp::DOCP)
-
     lb = docp.con_l
     ub = docp.con_u
 
     index = 1 # counter for the constraints
-    for i = 0:docp.dim_NLP_steps-1
+    for i = 0:(docp.dim_NLP_steps - 1)
         # skip (ie leave 0) for equality dynamics constraint
         index = index + docp.dim_NLP_x
         # path constraints
@@ -226,14 +217,12 @@ function constraints_bounds!(docp::DOCP)
     return lb, ub
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
 Build upper and lower bounds vectors for the DOCP variable box constraints.
 """
 function variables_bounds!(docp::DOCP)
-
     N = docp.dim_NLP_steps
     var_l = docp.var_l
     var_u = docp.var_u
@@ -244,14 +233,14 @@ function variables_bounds!(docp::DOCP)
     # build ordered bounds vectors for state and control
     x_lb = -Inf * ones(docp.dim_OCP_x)
     x_ub = Inf * ones(docp.dim_OCP_x)
-    for j = 1:docp.dim_x_box
+    for j = 1:(docp.dim_x_box)
         indice = docp.state_box[2][j]
         x_lb[indice] = docp.state_box[1][j]
         x_ub[indice] = docp.state_box[3][j]
     end
     u_lb = -Inf * ones(docp.dim_NLP_u)
     u_ub = Inf * ones(docp.dim_NLP_u)
-    for j = 1:docp.dim_u_box
+    for j = 1:(docp.dim_u_box)
         indice = docp.control_box[2][j]
         u_lb[indice] = docp.control_box[1][j]
         u_ub[indice] = docp.control_box[3][j]
@@ -266,16 +255,15 @@ function variables_bounds!(docp::DOCP)
     # variable box
     offset = (N + 1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     if docp.dim_v_box > 0
-        for j = 1:docp.dim_v_box
+        for j = 1:(docp.dim_v_box)
             indice = docp.variable_box[2][j]
-            var_l[offset+indice] = docp.variable_box[1][j]
-            var_u[offset+indice] = docp.variable_box[3][j]
+            var_l[offset + indice] = docp.variable_box[1][j]
+            var_u[offset + indice] = docp.variable_box[3][j]
         end
     end
 
     return var_l, var_u
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -284,7 +272,6 @@ Compute the objective for the DOCP problem.
 """
 # DOCP objective
 function DOCP_objective(xu, docp::DOCP)
-
     obj = 0.0
     N = docp.dim_NLP_steps
     ocp = docp.ocp
@@ -314,7 +301,6 @@ function DOCP_objective(xu, docp::DOCP)
     return obj
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -340,7 +326,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     args_ip1 = ArgsAtTimeStep(xu, docp, 1, v)
 
     index = 1 # counter for the constraints
-    for i = 0:docp.dim_NLP_steps-1
+    for i = 0:(docp.dim_NLP_steps - 1)
 
         # state equation
         index = setStateEquation!(docp, c, index, (args_i, args_ip1))
@@ -367,7 +353,6 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     return c
 end
 
-
 # +++ later use abstract interface, based on Args variants ?
 # this struct and the related functions will change according to discretization scheme
 # put this part in trapeze.jl file
@@ -377,7 +362,6 @@ $(TYPEDSIGNATURES)
 Useful values at a time step: time, state, control, dynamics...
 """
 struct ArgsAtTimeStep
-
     time::Any
     state::Any
     control::Any
@@ -406,9 +390,7 @@ struct ArgsAtTimeStep
 
         return args
     end
-
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -416,29 +398,24 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 """
 function setStateEquation!(docp::DOCP, c, index::Int, args_trapeze)
-
     ocp = docp.ocp
     args_i = args_trapeze[1]
     args_ip1 = args_trapeze[2]
     hi = args_ip1.time - args_i.time
 
     # trapeze rule
-    c[index:index+docp.dim_OCP_x-1] .=
-        args_ip1.state .-
-        (args_i.state .+ 0.5 * hi * (args_i.dynamics .+ args_ip1.dynamics))
+    c[index:(index + docp.dim_OCP_x - 1)] .=
+        args_ip1.state .- (args_i.state .+ 0.5 * hi * (args_i.dynamics .+ args_ip1.dynamics))
 
     if docp.has_lagrange
-        c[index+docp.dim_OCP_x] =
-            args_ip1.lagrange_state - (
-                args_i.lagrange_state +
-                0.5 * hi * (args_i.lagrange_cost + args_ip1.lagrange_cost)
-            )
+        c[index + docp.dim_OCP_x] =
+            args_ip1.lagrange_state -
+            (args_i.lagrange_state + 0.5 * hi * (args_i.lagrange_cost + args_ip1.lagrange_cost))
     end
 
     index = index + docp.dim_NLP_x
     return index
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -446,7 +423,6 @@ $(TYPEDSIGNATURES)
 Set the path constraints at given time step
 """
 function setPathConstraints!(docp::DOCP, c, index::Int, args::ArgsAtTimeStep, v)
-
     ocp = docp.ocp
 
     ti = args.time
@@ -455,24 +431,23 @@ function setPathConstraints!(docp::DOCP, c, index::Int, args::ArgsAtTimeStep, v)
 
     # pure control constraints
     if docp.dim_u_cons > 0
-        c[index:index+docp.dim_u_cons-1] = docp.control_constraints[2](ti, ui, v)
+        c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](ti, ui, v)
         index = index + docp.dim_u_cons
     end
 
     # pure state constraints
     if docp.dim_x_cons > 0
-        c[index:index+docp.dim_x_cons-1] = docp.state_constraints[2](ti, xi, v)
+        c[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[2](ti, xi, v)
         index = index + docp.dim_x_cons
     end
 
     # mixed state / control constraints
     if docp.dim_mixed_cons > 0
-        c[index:index+docp.dim_mixed_cons-1] = docp.mixed_constraints[2](ti, xi, ui, v)
+        c[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[2](ti, xi, ui, v)
         index = index + docp.dim_mixed_cons
     end
 
     return index
-
 end
 
 """
@@ -481,34 +456,31 @@ $(TYPEDSIGNATURES)
 Set bounds for the path constraints at given time step
 """
 function setPathBounds!(docp::DOCP, index::Int, lb, ub)
-
     ocp = docp.ocp
 
     # pure control constraints
     if docp.dim_u_cons > 0
-        lb[index:index+docp.dim_u_cons-1] = docp.control_constraints[1]
-        ub[index:index+docp.dim_u_cons-1] = docp.control_constraints[3]
+        lb[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[1]
+        ub[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[3]
         index = index + docp.dim_u_cons
     end
 
     # pure state constraints
     if docp.dim_x_cons > 0
-        lb[index:index+docp.dim_x_cons-1] = docp.state_constraints[1]
-        ub[index:index+docp.dim_x_cons-1] = docp.state_constraints[3]
+        lb[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[1]
+        ub[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[3]
         index = index + docp.dim_x_cons
     end
 
     # mixed state / control constraints
     if docp.dim_mixed_cons > 0
-        lb[index:index+docp.dim_mixed_cons-1] = docp.mixed_constraints[1]
-        ub[index:index+docp.dim_mixed_cons-1] = docp.mixed_constraints[3]
+        lb[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[1]
+        ub[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[3]
         index = index + docp.dim_mixed_cons
     end
 
     return index
-
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -523,7 +495,6 @@ function setPointConstraints!(
     args_f::ArgsAtTimeStep,
     v,
 )
-
     ocp = docp.ocp
 
     x0 = args_0.state
@@ -531,13 +502,13 @@ function setPointConstraints!(
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        c[index:index+docp.dim_boundary_cons-1] = docp.boundary_constraints[2](x0, xf, v)
+        c[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[2](x0, xf, v)
         index = index + docp.dim_boundary_cons
     end
 
     # variable constraints
     if docp.dim_v_cons > 0
-        c[index:index+docp.dim_v_cons-1] = docp.variable_constraints[2](v)
+        c[index:(index + docp.dim_v_cons - 1)] = docp.variable_constraints[2](v)
         index = index + docp.dim_v_cons
     end
 
@@ -548,9 +519,7 @@ function setPointConstraints!(
     end
 
     return index
-
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -558,20 +527,19 @@ $(TYPEDSIGNATURES)
 Set bounds for the boundary and variable constraints
 """
 function setPointBounds!(docp::DOCP, index::Int, lb, ub)
-
     ocp = docp.ocp
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        lb[index:index+docp.dim_boundary_cons-1] = docp.boundary_constraints[1]
-        ub[index:index+docp.dim_boundary_cons-1] = docp.boundary_constraints[3]
+        lb[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[1]
+        ub[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[3]
         index = index + docp.dim_boundary_cons
     end
 
     # variable constraints
     if docp.dim_v_cons > 0
-        lb[index:index+docp.dim_v_cons-1] = docp.variable_constraints[1]
-        ub[index:index+docp.dim_v_cons-1] = docp.variable_constraints[3]
+        lb[index:(index + docp.dim_v_cons - 1)] = docp.variable_constraints[1]
+        ub[index:(index + docp.dim_v_cons - 1)] = docp.variable_constraints[3]
         index = index + docp.dim_v_cons
     end
 
@@ -583,9 +551,7 @@ function setPointBounds!(docp::DOCP, index::Int, lb, ub)
     end
 
     return index
-
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -598,7 +564,7 @@ function DOCP_constraints_check!(cb, constraints, docp)
 
     # check constraints vs bounds
     # by construction only one of the two can be active
-    for i = 1:docp.dim_NLP_constraints
+    for i = 1:(docp.dim_NLP_constraints)
         if constraints[i] < docp.con_l[i]
             cb[i] = constraints[i] - docp.con_l[i]
         end
@@ -609,7 +575,6 @@ function DOCP_constraints_check!(cb, constraints, docp)
     return nothing
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -618,7 +583,7 @@ Check the variables box constraints violation for the DOCP problem.
 function DOCP_variables_check!(vb, variables, docp)
     # check variables vs bounds
     # by construction only one of the two can be active
-    for i = 1:docp.dim_NLP_variables
+    for i = 1:(docp.dim_NLP_variables)
         if variables[i] < docp.var_l[i]
             vb[i] = variables[i] - docp.var_l[i] # < 0
         end

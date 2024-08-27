@@ -21,7 +21,6 @@ mf = 0.6
 x0 = [r0, v0, m0]
 
 @def ocp begin
-
     tf, variable
     t ∈ [t0, tf], time
     x ∈ R³, state
@@ -40,7 +39,6 @@ x0 = [r0, v0, m0]
     ẋ(t) == F0(x(t)) + u(t) * F1(x(t))
 
     r(tf) → max
-
 end
 
 F0(x) = begin

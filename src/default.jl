@@ -32,7 +32,6 @@ The default value is `1000`.
 """
 __max_iterations() = 1000
 
-
 # IPOPT
 
 """
@@ -58,7 +57,6 @@ Used to set the default value of the linear solver of Ipopt for the direct metho
 The default value is `mumps`.
 """
 __ipopt_linear_solver() = "mumps"
-
 
 # MadNLP
 

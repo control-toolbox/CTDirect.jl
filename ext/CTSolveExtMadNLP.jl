@@ -36,7 +36,6 @@ function CTDirect.solve_docp(
     return docp_solution
 end
 
-
 function CTBase.OptimalControlSolution(docp, docp_solution::MadNLP.MadNLPExecutionStats)
 
     # adjust objective sign for maximization problems
@@ -58,8 +57,6 @@ function CTBase.OptimalControlSolution(docp, docp_solution::MadNLP.MadNLPExecuti
         mult_LB = docp_solution.multipliers_L,
         mult_UB = docp_solution.multipliers_U,
     )
-
 end
-
 
 end

@@ -13,7 +13,6 @@ function available_methods()
     return algorithms
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -58,9 +57,7 @@ function direct_transcription(
     )
 
     return docp, nlp
-
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -68,7 +65,6 @@ $(TYPEDSIGNATURES)
 Set initial guess in the DOCP
 """
 function set_initial_guess(docp::DOCP, nlp, init)
-
     ocp = docp.ocp
     nlp.meta.x0 .= DOCP_initial_guess(
         docp,
@@ -79,7 +75,6 @@ function set_initial_guess(docp::DOCP, nlp, init)
             variable_dim = ocp.variable_dimension,
         ),
     )
-
 end
 
 """
@@ -95,7 +90,6 @@ function direct_solve(
     time_grid = CTDirect.__time_grid(),
     kwargs...,
 )
-
     method = getFullDescription(description, available_methods())
     #println(method)
 
@@ -120,9 +114,7 @@ function direct_solve(
 
     # build and return OCP solution
     return OptimalControlSolution(docp, docp_solution)
-
 end
-
 
 # placeholders (see CTSolveExt*** extensions)
 abstract type SolverTag end

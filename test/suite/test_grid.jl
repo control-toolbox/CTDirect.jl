@@ -20,7 +20,6 @@ end
     @test sol.objective ≈ 0.309 rtol = 1e-2
 end
 
-
 # 2. integrator free times
 if !isdefined(Main, :double_integrator_freet0tf)
     include("../problems/double_integrator.jl")
@@ -29,11 +28,7 @@ ocp = double_integrator_freet0tf().ocp
 sol0 = direct_solve(ocp, display = false)
 
 @testset verbose = true showtiming = true ":explicit_grid" begin
-    sol = direct_solve(
-        ocp,
-        time_grid = LinRange(0, 1, CTDirect.__grid_size() + 1),
-        display = false,
-    )
+    sol = direct_solve(ocp, time_grid = LinRange(0, 1, CTDirect.__grid_size() + 1), display = false)
     @test (sol.objective == sol0.objective) && (sol.iterations == sol0.iterations)
 end
 
@@ -41,7 +36,6 @@ end
     sol = direct_solve(ocp, time_grid = [0, 0.1, 0.6, 0.95, 1], display = false)
     @test sol.objective ≈ 7.48 rtol = 1e-2
 end
-
 
 # 3. parametric ocp (T=2) with explicit / non-uniform grid
 if !isdefined(Main, :double_integrator_T)
@@ -51,11 +45,7 @@ ocp = double_integrator_T(2).ocp
 sol0 = direct_solve(ocp, display = false)
 
 @testset verbose = true showtiming = true ":explicit_grid" begin
-    sol = direct_solve(
-        ocp,
-        time_grid = LinRange(0, 1, CTDirect.__grid_size() + 1),
-        display = false,
-    )
+    sol = direct_solve(ocp, time_grid = LinRange(0, 1, CTDirect.__grid_size() + 1), display = false)
     @test (sol.objective == sol0.objective) && (sol.iterations == sol0.iterations)
 end
 
