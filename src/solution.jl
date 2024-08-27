@@ -120,8 +120,8 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
 
     # retrieve optimization variables
     v = get_optim_variable(solution, docp)
-    mult_variable_box_lower = get_variable(mult_LB, docp)
-    mult_variable_box_upper = get_variable(mult_UB, docp)
+    mult_variable_box_lower = get_optim_variable(mult_LB, docp)
+    mult_variable_box_upper = get_optim_variable(mult_UB, docp)
 
     # loop over time steps
     for i = 1:(N + 1)

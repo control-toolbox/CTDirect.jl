@@ -73,7 +73,7 @@ struct DOCP
                 #println("INFO: normalizing given time grid...")
                 t0 = time_grid[1]
                 tf = time_grid[end]
-                time_grid = (time_grid .- t0) ./ (tf - t0)
+                @. time_grid = (time_grid - t0) / (tf - t0)
             end
             NLP_normalized_time_grid = time_grid
             dim_NLP_steps = length(time_grid) - 1
@@ -103,8 +103,11 @@ struct DOCP
 
         N = dim_NLP_steps
 
-        # NLP unknown (state + control + variable)
-        dim_NLP_variables = (N + 1) * (dim_NLP_x + dim_NLP_u) + dim_NLP_v
+        # NLP unknown (state + control + variable [+ stage])
+        dim_NLP_variables = (N + 1) * dim_NLP_x + N * dim_NLP_u + dim_NLP_v + N * dim_NLP_x
+        println("state dim ", dim_OCP_x, " lagrange ", has_lagrange)
+        println("NLP x,u,v ", dim_NLP_x, dim_NLP_u, dim_NLP_v)
+        println("dim_NLP_variables ", dim_NLP_variables)
 
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
@@ -127,12 +130,14 @@ struct DOCP
         dim_mixed_cons = dim_mixed_constraints(ocp)
         dim_boundary_cons = dim_boundary_constraints(ocp)
 
-        # lagrange to mayer transformation
+        # constraints (dynamics, stage, path, boundary, variable)
         dim_NLP_constraints =
-            N * (dim_NLP_x + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
+            N * (dim_NLP_x + dim_NLP_x + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
         if has_lagrange
+            # add initial condition for lagrange state
             dim_NLP_constraints += 1
         end
+        println("dim_NLP_constraints", dim_NLP_constraints)
 
         # call constructor with const fields
         docp = new(
@@ -363,8 +368,8 @@ function setStateEquation!(docp::DOCP, c, index::Int, xu, i::Int)
     v = get_optim_variable(xu, docp)
 
     # midpoint rule
-    c[index:(index + docp.dim_OCP_x - 1)] .=
-        xip1 .- (xi .+ hi * ki[1:docp.dim_OCP_x])
+    @. c[index:(index + docp.dim_OCP_x - 1)] =
+        xip1 - (xi + hi * ki[1:docp.dim_OCP_x])
     # +++ just define extended dynamics !
     if docp.has_lagrange
         c[index + docp.dim_OCP_x] = xlip1 - (xli + hi * ki[end])
@@ -373,9 +378,9 @@ function setStateEquation!(docp::DOCP, c, index::Int, xu, i::Int)
     
     # stage equation at mid-step
     t_s = 0.5 * (ti + tip1)
-    x_s .= 0.5 * (xi .+ xip1)
+    x_s = 0.5 * (xi + xip1)
     c[index:(index + docp.dim_OCP_x - 1)] .=
-        ki .- ocp.dynamics(t_s, x_s, ui, v)
+        ki[1:docp.dim_OCP_x] .- ocp.dynamics(t_s, x_s, ui, v)
     # +++ just define extended dynamics !
     if docp.has_lagrange
         c[index + docp.dim_OCP_x] = ki[end] - ocp.lagrange(t_s, x_s, ui, v) 
@@ -462,7 +467,7 @@ function setPointConstraints!(docp::DOCP, c, index::Int, xu)
     ocp = docp.ocp
 
     x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0)
-    xf = get_variables_at_time_step(xu, docp, docp.dim_NLP_steps)
+    xf, = get_variables_at_time_step(xu, docp, docp.dim_NLP_steps)
     v = get_optim_variable(xu, docp)
 
     # boundary constraints

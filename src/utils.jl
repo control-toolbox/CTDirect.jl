@@ -23,7 +23,7 @@ function get_optim_variable(xu, docp)
             return xu[(end - docp.dim_NLP_v + 1):end]
         end
     else
-        return similar(xu, dims = 0) #Float64[]
+        return similar(xu, 0) #Float64[]
     end
 end
 
@@ -42,6 +42,7 @@ function get_variables_at_time_step(xu, docp, i)
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
+    N = docp.dim_NLP_steps
     offset = (nx*2 + m) * i
 
     # retrieve scalar/vector OCP state (w/o lagrange state) 
@@ -91,15 +92,19 @@ function get_NLP_variables_at_time_step(xu, docp, i)
 
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
+    N = docp.dim_NLP_steps
     offset = (nx*2 + m) * i
 
+    # state
     xi = xu[(offset + 1):(offset + nx)]
+    # control
     if i < N
         ui = xu[(offset + nx + 1):(offset + nx + m)]
     else
         offset2 = (nx*2 + m) * (i-1)
         ui = xu[(offset2 + nx + 1):(offset2 + nx + m)]
     end 
+    # stage
     if i < N
         ki = xu[(offset + nx + m + 1):(offset + nx + m + nx) ]
     else
@@ -175,7 +180,7 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i)
         xu[(offset + 1):(offset + n)] .= x_init
     end
     if (i < N) && !isnothing(u_init)
-        xu[(offset + 2*nx + 1):(offset + nx + m)] .= u_init
+        xu[(offset + nx + 1):(offset + nx + m)] .= u_init
     end
 end
 
