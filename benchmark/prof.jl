@@ -1,7 +1,7 @@
 # Profiling
 include("../test/deps.jl")
 
-#using BenchmarkTools
+using BenchmarkTools
 #using Traceur
 #using Profile
 #using PProf
@@ -9,16 +9,15 @@ using JET
 
 precompile = true
 
-test_time = false
+test_time = true
 #test = :objective
 test = :constraints
-test_code_warntype = true
-test_jet = true
+test_code_warntype = false
+test_jet = false
 
 # define OCP
-prob = include("../problems/fuller.jl")
-#prob = include("../problems/jackson.jl")
-#prob = include("../problems/goddard.jl")
+include("../test/problems/goddard.jl")
+prob = goddard_all()
 ocp = prob[:ocp]
 grid_size = 100
 docp, nlp = direct_transcription(ocp, grid_size = grid_size)
@@ -28,10 +27,11 @@ println("Load problem ", prob[:name])
 if test_time
     if precompile
         println("Precompilation")
-        solve(ocp, grid_size = grid_size, display = false, max_iter = 2)
+        direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2)
     end
     println("Timed solve")
-    @timev sol = solve(ocp, grid_size = grid_size, print_level = 0)
+    @timev sol = direct_solve(ocp, grid_size = grid_size, display=false)
+    @btime sol = direct_solve(ocp, grid_size = grid_size, display=false)
 end
 
 if precompile
