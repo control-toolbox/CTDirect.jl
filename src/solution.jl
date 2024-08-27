@@ -119,7 +119,7 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     mult_variable_box_upper = zeros(N + 1, docp.dim_NLP_v)
 
     # retrieve optimization variables
-    v = get_variable(solution, docp)
+    v = get_optim_variable(solution, docp)
     mult_variable_box_lower = get_variable(mult_LB, docp)
     mult_variable_box_upper = get_variable(mult_UB, docp)
 
@@ -187,7 +187,11 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
         # state equation multiplier for costate (except last step)
         if i < N + 1
             P[i, :] = multipliers[i_m:(i_m + docp.dim_NLP_x - 1)]
-            i_c += docp.dim_NLP_x # skip dynamics constraints
+            # skip dynamics constraints
+            i_c += docp.dim_NLP_x 
+            i_m += docp.dim_NLP_x
+            # skip stage constraints
+            i_c += docp.dim_NLP_x
             i_m += docp.dim_NLP_x
         end
 
@@ -451,7 +455,7 @@ $(TYPEDSIGNATURES)
     
 Process data related to a box type for solution building
 """
-# +++ integrate above
+# +++ integrate above ?
 function set_box_block(T, mults, dim)
     mult_l, mult_u = mults
     if !isnothing(mult_l) && !isnothing(mult_u)
@@ -461,22 +465,3 @@ function set_box_block(T, mults, dim)
     return t -> m_l(t), t -> m_u(t)
 end
 
-#= OLD
-
-    # recompute value of constraints at solution
-    # NB. the constraint formulation is LB <= C <= UB
-    constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraints!(constraints, solution, docp)
-    # set constraint violation if needed
-    # is not saved in OCP solution currently...
-    if constraints_violation==nothing
-        constraints_check = zeros(docp.dim_NLP_constraints)
-        DOCP_constraints_check!(constraints_check, constraints, docp)
-        println("Recomputed constraints violation ", norm(constraints_check, Inf))
-        variables_check = zeros(docp.dim_NLP_variables)
-        DOCP_variables_check!(variables_check, solution, docp)
-        println("Recomputed variable bounds violation ", norm(variables_check, Inf))
-        constraints_violation = norm(append!(variables_check, constraints_check), Inf)
-
-    end
-=#
