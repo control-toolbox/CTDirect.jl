@@ -35,12 +35,14 @@ u_vec = [0, 0.3, 0.1]
 end
 @testset verbose = true showtiming = true ":default_init_()" begin
     sol = direct_solve(ocp, display = false, init = (), max_iter = maxiter)
+    T = sol.time_grid
     @test isapprox(sol.state.(T), (t->[0.1,0.1]).(T), rtol = 1e-2)
     @test isapprox(sol.control.(T), (t->0.1).(T), rtol = 1e-2)
     @test isapprox(sol.variable, 0.1, rtol = 1e-2)
 end
 @testset verbose = true showtiming = true ":default_init_nothing" begin
     sol = direct_solve(ocp, display = false, init = nothing, max_iter = maxiter)
+    T = sol.time_grid
     @test isapprox(sol.state.(T), (t->[0.1,0.1]).(T), rtol = 1e-2)
     @test isapprox(sol.control.(T), (t->0.1).(T), rtol = 1e-2)
     @test sol.variable == 0.1
@@ -49,10 +51,12 @@ end
 # 1.b constant initial guess
 @testset verbose = true showtiming = true ":constant_x" begin
     sol = direct_solve(ocp, display = false, init = (state = x_const,), max_iter = maxiter)
+    T = sol.time_grid
     @test isapprox(sol.state.(T), (t->x_const).(T), rtol = 1e-2)
 end
 @testset verbose = true showtiming = true ":constant_u" begin
     sol = direct_solve(ocp, display = false, init = (control = u_const,), max_iter = maxiter)
+    T = sol.time_grid
     @test isapprox(sol.control.(T), (t->u_const).(T), rtol = 1e-2)
 end
 @testset verbose = true showtiming = true ":constant_v" begin
@@ -66,6 +70,7 @@ end
         init = (state = x_const, control = u_const),
         max_iter = maxiter,
     )
+    T = sol.time_grid
     @test isapprox(sol.state.(T), (t->x_const).(T), rtol = 1e-2)
     @test isapprox(sol.control.(T), (t->u_const).(T), rtol = 1e-2)
 end
@@ -76,6 +81,7 @@ end
         init = (state = x_const, variable = v_const),
         max_iter = maxiter,
     )
+    T = sol.time_grid
     @test isapprox(sol.state.(T), (t->x_const).(T), rtol = 1e-2)
     @test sol.variable == v_const
 end
@@ -86,6 +92,7 @@ end
         init = (control = u_const, variable = v_const),
         max_iter = maxiter,
     )
+    T = sol.time_grid
     @test isapprox(sol.control.(T), (t->u_const).(T), rtol = 1e-2)
     @test sol.variable == v_const
 end
@@ -96,6 +103,7 @@ end
         init = (state = x_const, control = u_const, variable = v_const),
         max_iter = maxiter,
     )
+    T = sol.time_grid
     @test isapprox(sol.state.(T), (t->x_const).(T), rtol = 1e-2)
     @test isapprox(sol.control.(T), (t->u_const).(T), rtol = 1e-2)
     @test sol.variable == v_const
@@ -104,10 +112,12 @@ end
 # 1. functional initial guess
 @testset verbose = true showtiming = true ":functional_x" begin
     sol = direct_solve(ocp, display = false, init = (state = x_func,), max_iter = maxiter)
+    T = sol.time_grid
     @test isapprox(sol.state.(T), x_func.(T), rtol = 1e-2)
 end
 @testset verbose = true showtiming = true ":functional_u" begin
     sol = direct_solve(ocp, display = false, init = (control = u_func,), max_iter = maxiter)
+    T = sol.time_grid
     @test isapprox(sol.control.(T), u_func.(T), rtol = 1e-2)
 end
 @testset verbose = true showtiming = true ":functional_xu" begin
@@ -117,6 +127,7 @@ end
         init = (state = x_func, control = u_func),
         max_iter = maxiter,
     )
+    T = sol.time_grid
     @test isapprox(sol.state.(T), x_func.(T), rtol = 1e-2)
     @test isapprox(sol.control.(T), u_func.(T), rtol = 1e-2)
 end
@@ -166,6 +177,7 @@ end
         init = (time = t_vec, state = x_vec, control = u_func, variable = v_const),
         max_iter = maxiter,
     )
+    T = sol.time_grid
     @test isapprox(sol.state.(t_vec), x_vec, rtol = 1e-2)
     @test isapprox(sol.control.(T), u_func.(T), rtol = 1e-2)
     @test sol.variable == v_const
@@ -174,6 +186,7 @@ end
 # 1.f warm start
 @testset verbose = true showtiming = true ":warm_start" begin
     sol = direct_solve(ocp, display = false, init = sol0, max_iter = maxiter)
+    T = sol.time_grid
     @test isapprox(sol.state.(T), sol0.state.(T), rtol = 1e-2)
     @test isapprox(sol.control.(T), sol0.control.(T), rtol = 1e-2)
     @test sol.variable == sol0.variable
@@ -192,6 +205,7 @@ tag = CTDirect.IpoptTag()
     )
     dsol = CTDirect.solve_docp(tag, docp, nlp, display = false, max_iter = maxiter)
     sol = OptimalControlSolution(docp, dsol)
+    T = sol.time_grid
     @test isapprox(sol.state.(t_vec), x_vec, rtol = 1e-2)
     @test isapprox(sol.control.(T), u_func.(T), rtol = 1e-2)
     @test sol.variable == v_const
@@ -201,6 +215,7 @@ end
     set_initial_guess(docp, nlp, sol0)
     dsol = CTDirect.solve_docp(tag, docp, nlp, display = false, max_iter = maxiter)
     sol = OptimalControlSolution(docp, dsol)
+    T = sol.time_grid
     @test isapprox(sol.state.(T), sol0.state.(T), rtol = 1e-2)
     @test isapprox(sol.control.(T), sol0.control.(T), rtol = 1e-2)
     @test sol.variable == sol0.variable

@@ -9,16 +9,17 @@ using JET
 
 precompile = true
 
-test_time = false
+test_time = true
 #test = :objective
 test = :constraints
-test_code_warntype = true
-test_jet = true
+test_code_warntype = false
+test_jet = false
 
 # define OCP
-prob = include("../problems/fuller.jl")
+#prob = include("../problems/fuller.jl")
 #prob = include("../problems/jackson.jl")
-#prob = include("../problems/goddard.jl")
+include("../problems/goddard.jl")
+prob = goddard_all()
 ocp = prob[:ocp]
 grid_size = 100
 docp, nlp = direct_transcription(ocp, grid_size = grid_size)

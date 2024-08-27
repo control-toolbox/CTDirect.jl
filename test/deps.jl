@@ -5,6 +5,7 @@ using LinearAlgebra
 using NLPModelsIpopt
 using MadNLP
 using HSL
+using SplitApplyCombine
 
 using JLD2
 using JSON3
