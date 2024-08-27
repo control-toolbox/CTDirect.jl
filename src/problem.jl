@@ -194,9 +194,10 @@ $(TYPEDSIGNATURES)
 Build upper and lower bounds vectors for the DOCP nonlinear constraints.
 """
 function constraints_bounds!(docp::DOCP)
+
     lb = docp.con_l
     ub = docp.con_u
-+++
+
     index = 1 # counter for the constraints
     for i = 0:(docp.dim_NLP_steps - 1)
         # skip (ie leave 0) for equality dynamics constraint
@@ -229,7 +230,7 @@ function variables_bounds!(docp::DOCP)
 
     # NB. keep offset for each block since they are optional !
 
-    # build ordered bounds vectors for state and control
+    # +++ use AUX build ordered bounds vectors for state and control
     x_lb = -Inf * ones(docp.dim_OCP_x)
     x_ub = Inf * ones(docp.dim_OCP_x)
     for j = 1:(docp.dim_x_box)
@@ -244,6 +245,15 @@ function variables_bounds!(docp::DOCP)
         u_lb[indice] = docp.control_box[1][j]
         u_ub[indice] = docp.control_box[3][j]
     end
+    if docp.has_variable
+        v_lb = -Inf * ones(docp.dim_NLP_v)
+        v_ub = Inf * ones(docp.dim_NLP_v)
+        for j = 1:(docp.dim_v_box)
+            indice = docp.variable_box[2][j]
+            v_lb[indice] = docp.variable_box[1][j]
+            v_ub[indice] = docp.variable_box[3][j]
+        end
+    end
 
     # apply bounds for NLP variables
     for i = 0:N
@@ -252,15 +262,19 @@ function variables_bounds!(docp::DOCP)
     end
 
     # variable box
-    +++ reuse setter here to be scheme independent
-    offset = (N + 1) * (docp.dim_NLP_x + docp.dim_NLP_u)
+    if docp.has_variable
+        set_optim_variable!(var_l, v_lb, docp)
+        set_optim_variable!(var_u, v_ub, docp)
+    end
+
+    #=offset = (N + 1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     if docp.dim_v_box > 0
         for j = 1:(docp.dim_v_box)
             indice = docp.variable_box[2][j]
             var_l[offset + indice] = docp.variable_box[1][j]
             var_u[offset + indice] = docp.variable_box[3][j]
         end
-    end
+    end=#
 
     return var_l, var_u
 end
@@ -359,7 +373,7 @@ function setStateEquation!(docp::DOCP, c, index::Int, xu, i::Int)
     
     # stage equation at mid-step
     t_s = 0.5 * (ti + tip1)
-    x_s .= 0.5 * (xi +. xip1)
+    x_s .= 0.5 * (xi .+ xip1)
     c[index:(index + docp.dim_OCP_x - 1)] .=
         ki .- ocp.dynamics(t_s, x_s, ui, v)
     # +++ just define extended dynamics !
@@ -533,7 +547,7 @@ Check the nonlinear constraints violation for the DOCP problem.
 """
 function DOCP_constraints_check!(cb, constraints, docp)
 
-    # +++ todo add a single utils function check_bounds(v,lb,ub) that returns the error vector
+    # todo add a single utils function check_bounds(v,lb,ub) that returns the error vector ?
 
     # check constraints vs bounds
     # by construction only one of the two can be active
