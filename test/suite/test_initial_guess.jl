@@ -33,7 +33,6 @@ x_vec = [[0, 0], [1, 2], [5, -1]]
 x_matrix = [0 0; 1 2; 5 -1]
 u_vec = [0, 0.3, 0.1]
 
-
 #################################################
 # 1 Pass initial guess to all-in-one solve call
 
@@ -57,13 +56,11 @@ end
     @test(check_xf(sol, x_const))
 end
 @testset verbose = true showtiming = true ":constant_u" begin
-    sol =
-        direct_solve(ocp, display = false, init = (control = u_const,), max_iter = maxiter)
+    sol = direct_solve(ocp, display = false, init = (control = u_const,), max_iter = maxiter)
     @test(check_uf(sol, u_const))
 end
 @testset verbose = true showtiming = true ":constant_v" begin
-    sol =
-        direct_solve(ocp, display = false, init = (variable = v_const,), max_iter = maxiter)
+    sol = direct_solve(ocp, display = false, init = (variable = v_const,), max_iter = maxiter)
     @test(check_v(sol, v_const))
 end
 @testset verbose = true showtiming = true ":constant_xu" begin
@@ -119,10 +116,7 @@ end
         init = (state = x_func, control = u_func),
         max_iter = maxiter,
     )
-    @test(
-        check_xf(sol, x_func(sol.time_grid[end])) &&
-        check_uf(sol, u_func(sol.time_grid[end]))
-    )
+    @test(check_xf(sol, x_func(sol.time_grid[end])) && check_uf(sol, u_func(sol.time_grid[end])))
 end
 
 # 1.d interpolated initial guess

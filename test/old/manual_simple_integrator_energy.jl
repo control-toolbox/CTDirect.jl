@@ -2,7 +2,6 @@ using CTDirect
 using CTBase
 using CTProblems
 
-
 # double integrator - energy min
 
 println(":exponential, :dim1, :energy problem")
@@ -18,7 +17,6 @@ ocp = prob.model
 sol = solve(ocp, grid_size = 100, print_level = 5, tol = 1e-12, init = nothing)
 
 p1 = plot(sol)
-
 
 #= # control box
 constraint!(ocp, :control, -4.01, 4.01, :control_con1)

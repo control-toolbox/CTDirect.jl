@@ -11,8 +11,8 @@ sol = solve(ocp, grid_size = 100, print_level = 0)
 # check solution
 u = t -> sol.control(t)[1]
 T = sol.times
-dT = T[2:end] - T[1:end-1]
+dT = T[2:end] - T[1:(end - 1)]
 N = length(T)
-@test sum(dT .* [abs(u(T[i]) - u_sol(T[i])) for i ∈ 1:N-1]) ≈ 0 atol = 1e-1
+@test sum(dT .* [abs(u(T[i]) - u_sol(T[i])) for i ∈ 1:(N - 1)]) ≈ 0 atol = 1e-1
 @test sol.objective ≈ prob.solution.objective atol = 1e-2
 # @test constraints_violation(sol) < 1e-6 # ceci n'existe pas dans la OptimalControlSolution pour le moment

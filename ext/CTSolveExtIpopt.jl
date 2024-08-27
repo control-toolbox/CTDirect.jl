@@ -65,7 +65,6 @@ function CTDirect.solve_docp(
 
     # return DOCP solution
     return docp_solution
-
 end
 
 end

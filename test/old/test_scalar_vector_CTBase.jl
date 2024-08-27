@@ -2,7 +2,6 @@ using CTDirect
 using CTBase
 using Test
 
-
 n = 1
 m = 1
 t0 = 0
@@ -33,7 +32,6 @@ function test_scalar_vector(f)
             u_vector = true
             x_vector = true
         catch
-
         end
     end
     return x_vector, u_vector

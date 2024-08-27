@@ -13,7 +13,6 @@ for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true)
     include(problem_file)
 end
 
-
 function bench(;
     nlp_solver = :ipopt,
     linear_solver = nothing,
@@ -37,19 +36,14 @@ function bench(;
         linear_solver = "UmfpackSolver"
     end
 
-    verbose &&
-        @printf("Profile: NLP Solver %s with linear solver %s\n", nlp_solver, linear_solver)
+    verbose && @printf("Profile: NLP Solver %s with linear solver %s\n", nlp_solver, linear_solver)
 
     # blas backend (cf using MKL above, should be option...)
     verbose && @printf("Blas config: %s\n", LinearAlgebra.BLAS.lbt_get_config())
 
     # settings
-    verbose && @printf(
-        "Settings: tol=%g grid_size=%d precompile=%s\n\n",
-        tol,
-        grid_size,
-        precompile
-    )
+    verbose &&
+        @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
 
     # load problems for benchmark
     names_list = ["beam", "bioreactor_1day", "fuller", "goddard", "jackson", "vanderpol"]
@@ -118,7 +112,6 @@ function bench(;
 
     # return also full text ouptut ?
     return total_time
-
 end
 
 # +++ put repeat directly in bench()
@@ -136,9 +129,7 @@ function bench_average(; repeat = 2, verbose = false, kwargs...)
     avg_time = sum(t_list) / length(t_list)
     @printf("Average time (s): %6.2f\n", avg_time)
     return avg_time
-
 end
-
 
 function bench_series(; grid_size_list = [250, 500, 1000, 2500, 5000, 10000], kwargs...)
     println(grid_size_list)

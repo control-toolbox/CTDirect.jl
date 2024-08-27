@@ -23,7 +23,6 @@ if test1
     end
 end
 
-
 # parametric
 if test2
     if !isdefined(Main, :parametric)
@@ -42,7 +41,6 @@ if test2
         @test obj_list ≈ [-0.034, -1.7, -6.2, -35, -148] rtol = 1e-2
     end
 end
-
 
 # goddard
 if test3

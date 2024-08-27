@@ -1,7 +1,6 @@
 # double integrator
 
 function double_integrator_a()
-
     @def ocp begin
         tf ∈ R, variable
         t ∈ [0, tf], time
@@ -17,7 +16,6 @@ function double_integrator_a()
 
     return ((ocp = ocp, obj = 2.0, name = "double_integrator_a", init = nothing))
 end
-
 
 function double_integrator_T(T)
     @def ocp begin
@@ -39,7 +37,6 @@ end
 
 # min tf
 function double_integrator_mintf(; lagrange = false)
-
     ocp = Model(variable = true)
     state!(ocp, 2)
     control!(ocp, 1)
@@ -63,7 +60,6 @@ end
 
 # max t0 with free t0,tf
 function double_integrator_freet0tf(lagrange = false)
-
     ocp = Model(variable = true)
     state!(ocp, 2)
     control!(ocp, 1)

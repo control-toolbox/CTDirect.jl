@@ -6,9 +6,9 @@ xu = ones((N + 1) * n + N * m)
 
 function getx(xu, step, n)
     if n == 1
-        return xu[step*n+1]
+        return xu[step * n + 1]
     else
-        return xu[step*n+1:step*n+n]
+        return xu[(step * n + 1):(step * n + n)]
     end
 end
 
@@ -16,7 +16,7 @@ function getu(xu, step, n, m)
     #if m == 1
     #    return xu[(N+1)*n + step*m + 1]
     #else
-    return xu[(N+1)*n+step*m+1:(N+1)*n+step*m+m]
+    return xu[((N + 1) * n + step * m + 1):((N + 1) * n + step * m + m)]
     #end
 end
 

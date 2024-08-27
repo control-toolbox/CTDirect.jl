@@ -58,7 +58,6 @@ function bioreactor_1day()
     return ((ocp = bioreactor_1, obj = 0.614134, name = "bioreactor_1day", init = nothing))
 end
 
-
 # N days (non periodic)
 function bioreactor_Ndays()
     @def bioreactor_N begin

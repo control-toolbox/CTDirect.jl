@@ -35,16 +35,14 @@ ocp = prob.model
         l_var, u_var = CTDirect.variables_bounds(ctd)
         true_lb = zeros(3 * N) # test without boundary conditions because of the dictionary
         # true_lb[end-4:end] = [-1,0,0,0,0]
-        @test lb[1:3*N] == true_lb
-        @test ub[1:3*N] == true_lb
+        @test lb[1:(3 * N)] == true_lb
+        @test ub[1:(3 * N)] == true_lb
         @test l_var == -Inf * ones((N + 1) * 4)
         @test u_var == -l_var
     end
 
-
     # Tests on the numerical solution
     @testset verbose = true showtiming = true "numerical solution" begin
-
         sol = solve(ocp, grid_size = 100, print_level = 0)
 
         u_sol(t) = prob.solution.control(t)[1]
@@ -52,13 +50,10 @@ ocp = prob.model
         x_sol(t) = prob.solution.state(t)
         x = t -> sol.state(t)[1:2]
         T = sol.times
-        dT = T[2:end] - T[1:end-1]
+        dT = T[2:end] - T[1:(end - 1)]
         N = length(T)
         @test distance_infty(x, x_sol, T) ≈ 0 atol = 0.01
         @test distance_L2(u, u_sol, T) ≈ 0 atol = 1e-1
         @test sol.objective ≈ prob.solution.objective atol = 1e-2
-
     end
-
-
 end
