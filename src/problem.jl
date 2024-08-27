@@ -73,9 +73,10 @@ struct DOCP
                 #println("INFO: normalizing given time grid...")
                 t0 = time_grid[1]
                 tf = time_grid[end]
-                @. time_grid = (time_grid - t0) / (tf - t0)
+                NLP_normalized_time_grid = (time_grid .- t0) ./ (tf - t0)
+            else
+                NLP_normalized_time_grid = time_grid
             end
-            NLP_normalized_time_grid = time_grid
             dim_NLP_steps = length(time_grid) - 1
         end
 
@@ -105,9 +106,6 @@ struct DOCP
 
         # NLP unknown (state + control + variable [+ stage])
         dim_NLP_variables = (N + 1) * dim_NLP_x + N * dim_NLP_u + dim_NLP_v + N * dim_NLP_x
-        println("state dim ", dim_OCP_x, " lagrange ", has_lagrange)
-        println("NLP x,u,v ", dim_NLP_x, dim_NLP_u, dim_NLP_v)
-        println("dim_NLP_variables ", dim_NLP_variables)
 
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
@@ -137,8 +135,7 @@ struct DOCP
             # add initial condition for lagrange state
             dim_NLP_constraints += 1
         end
-        println("dim_NLP_constraints", dim_NLP_constraints)
-
+   
         # call constructor with const fields
         docp = new(
             ocp,

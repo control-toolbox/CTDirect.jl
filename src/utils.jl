@@ -205,7 +205,7 @@ function DOCP_initial_guess(docp, init::OptimalControlInit = OptimalControlInit(
 
     # set variables if provided (needed first in case of free times !)
     if !isnothing(init.variable_init)
-        set_variable!(NLP_X, init.variable_init, docp)
+        set_optim_variable!(NLP_X, init.variable_init, docp)
     end
 
     # set state / control variables if provided
