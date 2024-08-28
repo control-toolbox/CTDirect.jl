@@ -5,7 +5,6 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
 
-# struct for midpoint
 struct MidpointTag <: DiscretizationTag 
     stage::Int
     additional_controls::Int
@@ -17,9 +16,6 @@ end
 $(TYPEDSIGNATURES)
 
 Retrieve state and control variables at given time step from the NLP variables.
-Internal layout:
-- Midpoint: [X_0,U_0,K_0, X_1,U_1,K_1 .., X_N-1,U_N-1,K_N-1, XN, V]
-with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 """
 function get_variables_at_time_step(xu, docp, i, tag::MidpointTag)
 
@@ -124,7 +120,6 @@ end
 $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
-Implicit midpoint discretization
 """
 function setStateEquation!(docp::DOCP, c, index::Int, xu, i::Int, tag::MidpointTag)
 

@@ -3,6 +3,15 @@
 """
 $(TYPEDSIGNATURES)
 
+Used to set the default discretization method.
+The default value is `trapeze`.
+"""
+#__discretization() = "trapeze"
+__discretization() = "midpoint"
+
+"""
+$(TYPEDSIGNATURES)
+
 Used to set the default grid size.
 The default value is `250`.
 """
