@@ -15,10 +15,8 @@ function get_optim_variable(xu, docp)
 
     if docp.has_variable
         if docp.dim_NLP_v == 1
-            #return xu[offset + 1]
             return xu[end]
         else
-            #return xu[(offset + 1):(offset + docp.dim_NLP_v)]
             return xu[(end - docp.dim_NLP_v + 1):end]
         end
     else

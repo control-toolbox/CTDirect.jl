@@ -1,4 +1,4 @@
-# todo: ass more discretization schemes
+# todo: add more discretization schemes
 # use a scheme struct to allow multiple dispatch (cf solve)
 # this struct can contains useful info about the scheme
 # (name, order, stage, properties etc)
@@ -71,7 +71,7 @@ struct DOCP
     con_l::Vector{Float64}
     con_u::Vector{Float64}
 
-    # struct for the scheme, with stage number ?
+    # discretization scheme
     discretization::DiscretizationTag
 
     # constructor
@@ -252,40 +252,9 @@ function variables_bounds!(docp::DOCP)
     var_u = docp.var_u
     ocp = docp.ocp
 
-    # NB. keep offset for each block since they are optional !
-    #= +++ use AUX build ordered bounds vectors for state and control
-    x_lb = -Inf * ones(docp.dim_OCP_x)
-    x_ub = Inf * ones(docp.dim_OCP_x)
-    for j = 1:(docp.dim_x_box)
-        indice = docp.state_box[2][j]
-        x_lb[indice] = docp.state_box[1][j]
-        x_ub[indice] = docp.state_box[3][j]
-    end
-    u_lb = -Inf * ones(docp.dim_NLP_u)
-    u_ub = Inf * ones(docp.dim_NLP_u)
-    for j = 1:(docp.dim_u_box)
-        indice = docp.control_box[2][j]
-        u_lb[indice] = docp.control_box[1][j]
-        u_ub[indice] = docp.control_box[3][j]
-    end
-    if docp.has_variable
-        v_lb = -Inf * ones(docp.dim_NLP_v)
-        v_ub = Inf * ones(docp.dim_NLP_v)
-        for j = 1:(docp.dim_v_box)
-            indice = docp.variable_box[2][j]
-            v_lb[indice] = docp.variable_box[1][j]
-            v_ub[indice] = docp.variable_box[3][j]
-        end
-    end
-    =#
-
+    # state / control box
     x_lb, x_ub = build_bounds(docp.dim_OCP_x, docp.dim_x_box, docp.state_box)
     u_lb, u_ub = build_bounds(docp.dim_NLP_u, docp.dim_u_box, docp.control_box)
-    if docp.has_variable 
-        v_lb, v_ub = build_bounds(docp.dim_NLP_v, docp.dim_v_box, docp.variable_box)
-    end
-
-    # apply bounds for NLP variables
     for i = 0:N
         set_variables_at_time_step!(var_l, x_lb, u_lb, docp, i)
         set_variables_at_time_step!(var_u, x_ub, u_ub, docp, i)
@@ -293,18 +262,10 @@ function variables_bounds!(docp::DOCP)
 
     # variable box
     if docp.has_variable
+        v_lb, v_ub = build_bounds(docp.dim_NLP_v, docp.dim_v_box, docp.variable_box)
         set_optim_variable!(var_l, v_lb, docp)
         set_optim_variable!(var_u, v_ub, docp)
     end
-
-    #=offset = (N + 1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    if docp.dim_v_box > 0
-        for j = 1:(docp.dim_v_box)
-            indice = docp.variable_box[2][j]
-            var_l[offset + indice] = docp.variable_box[1][j]
-            var_u[offset + indice] = docp.variable_box[3][j]
-        end
-    end=#
 
     return var_l, var_u
 end
