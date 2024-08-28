@@ -117,10 +117,12 @@ end
 
 
 # trivial version for now...
-function initArgs(xu, docp)
+function initArgs(xu, docp, tag::MidpointTag)
     return xu, get_optim_variable(xu, docp)
 end
-function updateArgs!(args, xu, docp) end
+function updateArgs(args, xu, v, docp, i, tag::MidpointTag)
+    return args
+end
 
 
 """
@@ -128,7 +130,7 @@ $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquation!(docp::DOCP, c, index::Int, xu, v, i::Int, tag::MidpointTag)
+function setStateEquation!(docp::DOCP, c, index::Int, xu, v, i, tag::MidpointTag)
 
     ocp = docp.ocp
 

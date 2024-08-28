@@ -85,15 +85,66 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i, tag::TrapezeTa
 end
 
 
+function initArgs(xu, docp, tag::TrapezeTag)
+    v = get_optim_variable(xu, docp)
+    args_i = ArgsAtTimeStep(xu, docp, 0, v)
+    args_ip1 = ArgsAtTimeStep(xu, docp, 1, v)
+    return (args_i, args_ip1), v
+end
+
+
+function updateArgs((args_i, args_ip1), xu, v, docp, i, tag::TrapezeTag)
+    if i < docp.dim_NLP_steps - 1
+        return (args_ip1, ArgsAtTimeStep(xu, docp, i + 2, v))
+    else
+        return (args_i, args_ip1)
+    end
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Useful values at a time step: time, state, control, dynamics...
+"""
+struct ArgsAtTimeStep
+    time::Any
+    state::Any
+    control::Any
+    dynamics::Any
+    lagrange_state::Any
+    lagrange_cost::Any
+
+    function ArgsAtTimeStep(xu, docp::DOCP, i::Int, v)
+
+        # variables
+        ti = get_time_at_time_step(xu, docp, i)
+        xi, ui, xli = get_variables_at_time_step(xu, docp, i, docp.discretization)
+
+        # dynamics and lagrange cost
+        fi = docp.ocp.dynamics(ti, xi, ui, v)
+
+        if docp.has_lagrange
+            li = docp.ocp.lagrange(ti, xi, ui, v)
+            args = new(ti, xi, ui, fi, xli, li)
+        else
+            args = new(ti, xi, ui, fi)
+        end
+
+        return args
+    end
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquation!(docp::DOCP, c, index::Int, args_trapeze, tag::TrapezeTag)
+function setStateEquation!(docp::DOCP, c, index::Int, (args_i, args_ip1), v, i, tag::TrapezeTag)
+
+    # NB. arguments v,i are unused here but present for unified call
     ocp = docp.ocp
-    args_i = args_trapeze[1]
-    args_ip1 = args_trapeze[2]
     hi = args_ip1.time - args_i.time
 
     # trapeze rule

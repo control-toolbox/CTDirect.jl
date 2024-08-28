@@ -318,7 +318,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     tag = docp.discretization
 
     # initialization
-    args, v = initArgs(xu, docp)
+    args, v = initArgs(xu, docp, tag)
 
     # main loop on time steps
     index = 1 # counter for the constraints
@@ -329,7 +329,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         # path constraints 
         index = setPathConstraints!(docp, c, index, xu, v, i)
         # update
-        updateArgs!(args, xu, docp)
+        args = updateArgs(args, xu, v, docp, i, tag)
 
     end
 
@@ -343,7 +343,6 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # may be because actual return would be index above ?
     return c
 end
-
 
 
 """
