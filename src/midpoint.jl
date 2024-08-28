@@ -21,7 +21,7 @@ Internal layout:
 - Midpoint: [X_0,U_0,K_0, X_1,U_1,K_1 .., X_N-1,U_N-1,K_N-1, XN, V]
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 """
-function get_variables_at_time_step(xu, docp, i)
+function get_variables_at_time_step(xu, docp, i, tag::MidpointTag)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
@@ -73,7 +73,7 @@ end
 # could be fused with one above if 
 # - using extended dynamics that include lagrange cost
 # - scalar case is handled at OCP level
-function get_NLP_variables_at_time_step(xu, docp, i)
+function get_NLP_variables_at_time_step(xu, docp, i, tag::MidpointTag)
 
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
@@ -100,7 +100,7 @@ function get_NLP_variables_at_time_step(xu, docp, i)
 end
 
 
-function set_variables_at_time_step!(xu, x_init, u_init, docp, i)
+function set_variables_at_time_step!(xu, x_init, u_init, docp, i, tag::MidpointTag)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
@@ -126,7 +126,7 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 Implicit midpoint discretization
 """
-function setStateEquation!(docp::DOCP, c, index::Int, xu, i::Int)
+function setStateEquation!(docp::DOCP, c, index::Int, xu, i::Int, tag::MidpointTag)
 
     ocp = docp.ocp
 
@@ -135,8 +135,8 @@ function setStateEquation!(docp::DOCP, c, index::Int, xu, i::Int)
     tip1 = get_time_at_time_step(xu, docp, i+1)
     hi = tip1 - ti
 
-    xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i)
-    xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1)
+    xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i, tag)
+    xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1, tag)
     
     v = get_optim_variable(xu, docp)
 

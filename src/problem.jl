@@ -249,6 +249,7 @@ function variables_bounds!(docp::DOCP)
     var_l = docp.var_l
     var_u = docp.var_u
     ocp = docp.ocp
+    tag = docp.discretization
 
     # first we build full ordered sets of bounds, then set them in NLP
 
@@ -256,8 +257,8 @@ function variables_bounds!(docp::DOCP)
     x_lb, x_ub = build_bounds(docp.dim_OCP_x, docp.dim_x_box, docp.state_box)
     u_lb, u_ub = build_bounds(docp.dim_NLP_u, docp.dim_u_box, docp.control_box)
     for i = 0:N
-        set_variables_at_time_step!(var_l, x_lb, u_lb, docp, i)
-        set_variables_at_time_step!(var_u, x_ub, u_ub, docp, i)
+        set_variables_at_time_step!(var_l, x_lb, u_lb, docp, i, tag)
+        set_variables_at_time_step!(var_u, x_ub, u_ub, docp, i, tag)
     end
 
     # variable box
@@ -281,14 +282,15 @@ function DOCP_objective(xu, docp::DOCP)
     obj = 0.0
     N = docp.dim_NLP_steps
     ocp = docp.ocp
+    tag = docp.discretization
 
     # final state is always needed since lagrange cost is there
-    xf, uf, xlf = get_variables_at_time_step(xu, docp, N)
+    xf, uf, xlf = get_variables_at_time_step(xu, docp, N, tag)
 
     # mayer cost
     if docp.has_mayer
         v = get_optim_variable(xu, docp)
-        x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0)
+        x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0, tag)
         obj = obj + ocp.mayer(x0, xf, v)
     end
 
@@ -313,12 +315,14 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
 function DOCP_constraints!(c, xu, docp::DOCP)
 
+    tag = docp.discretization
+
     # main loop on time steps
     index = 1 # counter for the constraints
     for i = 0:(docp.dim_NLP_steps - 1)
 
         # state equation
-        index = setStateEquation!(docp, c, index, xu, i)
+        index = setStateEquation!(docp, c, index, xu, i, tag)
         # path constraints 
         index = setPathConstraints!(docp, c, index, xu, i)
 
@@ -345,9 +349,10 @@ Set the path constraints at given time step
 function setPathConstraints!(docp::DOCP, c, index::Int, xu, i::Int)
 
     ocp = docp.ocp
+    tag = docp.discretization
 
     ti = get_time_at_time_step(xu, docp, i)
-    xi, ui = get_variables_at_time_step(xu, docp, i)
+    xi, ui = get_variables_at_time_step(xu, docp, i, tag)
     v = get_optim_variable(xu, docp)
 
     # pure control constraints
@@ -414,9 +419,10 @@ Set the boundary and variable constraints
 function setPointConstraints!(docp::DOCP, c, index::Int, xu)
 
     ocp = docp.ocp
+    tag = docp.discretization
 
-    x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0)
-    xf, = get_variables_at_time_step(xu, docp, docp.dim_NLP_steps)
+    x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0, tag)
+    xf, = get_variables_at_time_step(xu, docp, docp.dim_NLP_steps, tag)
     v = get_optim_variable(xu, docp)
 
     # boundary constraints
@@ -493,7 +499,7 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
     # set state / control variables if provided
     for i = 0:(docp.dim_NLP_steps)
         ti = get_time_at_time_step(NLP_X, docp, i)
-        set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i)
+        set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i, docp.discretization)
     end
 
     return NLP_X
