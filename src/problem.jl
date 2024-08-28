@@ -1,3 +1,11 @@
+# todo: ass more discretization schemes
+# use a scheme struct to allow multiple dispatch (cf solve)
+# this struct can contains useful info about the scheme
+# (name, order, stage, properties etc)
+# later we can add an option for control discretization: step or stage
+# (meaningful only for schemes with more than 1 stage, at least I will be able to compare the two ! further options may include CVP -control vector parametrization-, and maybe even pseudo-spectral ?)
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -5,8 +13,7 @@ Struct for discretized optimal control problem DOCP
 
 Contains:
 - a copy of the original OCP
-- a NLP formulation of the DOCP
-- data required to link the two problems
+- data required to link the OCP with the discretized DOCP
 """
 struct DOCP
 
@@ -48,6 +55,8 @@ struct DOCP
     NLP_normalized_time_grid::Vector{Float64}
     dim_NLP_variables::Int
     dim_NLP_constraints::Int
+    # struct for the scheme, with stage number ?
+    dim_stage::Int
 
     # lower and upper bounds for variables and constraints
     var_l::Vector{Float64}
@@ -105,7 +114,7 @@ struct DOCP
         N = dim_NLP_steps
 
         # NLP unknown (state + control + variable [+ stage])
-        dim_NLP_variables = (N + 1) * dim_NLP_x + N * dim_NLP_u + dim_NLP_v + N * dim_NLP_x
+        dim_NLP_variables = (N + 1) * dim_NLP_x + N * dim_NLP_u + dim_NLP_v + N * dim_NLP_x * dim_stage
 
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
@@ -130,7 +139,7 @@ struct DOCP
 
         # constraints (dynamics, stage, path, boundary, variable)
         dim_NLP_constraints =
-            N * (dim_NLP_x + dim_NLP_x + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
+            N * (dim_NLP_x + (dim_NLP_x * dim_stage) + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
         if has_lagrange
             # add initial condition for lagrange state
             dim_NLP_constraints += 1
@@ -174,11 +183,14 @@ struct DOCP
             Inf * ones(dim_NLP_variables),
             zeros(dim_NLP_constraints),
             zeros(dim_NLP_constraints),
+            1 # stage, midpoint case, use struct instead
         )
 
         return docp
     end
 end
+
+# generic discretization struct (inherited by actual structs)
 
 """
 $(TYPEDSIGNATURES)
@@ -205,7 +217,7 @@ function constraints_bounds!(docp::DOCP)
         # skip (ie leave 0) for equality dynamics constraint
         index = index + docp.dim_NLP_x
         # skip (ie leave 0) for equality stage constraint (ki)
-        index = index + docp.dim_NLP_x
+        index = index + docp.dim_NLP_x * docp.dim_stage
         # path constraints
         index = setPathBounds!(docp, index, lb, ub)
     end
@@ -231,8 +243,7 @@ function variables_bounds!(docp::DOCP)
     ocp = docp.ocp
 
     # NB. keep offset for each block since they are optional !
-
-    # +++ use AUX build ordered bounds vectors for state and control
+    #= +++ use AUX build ordered bounds vectors for state and control
     x_lb = -Inf * ones(docp.dim_OCP_x)
     x_ub = Inf * ones(docp.dim_OCP_x)
     for j = 1:(docp.dim_x_box)
@@ -255,6 +266,13 @@ function variables_bounds!(docp::DOCP)
             v_lb[indice] = docp.variable_box[1][j]
             v_ub[indice] = docp.variable_box[3][j]
         end
+    end
+    =#
+
+    x_lb, x_ub = build_bounds(docp.dim_OCP_x, docp.dim_x_box, docp.state_box)
+    u_lb, u_ub = build_bounds(docp.dim_NLP_u, docp.dim_u_box, docp.control_box)
+    if docp.has_variable 
+        v_lb, v_ub = build_bounds(docp.dim_NLP_v, docp.dim_v_box, docp.variable_box)
     end
 
     # apply bounds for NLP variables
@@ -288,21 +306,23 @@ Compute the objective for the DOCP problem.
 """
 # DOCP objective
 function DOCP_objective(xu, docp::DOCP)
+
     obj = 0.0
     N = docp.dim_NLP_steps
     ocp = docp.ocp
+
+    # final state is always needed since lagrange cost is there
+    xf, uf, xlf = get_variables_at_time_step(xu, docp, N)
 
     # mayer cost
     if docp.has_mayer
         v = get_optim_variable(xu, docp)
         x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0)
-        xf, uf, xlf = get_variables_at_time_step(xu, docp, N)
         obj = obj + ocp.mayer(x0, xf, v)
     end
 
     # lagrange cost
     if docp.has_lagrange
-        xf, uf, xlf = get_variables_at_time_step(xu, docp, N)
         obj = obj + xlf
     end
 
@@ -344,48 +364,6 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 end
 
 
-"""
-$(TYPEDSIGNATURES)
-
-Set the constraints corresponding to the state equation
-Implicit midpoint discretization
-"""
-function setStateEquation!(docp::DOCP, c, index::Int, xu, i::Int)
-
-    ocp = docp.ocp
-
-    # variables
-    ti = get_time_at_time_step(xu, docp, i)
-    tip1 = get_time_at_time_step(xu, docp, i+1)
-    hi = tip1 - ti
-
-    xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i)
-    xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1)
-    
-    v = get_optim_variable(xu, docp)
-
-    # midpoint rule
-    @. c[index:(index + docp.dim_OCP_x - 1)] =
-        xip1 - (xi + hi * ki[1:docp.dim_OCP_x])
-    # +++ just define extended dynamics !
-    if docp.has_lagrange
-        c[index + docp.dim_OCP_x] = xlip1 - (xli + hi * ki[end])
-    end
-    index = index + docp.dim_NLP_x
-    
-    # stage equation at mid-step
-    t_s = 0.5 * (ti + tip1)
-    x_s = 0.5 * (xi + xip1)
-    c[index:(index + docp.dim_OCP_x - 1)] .=
-        ki[1:docp.dim_OCP_x] .- ocp.dynamics(t_s, x_s, ui, v)
-    # +++ just define extended dynamics !
-    if docp.has_lagrange
-        c[index + docp.dim_OCP_x] = ki[end] - ocp.lagrange(t_s, x_s, ui, v) 
-    end
-    index = index + docp.dim_NLP_x
-
-    return index
-end
 
 """
 $(TYPEDSIGNATURES)
@@ -421,6 +399,7 @@ function setPathConstraints!(docp::DOCP, c, index::Int, xu, i::Int)
     return index
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -453,6 +432,7 @@ function setPathBounds!(docp::DOCP, index::Int, lb, ub)
 
     return index
 end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -488,6 +468,7 @@ function setPointConstraints!(docp::DOCP, c, index::Int, xu)
     return index
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -520,7 +501,6 @@ function setPointBounds!(docp::DOCP, index::Int, lb, ub)
 
     return index
 end
-
 
 
 #= OLD
