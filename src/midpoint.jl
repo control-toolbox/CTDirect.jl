@@ -116,12 +116,19 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i, tag::MidpointT
 end
 
 
+# trivial version for now...
+function initArgs(xu, docp)
+    return xu, get_optim_variable(xu, docp)
+end
+function updateArgs!(args, xu, docp) end
+
+
 """
 $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquation!(docp::DOCP, c, index::Int, xu, i::Int, tag::MidpointTag)
+function setStateEquation!(docp::DOCP, c, index::Int, xu, v, i::Int, tag::MidpointTag)
 
     ocp = docp.ocp
 

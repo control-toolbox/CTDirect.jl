@@ -317,22 +317,27 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 
     tag = docp.discretization
 
+    # initialization
+    args, v = initArgs(xu, docp)
+
     # main loop on time steps
     index = 1 # counter for the constraints
     for i = 0:(docp.dim_NLP_steps - 1)
 
         # state equation
-        index = setStateEquation!(docp, c, index, xu, i, tag)
+        index = setStateEquation!(docp, c, index, args, v, i, tag)
         # path constraints 
-        index = setPathConstraints!(docp, c, index, xu, i)
+        index = setPathConstraints!(docp, c, index, xu, v, i)
+        # update
+        updateArgs!(args, xu, docp)
 
     end
 
     # path constraints at final time
-    index = setPathConstraints!(docp, c, index, xu, docp.dim_NLP_steps)
+    index = setPathConstraints!(docp, c, index, xu, v, docp.dim_NLP_steps)
 
     # boundary conditions and variable constraints
-    index = setPointConstraints!(docp, c, index, xu)
+    index = setPointConstraints!(docp, c, index, xu, v)
 
     # needed even for inplace version, AD error otherwise
     # may be because actual return would be index above ?
@@ -346,14 +351,13 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-function setPathConstraints!(docp::DOCP, c, index::Int, xu, i::Int)
+function setPathConstraints!(docp::DOCP, c, index::Int, xu, v, i::Int)
 
     ocp = docp.ocp
     tag = docp.discretization
 
     ti = get_time_at_time_step(xu, docp, i)
     xi, ui = get_variables_at_time_step(xu, docp, i, tag)
-    v = get_optim_variable(xu, docp)
 
     # pure control constraints
     if docp.dim_u_cons > 0
@@ -416,14 +420,13 @@ $(TYPEDSIGNATURES)
 
 Set the boundary and variable constraints
 """
-function setPointConstraints!(docp::DOCP, c, index::Int, xu)
+function setPointConstraints!(docp::DOCP, c, index::Int, xu, v)
 
     ocp = docp.ocp
     tag = docp.discretization
 
     x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0, tag)
     xf, = get_variables_at_time_step(xu, docp, docp.dim_NLP_steps, tag)
-    v = get_optim_variable(xu, docp)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
