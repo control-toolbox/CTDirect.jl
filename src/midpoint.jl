@@ -6,6 +6,11 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 
 
 # struct for midpoint
+struct MidpointTag <: DiscretizationTag 
+    stage::Int
+    MidpointTag() = new(1)
+end
+
 
 """
 $(TYPEDSIGNATURES)

@@ -24,10 +24,16 @@ function direct_transcription(
     init = CTBase.__ocp_init(),
     grid_size = __grid_size(),
     time_grid = __time_grid(),
+    discretization = "midpoint"
 )
 
     # build DOCP
-    docp = DOCP(ocp, grid_size, time_grid)
+    if discretization == "midpoint"
+        disc_tag = CTDirect.MidpointTag()
+    else
+        disc_tag = CTDirect.TrapezeTag()
+    end
+    docp = DOCP(ocp, grid_size, time_grid, disc_tag)
 
     # set bounds in DOCP
     variables_bounds!(docp)

@@ -106,30 +106,6 @@ function build_bounds(dim_var, dim_box, box_triplet)
 end
 
 
-"""
-$(TYPEDSIGNATURES)
-
-Build initial guess for discretized problem
-"""
-function DOCP_initial_guess(docp, init::OptimalControlInit = OptimalControlInit())
-
-    # default initialization (internal variables such as lagrange cost, k_i for RK schemes) will keep these default values 
-    NLP_X = 0.1 * ones(docp.dim_NLP_variables)
-
-    # set variables if provided (needed first in case of free times !)
-    if !isnothing(init.variable_init)
-        set_optim_variable!(NLP_X, init.variable_init, docp)
-    end
-
-    # set state / control variables if provided
-    for i = 0:(docp.dim_NLP_steps)
-        ti = get_time_at_time_step(NLP_X, docp, i)
-        set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i)
-    end
-
-    return NLP_X
-end
-
 # placeholders (see CTDirectExt)
 function export_ocp_solution end
 function import_ocp_solution end

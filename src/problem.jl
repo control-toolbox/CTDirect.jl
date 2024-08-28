@@ -6,6 +6,15 @@
 # (meaningful only for schemes with more than 1 stage, at least I will be able to compare the two ! further options may include CVP -control vector parametrization-, and maybe even pseudo-spectral ?)
 
 
+# generic discretization struct
+# NB. can we mutualize common fields at the abstract level ?
+abstract type DiscretizationTag end
+struct TrapezeTag <: DiscretizationTag 
+    stage::Int
+    TrapezeTag() = new(0)
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -55,8 +64,6 @@ struct DOCP
     NLP_normalized_time_grid::Vector{Float64}
     dim_NLP_variables::Int
     dim_NLP_constraints::Int
-    # struct for the scheme, with stage number ?
-    dim_stage::Int
 
     # lower and upper bounds for variables and constraints
     var_l::Vector{Float64}
@@ -64,8 +71,11 @@ struct DOCP
     con_l::Vector{Float64}
     con_u::Vector{Float64}
 
+    # struct for the scheme, with stage number ?
+    discretization::DiscretizationTag
+
     # constructor
-    function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid)
+    function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid, discretization::DiscretizationTag)
 
         # time grid
         if time_grid == nothing
@@ -112,6 +122,7 @@ struct DOCP
         dim_OCP_x = ocp.state_dimension
 
         N = dim_NLP_steps
+        dim_stage = discretization.stage
 
         # NLP unknown (state + control + variable [+ stage])
         dim_NLP_variables = (N + 1) * dim_NLP_x + N * dim_NLP_u + dim_NLP_v + N * dim_NLP_x * dim_stage
@@ -183,14 +194,13 @@ struct DOCP
             Inf * ones(dim_NLP_variables),
             zeros(dim_NLP_constraints),
             zeros(dim_NLP_constraints),
-            1 # stage, midpoint case, use struct instead
+            discretization
         )
 
         return docp
     end
 end
 
-# generic discretization struct (inherited by actual structs)
 
 """
 $(TYPEDSIGNATURES)
@@ -217,7 +227,7 @@ function constraints_bounds!(docp::DOCP)
         # skip (ie leave 0) for equality dynamics constraint
         index = index + docp.dim_NLP_x
         # skip (ie leave 0) for equality stage constraint (ki)
-        index = index + docp.dim_NLP_x * docp.dim_stage
+        index = index + docp.dim_NLP_x * docp.discretization.stage
         # path constraints
         index = setPathBounds!(docp, index, lb, ub)
     end
@@ -502,6 +512,30 @@ function setPointBounds!(docp::DOCP, index::Int, lb, ub)
     return index
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Build initial guess for discretized problem
+"""
+function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalControlInit())
+
+    # default initialization (internal variables such as lagrange cost, k_i for RK schemes) will keep these default values 
+    NLP_X = 0.1 * ones(docp.dim_NLP_variables)
+
+    # set variables if provided (needed first in case of free times !)
+    if !isnothing(init.variable_init)
+        set_optim_variable!(NLP_X, init.variable_init, docp)
+    end
+
+    # set state / control variables if provided
+    for i = 0:(docp.dim_NLP_steps)
+        ti = get_time_at_time_step(NLP_X, docp, i)
+        set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i)
+    end
+
+    return NLP_X
+end
 
 #= OLD
 
