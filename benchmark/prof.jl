@@ -30,8 +30,8 @@ if test_time
         direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2)
     end
     println("Timed solve")
-    @timev sol = direct_solve(ocp, grid_size = grid_size, display=false)
-    @btime sol = direct_solve(ocp, grid_size = grid_size, display=false)
+    @timev sol = direct_solve(ocp, grid_size = grid_size, display = false)
+    @btime sol = direct_solve(ocp, grid_size = grid_size, display = false)
 end
 
 if precompile
