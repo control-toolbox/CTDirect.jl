@@ -9,10 +9,6 @@
 # generic discretization struct
 # NB. can we mutualize common fields at the abstract level ?
 abstract type DiscretizationTag end
-struct TrapezeTag <: DiscretizationTag 
-    stage::Int
-    TrapezeTag() = new(0)
-end
 
 
 """
@@ -125,7 +121,7 @@ struct DOCP
         dim_stage = discretization.stage
 
         # NLP unknown (state + control + variable [+ stage])
-        dim_NLP_variables = (N + 1) * dim_NLP_x + N * dim_NLP_u + dim_NLP_v + N * dim_NLP_x * dim_stage
+        dim_NLP_variables = (N + 1) * dim_NLP_x + (N + discretization.additional_controls) * dim_NLP_u + dim_NLP_v + N * dim_NLP_x * dim_stage
 
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
@@ -155,7 +151,7 @@ struct DOCP
             # add initial condition for lagrange state
             dim_NLP_constraints += 1
         end
-   
+
         # call constructor with const fields
         docp = new(
             ocp,
@@ -212,6 +208,7 @@ function is_solvable(ocp)
     return solvable
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -241,6 +238,7 @@ function constraints_bounds!(docp::DOCP)
     return lb, ub
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -251,6 +249,8 @@ function variables_bounds!(docp::DOCP)
     var_l = docp.var_l
     var_u = docp.var_u
     ocp = docp.ocp
+
+    # first we build full ordered sets of bounds, then set them in NLP
 
     # state / control box
     x_lb, x_ub = build_bounds(docp.dim_OCP_x, docp.dim_x_box, docp.state_box)
@@ -270,12 +270,12 @@ function variables_bounds!(docp::DOCP)
     return var_l, var_u
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
 Compute the objective for the DOCP problem.
 """
-# DOCP objective
 function DOCP_objective(xu, docp::DOCP)
 
     obj = 0.0
@@ -304,6 +304,7 @@ function DOCP_objective(xu, docp::DOCP)
 
     return obj
 end
+
 
 """
 $(TYPEDSIGNATURES)

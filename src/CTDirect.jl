@@ -15,6 +15,7 @@ include("utils.jl")
 include("default.jl")
 include("problem.jl") # rename as docp.jl ?
 include("midpoint.jl")
+include("trapeze.jl")
 include("solution.jl")
 include("solve.jl")
 

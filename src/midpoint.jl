@@ -1,6 +1,6 @@
 #= Functions for implicit midpoint discretization scheme
 Internal layout for NLP variables: 
-- [X_0,U_0,K_0, X_1,U_1,K_1 .., X_N-1,U_N-1,K_N-1, XN, V]
+[X_0,U_0,K_0, X_1,U_1,K_1 .., X_N-1,U_N-1,K_N-1, XN, V]
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
@@ -8,7 +8,8 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 # struct for midpoint
 struct MidpointTag <: DiscretizationTag 
     stage::Int
-    MidpointTag() = new(1)
+    additional_controls::Int
+    MidpointTag() = new(1, 0)
 end
 
 

@@ -191,8 +191,8 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
             i_c += docp.dim_NLP_x 
             i_m += docp.dim_NLP_x
             # skip stage constraints
-            i_c += docp.dim_NLP_x
-            i_m += docp.dim_NLP_x
+            i_c += docp.dim_NLP_x * docp.discretization.stage
+            i_m += docp.dim_NLP_x * docp.discretization.stage
         end
 
         # path constraints and multipliers
