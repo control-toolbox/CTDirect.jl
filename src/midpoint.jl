@@ -161,3 +161,37 @@ function setStateEquation!(docp::DOCP, c, index::Int, xu, v, i, tag::MidpointTag
 
     return index
 end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Set the path constraints at given time step
+"""
+function setPathConstraints!(docp::DOCP, c, index::Int, xu, v, i::Int, tag::MidpointTag)
+
+    ocp = docp.ocp
+    ti = get_time_at_time_step(xu, docp, i)
+    xi, ui = get_variables_at_time_step(xu, docp, i, tag)
+
+    # NB. using .= below *doubles* the allocations oO
+    # pure control constraints
+    if docp.dim_u_cons > 0
+        c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](ti, ui, v)
+        index = index + docp.dim_u_cons
+    end
+
+    # pure state constraints
+    if docp.dim_x_cons > 0
+        c[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[2](ti, xi, v)
+        index = index + docp.dim_x_cons
+    end
+
+    # mixed state / control constraints
+    if docp.dim_mixed_cons > 0
+        c[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[2](ti, xi, ui, v)
+        index = index + docp.dim_mixed_cons
+    end
+
+    return index
+end

@@ -168,8 +168,9 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-function setPathConstraints!(docp::DOCP, c, index::Int, (args_i, args_ip1), v, tag::TrapezeTag)
+function setPathConstraints!(docp::DOCP, c, index::Int, (args_i, args_ip1), v, i::Int, tag::TrapezeTag)
 
+    # note: i is unused but passed for call compatibility
     ocp = docp.ocp
     ti = args_i.time
     xi = args_i.state

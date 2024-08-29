@@ -327,14 +327,14 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         # state equation
         index = setStateEquation!(docp, c, index, args, v, i, tag)
         # path constraints 
-        index = setPathConstraints!(docp, c, index, args, v, tag)
+        index = setPathConstraints!(docp, c, index, args, v, i, tag)
         # update
         args = updateArgs(args, xu, v, docp, i, tag)
 
     end
 
     # path constraints at final time
-    index = setPathConstraints!(docp, c, index, args, v, tag)
+    index = setPathConstraints!(docp, c, index, args, v, docp.dim_NLP_steps, tag)
 
     # boundary conditions and variable constraints
     index = setPointConstraints!(docp, c, index, xu, v)
