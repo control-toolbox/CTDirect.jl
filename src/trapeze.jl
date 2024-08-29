@@ -98,7 +98,7 @@ function updateArgs((args_i, args_ip1), xu, v, docp, i, tag::TrapezeTag)
         # are we allocating more than one args here ?
         return (args_ip1, ArgsAtTimeStep(xu, docp, i + 2, v))
     else
-        return (args_i, args_ip1)
+        return (args_ip1, args_ip1)
     end
 end
 
@@ -158,6 +158,41 @@ function setStateEquation!(docp::DOCP, c, index::Int, (args_i, args_ip1), v, i, 
             (args_i.lagrange_state + 0.5 * hi * (args_i.lagrange_cost + args_ip1.lagrange_cost))
     end
     index = index + docp.dim_NLP_x
+
+    return index
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Set the path constraints at given time step
+"""
+function setPathConstraints!(docp::DOCP, c, index::Int, (args_i, args_ip1), v, tag::TrapezeTag)
+
+    ocp = docp.ocp
+    ti = args_i.time
+    xi = args_i.state
+    ui = args_i.control
+
+    # NB. using .= below *doubles* the allocations oO
+    # pure control constraints
+    if docp.dim_u_cons > 0
+        c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](ti, ui, v)
+        index = index + docp.dim_u_cons
+    end
+
+    # pure state constraints
+    if docp.dim_x_cons > 0
+        c[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[2](ti, xi, v)
+        index = index + docp.dim_x_cons
+    end
+
+    # mixed state / control constraints
+    if docp.dim_mixed_cons > 0
+        c[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[2](ti, xi, ui, v)
+        index = index + docp.dim_mixed_cons
+    end
 
     return index
 end

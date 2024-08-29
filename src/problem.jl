@@ -327,14 +327,14 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         # state equation
         index = setStateEquation!(docp, c, index, args, v, i, tag)
         # path constraints 
-        index = setPathConstraints!(docp, c, index, xu, v, i)
+        index = setPathConstraints!(docp, c, index, args, v, tag)
         # update
         args = updateArgs(args, xu, v, docp, i, tag)
 
     end
 
     # path constraints at final time
-    index = setPathConstraints!(docp, c, index, xu, v, docp.dim_NLP_steps)
+    index = setPathConstraints!(docp, c, index, args, v, tag)
 
     # boundary conditions and variable constraints
     index = setPointConstraints!(docp, c, index, xu, v)
@@ -342,44 +342,6 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # needed even for inplace version, AD error otherwise
     # may be because actual return would be index above ?
     return c
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Set the path constraints at given time step
-"""
-function setPathConstraints!(docp::DOCP, c, index::Int, xu, v, i::Int)
-
-    # +++ seems more effective (less allocs and time) to use this generic function
-    # that takes the whole xu, instead of a specific (tagged) one that reuses args oO
-    # are args any good for the getters, or just useful for the dynamics ?
-    # >>> retry to compute a big vector of dynamics ?
-
-    ocp = docp.ocp
-    ti = get_time_at_time_step(xu, docp, i)
-    xi, ui = get_variables_at_time_step(xu, docp, i, docp.discretization)
-
-    # pure control constraints
-    if docp.dim_u_cons > 0
-        c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](ti, ui, v)
-        index = index + docp.dim_u_cons
-    end
-
-    # pure state constraints
-    if docp.dim_x_cons > 0
-        c[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[2](ti, xi, v)
-        index = index + docp.dim_x_cons
-    end
-
-    # mixed state / control constraints
-    if docp.dim_mixed_cons > 0
-        c[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[2](ti, xi, ui, v)
-        index = index + docp.dim_mixed_cons
-    end
-
-    return index
 end
 
 
