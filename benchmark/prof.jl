@@ -35,6 +35,12 @@ if precompile
     end
 end
 
+if test == :objective
+    @timev CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+else
+    @timev CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+end
+
 # full solve
 if test_solve
     println("Timed solve")
