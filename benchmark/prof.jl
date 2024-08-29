@@ -25,9 +25,20 @@ println("Load problem ", prob[:name])
 
 if precompile
     println("Precompilation")
-    direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2)
-    CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
-    CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+    if test_solve
+        direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2)
+    end
+    if test == :objective
+        CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+    else
+        CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+    end
+end
+
+if test == :objective
+    @timev CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+else
+    @timev CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
 end
 
 # full solve
