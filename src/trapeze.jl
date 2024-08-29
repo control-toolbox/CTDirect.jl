@@ -95,6 +95,7 @@ end
 
 function updateArgs((args_i, args_ip1), xu, v, docp, i, tag::TrapezeTag)
     if i < docp.dim_NLP_steps - 1
+        # are we allocating more than one args here ?
         return (args_ip1, ArgsAtTimeStep(xu, docp, i + 2, v))
     else
         return (args_i, args_ip1)

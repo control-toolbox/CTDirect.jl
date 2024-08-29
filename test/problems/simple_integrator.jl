@@ -12,5 +12,5 @@ function simple_integrator()
     dynamics!(ocp, (x, u) -> -x - u[1] + u[2])
     objective!(ocp, :lagrange, (x, u) -> (u[1] + u[2])^2)
 
-    return ((ocp = ocp, obj = nothing, name = "simple_integrator", init = nothing))
+    return ((ocp = ocp, obj = 3.13e-1, name = "simple_integrator", init = nothing))
 end

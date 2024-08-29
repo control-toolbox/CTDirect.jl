@@ -1,4 +1,4 @@
-println("Test: grid options")
+println("Test: discretization options")
 
 
 normalize_grid(t) = return (t .- t[1]) ./ (t[end] - t[1])
@@ -57,4 +57,26 @@ end
     time_grid = [0, 0.3, 1, 1.9, 2]
     sol = direct_solve(ocp, time_grid = time_grid, display = false)
     @test sol.time_grid ≈ time_grid
+end
+
+# implicit midpoint scheme
+@testset verbose = true showtiming = true ":implicit_midpoint" begin
+    ocp = simple_integrator().ocp
+    sol_t = direct_solve(ocp, display = false)
+    sol_m = direct_solve(ocp, display = false, discretization = "midpoint")
+    @test sol_m.objective ≈ sol_t.objective rtol = 1e-2 
+end
+
+@testset verbose = true showtiming = true ":implicit_midpoint" begin
+    ocp = double_integrator_freet0tf().ocp
+    sol_t = direct_solve(ocp, display = false)
+    sol_m = direct_solve(ocp, display = false, discretization = "midpoint")
+    @test sol_m.objective ≈ sol_t.objective rtol = 1e-2 
+end
+
+@testset verbose = true showtiming = true ":implicit_midpoint" begin
+    ocp = double_integrator_T(2).ocp
+    sol_t = direct_solve(ocp, display = false)
+    sol_m = direct_solve(ocp, display = false, discretization = "midpoint")
+    @test sol_m.objective ≈ sol_t.objective rtol = 1e-2 
 end

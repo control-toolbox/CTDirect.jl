@@ -352,11 +352,14 @@ Set the path constraints at given time step
 """
 function setPathConstraints!(docp::DOCP, c, index::Int, xu, v, i::Int)
 
-    ocp = docp.ocp
-    tag = docp.discretization
+    # +++ seems more effective (less allocs and time) to use this generic function
+    # that takes the whole xu, instead of a specific (tagged) one that reuses args oO
+    # are args any good for the getters, or just useful for the dynamics ?
+    # >>> retry to compute a big vector of dynamics ?
 
+    ocp = docp.ocp
     ti = get_time_at_time_step(xu, docp, i)
-    xi, ui = get_variables_at_time_step(xu, docp, i, tag)
+    xi, ui = get_variables_at_time_step(xu, docp, i, docp.discretization)
 
     # pure control constraints
     if docp.dim_u_cons > 0
