@@ -9,7 +9,7 @@ using JET
 
 precompile = true
 
-test_time = true
+test_solve = true
 #test = :objective
 test = :constraints
 test_code_warntype = false
@@ -23,28 +23,18 @@ grid_size = 100
 docp, nlp = direct_transcription(ocp, grid_size = grid_size)
 println("Load problem ", prob[:name])
 
-# full solve
-if test_time
-    if precompile
-        println("Precompilation")
-        direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2)
-    end
-    println("Timed solve")
-    @timev sol = direct_solve(ocp, grid_size = grid_size, display = false)
-    @btime sol = direct_solve(ocp, grid_size = grid_size, display = false)
-end
-
 if precompile
     println("Precompilation")
-    if test == :objective
-        CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
-    else
-        CTDirect.DOCP_constraints!(
-            zeros(docp.dim_NLP_constraints),
-            CTDirect.DOCP_initial_guess(docp),
-            docp,
-        )
-    end
+    direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2)
+    CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+    CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+end
+
+# full solve
+if test_solve
+    println("Timed solve")
+    @timev sol = direct_solve(ocp, grid_size = grid_size, display=false)
+    @btime sol = direct_solve(ocp, grid_size = grid_size, display=false)
 end
 
 if test_code_warntype
