@@ -39,19 +39,14 @@ function get_variables_at_time_step(xu, docp, i, tag::MidpointTag)
 
     # retrieve scalar/vector control (convention u(tf) = U_N-1)
     if i < N
-        if m == 1
-            ui = xu[offset + nx + 1]
-        else
-            ui = xu[(offset + nx + 1):(offset + nx + m)]
-        end
+        offset_u = offset
     else
-        # final time: pick previous control
-        offset2 = (nx*2 + m) * (i-1)
-        if m == 1
-            ui = xu[offset2 + nx + 1]
-        else
-            ui = xu[(offset2 + nx + 1):(offset2 + nx + m)]
-        end
+        offset_u = (nx*2 + m) * (i-1)
+    end
+    if m == 1
+        ui = xu[offset_u + nx + 1]
+    else
+        ui = xu[(offset_u + nx + 1):(offset_u + nx + m)]
     end
 
     # retrieve vector stage variable (except at final time)
@@ -80,11 +75,11 @@ function get_NLP_variables_at_time_step(xu, docp, i, tag::MidpointTag)
     xi = xu[(offset + 1):(offset + nx)]
     # control
     if i < N
-        ui = xu[(offset + nx + 1):(offset + nx + m)]
+        offset_u = offset
     else
-        offset2 = (nx*2 + m) * (i-1)
-        ui = xu[(offset2 + nx + 1):(offset2 + nx + m)]
+        offset_u = (nx*2 + m) * (i-1)
     end 
+    ui = xu[(offset_u + nx + 1):(offset_u + nx + m)]
     # stage
     if i < N
         ki = xu[(offset + nx + m + 1):(offset + nx + m + nx) ]

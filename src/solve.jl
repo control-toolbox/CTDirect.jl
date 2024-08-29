@@ -28,10 +28,13 @@ function direct_transcription(
 )
 
     # build DOCP
+    discretization = string(discretization)
     if discretization == "midpoint"
         disc_tag = CTDirect.MidpointTag()
     elseif discretization == "trapeze"
         disc_tag = CTDirect.TrapezeTag()
+    elseif discretization == "gausslegendre2"
+        disc_tag = CTDirect.GaussLegendre2Tag()
     else
         error("Unknown discretization method:", discretization)
     end
