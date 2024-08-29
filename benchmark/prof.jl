@@ -9,7 +9,7 @@ using JET
 
 precompile = true
 
-test_solve = true
+test_solve = false
 #test = :objective
 test = :constraints
 test_code_warntype = false
