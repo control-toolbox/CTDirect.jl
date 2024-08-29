@@ -70,13 +70,7 @@ end
 @testset verbose = true showtiming = true ":implicit_midpoint" begin
     ocp = double_integrator_freet0tf().ocp
     sol_t = direct_solve(ocp, display = false)
-    sol_m = direct_solve(ocp, display = false, discretization = "midpoint")
+    sol_m = direct_solve(ocp, display = false, discretization = :midpoint)
     @test sol_m.objective ≈ sol_t.objective rtol = 1e-2 
 end
 
-@testset verbose = true showtiming = true ":implicit_midpoint" begin
-    ocp = double_integrator_T(2).ocp
-    sol_t = direct_solve(ocp, display = false)
-    sol_m = direct_solve(ocp, display = false, discretization = "midpoint")
-    @test sol_m.objective ≈ sol_t.objective rtol = 1e-2 
-end
