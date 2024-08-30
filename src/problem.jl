@@ -317,7 +317,8 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     tag = docp.discretization
 
     # initialization
-    args, v = initArgs(xu, docp, tag)
+    time_grid = get_time_grid(xu, docp)
+    args, v = initArgs(xu, docp, time_grid, tag)
 
     # main loop on time steps
     index = 1 # counter for the constraints
@@ -328,7 +329,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         # path constraints 
         index = setPathConstraints!(docp, c, index, args, v, i, tag)
         # update
-        args = updateArgs(args, xu, v, docp, i, tag)
+        args = updateArgs(args, xu, docp, v, time_grid, i, tag)
 
     end
 
@@ -463,8 +464,10 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
     end
 
     # set state / control variables if provided
+    time_grid = get_time_grid(NLP_X, docp)
     for i = 0:(docp.dim_NLP_steps)
-        ti = get_time_at_time_step(NLP_X, docp, i)
+        #ti = get_time_at_time_step(NLP_X, docp, i)
+        ti = time_grid[i+1]
         set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i, docp.discretization)
     end
 

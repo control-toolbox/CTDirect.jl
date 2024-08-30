@@ -85,18 +85,19 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i, tag::TrapezeTa
 end
 
 
-function initArgs(xu, docp, tag::TrapezeTag)
+function initArgs(xu, docp, time_grid, tag::TrapezeTag)
     v = get_optim_variable(xu, docp)
-    args_i = ArgsAtTimeStep(xu, docp, 0, v)
-    args_ip1 = ArgsAtTimeStep(xu, docp, 1, v)
+    args_i = ArgsAtTimeStep(xu, docp, v, time_grid, 0)
+    args_ip1 = ArgsAtTimeStep(xu, docp, v, time_grid, 1)
     return (args_i, args_ip1), v
 end
 
 
-function updateArgs((args_i, args_ip1), xu, v, docp, i, tag::TrapezeTag)
+function updateArgs(args, xu, docp, v, time_grid, i, tag::TrapezeTag)
+    args_i, args_ip1 = args
     if i < docp.dim_NLP_steps - 1
         # are we allocating more than one args here ?
-        return (args_ip1, ArgsAtTimeStep(xu, docp, i + 2, v))
+        return (args_ip1, ArgsAtTimeStep(xu, docp, v, time_grid, i+2))
     else
         return (args_ip1, args_ip1)
     end
@@ -116,10 +117,11 @@ struct ArgsAtTimeStep
     lagrange_state::Any
     lagrange_cost::Any
 
-    function ArgsAtTimeStep(xu, docp::DOCP, i::Int, v)
+    function ArgsAtTimeStep(xu, docp::DOCP, v, time_grid, i::Int)
 
         # variables
-        ti = get_time_at_time_step(xu, docp, i)
+        #ti = get_time_at_time_step(xu, docp, i)
+        ti = time_grid[i+1]
         xi, ui, xli = get_variables_at_time_step(xu, docp, i, docp.discretization)
 
         # dynamics and lagrange cost
@@ -142,10 +144,11 @@ $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquation!(docp::DOCP, c, index::Int, (args_i, args_ip1), v, i, tag::TrapezeTag)
+function setStateEquation!(docp::DOCP, c, index::Int, args, v, i, tag::TrapezeTag)
 
     # NB. arguments v,i are unused here but present for unified call
     ocp = docp.ocp
+    args_i, args_ip1 = args
     hi = args_ip1.time - args_i.time
 
     # trapeze rule
@@ -157,7 +160,7 @@ function setStateEquation!(docp::DOCP, c, index::Int, (args_i, args_ip1), v, i, 
             args_ip1.lagrange_state -
             (args_i.lagrange_state + 0.5 * hi * (args_i.lagrange_cost + args_ip1.lagrange_cost))
     end
-    index = index + docp.dim_NLP_x
+    index += docp.dim_NLP_x
 
     return index
 end
@@ -181,19 +184,19 @@ function setPathConstraints!(docp::DOCP, c, index::Int, args, v, i::Int, tag::Tr
     # pure control constraints
     if docp.dim_u_cons > 0
         c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](ti, ui, v)
-        index = index + docp.dim_u_cons
+        index += docp.dim_u_cons
     end
 
     # pure state constraints
     if docp.dim_x_cons > 0
         c[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[2](ti, xi, v)
-        index = index + docp.dim_x_cons
+        index += docp.dim_x_cons
     end
 
     # mixed state / control constraints
     if docp.dim_mixed_cons > 0
         c[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[2](ti, xi, ui, v)
-        index = index + docp.dim_mixed_cons
+        index += docp.dim_mixed_cons
     end
 
     return index

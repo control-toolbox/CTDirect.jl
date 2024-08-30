@@ -4,6 +4,7 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
+# +++ TODO: use args
 
 struct MidpointTag <: DiscretizationTag 
     stage::Int
@@ -115,7 +116,7 @@ end
 function initArgs(xu, docp, tag::MidpointTag)
     return xu, get_optim_variable(xu, docp)
 end
-function updateArgs(args, xu, v, docp, i, tag::MidpointTag)
+function updateArgs(args, xu, docp, v, i::Int, tag::MidpointTag)
     return args
 end
 
@@ -146,7 +147,7 @@ function setStateEquation!(docp::DOCP, c, index::Int, xu, v, i, tag::MidpointTag
     if docp.has_lagrange
         c[index + docp.dim_OCP_x] = xlip1 - (xli + hi * ki[end])
     end
-    index = index + docp.dim_NLP_x
+    index += docp.dim_NLP_x
     
     # stage equation at mid-step
     t_s = 0.5 * (ti + tip1)
@@ -157,7 +158,7 @@ function setStateEquation!(docp::DOCP, c, index::Int, xu, v, i, tag::MidpointTag
     if docp.has_lagrange
         c[index + docp.dim_OCP_x] = ki[end] - ocp.lagrange(t_s, x_s, ui, v) 
     end
-    index = index + docp.dim_NLP_x
+    index += docp.dim_NLP_x
 
     return index
 end
@@ -178,19 +179,19 @@ function setPathConstraints!(docp::DOCP, c, index::Int, xu, v, i::Int, tag::Midp
     # pure control constraints
     if docp.dim_u_cons > 0
         c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](ti, ui, v)
-        index = index + docp.dim_u_cons
+        index += docp.dim_u_cons
     end
 
     # pure state constraints
     if docp.dim_x_cons > 0
         c[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[2](ti, xi, v)
-        index = index + docp.dim_x_cons
+        index += docp.dim_x_cons
     end
 
     # mixed state / control constraints
     if docp.dim_mixed_cons > 0
         c[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[2](ti, xi, ui, v)
-        index = index + docp.dim_mixed_cons
+        index += docp.dim_mixed_cons
     end
 
     return index

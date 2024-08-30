@@ -64,14 +64,25 @@ function get_unnormalized_time(xu, docp, t_normalized)
     return t0 + t_normalized * (tf - t0)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Get actual (un-normalized) time at given time step
+"""
+function get_time_at_time_step(xu, docp, i)
+    return get_unnormalized_time(xu, docp, docp.NLP_normalized_time_grid[i + 1])
+end
+
 
 """
 $(TYPEDSIGNATURES)
 
-Get actual (un-normalized) time at give time step
+Get full (un-normalized) time grid
 """
-function get_time_at_time_step(xu, docp, i)
-    return get_unnormalized_time(xu, docp, docp.NLP_normalized_time_grid[i + 1])
+function get_time_grid(xu, docp)
+    t0 = get_initial_time(xu, docp)
+    tf = get_final_time(xu, docp)
+    return @. t0 + docp.NLP_normalized_time_grid * (tf - t0)
 end
 
 
