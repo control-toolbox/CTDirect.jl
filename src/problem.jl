@@ -466,7 +466,6 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
     # set state / control variables if provided
     time_grid = get_time_grid(NLP_X, docp)
     for i = 0:(docp.dim_NLP_steps)
-        #ti = get_time_at_time_step(NLP_X, docp, i)
         ti = time_grid[i+1]
         set_variables_at_time_step!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i, docp.discretization)
     end

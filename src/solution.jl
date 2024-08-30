@@ -46,13 +46,6 @@ function CTBase.OptimalControlSolution(
 )
 
     # time grid
-    #=
-    N = docp.dim_NLP_steps
-    T = zeros(N + 1)
-    for i = 1:(N + 1)
-        T[i] = get_unnormalized_time(primal, docp, docp.NLP_normalized_time_grid[i])
-    end
-    =#
     T = get_time_grid(primal, docp)
 
     # recover primal variables
