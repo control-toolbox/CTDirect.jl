@@ -18,13 +18,13 @@ $(TYPEDSIGNATURES)
 
 Retrieve state and control variables at given time step from the NLP variables.
 """
-function get_variables_at_time_step(xu, docp, i, tag::MidpointTag)
+function get_variables_at_time_step(xu, docp, i, disc::MidpointTag)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*2 + m) * i
+    offset = (nx*(1+disc.stage) + m) * i
 
     # retrieve scalar/vector OCP state (w/o lagrange state) 
     if n == 1
