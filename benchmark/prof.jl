@@ -1,5 +1,10 @@
 # Profiling
-include("../test/deps.jl")
+#include("../test/deps.jl")
+using CTDirect
+using CTBase
+
+using LinearAlgebra
+using NLPModelsIpopt
 
 using BenchmarkTools
 #using Traceur
@@ -9,7 +14,7 @@ using JET
 
 precompile = true
 
-test_solve = false
+test_solve = true
 #test = :objective
 test = :constraints
 test_code_warntype = false
@@ -78,12 +83,3 @@ if test_jet
     end
 end
 
-#=
-# ipopt statistics
-if test_ipopt
-  docp = directTranscription(ocp, grid_size=200, init=(state=[1,0.2,0.5], control=0.5))
-  dsol = solve(docp, print_level=5, tol=1e-12, print_timing_statistics="yes")
-  println("\n Discrete solution")
-  println(dsol)
-end
-=#
