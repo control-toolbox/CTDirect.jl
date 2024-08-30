@@ -21,6 +21,7 @@ function bench(;
     precompile = true,
     display = false,
     verbose = true,
+    discretization = :trapeze
 )
 
     #######################################################
@@ -66,6 +67,7 @@ function bench(;
                 linear_solver = linear_solver,
                 max_iter = 0,
                 display = display,
+                discretization = discretization
             )
             t_precomp += t
         end
@@ -84,6 +86,7 @@ function bench(;
             linear_solver = linear_solver,
             grid_size = grid_size,
             tol = tol,
+            discretization = discretization
         )
         if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
             error(
