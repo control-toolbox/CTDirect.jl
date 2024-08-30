@@ -114,11 +114,45 @@ end
 
 # trivial version for now...
 # +++multiple dispatch here seems to cause more allocations !
-function initArgs(xu, docp, tag::MidpointTag)
-    return xu, get_optim_variable(xu, docp)
+"""
+$(TYPEDSIGNATURES)
+
+Useful values at a time step: time, state, control, dynamics...
+"""
+struct ArgsAtTimeStep_Midpoint
+    time::Any
+    state::Any
+    control::Any
+    lagrange_state::Any
+    stage_k::Any
+    next_time::Any
+    next_state::Any
+    next_lagrange_state::Any
+    
+    function ArgsAtTimeStep_Midpoint(xu, docp::DOCP, v, time_grid, i::Int)
+
+        tag = docp.discretization
+
+        # variables
+        ti = time_grid[i+1]
+        xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i, tag)
+        
+        if i == docp.dim_NLP_steps
+            return new(ti, xi, ui, xli, ki, tag)
+        else
+            tip1 = time_grid[i+2]
+            xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1, tag)
+            return new(ti, xi, ui, xli, ki, tip1, xip1, xlip1)
+        end
+    end
 end
-function updateArgs(args, xu, docp, v, i::Int, tag::MidpointTag)
-    return args
+function initArgs(xu, docp, time_grid, tag::MidpointTag)
+    v = get_optim_variable(xu, docp)
+    args = ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, 0)
+    return args, v 
+end
+function updateArgs(args::ArgsAtTimeStep_Midpoint, xu, docp, v, time_grid, i::Int, tag::MidpointTag)
+    return ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, i)
 end
 
 
@@ -127,19 +161,22 @@ $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquation!(docp::DOCP, c, index::Int, xu, v, i, tag::MidpointTag)
+function setStateEquation!(docp::DOCP, c, index::Int, args, v, i, tag::MidpointTag)
 
     ocp = docp.ocp
 
-    # variables
-    ti = get_time_at_time_step(xu, docp, i)
-    tip1 = get_time_at_time_step(xu, docp, i+1)
-    hi = tip1 - ti
+    # +++ later use butcher table in struct ?
 
-    xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i, tag)
-    xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1, tag)
-    
-    v = get_optim_variable(xu, docp)
+    # variables
+    ti = args.time
+    xi = args.state
+    ui = args.control
+    xli = args.lagrange_state
+    ki = args.stage_k
+    tip1 = args.next_time
+    xip1 = args.next_state
+    xlip1 = args.next_lagrange_state
+    hi = tip1 - ti
 
     # midpoint rule
     @. c[index:(index + docp.dim_OCP_x - 1)] =
@@ -170,13 +207,14 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-function setPathConstraints!(docp::DOCP, c, index::Int, xu, v, i::Int, tag::MidpointTag)
+function setPathConstraints!(docp::DOCP, c, index::Int, args, v, i::Int, tag::MidpointTag)
 
     ocp = docp.ocp
-    ti = get_time_at_time_step(xu, docp, i)
-    xi, ui = get_variables_at_time_step(xu, docp, i, tag)
+    ti = args.time
+    xi = args.state
+    ui = args.control
 
-    # NB. using .= below *doubles* the allocations oO
+    # NB. using .= below *doubles* the allocations oO ??
     # pure control constraints
     if docp.dim_u_cons > 0
         c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](ti, ui, v)

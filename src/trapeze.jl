@@ -85,42 +85,26 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i, tag::TrapezeTa
 end
 
 
-# +++multiple dispatch here seems to cause more allocations !
-function initArgs(xu, docp, time_grid, tag::TrapezeTag)
-    v = get_optim_variable(xu, docp)
-    args_i = ArgsAtTimeStep(xu, docp, v, time_grid, 0)
-    args_ip1 = ArgsAtTimeStep(xu, docp, v, time_grid, 1)
-    return (args_i, args_ip1), v
-end
-function updateArgs(args, xu, docp, v, time_grid, i, tag::TrapezeTag)
-    args_i, args_ip1 = args
-    if i < docp.dim_NLP_steps - 1
-        # are we allocating more than one args here ?
-        return (args_ip1, ArgsAtTimeStep(xu, docp, v, time_grid, i+2))
-    else
-        return (args_ip1, args_ip1)
-    end
-end
-
-
 """
 $(TYPEDSIGNATURES)
 
 Useful values at a time step: time, state, control, dynamics...
 """
-struct ArgsAtTimeStep
+struct ArgsAtTimeStep_Trapeze
     time::Any
     state::Any
     control::Any
     dynamics::Any
     lagrange_state::Any
     lagrange_cost::Any
-    
-    function ArgsAtTimeStep(xu, docp::DOCP, v, time_grid, i::Int)
+
+    function ArgsAtTimeStep_Trapeze(xu, docp::DOCP, v, time_grid, i::Int)
+
+        tag = docp.discretization
 
         # variables
         ti = time_grid[i+1]
-        xi, ui, xli = get_variables_at_time_step(xu, docp, i, docp.discretization)
+        xi, ui, xli = get_variables_at_time_step(xu, docp, i, tag)
 
         # dynamics and lagrange cost
         fi = docp.ocp.dynamics(ti, xi, ui, v)
@@ -133,6 +117,22 @@ struct ArgsAtTimeStep
         end
 
         return args
+    end
+end
+# +++multiple dispatch here seems to cause more allocations !
+function initArgs(xu, docp, time_grid, tag::TrapezeTag)
+    v = get_optim_variable(xu, docp)
+    args_i = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 0)
+    args_ip1 = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 1)
+    return (args_i, args_ip1), v
+end
+function updateArgs(args, xu, docp, v, time_grid, i, tag::TrapezeTag)
+    args_i, args_ip1 = args
+    if i < docp.dim_NLP_steps - 1
+        # are we allocating more than one args here ?
+        return (args_ip1, ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, i+2))
+    else
+        return (args_ip1, args_ip1)
     end
 end
 
