@@ -52,7 +52,7 @@ function get_final_time(xu, docp)
     end
 end
 
-
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -72,7 +72,7 @@ Get actual (un-normalized) time at given time step
 function get_time_at_time_step(xu, docp, i)
     return get_unnormalized_time(xu, docp, docp.NLP_normalized_time_grid[i + 1])
 end
-
+=#
 
 """
 $(TYPEDSIGNATURES)

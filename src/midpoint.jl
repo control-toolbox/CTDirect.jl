@@ -113,6 +113,7 @@ end
 
 
 # trivial version for now...
+# +++multiple dispatch here seems to cause more allocations !
 function initArgs(xu, docp, tag::MidpointTag)
     return xu, get_optim_variable(xu, docp)
 end
