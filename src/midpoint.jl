@@ -18,13 +18,13 @@ $(TYPEDSIGNATURES)
 
 Retrieve state and control variables at given time step from the NLP variables.
 """
-function get_variables_at_time_step(xu, docp, i, disc::MidpointTag)
+function get_variables_at_time_step(xu, docp::DOCP{MidpointTag}, i)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*(1+disc.stage) + m) * i
+    offset = (nx*(1+docp.discretization.stage) + m) * i
 
     # retrieve scalar/vector OCP state (w/o lagrange state) 
     if n == 1
@@ -114,6 +114,7 @@ end
 
 # trivial version for now...
 # +++multiple dispatch here seems to cause more allocations !
+# +++? use abstract type for all Args ?
 """
 $(TYPEDSIGNATURES)
 
@@ -129,29 +130,29 @@ struct ArgsAtTimeStep_Midpoint
     next_state::Any
     next_lagrange_state::Any
     
-    function ArgsAtTimeStep_Midpoint(xu, docp::DOCP, v, time_grid, i::Int)
+    function ArgsAtTimeStep_Midpoint(xu, docp::DOCP{MidpointTag}, v, time_grid, i::Int)
 
         tag = docp.discretization
 
         # variables
         ti = time_grid[i+1]
-        xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i, tag)
+        xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i)
         
         if i == docp.dim_NLP_steps
             return new(ti, xi, ui, xli, ki, tag)
         else
             tip1 = time_grid[i+2]
-            xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1, tag)
+            xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1)
             return new(ti, xi, ui, xli, ki, tip1, xip1, xlip1)
         end
     end
 end
-function initArgs(xu, docp, time_grid, tag::MidpointTag)
+function initArgs(xu, docp::DOCP{MidpointTag}, time_grid)
     v = get_optim_variable(xu, docp)
     args = ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, 0)
     return args, v 
 end
-function updateArgs(args, xu, docp, v, time_grid, i::Int, tag::MidpointTag)
+function updateArgs(args, xu, docp::DOCP{MidpointTag}, v, time_grid, i::Int)
     return ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, i+1)
 end
 
@@ -161,7 +162,7 @@ $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquation!(docp::DOCP, c, index::Int, args, v, i, tag::MidpointTag)
+function setStateEquation!(docp::DOCP{MidpointTag}, c, index::Int, args, v, i)
 
     ocp = docp.ocp
 
@@ -207,7 +208,7 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-function setPathConstraints!(docp::DOCP, c, index::Int, args, v, i::Int, tag::MidpointTag)
+function setPathConstraints!(docp::DOCP{MidpointTag}, c, index::Int, args, v, i::Int)
 
     ocp = docp.ocp
     ti = args.time

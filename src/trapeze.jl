@@ -17,7 +17,7 @@ $(TYPEDSIGNATURES)
 
 Retrieve state and control variables at given time step from the NLP variables. 
 """
-function get_variables_at_time_step(xu, docp, i, tag::TrapezeTag)
+function get_variables_at_time_step(xu, docp::DOCP{TrapezeTag}, i)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
@@ -85,6 +85,7 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i, tag::TrapezeTa
 end
 
 
+# ? use abstract type for args ?
 """
 $(TYPEDSIGNATURES)
 
@@ -98,13 +99,11 @@ struct ArgsAtTimeStep_Trapeze
     lagrange_state::Any
     lagrange_cost::Any
 
-    function ArgsAtTimeStep_Trapeze(xu, docp::DOCP, v, time_grid, i::Int)
-
-        tag = docp.discretization
+    function ArgsAtTimeStep_Trapeze(xu, docp::DOCP{TrapezeTag}, v, time_grid, i::Int)
 
         # variables
         ti = time_grid[i+1]
-        xi, ui, xli = get_variables_at_time_step(xu, docp, i, tag)
+        xi, ui, xli = get_variables_at_time_step(xu, docp, i)
 
         # dynamics and lagrange cost
         fi = docp.ocp.dynamics(ti, xi, ui, v)
@@ -120,13 +119,13 @@ struct ArgsAtTimeStep_Trapeze
     end
 end
 # +++multiple dispatch here seems to cause more allocations !
-function initArgs(xu, docp, time_grid, tag::TrapezeTag)
+function initArgs(xu, docp::DOCP{TrapezeTag}, time_grid)
     v = get_optim_variable(xu, docp)
     args_i = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 0)
     args_ip1 = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 1)
     return (args_i, args_ip1), v
 end
-function updateArgs(args, xu, docp, v, time_grid, i, tag::TrapezeTag)
+function updateArgs(args, xu, docp::DOCP{TrapezeTag}, v, time_grid, i)
     args_i, args_ip1 = args
     if i < docp.dim_NLP_steps - 1
         # are we allocating more than one args here ?
@@ -142,7 +141,7 @@ $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquation!(docp::DOCP, c, index::Int, args, v, i, tag::TrapezeTag)
+function setStateEquation!(docp::DOCP{TrapezeTag}, c, index::Int, args, v, i)
 
     # NB. arguments v,i are unused here but present for unified call
     ocp = docp.ocp
@@ -169,7 +168,7 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-function setPathConstraints!(docp::DOCP, c, index::Int, args, v, i::Int, tag::TrapezeTag)
+function setPathConstraints!(docp::DOCP{TrapezeTag}, c, index::Int, args, v, i::Int)
 
     # note: i is unused but passed for call compatibility
     ocp = docp.ocp

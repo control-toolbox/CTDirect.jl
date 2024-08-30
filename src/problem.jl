@@ -19,7 +19,7 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP
+struct DOCP{DiscretizationTag}
 
     ## OCP
     ocp::OptimalControlModel
@@ -152,7 +152,7 @@ struct DOCP
         end
 
         # call constructor with const fields
-        docp = new(
+        docp = new{typeof(discretization)}(
             ocp,
             control_constraints,
             state_constraints,
@@ -281,15 +281,14 @@ function DOCP_objective(xu, docp::DOCP)
     obj = 0.0
     N = docp.dim_NLP_steps
     ocp = docp.ocp
-    tag = docp.discretization
 
     # final state is always needed since lagrange cost is there
-    xf, uf, xlf = get_variables_at_time_step(xu, docp, N, tag)
+    xf, uf, xlf = get_variables_at_time_step(xu, docp, N)
 
     # mayer cost
     if docp.has_mayer
         v = get_optim_variable(xu, docp)
-        x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0, tag)
+        x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0)
         obj = obj + ocp.mayer(x0, xf, v)
     end
 
@@ -314,27 +313,26 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
 function DOCP_constraints!(c, xu, docp::DOCP)
 
-    tag = docp.discretization
-
     # initialization
+    # +++ use and pass a single tuple (args, v, time_grid) instead ?
     time_grid = get_time_grid(xu, docp)
-    args, v = initArgs(xu, docp, time_grid, tag)
+    args, v = initArgs(xu, docp, time_grid)
 
     # main loop on time steps
     index = 1 # counter for the constraints
     for i = 0:(docp.dim_NLP_steps - 1)
 
         # state equation
-        index = setStateEquation!(docp, c, index, args, v, i, tag)
+        index = setStateEquation!(docp, c, index, args, v, i)
         # path constraints 
-        index = setPathConstraints!(docp, c, index, args, v, i, tag)
+        index = setPathConstraints!(docp, c, index, args, v, i)
         # update
-        args = updateArgs(args, xu, docp, v, time_grid, i, tag)
+        args = updateArgs(args, xu, docp, v, time_grid, i)
 
     end
 
     # path constraints at final time
-    index = setPathConstraints!(docp, c, index, args, v, docp.dim_NLP_steps, tag)
+    index = setPathConstraints!(docp, c, index, args, v, docp.dim_NLP_steps)
 
     # boundary conditions and variable constraints
     index = setPointConstraints!(docp, c, index, xu, v)
@@ -387,10 +385,9 @@ Set the boundary and variable constraints
 function setPointConstraints!(docp::DOCP, c, index::Int, xu, v)
 
     ocp = docp.ocp
-    tag = docp.discretization
 
-    x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0, tag)
-    xf, = get_variables_at_time_step(xu, docp, docp.dim_NLP_steps, tag)
+    x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0)
+    xf, = get_variables_at_time_step(xu, docp, docp.dim_NLP_steps)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
