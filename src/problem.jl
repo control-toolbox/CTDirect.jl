@@ -10,7 +10,6 @@
 # NB. can we mutualize common fields at the abstract level ?
 abstract type DiscretizationTag end
 
-
 """
 $(TYPEDSIGNATURES)
 

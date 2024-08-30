@@ -131,7 +131,7 @@ function bench_average(; repeat = 2, verbose = false, kwargs...)
     return avg_time
 end
 
-function bench_series(; grid_size_list = [250, 500, 1000, 2500, 5000, 10000], kwargs...)
+function bench_series(; grid_size_list = [250, 500, 1000, 2500, 5000], kwargs...)
     println(grid_size_list)
     t_list = []
     for grid_size in grid_size_list
