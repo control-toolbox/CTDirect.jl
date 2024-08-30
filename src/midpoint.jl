@@ -151,8 +151,8 @@ function initArgs(xu, docp, time_grid, tag::MidpointTag)
     args = ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, 0)
     return args, v 
 end
-function updateArgs(args::ArgsAtTimeStep_Midpoint, xu, docp, v, time_grid, i::Int, tag::MidpointTag)
-    return ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, i)
+function updateArgs(args, xu, docp, v, time_grid, i::Int, tag::MidpointTag)
+    return ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, i+1)
 end
 
 
