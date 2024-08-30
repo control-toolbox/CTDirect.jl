@@ -1,5 +1,10 @@
 # Profiling
-include("../test/deps.jl")
+#include("../test/deps.jl")
+using CTDirect
+using CTBase
+
+using LinearAlgebra
+using NLPModelsIpopt
 
 using BenchmarkTools
 #using Traceur
@@ -9,7 +14,7 @@ using JET
 
 precompile = true
 
-test_solve = false
+test_solve = true
 #test = :objective
 test = :constraints
 test_code_warntype = false
