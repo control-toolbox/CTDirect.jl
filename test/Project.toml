@@ -11,3 +11,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 CTBase = "0.13"
+MadNLP = "0.8"
+JSON3 = "1"
+HSL = "0.4"
+NLPModelsIpopt = "0.10"
