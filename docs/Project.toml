@@ -10,6 +10,7 @@ NLPModelsIpopt = "f4238b75-b362-5c4c-b852-0801c9a21d71"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 
 [compat]
+JSON3 = "1"
 HSL = "0.4"
 Plots = "1"
 CTDirect = "0.12"
