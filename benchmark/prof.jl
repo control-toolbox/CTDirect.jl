@@ -27,14 +27,18 @@ if precompile
     println("Precompilation")
     direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2)
     CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
-    CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+    CTDirect.DOCP_constraints!(
+        zeros(docp.dim_NLP_constraints),
+        CTDirect.DOCP_initial_guess(docp),
+        docp,
+    )
 end
 
 # full solve
 if test_solve
     println("Timed solve")
-    @timev sol = direct_solve(ocp, grid_size = grid_size, display=false)
-    @btime sol = direct_solve(ocp, grid_size = grid_size, display=false)
+    @timev sol = direct_solve(ocp, grid_size = grid_size, display = false)
+    @btime sol = direct_solve(ocp, grid_size = grid_size, display = false)
 end
 
 if test_code_warntype
