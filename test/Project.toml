@@ -8,3 +8,6 @@ MadNLP = "2621e9c9-9eb4-46b1-8089-e8c72242dfb6"
 NLPModelsIpopt = "f4238b75-b362-5c4c-b852-0801c9a21d71"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+JLD2 = "0.4"
