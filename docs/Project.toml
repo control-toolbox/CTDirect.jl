@@ -11,3 +11,5 @@ Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 
 [compat]
 DocumenterMermaid = "0.1"
+Documenter = "1"
+NLPModelsIpopt = "0.10"
