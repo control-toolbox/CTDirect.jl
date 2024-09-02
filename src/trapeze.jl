@@ -4,11 +4,11 @@ Internal layout for NLP variables:
 =#
 
 
-struct TrapezeTag <: DiscretizationTag 
+struct Trapeze <: Discretization
     stage::Int
     additional_controls::Int
     # add control at tf
-    TrapezeTag() = new(0, 1)
+    Trapeze() = new(0, 1)
 end
 
 
@@ -17,7 +17,7 @@ $(TYPEDSIGNATURES)
 
 Retrieve state and control variables at given time step from the NLP variables. 
 """
-function get_variables_at_time_step(xu, docp::DOCP{TrapezeTag}, i)
+function get_variables_at_time_step(xu, docp::DOCP{Trapeze}, i)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
@@ -51,7 +51,7 @@ end
 # could be fused with one above if 
 # - using extended dynamics that include lagrange cost
 # - scalar case is handled at OCP level
-function get_NLP_variables_at_time_step(xu, docp, i, tag::TrapezeTag)
+function get_NLP_variables_at_time_step(xu, docp, i, disc::Trapeze)
 
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
@@ -66,7 +66,7 @@ function get_NLP_variables_at_time_step(xu, docp, i, tag::TrapezeTag)
 end
 
 
-function set_variables_at_time_step!(xu, x_init, u_init, docp, i, tag::TrapezeTag)
+function set_variables_at_time_step!(xu, x_init, u_init, docp, i, disc::Trapeze)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
@@ -99,7 +99,7 @@ struct ArgsAtTimeStep_Trapeze
     lagrange_state::Any
     lagrange_cost::Any
 
-    function ArgsAtTimeStep_Trapeze(xu, docp::DOCP{TrapezeTag}, v, time_grid, i::Int)
+    function ArgsAtTimeStep_Trapeze(xu, docp::DOCP{Trapeze}, v, time_grid, i::Int)
 
         # variables
         ti = time_grid[i+1]
@@ -119,7 +119,7 @@ struct ArgsAtTimeStep_Trapeze
     end
 end
 # +++multiple dispatch here seems to cause more allocations !
-function initArgs(xu, docp::DOCP{TrapezeTag}, time_grid)
+function initArgs(xu, docp::DOCP{Trapeze}, time_grid)
     # optimization variables
     v = Float64[]
     docp.has_variable && (v = get_optim_variable(xu, docp))
@@ -127,7 +127,7 @@ function initArgs(xu, docp::DOCP{TrapezeTag}, time_grid)
     args_ip1 = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 1)
     return (args_i, args_ip1), v
 end
-function updateArgs(args, xu, docp::DOCP{TrapezeTag}, v, time_grid, i)
+function updateArgs(args, xu, docp::DOCP{Trapeze}, v, time_grid, i)
     args_i, args_ip1 = args
     if i < docp.dim_NLP_steps - 1
         # are we allocating more than one args here ?
@@ -143,7 +143,7 @@ $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquation!(docp::DOCP{TrapezeTag}, c, index::Int, args, v, i)
+function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args, v, i)
 
     # NB. arguments v,i are unused here but present for unified call
     ocp = docp.ocp
@@ -170,7 +170,7 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-function setPathConstraints!(docp::DOCP{TrapezeTag}, c, index::Int, args, v, i::Int)
+function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args, v, i::Int)
 
     # note: i is unused but passed for call compatibility
     ocp = docp.ocp

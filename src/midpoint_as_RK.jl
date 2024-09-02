@@ -4,12 +4,12 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
-# +++ TODO: use args
+# +++ TODO: use args, and RK butcher table
 
-struct Midpoint <: Discretization
+struct MidpointRK <: Discretization 
     stage::Int
     additional_controls::Int
-    Midpoint() = new(1, 0)
+    MidpointRK() = new(1, 0)
 end
 
 
