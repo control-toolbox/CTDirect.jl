@@ -100,6 +100,7 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     N = docp.dim_NLP_steps
     X = zeros(N + 1, docp.dim_NLP_x)
     U = zeros(N + 1, docp.dim_NLP_u)
+    v = Float64[]
 
     # multipliers for box constraints
     if isnothing(mult_LB) || length(mult_LB) == 0
@@ -116,9 +117,11 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     mult_variable_box_upper = zeros(N + 1, docp.dim_NLP_v)
 
     # retrieve optimization variables
-    v = get_optim_variable(solution, docp)
-    mult_variable_box_lower = get_optim_variable(mult_LB, docp)
-    mult_variable_box_upper = get_optim_variable(mult_UB, docp)
+    if docp.has_variable
+        v = get_optim_variable(solution, docp)
+        mult_variable_box_lower = get_optim_variable(mult_LB, docp)
+        mult_variable_box_upper = get_optim_variable(mult_UB, docp)
+    end
 
     # loop over time steps
     for i = 1:(N + 1)

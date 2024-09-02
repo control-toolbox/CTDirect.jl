@@ -120,7 +120,9 @@ struct ArgsAtTimeStep_Trapeze
 end
 # +++multiple dispatch here seems to cause more allocations !
 function initArgs(xu, docp::DOCP{TrapezeTag}, time_grid)
-    v = get_optim_variable(xu, docp)
+    # optimization variables
+    v = Float64[]
+    docp.has_variable && (v = get_optim_variable(xu, docp))
     args_i = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 0)
     args_ip1 = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 1)
     return (args_i, args_ip1), v

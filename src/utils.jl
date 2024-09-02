@@ -20,7 +20,7 @@ function get_optim_variable(xu, docp)
             return xu[(end - docp.dim_NLP_v + 1):end]
         end
     else
-        return similar(xu, 0)
+        error("Problem is not variable dependent")
     end
 end
 

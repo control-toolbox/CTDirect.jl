@@ -282,12 +282,15 @@ function DOCP_objective(xu, docp::DOCP)
     N = docp.dim_NLP_steps
     ocp = docp.ocp
 
+    # optimization variables
+    v = Float64[]
+    docp.has_variable && (v = get_optim_variable(xu, docp))
+
     # final state is always needed since lagrange cost is there
     xf, uf, xlf = get_variables_at_time_step(xu, docp, N)
 
     # mayer cost
     if docp.has_mayer
-        v = get_optim_variable(xu, docp)
         x0, u0, xl0 = get_variables_at_time_step(xu, docp, 0)
         obj = obj + ocp.mayer(x0, xf, v)
     end
