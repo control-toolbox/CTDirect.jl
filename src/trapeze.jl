@@ -150,7 +150,7 @@ function setStateEquation!(docp::DOCP{TrapezeTag}, c, index::Int, args, v, i)
     args_i, args_ip1 = args
     hi = args_ip1.time - args_i.time
 
-    # trapeze rule
+    # trapeze rule (NB. @. allocates more ...)
     c[index:(index + docp.dim_OCP_x - 1)] .=
         args_ip1.state .- (args_i.state .+ 0.5 * hi * (args_i.dynamics .+ args_ip1.dynamics))
     # +++ just define extended dynamics !
