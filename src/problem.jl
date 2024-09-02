@@ -316,6 +316,33 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
 function DOCP_constraints!(c, xu, docp::DOCP)
 
+    # +++ todo: help AD by avoid passing the whole xu to inner functions
+    #
+    # args = initArgs(xu)
+    # for i=1:N
+    #   setStateEquation!(docp, c, index, args[i])
+    #   setPathConstraints!(docp, c, index, args[i])
+    # setPathConstraints!(docp, c, index, args[N+1])
+    # setPointConstraints!(docp, xu, index)
+    #
+    # where args is a N size array of discretization-dependent 
+    # tuples (or structs if we need the mutable part ?),
+    # with each one containing every scalar and vector needed
+    # to evaluate both setStateEquation and setPathConstraints
+    #
+    # initArgs will avoid unnecessary recomputations
+    #   get_time_grid (for the t_i)
+    #   get_optim_variables (for v)
+    #   for i=0:N-1
+    #       getters for xi, ui, ki, xi+1 (some redundancy here)
+    #       compute needed values and save in args[i]             
+    #
+    # note: maybe reuse values from one iteration to the other
+    # (eg x_i+1 in general, f_i+1 for trapeze)
+    # but this would require a mutable struct (tuple are non mutable)
+    # the struct could be tailored to each discretization method 
+    # test both for instance on midpoint: mutable vs non mutable
+
     # initialization
     # +++ use and pass a single tuple (args, v, time_grid) instead ?
     time_grid = get_time_grid(xu, docp)
