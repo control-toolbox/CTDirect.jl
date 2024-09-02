@@ -148,7 +148,8 @@ struct ArgsAtTimeStep_Midpoint
     end
 end
 function initArgs(xu, docp::DOCP{MidpointTag}, time_grid)
-    v = get_optim_variable(xu, docp)
+    v = Float64[]
+    docp.has_variable && (v = get_optim_variable(xu, docp))
     args = ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, 0)
     return args, v 
 end
