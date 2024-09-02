@@ -118,19 +118,19 @@ function bench(;
 end
 
 # +++ put repeat directly in bench()
-function bench_average(; repeat = 2, verbose = false, kwargs...)
+function bench_average(; repeat = 4, verbose = false, kwargs...)
 
     # execute series of benchmark runs
     t_list = []
     for i = 1:repeat
         t = bench(; verbose = verbose, kwargs...)
         append!(t_list, t)
-        @printf("Run %d / %d: time (s) = %6.2f\n", i, repeat, t)
+        verbose && @printf("Run %d / %d: time (s) = %6.2f\n", i, repeat, t)
     end
 
     # print / return average total time
     avg_time = sum(t_list) / length(t_list)
-    @printf("Average time (s): %6.2f\n", avg_time)
+    verbose && @printf("Average time (s): %6.2f\n", avg_time)
     return avg_time
 end
 
@@ -140,7 +140,7 @@ function bench_series(; grid_size_list = [250, 500, 1000, 2500, 5000], kwargs...
     for grid_size in grid_size_list
         t = bench_average(; grid_size = grid_size, kwargs...)
         append!(t_list, t)
-        @printf("Grid size %d: time (s) = %6.2f\n\n", grid_size, t)
+        @printf("Grid size %d: time (s) = %6.1f\n", grid_size, t)
     end
-    return t_list
+    #return t_list
 end

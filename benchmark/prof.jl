@@ -1,5 +1,5 @@
+# +++ TODO: make function with bools as args ?
 # Profiling
-#include("../test/deps.jl")
 using CTDirect
 using CTBase
 
@@ -40,15 +40,19 @@ if precompile
 end
 
 if test == :objective
-    @timev CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+    println("Timed objective")
+    #@timev CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+    @btime CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
 else
-    @timev CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+    println("Timed constraints")
+    #@timev CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)    
+    @btime CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
 end
 
 # full solve
 if test_solve
-    println("Timed solve")
-    @timev sol = direct_solve(ocp, grid_size = grid_size, display=false)
+    println("Timed full solve")
+    #@timev sol = direct_solve(ocp, grid_size = grid_size, display=false)
     @btime sol = direct_solve(ocp, grid_size = grid_size, display=false)
 end
 
