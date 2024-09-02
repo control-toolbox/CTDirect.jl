@@ -5,7 +5,6 @@ using CTBase
 
 using LinearAlgebra
 using NLPModelsIpopt
-
 using BenchmarkTools
 #using Traceur
 #using Profile
