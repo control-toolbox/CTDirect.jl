@@ -24,10 +24,21 @@ function direct_transcription(
     init = CTBase.__ocp_init(),
     grid_size = __grid_size(),
     time_grid = __time_grid(),
+    discretization = __discretization()
 )
 
     # build DOCP
-    docp = DOCP(ocp, grid_size, time_grid)
+    discretization = string(discretization)
+    if discretization == "midpoint"
+        disc_tag = CTDirect.MidpointTag()
+    elseif discretization == "trapeze"
+        disc_tag = CTDirect.TrapezeTag()
+    elseif discretization == "gausslegendre2"
+        disc_tag = CTDirect.GaussLegendre2Tag()
+    else
+        error("Unknown discretization method:", discretization)
+    end
+    docp = DOCP(ocp, grid_size, time_grid, disc_tag)
 
     # set bounds in DOCP
     variables_bounds!(docp)
@@ -88,6 +99,7 @@ function direct_solve(
     init = CTBase.__ocp_init(),
     grid_size::Int = CTDirect.__grid_size(),
     time_grid = CTDirect.__time_grid(),
+    discretization = __discretization(),
     kwargs...,
 )
     method = getFullDescription(description, available_methods())
@@ -100,6 +112,7 @@ function direct_solve(
         init = init,
         grid_size = grid_size,
         time_grid = time_grid,
+        discretization = discretization
     )
 
     # solve DOCP

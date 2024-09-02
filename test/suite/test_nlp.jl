@@ -11,8 +11,20 @@ ocp = simple_integrator().ocp
     @test (:adnlp, :madnlp) in available_methods()
 end
 
-@testset verbose = true showtiming = true ":solve_docp :ipopt" begin
+@testset verbose = true showtiming = true ":solve_docp" begin
     docp, nlp = direct_transcription(ocp)
+    tag = CTDirect.IpoptTag()
+    dsol = CTDirect.solve_docp(tag, docp, nlp, display = false)
+    sol = OptimalControlSolution(docp, dsol)
+    @test sol.objective ≈ 0.313 rtol = 1e-2
+    sol = OptimalControlSolution(docp, primal = dsol.solution)
+    @test sol.objective ≈ 0.313 rtol = 1e-2
+    sol = OptimalControlSolution(docp, primal = dsol.solution, dual = dsol.multipliers)
+    @test sol.objective ≈ 0.313 rtol = 1e-2
+end
+
+@testset verbose = true showtiming = true ":solve_docp :midpoint" begin
+    docp, nlp = direct_transcription(ocp, discretization = :midpoint)
     tag = CTDirect.IpoptTag()
     dsol = CTDirect.solve_docp(tag, docp, nlp, display = false)
     sol = OptimalControlSolution(docp, dsol)
