@@ -19,7 +19,7 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{Discretization}
+struct DOCP{T} where {T <: Discretization}
 
     ## OCP
     ocp::OptimalControlModel
@@ -67,7 +67,7 @@ struct DOCP{Discretization}
     con_u::Vector{Float64}
 
     # discretization scheme
-    discretization::Discretization
+    discretization::T
 
     # constructor
     function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid, discretization::Discretization)
