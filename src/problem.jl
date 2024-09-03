@@ -316,16 +316,8 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
 function DOCP_constraints!(c, xu, docp::DOCP)
 
-    # +++ todo: help AD by avoid passing the whole xu to inner functions
-    #
-    # args = initArgs(xu)
-    # for i=1:N
-    #   setStateEquation!(docp, c, index, args[i])
-    #   setPathConstraints!(docp, c, index, args[i])
-    # setPathConstraints!(docp, c, index, args[N+1])
-    # setPointConstraints!(docp, xu, index)
-    #
-    # where args is a N size array of discretization-dependent 
+    # help AD by avoid passing the whole xu to inner functions    
+    # args is a N size array of discretization-dependent 
     # tuples (or structs if we need the mutable part ?),
     # with each one containing every scalar and vector needed
     # to evaluate both setStateEquation and setPathConstraints
@@ -343,6 +335,27 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # the struct could be tailored to each discretization method 
     # test both for instance on midpoint: mutable vs non mutable
 
+
+    # initialization
+    args = initArgs(xu, docp)
+
+    # main loop on time steps
+    index = 1 # counter for the constraints
+    for i = 1:docp.dim_NLP_steps 
+    
+        # discretized dynamics
+        setStateEquation!(docp, c, index, args[i])
+        # path constraints
+        setPathConstraints!(docp, c, index, args[i])
+    
+    end
+    
+    # path constraints at final time
+    setPathConstraints!(docp, c, index, args[docp.dim_NLP_steps+1])
+    # point constraints
+    setPointConstraints!(docp, c, index, xu)
+    
+    #= OLD VERSION
     # initialization
     # +++ use and pass a single tuple (args, v, time_grid) instead ?
     time_grid = get_time_grid(xu, docp)
@@ -366,6 +379,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 
     # boundary conditions and variable constraints
     index = setPointConstraints!(docp, c, index, xu, v)
+    OLD VERSION END =#
 
     # needed even for inplace version, AD error otherwise
     # may be because actual return would be index above ?

@@ -17,7 +17,7 @@ $(TYPEDSIGNATURES)
 
 Retrieve state and control variables at given time step from the NLP variables. 
 """
-function get_variables_at_time_step(xu, docp::DOCP{Trapeze}, i)
+function get_variables_at_t_i(xu, docp::DOCP{Trapeze}, i)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
@@ -51,7 +51,7 @@ end
 # could be fused with one above if 
 # - using extended dynamics that include lagrange cost
 # - scalar case is handled at OCP level
-function get_NLP_variables_at_time_step(xu, docp, i, disc::Trapeze)
+function get_NLP_variables_at_t_i(xu, docp::DOCP{Trapeze}, i::Int)
 
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
@@ -66,7 +66,7 @@ function get_NLP_variables_at_time_step(xu, docp, i, disc::Trapeze)
 end
 
 
-function set_variables_at_time_step!(xu, x_init, u_init, docp, i, disc::Trapeze)
+function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Trapeze}, i::Int)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
@@ -85,6 +85,7 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i, disc::Trapeze)
 end
 
 
+#=
 # ? use abstract type for args ?
 """
 $(TYPEDSIGNATURES)
@@ -136,31 +137,97 @@ function updateArgs(args, xu, docp::DOCP{Trapeze}, v, time_grid, i)
         return (args_ip1, args_ip1)
     end
 end
+=#
 
+function initArgs(docp::DOCP{Trapeze}, xu)
+    
+    # Arguments list for one time step: 
+    # t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1 
+    # [, xl_i, l_i, xl_ip1, l_ip1]
+    # dynamics / lagange costs are present to avoid recomputation
+    # in trapeze method
+    args = Vector{}(undef, docp.dim_NLP_steps + 1)
+
+    # get time grid
+    time_grid = get_time_grid(xu, docp)
+
+    # get optim variable
+    if docp.has_variable
+        v = get_optim_variables(xu, docp)
+    else
+        v = Float64[]
+    end
+
+    # fill args vector
+    t_i = time_grid[1]
+    if docp.has_lagrange
+        x_i, u_i, xl_i = get_variables_at_t_i(xu, docp, 0)
+        l_i = docp.ocp.lagrange(t_i, x_i, u_i, v)
+    else
+        x_i, u_i = get_variables_at_t_i(xu, docp, 0)
+    end
+    f_i = docp.ocp.dynamics(t_i, x_i, u_i, v)
+
+    # loop over time steps
+    for i = 1:docp.dim_NLP_steps
+        t_ip1 = time_grid[i+1]
+        if docp.has_lagrange
+            x_ip1, u_ip1, xl_ip1 = get_variables_at_t_i(xu, docp, i)
+            l_ip1 = docp.ocp.lagrange(t_ip1, x_ip1, u_ip1, v)
+        else
+            x_ip1, u_ip1 = get_variables_at_t_i(xu, docp, i)
+        end 
+        f_ip1 = docp.ocp.dynamics(t_ip1, x_ip1, u_ip1, v)
+
+        # set args
+        h_i = t_ip1 - t_i 
+        if docp.has_lagrange
+            args[i] = (t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1, xl_i, l_i, xl_ip1, l_ip1)
+        else
+            args[i] = (t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1)
+        end
+
+        # 'smart' update
+        t_i, x_i, u_i, f_i = t_ip1, x_ip1, u_ip1, f_ip1
+        docp.has_lagrange && (xl_i, l_i = xl_ip1, l_ip1)
+    end
+
+    # final time: used for path constraints only
+    # no lagrange part, unused fields for 'next' time (duplicate) 
+    args[docp.dim_NLP_steps+1] = (t_i, x_i, u_i, f_i, t_i, x_i, f_i) 
+
+    return args
+end
 
 """
 $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args, v, i)
+#function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args, v, i)
+function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args)
 
-    # NB. arguments v,i are unused here but present for unified call
-    ocp = docp.ocp
-    args_i, args_ip1 = args
-    hi = args_ip1.time - args_i.time
+    # Arguments list for one time step: (control is unused) 
+    # t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1 
+    # [, xl_i, l_i, xl_ip1, l_ip1]
+    if docp.has_lagrange
+        time, state, control, dynamics, next_time, next_state, next_dynamics, lagrange_state, lagrange_cost, next_lagrange_state, next_lagrange_cost = args
+    else
+        time, state, control, dynamics, next_time, next_state, next_dynamics = args
+    end
 
     # trapeze rule (NB. @. allocates more ...)
     c[index:(index + docp.dim_OCP_x - 1)] .=
-        args_ip1.state .- (args_i.state .+ 0.5 * hi * (args_i.dynamics .+ args_ip1.dynamics))
-    # +++ just define extended dynamics !
+        next_state .- (state .+ 0.5 * (next_time - time) * (dynamics .+ next_dynamics))
+    
+        # +++ just define extended dynamics !
     if docp.has_lagrange
         c[index + docp.dim_OCP_x] =
-            args_ip1.lagrange_state -
-            (args_i.lagrange_state + 0.5 * hi * (args_i.lagrange_cost + args_ip1.lagrange_cost))
+            next_lagrange_state -
+            (lagrange_state + 0.5 * (next_time - time) * (lagrange_cost + next_lagrange_cost))
     end
+    
     index += docp.dim_NLP_x
-
     return index
 end
 
