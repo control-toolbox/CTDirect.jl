@@ -8,7 +8,7 @@
 
 # generic discretization struct
 # NB. can we mutualize common fields at the abstract level ?
-abstract type DiscretizationTag end
+abstract type Discretization end
 
 """
 $(TYPEDSIGNATURES)
@@ -19,7 +19,7 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{DiscretizationTag}
+struct DOCP{Discretization}
 
     ## OCP
     ocp::OptimalControlModel
@@ -67,10 +67,10 @@ struct DOCP{DiscretizationTag}
     con_u::Vector{Float64}
 
     # discretization scheme
-    discretization::DiscretizationTag
+    discretization::Discretization
 
     # constructor
-    function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid, discretization::DiscretizationTag)
+    function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid, discretization::Discretization)
 
         # time grid
         if time_grid == nothing
@@ -248,7 +248,7 @@ function variables_bounds!(docp::DOCP)
     var_l = docp.var_l
     var_u = docp.var_u
     ocp = docp.ocp
-    tag = docp.discretization
+    disc = docp.discretization
 
     # first we build full ordered sets of bounds, then set them in NLP
 
@@ -256,8 +256,8 @@ function variables_bounds!(docp::DOCP)
     x_lb, x_ub = build_bounds(docp.dim_OCP_x, docp.dim_x_box, docp.state_box)
     u_lb, u_ub = build_bounds(docp.dim_NLP_u, docp.dim_u_box, docp.control_box)
     for i = 0:N
-        set_variables_at_time_step!(var_l, x_lb, u_lb, docp, i, tag)
-        set_variables_at_time_step!(var_u, x_ub, u_ub, docp, i, tag)
+        set_variables_at_time_step!(var_l, x_lb, u_lb, docp, i, disc)
+        set_variables_at_time_step!(var_u, x_ub, u_ub, docp, i, disc)
     end
 
     # variable box

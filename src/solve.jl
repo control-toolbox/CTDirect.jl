@@ -30,15 +30,13 @@ function direct_transcription(
     # build DOCP
     discretization = string(discretization)
     if discretization == "midpoint"
-        disc_tag = CTDirect.MidpointTag()
+        disc_method = CTDirect.Midpoint()
     elseif discretization == "trapeze"
-        disc_tag = CTDirect.TrapezeTag()
-    elseif discretization == "gausslegendre2"
-        disc_tag = CTDirect.GaussLegendre2Tag()
+        disc_method = CTDirect.Trapeze()
     else
         error("Unknown discretization method:", discretization)
     end
-    docp = DOCP(ocp, grid_size, time_grid, disc_tag)
+    docp = DOCP(ocp, grid_size, time_grid, disc_method)
 
     # set bounds in DOCP
     variables_bounds!(docp)
@@ -117,13 +115,13 @@ function direct_solve(
 
     # solve DOCP
     if :ipopt ∈ method
-        tag = CTDirect.IpoptTag()
+        solver_tag = CTDirect.IpoptTag()
     elseif :madnlp ∈ method
-        tag = CTDirect.MadNLPTag()
+        solver_tag = CTDirect.MadNLPTag()
     else
         error("no known solver in method", method)
     end
-    docp_solution = CTDirect.solve_docp(tag, docp, nlp; kwargs...)
+    docp_solution = CTDirect.solve_docp(solver_tag, docp, nlp; kwargs...)
 
     # build and return OCP solution
     return OptimalControlSolution(docp, docp_solution)

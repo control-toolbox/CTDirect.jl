@@ -96,7 +96,7 @@ Recover OCP primal variables from DOCP solution
 function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB = nothing)
 
     # state and control variables
-    tag = docp.discretization
+    disc = docp.discretization
     N = docp.dim_NLP_steps
     X = zeros(N + 1, docp.dim_NLP_x)
     U = zeros(N + 1, docp.dim_NLP_u)
@@ -126,13 +126,13 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     # loop over time steps
     for i = 1:(N + 1)
         # state and control variables at current step
-        X[i, :], U[i, :] = get_NLP_variables_at_time_step(solution, docp, i - 1, tag)
+        X[i, :], U[i, :] = get_NLP_variables_at_time_step(solution, docp, i - 1, disc)
 
         # box multipliers
         mult_state_box_lower[i, :], mult_control_box_lower[i, :] =
-            get_NLP_variables_at_time_step(mult_LB, docp, i - 1, tag)
+            get_NLP_variables_at_time_step(mult_LB, docp, i - 1, disc)
         mult_state_box_upper[i, :], mult_control_box_upper[i, :] =
-            get_NLP_variables_at_time_step(mult_UB, docp, i - 1, tag)
+            get_NLP_variables_at_time_step(mult_UB, docp, i - 1, disc)
     end
 
     box_multipliers = (
