@@ -151,6 +151,10 @@ function initArgs(docp::DOCP{Trapeze}, xu)
     # get time grid
     time_grid = get_time_grid(xu, docp)
 
+    #+++NB. we could compute all the path constraints here, so that passing v and u in args could be removed ? but then we have to pass the path constraint block to setstateequation...
+    
+    #+++ computing the whole dynamics may reduce the update part a bit
+
     # get optim variable
     if docp.has_variable
         v = get_optim_variables(xu, docp)
@@ -182,9 +186,9 @@ function initArgs(docp::DOCP{Trapeze}, xu)
         # set args
         h_i = t_ip1 - t_i 
         if docp.has_lagrange
-            args[i] = (t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1, xl_i, l_i, xl_ip1, l_ip1)
+            args[i] = (v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1, xl_i, l_i, xl_ip1, l_ip1)
         else
-            args[i] = (t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1)
+            args[i] = (v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1)
         end
 
         # 'smart' update
@@ -194,7 +198,7 @@ function initArgs(docp::DOCP{Trapeze}, xu)
 
     # final time: used for path constraints only
     # no lagrange part, unused fields for 'next' time (duplicate) 
-    args[docp.dim_NLP_steps+1] = (t_i, x_i, u_i, f_i, t_i, x_i, f_i) 
+    args[docp.dim_NLP_steps+1] = (v, t_i, x_i, u_i, f_i, t_i, x_i, f_i) 
 
     return args
 end
@@ -207,11 +211,11 @@ Set the constraints corresponding to the state equation
 #function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args, v, i)
 function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args)
 
-    # Arguments list for one time step: (control is unused) 
-    # t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1 
+    # Arguments list for one time step:
+    # v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1 
     # [, xl_i, l_i, xl_ip1, l_ip1]
     if docp.has_lagrange
-        time, state, control, dynamics, next_time, next_state, next_dynamics, lagrange_state, lagrange_cost, next_lagrange_state, next_lagrange_cost = args
+        _, time, state, _, dynamics, next_time, next_state, next_dynamics, lagrange_state, lagrange_cost, next_lagrange_state, next_lagrange_cost = args
     else
         time, state, control, dynamics, next_time, next_state, next_dynamics = args
     end
@@ -237,31 +241,33 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args, v, i::Int)
+#function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args, v, i::Int)
+function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args)    
 
-    # note: i is unused but passed for call compatibility
+    # Arguments list for one time step: 
+    # v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1 
+    # [, xl_i, l_i, xl_ip1, l_ip1]
+    v, t_i, x_i, u_i, _, _, _, _  = args
+
     ocp = docp.ocp
-    args_i, args_ip1 = args
-    ti = args_i.time
-    xi = args_i.state
-    ui = args_i.control
 
     # NB. using .= below *doubles* the allocations oO
     # pure control constraints
+    # WAIT FOR INPLACE VERSION IN OCP !
     if docp.dim_u_cons > 0
-        c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](ti, ui, v)
+        c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](t_i, u_i, v)
         index += docp.dim_u_cons
     end
 
     # pure state constraints
     if docp.dim_x_cons > 0
-        c[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[2](ti, xi, v)
+        c[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[2](t_i, x_i, v)
         index += docp.dim_x_cons
     end
 
     # mixed state / control constraints
     if docp.dim_mixed_cons > 0
-        c[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[2](ti, xi, ui, v)
+        c[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
         index += docp.dim_mixed_cons
     end
 
