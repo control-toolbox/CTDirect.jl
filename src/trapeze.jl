@@ -153,9 +153,9 @@ function initArgs(docp::DOCP{Trapeze}, xu)
 
     #+++NB. we could compute all the path constraints here, so that passing v and u in args could be removed ? but then we have to pass the path constraint block to setstateequation...
     
-    +++ computing the whole dynamics may reduce the update part a bit
-    +++ later use sub function, maybe pass args too to avoid multiple calls to getters for t,x,u ?    
-    dynamics_vec vect(vect) N+1 x dim_ocp_x, eltype(xu[0]) ?
+    #+++ computing the whole dynamics may reduce the update part a bit
+    #+++ later use sub function, maybe pass args too to avoid multiple calls to getters for t,x,u ?    
+    #dynamics_vec vect(vect) N+1 x dim_ocp_x, eltype(xu[0]) ?
 
     # get optim variable
     if docp.has_variable
@@ -163,9 +163,6 @@ function initArgs(docp::DOCP{Trapeze}, xu)
     else
         v = Float64[]
     end
-
-    # fill args vector
-
 
     # loop over time steps
     for i = 1:docp.dim_NLP_steps
@@ -181,13 +178,12 @@ function initArgs(docp::DOCP{Trapeze}, xu)
             x_ip1, u_ip1 = get_variables_at_t_i(xu, docp, i)
         end
         #+++ compute whole vector before loop
-        #f_i = docp.ocp.dynamics(t_i, x_i, u_i, v)
-        #f_ip1 = docp.ocp.dynamics(t_ip1, x_ip1, u_ip1, v)
+        f_i = docp.ocp.dynamics(t_i, x_i, u_i, v)
+        f_ip1 = docp.ocp.dynamics(t_ip1, x_ip1, u_ip1, v)
+        #f_i = dynamics_vec[i]
+        #f_ip1 = dynamics_vec[i+1]
 
         # set args
-        h_i = t_ip1 - t_i
-        f_i = dynamics_vec[i]
-        f_ip1 = dynamics_vec[i+1]
         if docp.has_lagrange
             args[i] = (v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1, xl_i, l_i, xl_ip1, l_ip1)
         else
@@ -200,8 +196,10 @@ function initArgs(docp::DOCP{Trapeze}, xu)
     end
 
     # final time: for path constraints only
-    # useful fields are: v, ti, xi, ui 
-    args[docp.dim_NLP_steps+1] = (v, t_i, x_i, u_i, f_i, t_i, x_i, f_i) 
+    # useful fields are: v, ti, xi, ui
+    t_f = time_grid[docp.dim_NLP_steps+1]
+    x_f, u_f = get_variables_at_t_i(xu, docp, docp.dim_NLP_steps)
+    args[docp.dim_NLP_steps+1] = (v, t_f, x_f, u_f, nothing, nothing, nothing, nothing) 
 
     return args
 end
