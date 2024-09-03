@@ -122,7 +122,7 @@ end
 # +++multiple dispatch here seems to cause more allocations !
 function initArgs(xu, docp::DOCP{Trapeze}, time_grid)
     # optimization variables
-    v = Float64[]
+    v = Float64[][]
     docp.has_variable && (v = get_optim_variable(xu, docp))
     args_i = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 0)
     args_ip1 = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 1)
@@ -159,36 +159,32 @@ function initArgs(docp::DOCP{Trapeze}, xu)
 
     # get optim variable
     if docp.has_variable
-        v = get_optim_variables(xu, docp)
+        v = get_optim_variable(xu, docp)
     else
-        v = Float64[]
+        v = Float64[][]
     end
 
     # loop over time steps
     for i = 1:docp.dim_NLP_steps
         t_i = time_grid[i]
         t_ip1 = time_grid[i+1]
-        if docp.has_lagrange
-            x_i, u_i, xl_i = get_variables_at_t_i(xu, docp, i-1)
-            l_i = docp.ocp.lagrange(t_i, x_i, u_i, v)
-            x_ip1, u_ip1, xl_ip1 = get_variables_at_t_i(xu, docp, i)
-            l_ip1 = docp.ocp.lagrange(t_ip1, x_ip1, u_ip1, v)
-        else
-            x_i, u_i = get_variables_at_t_i(xu, docp, i-1)
-            x_ip1, u_ip1 = get_variables_at_t_i(xu, docp, i)
-        end
+        x_i, u_i, xl_i = get_variables_at_t_i(xu, docp, i-1)
+        x_ip1, u_ip1, xl_ip1 = get_variables_at_t_i(xu, docp, i)
         #+++ compute whole vector before loop
         f_i = docp.ocp.dynamics(t_i, x_i, u_i, v)
         f_ip1 = docp.ocp.dynamics(t_ip1, x_ip1, u_ip1, v)
+        if docp.has_lagrange
+            l_i = docp.ocp.lagrange(t_i, x_i, u_i, v)
+            l_ip1 = docp.ocp.lagrange(t_ip1, x_ip1, u_ip1, v)
+        else
+            l_i = Float64[]
+            l_ip1 = Float64[]
+        end
         #f_i = dynamics_vec[i]
         #f_ip1 = dynamics_vec[i+1]
 
         # set args
-        if docp.has_lagrange
-            args[i] = (v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1, xl_i, l_i, xl_ip1, l_ip1)
-        else
-            args[i] = (v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1)
-        end
+        args[i] = (v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1, xl_i, l_i, xl_ip1, l_ip1)
 
         #+++ remove this 'smart' update
         #t_i, x_i, u_i, f_i = t_ip1, x_ip1, u_ip1, f_ip1
@@ -199,7 +195,7 @@ function initArgs(docp::DOCP{Trapeze}, xu)
     # useful fields are: v, ti, xi, ui
     t_f = time_grid[docp.dim_NLP_steps+1]
     x_f, u_f = get_variables_at_t_i(xu, docp, docp.dim_NLP_steps)
-    args[docp.dim_NLP_steps+1] = (v, t_f, x_f, u_f, nothing, nothing, nothing, nothing) 
+    args[docp.dim_NLP_steps+1] = (v, t_f, x_f, u_f, x_f, t_f, x_f, x_f, t_f, t_f, t_f, t_f) 
 
     return args
 end
@@ -213,13 +209,9 @@ Set the constraints corresponding to the state equation
 function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args)
 
     # Arguments list for one time step:
-    # v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1 
+    # (v,) t_i, x_i, (u_i,) f_i, t_ip1, x_ip1, f_ip1 
     # [, xl_i, l_i, xl_ip1, l_ip1]
-    if docp.has_lagrange
-        _, time, state, _, dynamics, next_time, next_state, next_dynamics, lagrange_state, lagrange_cost, next_lagrange_state, next_lagrange_cost = args
-    else
-        time, state, control, dynamics, next_time, next_state, next_dynamics = args
-    end
+    _, time, state, _, dynamics, next_time, next_state, next_dynamics, lagrange_state, lagrange_cost, next_lagrange_state, next_lagrange_cost = args
 
     # trapeze rule (NB. @. allocates more ...)
     c[index:(index + docp.dim_OCP_x - 1)] .=
@@ -246,9 +238,9 @@ Set the path constraints at given time step
 function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args)    
 
     # Arguments list for one time step: 
-    # v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1 
-    # [, xl_i, l_i, xl_ip1, l_ip1]
-    v, t_i, x_i, u_i, _, _, _, _  = args
+    # v, t_i, x_i, u_i, (f_i, t_ip1, x_ip1, f_ip1 
+    # [, xl_i, l_i, xl_ip1, l_ip1])
+    v, t_i, x_i, u_i, _, _, _, _, _, _, _, _  = args
 
     ocp = docp.ocp
 

@@ -13,7 +13,7 @@ using JET
 
 precompile = true
 
-test_solve = true
+test_solve = false
 #test = :objective
 test = :constraints
 test_code_warntype = false
@@ -23,7 +23,7 @@ test_jet = false
 include("../test/problems/goddard.jl")
 prob = goddard_all()
 ocp = prob[:ocp]
-grid_size = 100
+grid_size = 3
 docp, nlp = direct_transcription(ocp, grid_size = grid_size)
 println("Load problem ", prob[:name])
 
