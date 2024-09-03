@@ -1,6 +1,6 @@
 #= Functions for trapeze discretization scheme
 Internal layout for NLP variables: 
-[X_0,U_0, X_1,U_1, .., X_N,U_N, V]
+[X_0, U_0, X_1, U_1, ..., X_N, U_N, V]
 =#
 
 
