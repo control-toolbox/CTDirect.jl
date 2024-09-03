@@ -24,7 +24,7 @@ function direct_transcription(
     init = CTBase.__ocp_init(),
     grid_size = __grid_size(),
     time_grid = __time_grid(),
-    discretization = __discretization()
+    discretization = __discretization(),
 )
 
     # build DOCP
@@ -112,7 +112,7 @@ function direct_solve(
         init = init,
         grid_size = grid_size,
         time_grid = time_grid,
-        discretization = discretization
+        discretization = discretization,
     )
 
     # solve DOCP

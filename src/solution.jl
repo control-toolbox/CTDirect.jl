@@ -188,7 +188,7 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
         if i < N + 1
             P[i, :] = multipliers[i_m:(i_m + docp.dim_NLP_x - 1)]
             # skip dynamics constraints
-            i_c += docp.dim_NLP_x 
+            i_c += docp.dim_NLP_x
             i_m += docp.dim_NLP_x
             # skip stage constraints
             i_c += docp.dim_NLP_x * docp.discretization.stage
@@ -464,4 +464,3 @@ function set_box_block(T, mults, dim)
     end
     return t -> m_l(t), t -> m_u(t)
 end
-

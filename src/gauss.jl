@@ -11,15 +11,20 @@ Q. if taking controls at stages, how to define the control at 'step' (for path c
 # define several tags for different methods
 # use intermediate abstract type ImplicitRungeKuttaTag
 
-struct GaussLegendre2Tag <: DiscretizationTag 
+struct GaussLegendre2Tag <: DiscretizationTag
     stage::Int
     additional_controls::Int
     butcher_a
     butcher_b
     butcher_c
-    GaussLegendre2Tag() = new(2, 0, [0.25 (0.25 - sqrt(3)/6); (0.25 + sqrt(3)/6) 0.25], [0.5, 0.5], [(0.5 - sqrt(3)/6), (0.5 + sqrt(3)/6)])
+    GaussLegendre2Tag() = new(
+        2,
+        0,
+        [0.25 (0.25-sqrt(3) / 6); (0.25+sqrt(3) / 6) 0.25],
+        [0.5, 0.5],
+        [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
+    )
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -33,7 +38,7 @@ function get_variables_at_time_step(xu, docp, i, tag::GuassLegendre2Tag)
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*3 + m) * i
+    offset = (nx * 3 + m) * i
 
     # retrieve scalar/vector OCP state (w/o lagrange state) 
     if n == 1
@@ -51,18 +56,20 @@ function get_variables_at_time_step(xu, docp, i, tag::GuassLegendre2Tag)
     if i < N
         offset_u = offset
     else
-        offset_u = (nx*3 + m) * (i-1)
+        offset_u = (nx * 3 + m) * (i - 1)
     end
     if m == 1
         ui = xu[offset_u + nx + 1]
     else
         ui = xu[(offset_u + nx + 1):(offset_u + nx + m)]
     end
-    
+
     # retrieve vector stage variable (except at final time)
     if i < N
-        ki = (xu[(offset + nx + m + 1):(offset + nx + m + nx)],
-              xu[(offset + nx*2 + m + 1):(offset + nx*2 + m + nx)])
+        ki = (
+            xu[(offset + nx + m + 1):(offset + nx + m + nx)],
+            xu[(offset + nx * 2 + m + 1):(offset + nx * 2 + m + nx)],
+        )
     else
         ki = nothing
     end
@@ -70,18 +77,15 @@ function get_variables_at_time_step(xu, docp, i, tag::GuassLegendre2Tag)
     return xi, ui, xli, ki
 end
 
-
 # internal NLP version for solution parsing
 # could be fused with one above if 
 # - using extended dynamics that include lagrange cost
 # - scalar case is handled at OCP level
 function get_NLP_variables_at_time_step(xu, docp, i, tag::GaussLegendre2Tag)
-
-    +++
-    nx = docp.dim_NLP_x
+    ++ + nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*2 + m) * i
+    offset = (nx * 2 + m) * i
 
     # state
     xi = xu[(offset + 1):(offset + nx)]
@@ -89,17 +93,15 @@ function get_NLP_variables_at_time_step(xu, docp, i, tag::GaussLegendre2Tag)
     if i < N
         offset_u = offset
     else
-        offset_u = (nx*2 + m) * (i-1)
-    end 
+        offset_u = (nx * 2 + m) * (i - 1)
+    end
     ui = xu[(offset_u + nx + 1):(offset_u + nx + m)]
     # stage
     if i < N
-        ki = xu[(offset + nx + m + 1):(offset + nx + m + nx) ]
+        ki = xu[(offset + nx + m + 1):(offset + nx + m + nx)]
     else
         ki = nothing
     end
 
     return xi, ui, ki
 end
-
-

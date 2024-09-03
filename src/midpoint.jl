@@ -6,12 +6,11 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 
 # +++ TODO: use args
 
-struct MidpointTag <: DiscretizationTag 
+struct MidpointTag <: DiscretizationTag
     stage::Int
     additional_controls::Int
     MidpointTag() = new(1, 0)
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -19,12 +18,11 @@ $(TYPEDSIGNATURES)
 Retrieve state and control variables at given time step from the NLP variables.
 """
 function get_variables_at_time_step(xu, docp::DOCP{MidpointTag}, i)
-
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*(1+docp.discretization.stage) + m) * i
+    offset = (nx * (1 + docp.discretization.stage) + m) * i
 
     # retrieve scalar/vector OCP state (w/o lagrange state) 
     if n == 1
@@ -42,7 +40,7 @@ function get_variables_at_time_step(xu, docp::DOCP{MidpointTag}, i)
     if i < N
         offset_u = offset
     else
-        offset_u = (nx*2 + m) * (i-1)
+        offset_u = (nx * 2 + m) * (i - 1)
     end
     if m == 1
         ui = xu[offset_u + nx + 1]
@@ -52,7 +50,7 @@ function get_variables_at_time_step(xu, docp::DOCP{MidpointTag}, i)
 
     # retrieve vector stage variable (except at final time)
     if i < N
-        ki = xu[(offset + nx + m + 1):(offset + nx + m + nx) ]
+        ki = xu[(offset + nx + m + 1):(offset + nx + m + nx)]
     else
         ki = nothing
     end
@@ -60,17 +58,15 @@ function get_variables_at_time_step(xu, docp::DOCP{MidpointTag}, i)
     return xi, ui, xli, ki
 end
 
-
 # internal NLP version for solution parsing
 # could be fused with one above if 
 # - using extended dynamics that include lagrange cost
 # - scalar case is handled at OCP level
 function get_NLP_variables_at_time_step(xu, docp, i, tag::MidpointTag)
-
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*2 + m) * i
+    offset = (nx * 2 + m) * i
 
     # state
     xi = xu[(offset + 1):(offset + nx)]
@@ -78,12 +74,12 @@ function get_NLP_variables_at_time_step(xu, docp, i, tag::MidpointTag)
     if i < N
         offset_u = offset
     else
-        offset_u = (nx*2 + m) * (i-1)
-    end 
+        offset_u = (nx * 2 + m) * (i - 1)
+    end
     ui = xu[(offset_u + nx + 1):(offset_u + nx + m)]
     # stage
     if i < N
-        ki = xu[(offset + nx + m + 1):(offset + nx + m + nx) ]
+        ki = xu[(offset + nx + m + 1):(offset + nx + m + nx)]
     else
         ki = nothing
     end
@@ -91,14 +87,12 @@ function get_NLP_variables_at_time_step(xu, docp, i, tag::MidpointTag)
     return xi, ui, ki
 end
 
-
 function set_variables_at_time_step!(xu, x_init, u_init, docp, i, tag::MidpointTag)
-
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*2 + m) * i
+    offset = (nx * 2 + m) * i
 
     # NB. only set the actual state variables from the OCP 
     # - skip the possible additional state for lagrange cost
@@ -110,7 +104,6 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i, tag::MidpointT
         xu[(offset + nx + 1):(offset + nx + m)] .= u_init
     end
 end
-
 
 # trivial version for now...
 # +++multiple dispatch here seems to cause more allocations !
@@ -129,20 +122,19 @@ struct ArgsAtTimeStep_Midpoint
     next_time::Any
     next_state::Any
     next_lagrange_state::Any
-    
-    function ArgsAtTimeStep_Midpoint(xu, docp::DOCP{MidpointTag}, v, time_grid, i::Int)
 
+    function ArgsAtTimeStep_Midpoint(xu, docp::DOCP{MidpointTag}, v, time_grid, i::Int)
         tag = docp.discretization
 
         # variables
-        ti = time_grid[i+1]
+        ti = time_grid[i + 1]
         xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i)
-        
+
         if i == docp.dim_NLP_steps
             return new(ti, xi, ui, xli, ki, tag)
         else
-            tip1 = time_grid[i+2]
-            xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1)
+            tip1 = time_grid[i + 2]
+            xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i + 1)
             return new(ti, xi, ui, xli, ki, tip1, xip1, xlip1)
         end
     end
@@ -151,12 +143,11 @@ function initArgs(xu, docp::DOCP{MidpointTag}, time_grid)
     v = Float64[]
     docp.has_variable && (v = get_optim_variable(xu, docp))
     args = ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, 0)
-    return args, v 
+    return args, v
 end
 function updateArgs(args, xu, docp::DOCP{MidpointTag}, v, time_grid, i::Int)
-    return ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, i+1)
+    return ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, i + 1)
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -164,7 +155,6 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 """
 function setStateEquation!(docp::DOCP{MidpointTag}, c, index::Int, args, v, i)
-
     ocp = docp.ocp
 
     # +++ later use butcher table in struct ?
@@ -181,28 +171,25 @@ function setStateEquation!(docp::DOCP{MidpointTag}, c, index::Int, args, v, i)
     hi = tip1 - ti
 
     # midpoint rule
-    @. c[index:(index + docp.dim_OCP_x - 1)] =
-        xip1 - (xi + hi * ki[1:docp.dim_OCP_x])
+    @. c[index:(index + docp.dim_OCP_x - 1)] = xip1 - (xi + hi * ki[1:(docp.dim_OCP_x)])
     # +++ just define extended dynamics !
     if docp.has_lagrange
         c[index + docp.dim_OCP_x] = xlip1 - (xli + hi * ki[end])
     end
     index += docp.dim_NLP_x
-    
+
     # stage equation at mid-step
     t_s = 0.5 * (ti + tip1)
     x_s = 0.5 * (xi + xip1)
-    c[index:(index + docp.dim_OCP_x - 1)] .=
-        ki[1:docp.dim_OCP_x] .- ocp.dynamics(t_s, x_s, ui, v)
+    c[index:(index + docp.dim_OCP_x - 1)] .= ki[1:(docp.dim_OCP_x)] .- ocp.dynamics(t_s, x_s, ui, v)
     # +++ just define extended dynamics !
     if docp.has_lagrange
-        c[index + docp.dim_OCP_x] = ki[end] - ocp.lagrange(t_s, x_s, ui, v) 
+        c[index + docp.dim_OCP_x] = ki[end] - ocp.lagrange(t_s, x_s, ui, v)
     end
     index += docp.dim_NLP_x
 
     return index
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -210,7 +197,6 @@ $(TYPEDSIGNATURES)
 Set the path constraints at given time step
 """
 function setPathConstraints!(docp::DOCP{MidpointTag}, c, index::Int, args, v, i::Int)
-
     ocp = docp.ocp
     ti = args.time
     xi = args.state
