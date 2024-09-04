@@ -161,22 +161,26 @@ function initArgs(docp::DOCP{Trapeze}, xu)
     # dynamics / lagange costs are present to avoid recomputation
     # in trapeze method
     args = Vector{Trapeze_Args}(undef, docp.dim_NLP_steps + 1)
-    dummy = Float64[] #similar(xu,0)
+    dummy = similar(xu,0)
 
     # get time grid
     time_grid = get_time_grid(xu, docp)
 
     #+++NB. we could compute all the path constraints here, so that passing v and u in args could be removed ? but then we have to pass the path constraint block to setstateequation...
     
-    #+++ computing the whole dynamics may reduce the update part a bit
-    #+++ later use sub function, maybe pass args too to avoid multiple calls to getters for t,x,u ?    
-    #dynamics_vec vect(vect) N+1 x dim_ocp_x, eltype(xu[0]) ?
-
     # get optim variable
     if docp.has_variable
         v = get_optim_variable(xu, docp)
     else
         v = dummy
+    end
+
+    #+++ computing the whole dynamics may reduce the update part a bit
+    #+++ later use sub function, maybe pass args too to avoid multiple calls to getters for t,x,u ?    
+    dynamics_vec = Matrix{eltype(xu[1])}(undef, docp.dim_OCP_x, docp.dim_NLP_steps+1)
+    for i = 1:docp.dim_NLP_steps+1
+        x_i, u_i, = get_variables_at_t_i(xu, docp, i-1)
+        dynamics_vec[:,i] = docp.ocp.dynamics(time_grid[i], x_i, u_i, v)
     end
 
     # loop over time steps
@@ -185,9 +189,11 @@ function initArgs(docp::DOCP{Trapeze}, xu)
         t_ip1 = time_grid[i+1]
         x_i, u_i, xl_i = get_variables_at_t_i(xu, docp, i-1)
         x_ip1, u_ip1, xl_ip1 = get_variables_at_t_i(xu, docp, i)
-        #+++ compute whole vector before loop
-        f_i = docp.ocp.dynamics(t_i, x_i, u_i, v)
-        f_ip1 = docp.ocp.dynamics(t_ip1, x_ip1, u_ip1, v)
+        #+++ compute whole vector before loop. compare view = .=
+        #f_i = docp.ocp.dynamics(t_i, x_i, u_i, v)
+        #f_ip1 = docp.ocp.dynamics(t_ip1, x_ip1, u_ip1, v)
+        f_i = dynamics_vec[:,i]
+        f_ip1 = dynamics_vec[:,i+1]
         if docp.has_lagrange
             l_i = docp.ocp.lagrange(t_i, x_i, u_i, v)
             l_ip1 = docp.ocp.lagrange(t_ip1, x_ip1, u_ip1, v)

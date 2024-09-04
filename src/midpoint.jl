@@ -175,7 +175,7 @@ end
 function initArgs(docp::DOCP{Midpoint}, xu)
 
     args = Vector{Midpoint_Args}(undef, docp.dim_NLP_steps + 1)
-    dummy = Float64[] #similar(xu,0)
+    dummy = similar(xu,0)
 
     # get time grid
     time_grid = get_time_grid(xu, docp)
