@@ -195,7 +195,7 @@ end
 #################################################
 # 2 Setting the initial guess at the DOCP level
 docp, nlp = direct_transcription(ocp)
-tag = CTDirect.IpoptTag()
+solver_backend = CTDirect.IpoptBackend()
 # mixed init
 @testset verbose = true showtiming = true ":docp_mixed_init" begin
     set_initial_guess(
@@ -203,7 +203,7 @@ tag = CTDirect.IpoptTag()
         nlp,
         (time = t_vec, state = x_vec, control = u_func, variable = v_const),
     )
-    dsol = CTDirect.solve_docp(tag, docp, nlp, display = false, max_iter = maxiter)
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false, max_iter = maxiter)
     sol = OptimalControlSolution(docp, dsol)
     T = sol.time_grid
     @test isapprox(sol.state.(t_vec), x_vec, rtol = 1e-2)
@@ -213,7 +213,7 @@ end
 # warm start
 @testset verbose = true showtiming = true ":docp_warm_start" begin
     set_initial_guess(docp, nlp, sol0)
-    dsol = CTDirect.solve_docp(tag, docp, nlp, display = false, max_iter = maxiter)
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false, max_iter = maxiter)
     sol = OptimalControlSolution(docp, dsol)
     T = sol.time_grid
     @test isapprox(sol.state.(T), sol0.state.(T), rtol = 1e-2)

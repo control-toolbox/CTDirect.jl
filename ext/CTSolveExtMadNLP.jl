@@ -13,7 +13,7 @@ $(TYPEDSIGNATURES)
 Solve a discretized optimal control problem DOCP
 """
 function CTDirect.solve_docp(
-    tag::CTDirect.MadNLPTag,
+    solver_backend::CTDirect.MadNLPBackend,
     docp::CTDirect.DOCP,
     nlp;
     display::Bool = CTBase.__display(),

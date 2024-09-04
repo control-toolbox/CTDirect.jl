@@ -19,7 +19,7 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{Discretization}
+struct DOCP{T <: Discretization}
 
     ## OCP
     ocp::OptimalControlModel
@@ -67,7 +67,7 @@ struct DOCP{Discretization}
     con_u::Vector{Float64}
 
     # discretization scheme
-    discretization::Discretization
+    discretization::T
 
     # constructor
     function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid, discretization::Discretization)
@@ -315,26 +315,6 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
 function DOCP_constraints!(c, xu, docp::DOCP)
 
-    # help AD by avoid passing the whole xu to inner functions    
-    # args is a N size array of discretization-dependent 
-    # tuples (or structs if we need the mutable part ?),
-    # with each one containing every scalar and vector needed
-    # to evaluate both setStateEquation and setPathConstraints
-    #
-    # initArgs will avoid unnecessary recomputations
-    #   get_time_grid (for the t_i)
-    #   get_optim_variables (for v)
-    #   for i=0:N-1
-    #       getters for xi, ui, ki, xi+1 (some redundancy here)
-    #       compute needed values and save in args[i]             
-    #
-    # note: maybe reuse values from one iteration to the other
-    # (eg x_i+1 in general, f_i+1 for trapeze)
-    # but this would require a mutable struct (tuple are non mutable)
-    # the struct could be tailored to each discretization method 
-    # test both for instance on midpoint: mutable vs non mutable
-
-
     # initialization
     args = initArgs(docp, xu)
 
@@ -343,13 +323,13 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     for i = 1:docp.dim_NLP_steps 
     
         # discretized dynamics
-        setStateEquation!(docp, c, index, args[i])
+        index = setStateEquation!(docp, c, index, args[i])
         # path constraints
-        setPathConstraints!(docp, c, index, args[i])
+        index = setPathConstraints!(docp, c, index, args[i])
     
     end
     # path constraints at final time
-    setPathConstraints!(docp, c, index, args[docp.dim_NLP_steps+1])
+    index = setPathConstraints!(docp, c, index, args[docp.dim_NLP_steps+1])
     
     # point constraints
     if docp.has_variable
@@ -362,32 +342,6 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     args = (v, x0, xf, xl0)
     setPointConstraints!(docp, c, index, args)
     
-    #= OLD VERSION
-    # initialization
-    # +++ use and pass a single tuple (args, v, time_grid) instead ?
-    time_grid = get_time_grid(xu, docp)
-    args, v = initArgs(xu, docp, time_grid)
-
-    # main loop on time steps
-    index = 1 # counter for the constraints
-    for i = 0:(docp.dim_NLP_steps - 1)
-
-        # state equation
-        index = setStateEquation!(docp, c, index, args, v, i)
-        # path constraints 
-        index = setPathConstraints!(docp, c, index, args, v, i)
-        # update
-        args = updateArgs(args, xu, docp, v, time_grid, i)
-
-    end
-
-    # path constraints at final time
-    index = setPathConstraints!(docp, c, index, args, v, docp.dim_NLP_steps)
-
-    # boundary conditions and variable constraints
-    index = setPointConstraints!(docp, c, index, xu, v)
-    OLD VERSION END =#
-
     # needed even for inplace version, AD error otherwise
     # may be because actual return would be index above ?
     return c
