@@ -52,7 +52,7 @@ end
 # - using extended dynamics that include lagrange cost
 # - scalar case is handled at OCP level
 function get_NLP_variables_at_t_i(xu, docp::DOCP{Trapeze}, i::Int)
-
+.
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     offset = (nx + m) * i
