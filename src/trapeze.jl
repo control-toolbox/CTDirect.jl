@@ -3,6 +3,8 @@ Internal layout for NLP variables:
 [X_0,U_0, X_1,U_1, .., X_N,U_N, V]
 =#
 
+# +++ todo change arguments order: docp first, then xu
+
 
 struct Trapeze <: Discretization
     stage::Int
@@ -52,7 +54,7 @@ end
 # - using extended dynamics that include lagrange cost
 # - scalar case is handled at OCP level
 function get_NLP_variables_at_t_i(xu, docp::DOCP{Trapeze}, i::Int)
-.
+
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     offset = (nx + m) * i
@@ -139,14 +141,27 @@ function updateArgs(args, xu, docp::DOCP{Trapeze}, v, time_grid, i)
 end
 =#
 
+struct Trapeze_Args
+    variable
+    time
+    state
+    control
+    dynamics
+    next_time
+    next_state
+    next_dynamics
+    lagrange_state
+    lagrange_cost
+    next_lagrange_state
+    next_lagrange_cost
+end
+
 function initArgs(docp::DOCP{Trapeze}, xu)
     
-    # Arguments list for one time step: 
-    # t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1 
-    # [, xl_i, l_i, xl_ip1, l_ip1]
     # dynamics / lagange costs are present to avoid recomputation
     # in trapeze method
-    args = Vector{}(undef, docp.dim_NLP_steps + 1)
+    args = Vector{Trapeze_Args}(undef, docp.dim_NLP_steps + 1)
+    dummy = Float64[] #similar(xu,0)
 
     # get time grid
     time_grid = get_time_grid(xu, docp)
@@ -161,7 +176,7 @@ function initArgs(docp::DOCP{Trapeze}, xu)
     if docp.has_variable
         v = get_optim_variable(xu, docp)
     else
-        v = Float64[][]
+        v = dummy
     end
 
     # loop over time steps
@@ -177,25 +192,20 @@ function initArgs(docp::DOCP{Trapeze}, xu)
             l_i = docp.ocp.lagrange(t_i, x_i, u_i, v)
             l_ip1 = docp.ocp.lagrange(t_ip1, x_ip1, u_ip1, v)
         else
-            l_i = Float64[]
-            l_ip1 = Float64[]
+            l_i = dummy
+            l_ip1 = dummy
         end
-        #f_i = dynamics_vec[i]
-        #f_ip1 = dynamics_vec[i+1]
 
         # set args
-        args[i] = (v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1, xl_i, l_i, xl_ip1, l_ip1)
+        args[i] = Trapeze_Args(v, t_i, x_i, u_i, f_i, t_ip1, x_ip1, f_ip1, xl_i, l_i, xl_ip1, l_ip1)
 
-        #+++ remove this 'smart' update
-        #t_i, x_i, u_i, f_i = t_ip1, x_ip1, u_ip1, f_ip1
-        #docp.has_lagrange && (xl_i, l_i = xl_ip1, l_ip1)
     end
 
     # final time: for path constraints only
     # useful fields are: v, ti, xi, ui
     t_f = time_grid[docp.dim_NLP_steps+1]
     x_f, u_f = get_variables_at_t_i(xu, docp, docp.dim_NLP_steps)
-    args[docp.dim_NLP_steps+1] = (v, t_f, x_f, u_f, x_f, t_f, x_f, x_f, t_f, t_f, t_f, t_f) 
+    args[docp.dim_NLP_steps+1] = Trapeze_Args(v, t_f, x_f, u_f, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy)
 
     return args
 end
@@ -206,22 +216,19 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 """
 #function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args, v, i)
-function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args)
+function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args::Trapeze_Args)
 
-    # Arguments list for one time step:
-    # (v,) t_i, x_i, (u_i,) f_i, t_ip1, x_ip1, f_ip1 
-    # [, xl_i, l_i, xl_ip1, l_ip1]
-    _, time, state, _, dynamics, next_time, next_state, next_dynamics, lagrange_state, lagrange_cost, next_lagrange_state, next_lagrange_cost = args
+    step_size = args.next_time - args.time
 
     # trapeze rule (NB. @. allocates more ...)
     c[index:(index + docp.dim_OCP_x - 1)] .=
-        next_state .- (state .+ 0.5 * (next_time - time) * (dynamics .+ next_dynamics))
+        args.next_state .- (args.state .+ 0.5 * step_size * (args.dynamics .+ args.next_dynamics))
     
         # +++ just define extended dynamics !
     if docp.has_lagrange
         c[index + docp.dim_OCP_x] =
-            next_lagrange_state -
-            (lagrange_state + 0.5 * (next_time - time) * (lagrange_cost + next_lagrange_cost))
+            args.next_lagrange_state -
+            (args.lagrange_state + 0.5 * step_size * (args.lagrange_cost + args.next_lagrange_cost))
     end
     
     index += docp.dim_NLP_x
@@ -235,12 +242,13 @@ $(TYPEDSIGNATURES)
 Set the path constraints at given time step
 """
 #function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args, v, i::Int)
-function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args)    
+function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args::Trapeze_Args)    
 
     # Arguments list for one time step: 
-    # v, t_i, x_i, u_i, (f_i, t_ip1, x_ip1, f_ip1 
-    # [, xl_i, l_i, xl_ip1, l_ip1])
-    v, t_i, x_i, u_i, _, _, _, _, _, _, _, _  = args
+    v = args.variable
+    t_i = args.time
+    x_i = args.state
+    u_i = args.control
 
     ocp = docp.ocp
 

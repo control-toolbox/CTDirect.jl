@@ -5,6 +5,8 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
 # +++ TODO: use args
+# +++ todo change arguments order: docp first, then xu
+
 
 struct Midpoint <: Discretization
     stage::Int
@@ -18,7 +20,7 @@ $(TYPEDSIGNATURES)
 
 Retrieve state and control variables at given time step from the NLP variables.
 """
-function get_variables_at_time_step(xu, docp::DOCP{Midpoint}, i)
+function get_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
@@ -65,7 +67,7 @@ end
 # could be fused with one above if 
 # - using extended dynamics that include lagrange cost
 # - scalar case is handled at OCP level
-function get_NLP_variables_at_time_step(xu, docp, i, disc::Midpoint)
+function get_NLP_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
 
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
@@ -92,7 +94,7 @@ function get_NLP_variables_at_time_step(xu, docp, i, disc::Midpoint)
 end
 
 
-function set_variables_at_time_step!(xu, x_init, u_init, docp, i, disc::Midpoint)
+function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Midpoint}, i)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
@@ -111,7 +113,7 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i, disc::Midpoint
     end
 end
 
-
+#=
 # trivial version for now...
 # +++multiple dispatch here seems to cause more allocations !
 # +++? use abstract type for all Args ?
@@ -156,6 +158,53 @@ end
 function updateArgs(args, xu, docp::DOCP{Midpoint}, v, time_grid, i::Int)
     return ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, i+1)
 end
+=#
+
+struct Midpoint_Args
+    variable
+    time
+    state
+    control
+    stage_k
+    next_time
+    next_state
+    lagrange_state
+    next_lagrange_state
+end
+
+function initArgs(docp::DOCP{Midpoint}, xu)
+
+    args = Vector{Midpoint_Args}(undef, docp.dim_NLP_steps + 1)
+    dummy = Float64[] #similar(xu,0)
+
+    # get time grid
+    time_grid = get_time_grid(xu, docp)
+
+    # get optim variable
+    if docp.has_variable
+        v = get_optim_variable(xu, docp)
+    else
+        v = dummy
+    end
+
+    # loop over time steps
+    for i = 1:docp.dim_NLP_steps
+        t_i = time_grid[i]
+        t_ip1 = time_grid[i+1]
+        x_i, u_i, xl_i, k_i = get_variables_at_t_i(xu, docp, i-1)
+        x_ip1, u_ip1, xl_ip1 = get_variables_at_t_i(xu, docp, i)
+        args[i] = Midpoint_Args(v, t_i, x_i, u_i, k_i, t_ip1, x_ip1, xl_i, xl_ip1)
+    end
+
+    # final time: for path constraints only
+    # useful fields are: v, ti, xi, ui
+    t_f = time_grid[docp.dim_NLP_steps+1]
+    x_f, u_f = get_variables_at_t_i(xu, docp, docp.dim_NLP_steps)
+    args[docp.dim_NLP_steps+1] = Midpoint_Args(v, t_f, x_f, u_f, dummy, dummy, dummy, dummy, dummy)
+
+    return args
+
+end
 
 
 """
@@ -163,13 +212,15 @@ $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-function setStateEquation!(docp::DOCP{Midpoint}, c, index::Int, args, v, i)
+#function setStateEquation!(docp::DOCP{Midpoint}, c, index::Int, args, v, i)
+function setStateEquation!(docp::DOCP{Midpoint}, c, index::Int, args::Midpoint_Args)
 
     ocp = docp.ocp
 
     # +++ later use butcher table in struct ?
 
     # variables
+    v = args.variable
     ti = args.time
     xi = args.state
     ui = args.control
@@ -181,8 +232,8 @@ function setStateEquation!(docp::DOCP{Midpoint}, c, index::Int, args, v, i)
     hi = tip1 - ti
 
     # midpoint rule
-    @. c[index:(index + docp.dim_OCP_x - 1)] =
-        xip1 - (xi + hi * ki[1:docp.dim_OCP_x])
+    c[index:(index + docp.dim_OCP_x - 1)] .=
+        xip1 .- (xi .+ hi * ki[1:docp.dim_OCP_x])
     # +++ just define extended dynamics !
     if docp.has_lagrange
         c[index + docp.dim_OCP_x] = xlip1 - (xli + hi * ki[end])
@@ -209,7 +260,8 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-function setPathConstraints!(docp::DOCP{Midpoint}, c, index::Int, args, v, i::Int)
+#function setPathConstraints!(docp::DOCP{Midpoint}, c, index::Int, args, v, i::Int)
+function setPathConstraints!(docp::DOCP{Midpoint}, c, index::Int, args::Midpoint_Args)      
 
     ocp = docp.ocp
     ti = args.time

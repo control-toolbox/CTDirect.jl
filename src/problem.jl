@@ -316,34 +316,26 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 function DOCP_constraints!(c, xu, docp::DOCP)
 
     # initialization
-    args = initArgs(docp, xu)
+    step_args = initArgs(docp, xu)
 
     # main loop on time steps
     index = 1 # counter for the constraints
     for i = 1:docp.dim_NLP_steps 
     
         # discretized dynamics
-        index = setStateEquation!(docp, c, index, args[i])
+        index = setStateEquation!(docp, c, index, step_args[i])
         # path constraints
-        index = setPathConstraints!(docp, c, index, args[i])
+        index = setPathConstraints!(docp, c, index, step_args[i])
     
     end
     # path constraints at final time
-    index = setPathConstraints!(docp, c, index, args[docp.dim_NLP_steps+1])
+    index = setPathConstraints!(docp, c, index, step_args[docp.dim_NLP_steps+1])
     
     # point constraints
-    if docp.has_variable
-        v = get_optim_variable(xu, docp)
-    else
-        v = Float64[]
-    end
-    x0, _, xl0 = get_variables_at_t_i(xu, docp, 0)
-    xf, = get_variables_at_t_i(xu, docp, docp.dim_NLP_steps)
-    args = (v, x0, xf, xl0)
-    setPointConstraints!(docp, c, index, args)
+    point_args = pointArgs(docp, xu)
+    index = setPointConstraints!(docp, c, index, point_args)
     
     # needed even for inplace version, AD error otherwise
-    # may be because actual return would be index above ?
     return c
 end
 
@@ -381,6 +373,17 @@ function setPathBounds!(docp::DOCP, index::Int, lb, ub)
     return index
 end
 
+
+function pointArgs(docp, xu)
+    if docp.has_variable
+        v = get_optim_variable(xu, docp)
+    else
+        v = Float64[]
+    end
+    x0, _, xl0 = get_variables_at_t_i(xu, docp, 0)
+    xf, = get_variables_at_t_i(xu, docp, docp.dim_NLP_steps)
+    return (v, x0, xf, xl0)
+end
 
 """
 $(TYPEDSIGNATURES)

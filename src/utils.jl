@@ -5,6 +5,7 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
+# +++ todo change arguments order: docp first, then xu
 
 """
 $(TYPEDSIGNATURES)
@@ -94,6 +95,6 @@ function build_bounds(dim_var, dim_box, box_triplet)
 end
 
 
-# placeholders (see CTDirectExt)
+# placeholders (see CTDirectExt) +++ can be removed if functions moved to ctbase
 function export_ocp_solution end
 function import_ocp_solution end

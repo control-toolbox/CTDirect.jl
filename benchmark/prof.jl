@@ -12,8 +12,9 @@ using BenchmarkTools
 using JET
 
 precompile = true
+test_transcription = true
+test_solve = true
 
-test_solve = false
 #test = :objective
 test = :constraints
 test_code_warntype = false
@@ -23,12 +24,14 @@ test_jet = false
 include("../test/problems/goddard.jl")
 prob = goddard_all()
 ocp = prob[:ocp]
-grid_size = 3
-docp, nlp = direct_transcription(ocp, grid_size = grid_size)
+grid_size = 100
 println("Load problem ", prob[:name])
 
 if precompile
     println("Precompilation")
+    if test_transcription
+        docp, nlp = direct_transcription(ocp, grid_size = grid_size)
+    end
     if test_solve
         direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2)
     end
@@ -39,20 +42,24 @@ if precompile
     end
 end
 
+# evaluation
 if test == :objective
     println("Timed objective")
-    #@timev CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
     @btime CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
 else
-    println("Timed constraints")
-    #@timev CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)    
+    println("Timed constraints")   
     @btime CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+end
+
+# transcription
+if test_transcription
+    println("Timed transcription")
+    @btime docp, nlp = direct_transcription(ocp, grid_size = grid_size)
 end
 
 # full solve
 if test_solve
     println("Timed full solve")
-    #@timev sol = direct_solve(ocp, grid_size = grid_size, display=false)
     @btime sol = direct_solve(ocp, grid_size = grid_size, display=false)
 end
 
