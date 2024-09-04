@@ -13,8 +13,8 @@ end
 
 @testset verbose = true showtiming = true ":solve_docp" begin
     docp, nlp = direct_transcription(ocp)
-    tag = CTDirect.IpoptTag()
-    dsol = CTDirect.solve_docp(tag, docp, nlp, display = false)
+    solver_backend = CTDirect.IpoptBackend()
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = OptimalControlSolution(docp, dsol)
     @test sol.objective ≈ 0.313 rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution)
@@ -25,8 +25,8 @@ end
 
 @testset verbose = true showtiming = true ":solve_docp :midpoint" begin
     docp, nlp = direct_transcription(ocp, discretization = :midpoint)
-    tag = CTDirect.IpoptTag()
-    dsol = CTDirect.solve_docp(tag, docp, nlp, display = false)
+    solver_backend = CTDirect.IpoptBackend()
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = OptimalControlSolution(docp, dsol)
     @test sol.objective ≈ 0.313 rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution)
@@ -37,8 +37,8 @@ end
 
 @testset verbose = true showtiming = true ":solve_docp :madnlp" begin
     docp, nlp = direct_transcription(ocp)
-    tag = CTDirect.MadNLPTag()
-    dsol = CTDirect.solve_docp(tag, docp, nlp, display = false)
+    solver_backend = CTDirect.MadNLPBackend()
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = OptimalControlSolution(docp, dsol)
     @test sol.objective ≈ 0.313 rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution)

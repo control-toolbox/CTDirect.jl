@@ -13,7 +13,7 @@ $(TYPEDSIGNATURES)
 Solve a discretized optimal control problem with Ipopt
 """
 function CTDirect.solve_docp(
-    tag::CTDirect.IpoptTag,
+    solver_backend::CTDirect.IpoptBackend,
     docp::CTDirect.DOCP,
     nlp;
     display::Bool = CTBase.__display(),

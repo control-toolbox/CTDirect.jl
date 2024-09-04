@@ -115,29 +115,25 @@ function direct_solve(
 
     # solve DOCP
     if :ipopt ∈ method
-        solver_tag = CTDirect.IpoptTag()
+        solver_backend = CTDirect.IpoptBackend()
     elseif :madnlp ∈ method
-        solver_tag = CTDirect.MadNLPTag()
+        solver_backend = CTDirect.MadNLPBackend()
     else
         error("no known solver in method", method)
     end
-    docp_solution = CTDirect.solve_docp(solver_tag, docp, nlp; kwargs...)
+    docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp; kwargs...)
 
     # build and return OCP solution
     return OptimalControlSolution(docp, docp_solution)
 end
 
 # placeholders (see CTSolveExt*** extensions)
-abstract type SolverTag end
-struct IpoptTag <: SolverTag end
-struct MadNLPTag <: SolverTag end
+abstract type AbstractSolverBackend end
+struct IpoptBackend <: AbstractSolverBackend end
+struct MadNLPBackend <: AbstractSolverBackend end
 
-function solve_docp(solver_tag, args...; kwargs...)
-    if typeof(solver_tag) == IpoptTag
-        throw(ExtensionError(:NLPModelsIpopt))
-    elseif typeof(solver_tag) == MadNLPTag
-        throw(ExtensionError(:MadNLP))
-    else
-        error("Unknown solver type", typeof(solver_tag))
-    end
+weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP)
+
+function solve_docp(solver_backend::T, args...; kwargs...) where {T <: AbstractSolverBackend}
+    throw(ExtensionError(weakdeps[T]))
 end
