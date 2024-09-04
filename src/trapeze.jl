@@ -175,12 +175,15 @@ function initArgs(docp::DOCP{Trapeze}, xu)
         v = dummy
     end
 
-    #+++ computing the whole dynamics may reduce the update part a bit
-    #+++ later use sub function, maybe pass args too to avoid multiple calls to getters for t,x,u ?    
+    # evaluate all dynamics and lagrange costs
     dynamics_vec = Matrix{eltype(xu[1])}(undef, docp.dim_OCP_x, docp.dim_NLP_steps+1)
+    docp.has_lagrange && (lagrange_vec = Vector{eltype(xu[1])}(undef, docp.dim_NLP_steps+1))
     for i = 1:docp.dim_NLP_steps+1
+        # NB we call the getters twice for t, x and u ...
+        t_i = time_grid[i]
         x_i, u_i, = get_variables_at_t_i(xu, docp, i-1)
-        dynamics_vec[:,i] = docp.ocp.dynamics(time_grid[i], x_i, u_i, v)
+        dynamics_vec[:,i] = docp.ocp.dynamics(t_i, x_i, u_i, v)
+        docp.has_lagrange && (lagrange_vec[i] = docp.ocp.lagrange(t_i, x_i, u_i, v))
     end
 
     # loop over time steps
@@ -189,14 +192,13 @@ function initArgs(docp::DOCP{Trapeze}, xu)
         t_ip1 = time_grid[i+1]
         x_i, u_i, xl_i = get_variables_at_t_i(xu, docp, i-1)
         x_ip1, u_ip1, xl_ip1 = get_variables_at_t_i(xu, docp, i)
-        #+++ compute whole vector before loop. compare view = .=
-        #f_i = docp.ocp.dynamics(t_i, x_i, u_i, v)
-        #f_ip1 = docp.ocp.dynamics(t_ip1, x_ip1, u_ip1, v)
+
+        # NB. view are not better...
         f_i = dynamics_vec[:,i]
         f_ip1 = dynamics_vec[:,i+1]
         if docp.has_lagrange
-            l_i = docp.ocp.lagrange(t_i, x_i, u_i, v)
-            l_ip1 = docp.ocp.lagrange(t_ip1, x_ip1, u_ip1, v)
+            l_i = lagrange_vec[i]
+            l_ip1 = lagrange_vec[i+1]
         else
             l_i = dummy
             l_ip1 = dummy
