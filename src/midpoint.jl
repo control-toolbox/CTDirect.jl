@@ -4,9 +4,7 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
-# +++ TODO: use args
 # +++ todo change arguments order: docp first, then xu
-
 
 struct Midpoint <: Discretization
     stage::Int
@@ -202,39 +200,3 @@ function setStateEquation!(docp::DOCP{Midpoint}, c_block, args::Midpoint_Args)
     docp.has_lagrange && (c_block[docp.dim_NLP_x*2] = ki[end] - ocp.lagrange(t_s, x_s, ui, v))
 
 end
-
-#=
-"""
-$(TYPEDSIGNATURES)
-
-Set the path constraints at given time step
-"""
-function setPathConstraints!(docp::DOCP{Midpoint}, c_block, args::Midpoint_Args)      
-
-    ocp = docp.ocp
-    ti = args.time
-    xi = args.state
-    ui = args.control
-
-    # NB. using .= below *doubles* the allocations oO ??
-    # pure control constraints
-    if docp.dim_u_cons > 0
-        c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](ti, ui, v)
-        index += docp.dim_u_cons
-    end
-
-    # pure state constraints
-    if docp.dim_x_cons > 0
-        c[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[2](ti, xi, v)
-        index += docp.dim_x_cons
-    end
-
-    # mixed state / control constraints
-    if docp.dim_mixed_cons > 0
-        c[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[2](ti, xi, ui, v)
-        index += docp.dim_mixed_cons
-    end
-
-    return index
-end
-=#
