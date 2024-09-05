@@ -322,28 +322,28 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # initialization
     step_args = initArgs(docp, xu)
 
-    # main loop on time steps
+    # NB. @threads fails here, even when passing full c instead of views
+    # main loop on time steps 
     for i = 1:docp.dim_NLP_steps 
 
-        # offset for constraints block
-        offset = (i - 1) * block_size
         # discretized dynamics
-        setStateEquation!(docp, @view(c[offset+1:offset+state_eq_block]), step_args[i])
+        setStateEquation!(docp, @view(c[(i-1)*block_size+1:(i-1)*block_size+state_eq_block]), step_args[i])
         # path constraints
-        setPathConstraints!(docp, @view(c[offset+state_eq_block+1:offset+state_eq_block+path_cons_block]), step_args[i])
-    
+        setPathConstraints!(docp, @view(c[(i-1)*block_size+state_eq_block+1:(i-1)*block_size+state_eq_block+path_cons_block]), step_args[i])
+
     end
+
     # path constraints at final time
     offset = docp.dim_NLP_steps * block_size
     setPathConstraints!(docp, @view(c[offset+1:offset+path_cons_block]), step_args[docp.dim_NLP_steps+1])
-    
+
     # point constraints
     point_block = docp.dim_boundary_cons + docp.dim_v_cons
     docp.has_lagrange && (point_block += 1) # initial condition for lagrange state
     point_args = pointArgs(docp, xu)
     offset = docp.dim_NLP_steps * block_size + path_cons_block
     setPointConstraints!(docp, @view(c[offset+1:offset+point_block]), point_args)
-    
+
     return c # needed even for inplace version, AD error otherwise
 end
 
@@ -359,9 +359,15 @@ function setPathConstraints!(docp::DOCP, c_block, args::ArgsAtStep)
     v, t_i, x_i, u_i = args.variable, args.time, args.state, args.control
 
     # NB. using .= below *doubles* the allocations oO
-    docp.dim_u_cons > 0 && (c_block[1:docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v))
-    docp.dim_x_cons > 0 && (c_block[docp.dim_u_cons+1:docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v))
-    docp.dim_mixed_cons > 0 && (c_block[docp.dim_u_cons+docp.dim_x_cons+1:docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v))
+    if docp.dim_u_cons > 0
+        c_block[1:docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
+    end
+    if docp.dim_x_cons > 0 
+        c_block[docp.dim_u_cons+1:docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
+    end
+    if docp.dim_mixed_cons > 0 
+        c_block[docp.dim_u_cons+docp.dim_x_cons+1:docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
+    end
 
 end
 
@@ -372,8 +378,6 @@ $(TYPEDSIGNATURES)
 Set bounds for the path constraints at given time step
 """
 function setPathBounds!(docp::DOCP, index::Int, lb, ub)
-
-    ocp = docp.ocp
 
     # pure control constraints
     if docp.dim_u_cons > 0
@@ -420,8 +424,6 @@ function setPointConstraints!(docp::DOCP, c_block, args)
 
     # Argument list: v, x0, xf, xl0
     v, x0, xf, xl0 = args
-
-    ocp = docp.ocp
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
