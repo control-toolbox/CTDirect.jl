@@ -223,24 +223,21 @@ $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-#function setStateEquation!(docp::DOCP{Trapeze}, c_block, args::Trapeze_Args)
-function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args::Trapeze_Args)
+function setStateEquation!(docp::DOCP{Trapeze}, c_block, args::Trapeze_Args)
 
     step_size = args.next_time - args.time
 
     # trapeze rule (NB. @. allocates more ...)
-    c[index:(index + docp.dim_OCP_x - 1)] .=
+    c_block[1:docp.dim_OCP_x] .=
         args.next_state .- (args.state .+ 0.5 * step_size * (args.dynamics .+ args.next_dynamics))
     
         # +++ just define extended dynamics !
     if docp.has_lagrange
-        c[index + docp.dim_OCP_x] =
+        c_block[docp.dim_OCP_x+1] =
             args.next_lagrange_state -
             (args.lagrange_state + 0.5 * step_size * (args.lagrange_cost + args.next_lagrange_cost))
     end
     
-    index += docp.dim_NLP_x
-    return index
 end
 
 
@@ -249,8 +246,7 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-#function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args, v, i::Int)
-function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args::Trapeze_Args)    
+function setPathConstraints!(docp::DOCP{Trapeze}, c_block, args::Trapeze_Args)    
 
     # Arguments list for one time step: 
     v = args.variable
@@ -264,21 +260,17 @@ function setPathConstraints!(docp::DOCP{Trapeze}, c, index::Int, args::Trapeze_A
     # pure control constraints
     # WAIT FOR INPLACE VERSION IN OCP !
     if docp.dim_u_cons > 0
-        c[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[2](t_i, u_i, v)
-        index += docp.dim_u_cons
+        c_block[1:docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
     end
 
     # pure state constraints
     if docp.dim_x_cons > 0
-        c[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[2](t_i, x_i, v)
-        index += docp.dim_x_cons
+        c_block[docp.dim_u_cons+1:docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
     end
 
     # mixed state / control constraints
     if docp.dim_mixed_cons > 0
-        c[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
-        index += docp.dim_mixed_cons
+        c_block[docp.dim_u_cons+docp.dim_x_cons+1:docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
     end
 
-    return index
 end

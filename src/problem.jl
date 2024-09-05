@@ -322,24 +322,25 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     step_args = initArgs(docp, xu)
 
     # main loop on time steps
-    index = 1 # counter for the constraints
     for i = 1:docp.dim_NLP_steps 
 
-        # +++ view ?
         # offset for constraints block
         offset = (i - 1) * block_size
         # discretized dynamics
-        index = setStateEquation!(docp, c[offset+1:offset+state_eq_block] step_args[i])
+        setStateEquation!(docp, @view c[offset+1:offset+state_eq_block], step_args[i])
         # path constraints
-        index = setPathConstraints!(docp, c[offset+state_eq_block+1:offset+state_eq_block+path_cons_block] step_args[i])
+        setPathConstraints!(docp, @view c[offset+state_eq_block+1:offset+state_eq_block+path_cons_block], step_args[i])
     
     end
     # path constraints at final time
-    index = setPathConstraints!(docp, c, index, step_args[docp.dim_NLP_steps+1])
+    offset = docp.dim_NLP_steps * block_size
+    setPathConstraints!(docp, @view c[offset+1:offset+path_cons_block], step_args[docp.dim_NLP_steps+1])
     
     # point constraints
+    point_block = docp.dim_boundary_cons + docp.dim_v_cons
     point_args = pointArgs(docp, xu)
-    index = setPointConstraints!(docp, c, index, point_args)
+    offset = docp.dim_NLP_steps * block_size + path_cons_block
+    setPointConstraints!(docp, @view c[offset+1:offset+point_block], point_args)
     
     # needed even for inplace version, AD error otherwise
     return c
@@ -396,7 +397,7 @@ $(TYPEDSIGNATURES)
 
 Set the boundary and variable constraints
 """
-function setPointConstraints!(docp::DOCP, c, index::Int, args)
+function setPointConstraints!(docp::DOCP, c_block, args)
 
     # Argument list: v, x0, xf, xl0
     v, x0, xf, xl0 = args
@@ -405,23 +406,18 @@ function setPointConstraints!(docp::DOCP, c, index::Int, args)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        c[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[2](x0, xf, v)
-        index = index + docp.dim_boundary_cons
+        c_block[1:docp.dim_boundary_cons] = docp.boundary_constraints[2](x0, xf, v)
     end
 
     # variable constraints
     if docp.dim_v_cons > 0
-        c[index:(index + docp.dim_v_cons - 1)] = docp.variable_constraints[2](v)
-        index = index + docp.dim_v_cons
+        c[docp.dim_boundary_cons+1:docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
     end
 
     # null initial condition for lagrangian cost state
     if docp.has_lagrange
-        c[index] = xl0
-        index = index + 1
+        c[docp.dim_boundary_cons+docp.dim_v_cons+1] = xl0
     end
-
-    return index
 end
 
 
