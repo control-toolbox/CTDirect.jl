@@ -5,14 +5,12 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
-
 """
 $(TYPEDSIGNATURES)
 
 Retrieve optimization variables from the NLP variables.
 """
 function get_optim_variable(xu, docp)
-
     if docp.has_variable
         if docp.dim_NLP_v == 1
             return xu[end]
@@ -23,7 +21,6 @@ function get_optim_variable(xu, docp)
         error("Problem is not variable dependent")
     end
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -38,7 +35,6 @@ function get_initial_time(xu, docp)
     end
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -52,7 +48,6 @@ function get_final_time(xu, docp)
     end
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -64,7 +59,6 @@ function get_time_grid(xu, docp)
     return @. t0 + docp.NLP_normalized_time_grid * (tf - t0)
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -74,14 +68,12 @@ function set_optim_variable!(xu, v_init, docp)
     xu[(end - docp.dim_NLP_v + 1):end] .= v_init
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
 Build full, ordered sets of bounds for state, control or optimization variables
 """
 function build_bounds(dim_var, dim_box, box_triplet)
-
     x_lb = -Inf * ones(dim_var)
     x_ub = Inf * ones(dim_var)
     for j = 1:(dim_box)
@@ -92,7 +84,6 @@ function build_bounds(dim_var, dim_box, box_triplet)
 
     return x_lb, x_ub
 end
-
 
 # placeholders (see CTDirectExt)
 function export_ocp_solution end
