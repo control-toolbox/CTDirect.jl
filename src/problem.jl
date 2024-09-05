@@ -1,13 +1,9 @@
-# todo: add more discretization schemes
-# use a scheme struct to allow multiple dispatch (cf solve)
-# this struct can contains useful info about the scheme
-# (name, order, stage, properties etc)
-# later we can add an option for control discretization: step or stage
-# (meaningful only for schemes with more than 1 stage, at least I will be able to compare the two ! further options may include CVP -control vector parametrization-, and maybe even pseudo-spectral ?)
+# Discretized Optimal Control Problem DOCP
+# Notes:
+# - for now the path constraints are checked on the time steps ie g(t_i, x_i, u_i). This requires a getter that provide a control value at each time step, which may not coincide with the actual control discretization (eg RK stages). In this case we will use the 'average' control using the same coefficients as the RK method. Later we can add an option for control discretization, step or stage. Taking a control constant per step would solve the question for the path constraints evaluation and reduces the number of variables. Compared to the more standard stage control discretization, the consistency of the costate would need to be checked, as well as the oscillations in the trajectory (which may actually be better). Further options may include CVP (control vector parametrization) on a coarser grid.
+# - for the other choice of enforcing path constraints at the time stages, the symmetric question of getting state values at time stages can be solved by reusing the states used in the evaluation of the stage dynamics. This second choice (as in Bocop2) has the drawback of a larger problem size, and does not check the constraints at the points of the actual trajectory computed (including tf).
 
-
-# generic discretization struct
-# NB. can we mutualize common fields at the abstract level ?
+# generic discretization
 abstract type Discretization end
 
 """
