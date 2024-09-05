@@ -351,34 +351,17 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Set the path constraints at given time step
+Set the path constraints at given time step: [control, state, mixed]
 """
 function setPathConstraints!(docp::DOCP, c_block, args::ArgsAtStep)    
 
     # Arguments list for one time step: 
-    v = args.variable
-    t_i = args.time
-    x_i = args.state
-    u_i = args.control
-
-    ocp = docp.ocp
+    v, t_i, x_i, u_i = args.variable, args.time, args.state, args.control
 
     # NB. using .= below *doubles* the allocations oO
-    # pure control constraints
-    # WAIT FOR INPLACE VERSION IN OCP !
-    if docp.dim_u_cons > 0
-        c_block[1:docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
-    end
-
-    # pure state constraints
-    if docp.dim_x_cons > 0
-        c_block[docp.dim_u_cons+1:docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
-    end
-
-    # mixed state / control constraints
-    if docp.dim_mixed_cons > 0
-        c_block[docp.dim_u_cons+docp.dim_x_cons+1:docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
-    end
+    docp.dim_u_cons > 0 && (c_block[1:docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v))
+    docp.dim_x_cons > 0 && (c_block[docp.dim_u_cons+1:docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v))
+    docp.dim_mixed_cons > 0 && (c_block[docp.dim_u_cons+docp.dim_x_cons+1:docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v))
 
 end
 

@@ -189,5 +189,6 @@ function setStateEquation!(docp::DOCP{Trapeze}, c_block, args::Trapeze_Args)
             args.next_lagrange_state -
             (args.lagrange_state + 0.5 * step_size * (args.lagrange_cost + args.next_lagrange_cost))
     end
-    
+
+    # call setpathconstraints here with separate arguments (to have a single function in main loop for threads ?)
 end
