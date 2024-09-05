@@ -223,7 +223,7 @@ $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-#function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args, v, i)
+#function setStateEquation!(docp::DOCP{Trapeze}, c_block, args::Trapeze_Args)
 function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args::Trapeze_Args)
 
     step_size = args.next_time - args.time

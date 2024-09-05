@@ -311,17 +311,27 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
 function DOCP_constraints!(c, xu, docp::DOCP)
 
+
+    # compute offset
+    # each time step block has state equation + path constraints
+    state_eq_block = docp.dim_NLP_x
+    path_cons_block = docp.dim_path_cons
+    block_size = state_eq_size + path_cons_block
+
     # initialization
     step_args = initArgs(docp, xu)
 
     # main loop on time steps
     index = 1 # counter for the constraints
     for i = 1:docp.dim_NLP_steps 
-    
+
+        # +++ view ?
+        # offset for constraints block
+        offset = (i - 1) * block_size
         # discretized dynamics
-        index = setStateEquation!(docp, c, index, step_args[i])
+        index = setStateEquation!(docp, c[offset+1:offset+state_eq_block] step_args[i])
         # path constraints
-        index = setPathConstraints!(docp, c, index, step_args[i])
+        index = setPathConstraints!(docp, c[offset+state_eq_block+1:offset+state_eq_block+path_cons_block] step_args[i])
     
     end
     # path constraints at final time
