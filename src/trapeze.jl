@@ -87,61 +87,12 @@ function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Trapeze}, i::Int)
 end
 
 
-#=
-# ? use abstract type for args ?
 """
 $(TYPEDSIGNATURES)
 
 Useful values at a time step: time, state, control, dynamics...
 """
-struct ArgsAtTimeStep_Trapeze
-    time::Any
-    state::Any
-    control::Any
-    dynamics::Any
-    lagrange_state::Any
-    lagrange_cost::Any
-
-    function ArgsAtTimeStep_Trapeze(xu, docp::DOCP{Trapeze}, v, time_grid, i::Int)
-
-        # variables
-        ti = time_grid[i+1]
-        xi, ui, xli = get_variables_at_time_step(xu, docp, i)
-
-        # dynamics and lagrange cost
-        fi = docp.ocp.dynamics(ti, xi, ui, v)
-
-        if docp.has_lagrange
-            li = docp.ocp.lagrange(ti, xi, ui, v)
-            args = new(ti, xi, ui, fi, xli, li)
-        else
-            args = new(ti, xi, ui, fi)
-        end
-
-        return args
-    end
-end
-# +++multiple dispatch here seems to cause more allocations !
-function initArgs(xu, docp::DOCP{Trapeze}, time_grid)
-    # optimization variables
-    v = Float64[][]
-    docp.has_variable && (v = get_optim_variable(xu, docp))
-    args_i = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 0)
-    args_ip1 = ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, 1)
-    return (args_i, args_ip1), v
-end
-function updateArgs(args, xu, docp::DOCP{Trapeze}, v, time_grid, i)
-    args_i, args_ip1 = args
-    if i < docp.dim_NLP_steps - 1
-        # are we allocating more than one args here ?
-        return (args_ip1, ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, i+2))
-    else
-        return (args_ip1, args_ip1)
-    end
-end
-=#
-
-struct Trapeze_Args
+struct Trapeze_Args <: ArgsAtStep
     variable
     time
     state
@@ -182,7 +133,7 @@ function initArgs(docp::DOCP{Trapeze}, xu)
         # NB we call the getters twice for t, x and u ...
         t_i = time_grid[i]
         x_i, u_i, = get_variables_at_t_i(xu, docp, i-1)
-        dynamics_vec[:,i] = docp.ocp.dynamics(t_i, x_i, u_i, v)
+        dynamics_vec[:,i] .= docp.ocp.dynamics(t_i, x_i, u_i, v)
         docp.has_lagrange && (lagrange_vec[i] = docp.ocp.lagrange(t_i, x_i, u_i, v))
     end
 
@@ -218,6 +169,7 @@ function initArgs(docp::DOCP{Trapeze}, xu)
     return args
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -238,39 +190,4 @@ function setStateEquation!(docp::DOCP{Trapeze}, c_block, args::Trapeze_Args)
             (args.lagrange_state + 0.5 * step_size * (args.lagrange_cost + args.next_lagrange_cost))
     end
     
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Set the path constraints at given time step
-"""
-function setPathConstraints!(docp::DOCP{Trapeze}, c_block, args::Trapeze_Args)    
-
-    # Arguments list for one time step: 
-    v = args.variable
-    t_i = args.time
-    x_i = args.state
-    u_i = args.control
-
-    ocp = docp.ocp
-
-    # NB. using .= below *doubles* the allocations oO
-    # pure control constraints
-    # WAIT FOR INPLACE VERSION IN OCP !
-    if docp.dim_u_cons > 0
-        c_block[1:docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
-    end
-
-    # pure state constraints
-    if docp.dim_x_cons > 0
-        c_block[docp.dim_u_cons+1:docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
-    end
-
-    # mixed state / control constraints
-    if docp.dim_mixed_cons > 0
-        c_block[docp.dim_u_cons+docp.dim_x_cons+1:docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
-    end
-
 end

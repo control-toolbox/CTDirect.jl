@@ -5,6 +5,7 @@
 
 # generic discretization
 abstract type Discretization end
+abstract type ArgsAtStep end
 
 """
 $(TYPEDSIGNATURES)
@@ -314,9 +315,9 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 
     # compute offset
     # each time step block has state equation + path constraints
-    state_eq_block = docp.dim_NLP_x
+    state_eq_block = docp.dim_NLP_x * (1 + docp.discretization.stage)
     path_cons_block = docp.dim_path_cons
-    block_size = state_eq_size + path_cons_block
+    block_size = state_eq_block + path_cons_block
 
     # initialization
     step_args = initArgs(docp, xu)
@@ -327,23 +328,58 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         # offset for constraints block
         offset = (i - 1) * block_size
         # discretized dynamics
-        setStateEquation!(docp, @view c[offset+1:offset+state_eq_block], step_args[i])
+        setStateEquation!(docp, @view(c[offset+1:offset+state_eq_block]), step_args[i])
         # path constraints
-        setPathConstraints!(docp, @view c[offset+state_eq_block+1:offset+state_eq_block+path_cons_block], step_args[i])
+        setPathConstraints!(docp, @view(c[offset+state_eq_block+1:offset+state_eq_block+path_cons_block]), step_args[i])
     
     end
     # path constraints at final time
     offset = docp.dim_NLP_steps * block_size
-    setPathConstraints!(docp, @view c[offset+1:offset+path_cons_block], step_args[docp.dim_NLP_steps+1])
+    setPathConstraints!(docp, @view(c[offset+1:offset+path_cons_block]), step_args[docp.dim_NLP_steps+1])
     
     # point constraints
     point_block = docp.dim_boundary_cons + docp.dim_v_cons
+    docp.has_lagrange && (point_block += 1) # initial condition for lagrange state
     point_args = pointArgs(docp, xu)
     offset = docp.dim_NLP_steps * block_size + path_cons_block
-    setPointConstraints!(docp, @view c[offset+1:offset+point_block], point_args)
+    setPointConstraints!(docp, @view(c[offset+1:offset+point_block]), point_args)
     
-    # needed even for inplace version, AD error otherwise
-    return c
+    return c # needed even for inplace version, AD error otherwise
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Set the path constraints at given time step
+"""
+function setPathConstraints!(docp::DOCP, c_block, args::ArgsAtStep)    
+
+    # Arguments list for one time step: 
+    v = args.variable
+    t_i = args.time
+    x_i = args.state
+    u_i = args.control
+
+    ocp = docp.ocp
+
+    # NB. using .= below *doubles* the allocations oO
+    # pure control constraints
+    # WAIT FOR INPLACE VERSION IN OCP !
+    if docp.dim_u_cons > 0
+        c_block[1:docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
+    end
+
+    # pure state constraints
+    if docp.dim_x_cons > 0
+        c_block[docp.dim_u_cons+1:docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
+    end
+
+    # mixed state / control constraints
+    if docp.dim_mixed_cons > 0
+        c_block[docp.dim_u_cons+docp.dim_x_cons+1:docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
+    end
+
 end
 
 
@@ -411,12 +447,12 @@ function setPointConstraints!(docp::DOCP, c_block, args)
 
     # variable constraints
     if docp.dim_v_cons > 0
-        c[docp.dim_boundary_cons+1:docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
+        c_block[docp.dim_boundary_cons+1:docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
     end
 
     # null initial condition for lagrangian cost state
     if docp.has_lagrange
-        c[docp.dim_boundary_cons+docp.dim_v_cons+1] = xl0
+        c_block[docp.dim_boundary_cons+docp.dim_v_cons+1] = xl0
     end
 end
 

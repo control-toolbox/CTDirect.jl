@@ -113,54 +113,13 @@ function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Midpoint}, i)
     end
 end
 
-#=
-# trivial version for now...
-# +++multiple dispatch here seems to cause more allocations !
-# +++? use abstract type for all Args ?
+
 """
 $(TYPEDSIGNATURES)
 
 Useful values at a time step: time, state, control, dynamics...
 """
-struct ArgsAtTimeStep_Midpoint
-    time::Any
-    state::Any
-    control::Any
-    lagrange_state::Any
-    stage_k::Any
-    next_time::Any
-    next_state::Any
-    next_lagrange_state::Any
-    
-    function ArgsAtTimeStep_Midpoint(xu, docp::DOCP{Midpoint}, v, time_grid, i::Int)
-
-        disc = docp.discretization
-
-        # variables
-        ti = time_grid[i+1]
-        xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i)
-        
-        if i == docp.dim_NLP_steps
-            return new(ti, xi, ui, xli, ki, disc)
-        else
-            tip1 = time_grid[i+2]
-            xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1)
-            return new(ti, xi, ui, xli, ki, tip1, xip1, xlip1)
-        end
-    end
-end
-function initArgs(xu, docp::DOCP{Midpoint}, time_grid)
-    v = Float64[]
-    docp.has_variable && (v = get_optim_variable(xu, docp))
-    args = ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, 0)
-    return args, v 
-end
-function updateArgs(args, xu, docp::DOCP{Midpoint}, v, time_grid, i::Int)
-    return ArgsAtTimeStep_Midpoint(xu, docp, v, time_grid, i+1)
-end
-=#
-
-struct Midpoint_Args
+struct Midpoint_Args <: ArgsAtStep
     variable
     time
     state
@@ -212,8 +171,7 @@ $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 """
-#function setStateEquation!(docp::DOCP{Midpoint}, c, index::Int, args, v, i)
-function setStateEquation!(docp::DOCP{Midpoint}, c, index::Int, args::Midpoint_Args)
+function setStateEquation!(docp::DOCP{Midpoint}, c_block, args::Midpoint_Args)
 
     ocp = docp.ocp
 
@@ -232,36 +190,26 @@ function setStateEquation!(docp::DOCP{Midpoint}, c, index::Int, args::Midpoint_A
     hi = tip1 - ti
 
     # midpoint rule
-    c[index:(index + docp.dim_OCP_x - 1)] .=
-        xip1 .- (xi .+ hi * ki[1:docp.dim_OCP_x])
+    c_block[1:docp.dim_OCP_x] .= xip1 .- (xi .+ hi * ki[1:docp.dim_OCP_x])
     # +++ just define extended dynamics !
-    if docp.has_lagrange
-        c[index + docp.dim_OCP_x] = xlip1 - (xli + hi * ki[end])
-    end
-    index += docp.dim_NLP_x
-    
+    docp.has_lagrange && (c_block[docp.dim_NLP_x] = xlip1 - (xli + hi * ki[end]))
+
     # stage equation at mid-step
     t_s = 0.5 * (ti + tip1)
     x_s = 0.5 * (xi + xip1)
-    c[index:(index + docp.dim_OCP_x - 1)] .=
-        ki[1:docp.dim_OCP_x] .- ocp.dynamics(t_s, x_s, ui, v)
+    c_block[docp.dim_NLP_x+1:docp.dim_NLP_x+docp.dim_OCP_x] .= ki[1:docp.dim_OCP_x] .- ocp.dynamics(t_s, x_s, ui, v)
     # +++ just define extended dynamics !
-    if docp.has_lagrange
-        c[index + docp.dim_OCP_x] = ki[end] - ocp.lagrange(t_s, x_s, ui, v) 
-    end
-    index += docp.dim_NLP_x
+    docp.has_lagrange && (c_block[docp.dim_NLP_x*2] = ki[end] - ocp.lagrange(t_s, x_s, ui, v))
 
-    return index
 end
 
-
+#=
 """
 $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step
 """
-#function setPathConstraints!(docp::DOCP{Midpoint}, c, index::Int, args, v, i::Int)
-function setPathConstraints!(docp::DOCP{Midpoint}, c, index::Int, args::Midpoint_Args)      
+function setPathConstraints!(docp::DOCP{Midpoint}, c_block, args::Midpoint_Args)      
 
     ocp = docp.ocp
     ti = args.time
@@ -289,3 +237,4 @@ function setPathConstraints!(docp::DOCP{Midpoint}, c, index::Int, args::Midpoint
 
     return index
 end
+=#
