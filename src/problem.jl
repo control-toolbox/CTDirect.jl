@@ -337,6 +337,7 @@ end
 $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step: [control, state, mixed]
+Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setPathConstraints!(docp::DOCP, c, xu, v, time_grid, i::Int)    
 
@@ -349,7 +350,7 @@ function setPathConstraints!(docp::DOCP, c, xu, v, time_grid, i::Int)
 
     # variables
     t_i = time_grid[i]
-    x_i, u_i = get_variables_at_t_i(xu, docp, i)
+    x_i, u_i = get_variables_at_time_step(xu, docp, i)
 
     # NB. using .= below *doubles* the allocations oO +++ later inplace
     if docp.dim_u_cons > 0

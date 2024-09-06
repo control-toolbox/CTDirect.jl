@@ -17,14 +17,15 @@ end
 $(TYPEDSIGNATURES)
 
 Retrieve state and control variables at given time step from the NLP variables.
+Convention: 1 <= i <= dim_NLP_steps + 1
 """
-function get_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
+function get_variables_at_time_step(xu, docp::DOCP{Midpoint}, i)
 
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*(1+docp.discretization.stage) + m) * i
+    offset = (nx*(1+docp.discretization.stage) + m) * (i-1)
 
     # retrieve scalar/vector OCP state (w/o lagrange state) 
     if n == 1
@@ -39,7 +40,7 @@ function get_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
     end
 
     # retrieve scalar/vector control (convention u(tf) = U_N-1)
-    if i < N
+    if i < N+1
         offset_u = offset
     else
         offset_u = (nx*2 + m) * (i-1)
@@ -51,7 +52,7 @@ function get_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
     end
 
     # retrieve vector stage variable (except at final time)
-    if i < N
+    if i < N+1
         ki = xu[(offset + nx + m + 1):(offset + nx + m + nx) ]
     else
         ki = nothing
@@ -67,6 +68,7 @@ end
 # - scalar case is handled at OCP level
 function get_NLP_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
 
+    i = i+1 #dirty hack
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
@@ -94,6 +96,7 @@ end
 
 function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Midpoint}, i)
 
+    i = i+1 #dirty hack
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
@@ -116,6 +119,7 @@ end
 $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
+Convention: 1 <= i <= dim_NLP_steps
 """
 function setStateEquation!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i::Int)
 
@@ -123,6 +127,7 @@ function setStateEquation!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i::Int)
     offset = (i-1)*(docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons)
 
     # variables
+    ocp = docp.ocp
     ti = time_grid[i]
     xi, ui, xli, ki = get_variables_at_t_i(xu, docp, i)
     tip1 = time_grid[i+1]
