@@ -312,37 +312,22 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
 function DOCP_constraints!(c, xu, docp::DOCP)
 
+    v = get_optim_variable(xu, docp)
+    time_grid = get_time_grid(xu, docp)
 
-    # compute offset
-    # each time step block has state equation + path constraints
-    state_eq_block = docp.dim_NLP_x * (1 + docp.discretization.stage)
-    path_cons_block = docp.dim_path_cons
-    block_size = state_eq_block + path_cons_block
-
-    # initialization
-    step_args = initArgs(docp, xu)
-
-    # NB. @threads fails here, even when passing full c instead of views
     # main loop on time steps 
     for i = 1:docp.dim_NLP_steps 
-
         # discretized dynamics
-        setStateEquation!(docp, @view(c[(i-1)*block_size+1:(i-1)*block_size+state_eq_block]), step_args[i])
+        setStateEquation!(docp, c, xu, v, time_grid, i)
         # path constraints
-        setPathConstraints!(docp, @view(c[(i-1)*block_size+state_eq_block+1:(i-1)*block_size+state_eq_block+path_cons_block]), step_args[i])
-
+        setPathConstraints!(docp, c, xu, v, time_grid, i)
     end
 
     # path constraints at final time
-    offset = docp.dim_NLP_steps * block_size
-    setPathConstraints!(docp, @view(c[offset+1:offset+path_cons_block]), step_args[docp.dim_NLP_steps+1])
+    setPathConstraints!(docp, c, xu, v, time_grid, docp.dim_NLP_steps+1)
 
     # point constraints
-    point_block = docp.dim_boundary_cons + docp.dim_v_cons
-    docp.has_lagrange && (point_block += 1) # initial condition for lagrange state
-    point_args = pointArgs(docp, xu)
-    offset = docp.dim_NLP_steps * block_size + path_cons_block
-    setPointConstraints!(docp, @view(c[offset+1:offset+point_block]), point_args)
+    setPointConstraints!(docp, c, xu, v, time_grid)
 
     return c # needed even for inplace version, AD error otherwise
 end
@@ -353,20 +338,28 @@ $(TYPEDSIGNATURES)
 
 Set the path constraints at given time step: [control, state, mixed]
 """
-function setPathConstraints!(docp::DOCP, c_block, args::ArgsAtStep)    
+function setPathConstraints!(docp::DOCP, c, xu, v, time_grid, i::Int)    
 
-    # Arguments list for one time step: 
-    v, t_i, x_i, u_i = args.variable, args.time, args.state, args.control
+    # offset for previous steps
+    offset = (i-1)*(docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons)
+    if i < docp.dim_NLP_steps + 1
+        # offset for current step
+        offset += docp.dim_NLP_x * (1+docp.discretization.stage)
+    end
 
-    # NB. using .= below *doubles* the allocations oO
+    # variables
+    t_i = time_grid[i]
+    x_i, u_i = get_variables_at_t_i(xu, docp, i)
+
+    # NB. using .= below *doubles* the allocations oO +++ later inplace
     if docp.dim_u_cons > 0
-        c_block[1:docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
+        c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
     end
     if docp.dim_x_cons > 0 
-        c_block[docp.dim_u_cons+1:docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
+        c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
     end
     if docp.dim_mixed_cons > 0 
-        c_block[docp.dim_u_cons+docp.dim_x_cons+1:docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
+        c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
     end
 
 end
@@ -404,23 +397,12 @@ function setPathBounds!(docp::DOCP, index::Int, lb, ub)
 end
 
 
-function pointArgs(docp, xu)
-    if docp.has_variable
-        v = get_optim_variable(xu, docp)
-    else
-        v = Float64[]
-    end
-    x0, _, xl0 = get_variables_at_t_i(xu, docp, 0)
-    xf, = get_variables_at_t_i(xu, docp, docp.dim_NLP_steps)
-    return (v, x0, xf, xl0)
-end
-
 """
 $(TYPEDSIGNATURES)
 
 Set the boundary and variable constraints
 """
-function setPointConstraints!(docp::DOCP, c_block, args)
+function setPointConstraints!(docp::DOCP, c, args)
 
     # Argument list: v, x0, xf, xl0
     v, x0, xf, xl0 = args
