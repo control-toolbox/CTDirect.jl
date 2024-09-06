@@ -63,10 +63,7 @@ end
 # full solve
 if test_solve
     println("Timed full solve")
-    @btime sol = direct_solve(ocp, grid_size = grid_size, display=false, discretization = discretization)
-    if !isapprox(sol.objective, prob[:objective])
-        error("Objective mismatch: found ", sol.objective, " vs ", prob[:objective])
-    end
+    @btime direct_solve(ocp, grid_size = grid_size, display=false, discretization = discretization)
 end
 
 

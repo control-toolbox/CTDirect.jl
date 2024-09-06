@@ -54,6 +54,7 @@ struct DOCP{T <: Discretization}
     dim_OCP_x::Int  # original OCP state
     dim_NLP_steps::Int
     NLP_normalized_time_grid::Vector{Float64}
+    NLP_time_grid::Vector{Any}
     dim_NLP_variables::Int
     dim_NLP_constraints::Int
 
@@ -98,6 +99,12 @@ struct DOCP{T <: Discretization}
         has_mayer = has_mayer_cost(ocp)
         has_variable = is_variable_dependent(ocp)
         has_maximization = is_max(ocp)
+
+        if has_free_t0 || has_free_tf 
+            NLP_time_grid = Vector{Any}(undef, dim_NLP_steps+1)
+        else 
+            NLP_time_grid = ocp.initial_time .+ (NLP_normalized_time_grid .* (ocp.final_time - ocp.initial_time))
+        end
 
         # dimensions
         if has_lagrange
@@ -180,6 +187,7 @@ struct DOCP{T <: Discretization}
             dim_OCP_x,
             dim_NLP_steps,
             NLP_normalized_time_grid,
+            NLP_time_grid,
             dim_NLP_variables,
             dim_NLP_constraints,
             -Inf * ones(dim_NLP_variables),
@@ -283,11 +291,11 @@ function DOCP_objective(xu, docp::DOCP)
     docp.has_variable && (v = get_optim_variable(xu, docp))
 
     # final state is always needed since lagrange cost is there
-    xf, uf, xlf = get_variables_at_t_i(xu, docp, N)
+    xf, uf, xlf = get_variables_at_time_step(xu, docp, N+1)
 
     # mayer cost
     if docp.has_mayer
-        x0, u0, xl0 = get_variables_at_t_i(xu, docp, 0)
+        x0, u0, xl0 = get_variables_at_time_step(xu, docp, 1)
         obj = obj + ocp.mayer(x0, xf, v)
     end
 
@@ -312,22 +320,27 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
 function DOCP_constraints!(c, xu, docp::DOCP)
 
-    v = get_optim_variable(xu, docp)
-    time_grid = get_time_grid(xu, docp)
+    N = docp.dim_NLP_steps
+    if docp.has_free_t0 || docp.has_free_tf
+        get_time_grid!(docp.NLP_time_grid, xu, docp)
+    end
+
+    v = Float64[]
+    docp.has_variable && (v = get_optim_variable(xu, docp))
 
     # main loop on time steps 
-    for i = 1:docp.dim_NLP_steps 
-        # discretized dynamics
-        setStateEquation!(docp, c, xu, v, time_grid, i)
-        # path constraints
-        setPathConstraints!(docp, c, xu, v, time_grid, i)
+    for i = 1:N
+        setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i)
     end
 
     # path constraints at final time
-    setPathConstraints!(docp, c, xu, v, time_grid, docp.dim_NLP_steps+1)
+    offset = N * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_path_cons)
+    tf = docp.NLP_time_grid[N+1]
+    xf, uf = get_variables_at_time_step(xu, docp, N+1)
+    setPathConstraints!(docp, c, tf, xf, uf, v, offset)
 
     # point constraints
-    setPointConstraints!(docp, c, xu, v, time_grid)
+    setPointConstraints!(docp, c, xu, v)
 
     return c # needed even for inplace version, AD error otherwise
 end
@@ -339,18 +352,7 @@ $(TYPEDSIGNATURES)
 Set the path constraints at given time step: [control, state, mixed]
 Convention: 1 <= i <= dim_NLP_steps+1
 """
-function setPathConstraints!(docp::DOCP, c, xu, v, time_grid, i::Int)    
-
-    # offset for previous steps
-    offset = (i-1)*(docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons)
-    if i < docp.dim_NLP_steps + 1
-        # offset for current step
-        offset += docp.dim_NLP_x * (1+docp.discretization.stage)
-    end
-
-    # variables
-    t_i = time_grid[i]
-    x_i, u_i = get_variables_at_time_step(xu, docp, i)
+function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)    
 
     # NB. using .= below *doubles* the allocations oO +++ later inplace
     if docp.dim_u_cons > 0
@@ -403,24 +405,28 @@ $(TYPEDSIGNATURES)
 
 Set the boundary and variable constraints
 """
-function setPointConstraints!(docp::DOCP, c, args)
+function setPointConstraints!(docp::DOCP, c, xu, v)
 
-    # Argument list: v, x0, xf, xl0
-    v, x0, xf, xl0 = args
+    # offset
+    offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
+
+    # variables
+    x0, _, xl0 = get_variables_at_time_step(xu, docp, 1)
+    xf, = get_variables_at_time_step(xu, docp, docp.dim_NLP_steps+1)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        c_block[1:docp.dim_boundary_cons] = docp.boundary_constraints[2](x0, xf, v)
+        c[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[2](x0, xf, v)
     end
 
     # variable constraints
     if docp.dim_v_cons > 0
-        c_block[docp.dim_boundary_cons+1:docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
+        c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
     end
 
     # null initial condition for lagrangian cost state
     if docp.has_lagrange
-        c_block[docp.dim_boundary_cons+docp.dim_v_cons+1] = xl0
+        c[offset+docp.dim_boundary_cons+docp.dim_v_cons+1] = xl0
     end
 end
 

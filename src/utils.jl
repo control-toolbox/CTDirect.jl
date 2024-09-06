@@ -64,7 +64,11 @@ function get_time_grid(xu, docp)
     tf = get_final_time(xu, docp)
     return @. t0 + docp.NLP_normalized_time_grid * (tf - t0)
 end
-
+function get_time_grid!(time_grid, xu, docp)
+    t0 = get_initial_time(xu, docp)
+    tf = get_final_time(xu, docp)
+    @. time_grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
+end
 
 """
 $(TYPEDSIGNATURES)
