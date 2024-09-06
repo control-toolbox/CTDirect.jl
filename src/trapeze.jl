@@ -88,14 +88,17 @@ function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Trapeze}, i::Int)
 end
 
 
-# can later contain vectors for inplace getters
+# can later contain vectors for inplace getters ?
 # for trapeze the dynamics (init at t0, compute and store at i+1)
-function setWorkArray(docp::DOCP{Trapeze}, time_grid, v)
-    
-    f = Vector{}(undef, docp.dim_NLP_x)
+function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
+   
+    f = similar(xu, docp.dim_NLP_x)
+
+    ocp = docp.ocp
     t0 = time_grid[1]
-    x0, u0 = get_variables_at_time_step(xu, docp, 1)    
-    f[1:docp.dim_OCP_x] = ocp.dynamics(t0, x0, u0, v)
+    x0, u0 = get_variables_at_time_step(xu, docp, 1)
+    
+    f[1:docp.dim_OCP_x] .= ocp.dynamics(t0, x0, u0, v)
     if docp.has_lagrange
         f[docp.dim_NLP_x] = ocp.lagrange(t0, x0, u0, v)
     end
@@ -110,7 +113,7 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps
 """
-function setConstraintBlock!(docp, c, xu, v, time_grid, i, work)
+function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 
     # offset for previous steps
     offset = (i-1)*(docp.dim_NLP_x + docp.dim_path_cons)
@@ -127,16 +130,19 @@ function setConstraintBlock!(docp, c, xu, v, time_grid, i, work)
     
     hi = tip1 - ti
 
-
-    # trapeze rule (NB. @. allocates more ...)
+    # trapeze rule with 'smart' update for dynamics
     c[offset+1:offset+docp.dim_OCP_x] .= xip1 .- (xi .+ 0.5 * hi * (fi .+ fip1))
-    work[1:docp.dim_OCP_x] = fip1
-    
+    work[1:docp.dim_OCP_x] .= fip1
+
     if docp.has_lagrange
-        li = work[docp.dim_OCP_x+]
+        li = work[docp.dim_OCP_x+1]
         lip1 = ocp.lagrange(tip1, xip1, uip1, v)
         c[offset+docp.dim_OCP_x+1] = xlip1 - (xli + 0.5 * hi * (li + lip1))
-        work[docp.dim_OCP_x+] = lip1
+        work[docp.dim_NLP_x] = lip1
     end
+    offset += docp.dim_NLP_x    
+
+    # path constraints
+    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
 
 end

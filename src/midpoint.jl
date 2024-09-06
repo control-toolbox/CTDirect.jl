@@ -17,7 +17,7 @@ end
 $(TYPEDSIGNATURES)
 
 Retrieve state and control variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps + 1
+Convention: 1 <= i <= dim_NLP_steps+1
 """
 function get_variables_at_time_step(xu, docp::DOCP{Midpoint}, i)
 
@@ -71,7 +71,7 @@ function get_NLP_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*2 + m) * i
+    offset = (nx*(1+docp.discretization.stage) + m) * i
 
     # state
     xi = xu[(offset + 1):(offset + nx)]
@@ -99,7 +99,7 @@ function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Midpoint}, i)
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*2 + m) * i
+    offset = (nx*(1+docp.discretization.stage) + m) * i
 
     # NB. only set the actual state variables from the OCP 
     # - skip the possible additional state for lagrange cost
@@ -112,9 +112,10 @@ function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Midpoint}, i)
     end
 end
 
-# can later contain vectors for inplace getters
+
+# can later contain vectors for inplace getters ?
 # for trapeze the dynamics (init at t0, compute and store at i+1)
-function setWorkArray(docp::DOCP{Midpoint}, time_grid, v)
+function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
     return nothing
 end
 
@@ -125,7 +126,7 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps
 """
-function setConstraintBlock!(docp, c, xu, v, time_grid, i, work)
+function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
 
     # offset for previous steps
     offset = (i-1)*(docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons)
@@ -134,13 +135,15 @@ function setConstraintBlock!(docp, c, xu, v, time_grid, i, work)
     ocp = docp.ocp
     ti = time_grid[i]
     xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i)
+
     tip1 = time_grid[i+1]
     xip1, _, xlip1 = get_variables_at_time_step(xu, docp, i+1)
+    
     hi = tip1 - ti
 
     # midpoint rule
     c[offset+1:offset+docp.dim_OCP_x] .= xip1 .- (xi .+ hi * ki[1:docp.dim_OCP_x])
-    # +++ just define extended dynamics !
+
     if docp.has_lagrange
         c[offset+docp.dim_NLP_x] = xlip1 - (xli + hi * ki[end])
     end

@@ -328,7 +328,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     v = Float64[]
     docp.has_variable && (v = get_optim_variable(xu, docp))
 
-    work = setWorkArray(docp, time_grid, v)
+    work = setWorkArray(docp, xu, docp.NLP_time_grid, v)
 
     # main loop on time steps 
     for i = 1:N

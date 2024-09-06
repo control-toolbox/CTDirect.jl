@@ -25,7 +25,7 @@ include("../test/problems/goddard.jl")
 prob = goddard_all()
 ocp = prob[:ocp]
 grid_size = 100
-discretization = :midpoint
+discretization = :trapeze
 println("Load problem ", prob[:name])
 
 if precompile
