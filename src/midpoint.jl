@@ -112,6 +112,12 @@ function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Midpoint}, i)
     end
 end
 
+# can later contain vectors for inplace getters
+# for trapeze the dynamics (init at t0, compute and store at i+1)
+function setWorkArray(docp::DOCP{Midpoint}, time_grid, v)
+    return nothing
+end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -119,7 +125,7 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps
 """
-function setConstraintBlock!(docp, c, xu, v, time_grid, i)
+function setConstraintBlock!(docp, c, xu, v, time_grid, i, work)
 
     # offset for previous steps
     offset = (i-1)*(docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons)

@@ -7,6 +7,24 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 
 # +++ todo change arguments order: docp first, then xu
 
+function vectorize(fun, dim_x, dim_u)
+    if dim_x == 1
+        if dim_u == 1
+            fun2 = (t, x, u, v) -> fun(t, x[1], u[1], v)
+        else
+            fun2 = (t, x, u, v) -> fun(t, x[1], u, v)
+        end
+    else
+        if dim_u == 1
+            fun2 = (t, x, u, v) -> fun(t, x[1:dim_x], u[1], v)
+        else
+            fun2 = (t, x, u, v) -> fun(t, x[1:dim_x], u, v)
+        end
+    end
+    return fun2
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
