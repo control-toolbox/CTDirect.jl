@@ -25,15 +25,16 @@ include("../test/problems/goddard.jl")
 prob = goddard_all()
 ocp = prob[:ocp]
 grid_size = 100
+discretization = :midpoint
 println("Load problem ", prob[:name])
 
 if precompile
     println("Precompilation")
     if test_transcription
-        docp, nlp = direct_transcription(ocp, grid_size = grid_size)
+        docp, nlp = direct_transcription(ocp, grid_size = grid_size, discretization = discretization)
     end
     if test_solve
-        direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2)
+        direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2, discretization = discretization)
     end
     if test_objective
         CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
@@ -56,13 +57,16 @@ end
 # transcription
 if test_transcription
     println("Timed transcription")
-    @btime docp, nlp = direct_transcription(ocp, grid_size = grid_size)
+    @btime docp, nlp = direct_transcription(ocp, grid_size = grid_size, discretization = discretization)
 end
 
 # full solve
 if test_solve
     println("Timed full solve")
-    @btime sol = direct_solve(ocp, grid_size = grid_size, display=false)
+    @btime sol = direct_solve(ocp, grid_size = grid_size, display=false, discretization = discretization)
+    if !isapprox(sol.objective, prob[:objective])
+        error("Objective mismatch: found ", sol.objective, " vs ", prob[:objective])
+    end
 end
 
 
