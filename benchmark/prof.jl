@@ -39,7 +39,11 @@ if precompile
         CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
     end
     if test_constraints
-        CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+        CTDirect.DOCP_constraints!(
+            zeros(docp.dim_NLP_constraints),
+            CTDirect.DOCP_initial_guess(docp),
+            docp,
+        )
     end
 end
 
@@ -49,8 +53,12 @@ if test_objective
     @btime CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
 end
 if test_constraints
-    println("Timed constraints")   
-    @btime CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
+    println("Timed constraints")
+    @btime CTDirect.DOCP_constraints!(
+        zeros(docp.dim_NLP_constraints),
+        CTDirect.DOCP_initial_guess(docp),
+        docp,
+    )
 end
 
 # transcription
@@ -62,9 +70,8 @@ end
 # full solve
 if test_solve
     println("Timed full solve")
-    @btime sol = direct_solve(ocp, grid_size = grid_size, display=false)
+    @btime sol = direct_solve(ocp, grid_size = grid_size, display = false)
 end
-
 
 if test_code_warntype
     if test_objective

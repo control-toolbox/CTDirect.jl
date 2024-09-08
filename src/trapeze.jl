@@ -3,7 +3,6 @@ Internal layout for NLP variables:
 [X_0,U_0, X_1,U_1, .., X_N,U_N, V]
 =#
 
-
 struct Trapeze <: Discretization
     stage::Int
     additional_controls::Int
@@ -11,14 +10,12 @@ struct Trapeze <: Discretization
     Trapeze() = new(0, 1)
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
 Retrieve state and control variables at given time step from the NLP variables. 
 """
 function get_variables_at_time_step(xu, docp::DOCP{Trapeze}, i)
-
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
@@ -46,13 +43,11 @@ function get_variables_at_time_step(xu, docp::DOCP{Trapeze}, i)
     return xi, ui, xli
 end
 
-
 # internal NLP version for solution parsing
 # could be fused with one above if 
 # - using extended dynamics that include lagrange cost
 # - scalar case is handled at OCP level
 function get_NLP_variables_at_time_step(xu, docp, i, disc::Trapeze)
-
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     offset = (nx + m) * i
@@ -65,9 +60,7 @@ function get_NLP_variables_at_time_step(xu, docp, i, disc::Trapeze)
     return xi, ui
 end
 
-
 function set_variables_at_time_step!(xu, x_init, u_init, docp, i, disc::Trapeze)
-
     nx = docp.dim_NLP_x
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
@@ -83,7 +76,6 @@ function set_variables_at_time_step!(xu, x_init, u_init, docp, i, disc::Trapeze)
         xu[(offset + nx + 1):(offset + nx + m)] .= u_init
     end
 end
-
 
 # ? use abstract type for args ?
 """
@@ -102,7 +94,7 @@ struct ArgsAtTimeStep_Trapeze
     function ArgsAtTimeStep_Trapeze(xu, docp::DOCP{Trapeze}, v, time_grid, i::Int)
 
         # variables
-        ti = time_grid[i+1]
+        ti = time_grid[i + 1]
         xi, ui, xli = get_variables_at_time_step(xu, docp, i)
 
         # dynamics and lagrange cost
@@ -131,12 +123,11 @@ function updateArgs(args, xu, docp::DOCP{Trapeze}, v, time_grid, i)
     args_i, args_ip1 = args
     if i < docp.dim_NLP_steps - 1
         # are we allocating more than one args here ?
-        return (args_ip1, ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, i+2))
+        return (args_ip1, ArgsAtTimeStep_Trapeze(xu, docp, v, time_grid, i + 2))
     else
         return (args_ip1, args_ip1)
     end
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -163,7 +154,6 @@ function setStateEquation!(docp::DOCP{Trapeze}, c, index::Int, args, v, i)
 
     return index
 end
-
 
 """
 $(TYPEDSIGNATURES)
