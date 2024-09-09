@@ -366,7 +366,7 @@ Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)    
 
-    # NB. using .= below *doubles* the allocations oO +++ later inplace
+    # NB. using .= below *increases* allocations oO
     if docp.dim_u_cons > 0
         if docp.has_inplace
             #+++ inplace view
