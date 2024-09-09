@@ -1,0 +1,101 @@
+# +++ TODO: make function with bools as args ? (also no need to $...)
+# Profiling
+using CTDirect
+using CTBase
+
+using LinearAlgebra
+using NLPModelsIpopt
+using BenchmarkTools
+using Profile
+#using Traceur
+#using PProf
+using JET
+
+test_objective = true
+test_constraints = false
+test_transcription = false
+test_solve = false
+
+test_code_warntype = false
+test_jet = false
+
+# define OCP
+include("../test/problems/goddard.jl")
+prob = goddard_all()
+ocp = prob[:ocp]
+grid_size = 100
+discretization = :trapeze
+println("Load problem ", prob[:name])
+
+# Precompilation
+println("Precompilation")
+# NB the nlp part will cause additional allocations !
+docp, nlp = direct_transcription(ocp, grid_size = grid_size, discretization = discretization)
+# variables (NB. $ in calls does not seem to change allocations)
+xu = CTDirect.DOCP_initial_guess(docp)
+
+if test_solve
+    direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2, discretization = discretization)
+end
+if test_objective
+    CTDirect.DOCP_objective(xu, docp)
+end
+if test_constraints
+    CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), xu, docp)
+end
+Profile.clear_malloc_data()
+
+# evaluation
+if test_objective
+    println("Timed objective")
+    @btime CTDirect.DOCP_objective(xu, docp)
+end
+if test_constraints
+    println("Timed constraints")   
+    @btime CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), xu, docp)
+end
+
+# transcription
+if test_transcription
+    println("Timed transcription")
+    @btime docp, nlp = direct_transcription(ocp, grid_size = grid_size, discretization = discretization)
+end
+
+# full solve
+if test_solve
+    println("Timed full solve")
+    @btime direct_solve(ocp, grid_size = grid_size, display=false, discretization = discretization)
+end
+
+
+if test_code_warntype
+    if test_objective
+        # NB. Pb with the mayer part: obj is type unstable (Any) because ocp.mayer is Union(Mayer,nothing), even for mayer problems (also, we should not even enter this code part for lagrange problems since has_mayer us defined as const in DOCP oO ...).
+        @code_warntype CTDirect.DOCP_objective(xu, docp)
+    end
+    if test_constraints
+        # OK !
+        @code_warntype CTDirect.DOCP_constraints!(
+            zeros(docp.dim_NLP_constraints),
+            xu,
+            docp,
+        )
+    end
+end
+
+if test_jet
+    if test_objective
+        # 4 possible errors
+        # due to the ocp.mayer type problem cf above
+        @report_opt CTDirect.DOCP_objective(xu, docp)
+    end
+    if test_constraints
+        # 50 possible errors: some getindex (Integer vs Int...)
+        # all variables x,u,v
+        @report_opt CTDirect.DOCP_constraints!(
+            zeros(docp.dim_NLP_constraints),
+            xu,
+            docp,
+        )
+    end
+end

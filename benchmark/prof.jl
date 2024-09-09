@@ -1,100 +1,45 @@
-# +++ TODO: make function with bools as args ?
-# Profiling
+# tests to check allocations in particular
 using CTDirect
 using CTBase
 
 using LinearAlgebra
 using NLPModelsIpopt
 using BenchmarkTools
-#using Traceur
-#using Profile
-#using PProf
-using JET
+using Profile
 
-precompile = true
-test_objective = true
-test_constraints = true
-test_transcription = true
-test_solve = true
-
-test_code_warntype = false
-test_jet = false
-
-# define OCP
 include("../test/problems/goddard.jl")
-prob = goddard_all()
-ocp = prob[:ocp]
-grid_size = 100
-discretization = :midpoint
-println("Load problem ", prob[:name])
-
-if precompile
-    println("Precompilation")
-    if test_transcription
-        docp, nlp = direct_transcription(ocp, grid_size = grid_size, discretization = discretization)
-    end
-    if test_solve
-        direct_solve(ocp, grid_size = grid_size, display = false, max_iter = 2, discretization = discretization)
-    end
-    if test_objective
-        CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
-    end
-    if test_constraints
-        CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
-    end
-end
-
-# evaluation
-if test_objective
-    println("Timed objective")
-    @btime CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
-end
-if test_constraints
-    println("Timed constraints")   
-    @btime CTDirect.DOCP_constraints!(zeros(docp.dim_NLP_constraints), CTDirect.DOCP_initial_guess(docp), docp)
-end
-
-# transcription
-if test_transcription
-    println("Timed transcription")
-    @btime docp, nlp = direct_transcription(ocp, grid_size = grid_size, discretization = discretization)
-end
-
-# full solve
-if test_solve
-    println("Timed full solve")
-    @btime direct_solve(ocp, grid_size = grid_size, display=false, discretization = discretization)
-end
 
 
-if test_code_warntype
-    if test_objective
-        # NB. Pb with the mayer part: obj is type unstable (Any) because ocp.mayer is Union(Mayer,nothing), even for mayer problems (also, we should not even enter this code part for lagrange problems since has_mayer us defined as const in DOCP oO ...).
-        @code_warntype CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
+function unit(test_obj=true)
+    
+    # define problem and variables
+    prob = goddard_all()
+    ocp = prob[:ocp]
+    docp,_ = direct_transcription(ocp)
+    xu = CTDirect.DOCP_initial_guess(docp)
+    c = Vector{Float64}(undef, docp.dim_NLP_constraints)
+
+    # DOCP_objective
+    if test_obj
+        CTDirect.DOCP_objective(xu, docp) # compile
+        Profile.clear_malloc_data()
+        a = @allocated begin
+            obj = CTDirect.DOCP_objective(xu, docp)
+        end
+        println("DOCP_objective ", a)
     end
-    if test_constraints
-        # OK !
-        @code_warntype CTDirect.DOCP_constraints!(
-            zeros(docp.dim_NLP_constraints),
-            CTDirect.DOCP_initial_guess(docp),
-            docp,
-        )
-    end
+
 end
 
-if test_jet
-    if test_objective
-        # 4 possible errors
-        # due to the ocp.mayer type problem cf above
-        @report_opt CTDirect.DOCP_objective(CTDirect.DOCP_initial_guess(docp), docp)
-    end
-    if test_constraints
-        # 50 possible errors: some getindex (Integer vs Int...)
-        # all variables x,u,v
-        @report_opt CTDirect.DOCP_constraints!(
-            zeros(docp.dim_NLP_constraints),
-            CTDirect.DOCP_initial_guess(docp),
-            docp,
-        )
-    end
-end
+#=
+# call to setPointConstraints
+v = CTDirect.get_optim_variable(xu, docp)
+a = @allocated begin
+    CTDirect.setPointConstraints!($docp, c, $xu, $v)
+end; a > 0 && @show a
+# call to setPathConstraints 
+# call to setConstraintsBlock
+# call to DOCP_constraints (also check for remaining undef in c)
+=#
+
+# check vectorize too !
