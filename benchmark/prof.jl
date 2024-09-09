@@ -10,12 +10,12 @@ using Profile
 include("../test/problems/goddard.jl")
 
 
-function unit(test_obj=true)
+function test_unit(test_obj=false, test_cons=true, grid_size=10)
     
     # define problem and variables
     prob = goddard_all()
     ocp = prob[:ocp]
-    docp,_ = direct_transcription(ocp)
+    docp,_ = direct_transcription(ocp, grid_size=grid_size) # nlp creates more allocs !
     xu = CTDirect.DOCP_initial_guess(docp)
     c = Vector{Float64}(undef, docp.dim_NLP_constraints)
 
@@ -29,7 +29,19 @@ function unit(test_obj=true)
         println("DOCP_objective ", a)
     end
 
+    # DOCP_constraints
+    if test_cons
+        CTDirect.DOCP_constraints!(c, xu, docp) # compile
+        @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
+        Profile.clear_malloc_data()
+        b = @allocated begin
+            CTDirect.DOCP_constraints!(c, xu, docp)
+        end
+        println("DOCP_constraints! ", b)
+    end
+
 end
+
 
 #=
 # call to setPointConstraints
