@@ -139,6 +139,7 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
 
     # variables
     ocp = docp.ocp
+    disc = docp.discretization
     ti = time_grid[i]
     xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i)
 
