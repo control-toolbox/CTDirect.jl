@@ -4,12 +4,18 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
-# +++ todo change arguments order: docp first, then xu
-
+# +++ TODO: use args
+# NB. could be defined as a generic IRK
 struct Midpoint <: Discretization
+
     stage::Int
     additional_controls::Int
-    Midpoint() = new(1, 0)
+    butcher_a::Matrix{Float64}
+    butcher_b::Vector{Float64}
+    butcher_c::Vector{Float64}
+    info::String
+
+    Midpoint() = new(1, 0, hcat(0.5), [1], [0.5], "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic")
 end
 
 
@@ -42,7 +48,7 @@ function get_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
     if i < N
         offset_u = offset
     else
-        offset_u = (nx*2 + m) * (i-1)
+        offset_u = (nx * (1 + docp.discretization.stage) + m) * (i - 1)
     end
     if m == 1
         ui = xu[offset_u + nx + 1]
@@ -70,7 +76,7 @@ function get_NLP_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
     nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*2 + m) * i
+    offset = (nx * (1 + docp.discretization.stage) + m) * i
 
     # state
     xi = xu[(offset + 1):(offset + nx)]
@@ -78,8 +84,8 @@ function get_NLP_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
     if i < N
         offset_u = offset
     else
-        offset_u = (nx*2 + m) * (i-1)
-    end 
+        offset_u = (nx * (1 + docp.discretization.stage) + m) * (i - 1)
+    end
     ui = xu[(offset_u + nx + 1):(offset_u + nx + m)]
     # stage
     if i < N
@@ -98,7 +104,7 @@ function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Midpoint}, i)
     n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
-    offset = (nx*2 + m) * i
+    offset = (nx * (1 + docp.discretization.stage) + m) * i
 
     # NB. only set the actual state variables from the OCP 
     # - skip the possible additional state for lagrange cost
@@ -172,8 +178,7 @@ Set the constraints corresponding to the state equation
 function setStateEquation!(docp::DOCP{Midpoint}, c_block, args::Midpoint_Args)
 
     ocp = docp.ocp
-
-    # +++ later use butcher table in struct ?
+    disc = docp.discretization
 
     # variables
     v = args.variable
@@ -188,13 +193,18 @@ function setStateEquation!(docp::DOCP{Midpoint}, c_block, args::Midpoint_Args)
     hi = tip1 - ti
 
     # midpoint rule
-    c_block[1:docp.dim_OCP_x] .= xip1 .- (xi .+ hi * ki[1:docp.dim_OCP_x])
+    h_sum_bk = hi * disc.butcher_b[1] * ki[1:docp.dim_NLP_x]
+    c_block[1:docp.dim_OCP_x] .= xip1 .- (xi .+ h_sum_bk[1:docp.dim_OCP_x])
     # +++ just define extended dynamics !
-    docp.has_lagrange && (c_block[docp.dim_NLP_x] = xlip1 - (xli + hi * ki[end]))
+    docp.has_lagrange && (c_block[docp.dim_NLP_x] = xlip1 - (xli + h_sum_bk[end]))
 
     # stage equation at mid-step
-    t_s = 0.5 * (ti + tip1)
-    x_s = 0.5 * (xi + xip1)
+    t_s = ti + hi * disc.butcher_c[1]
+    if docp.dim_OCP_x == 1
+        x_s = xi + hi * disc.butcher_a[1][1] * ki[1] #FFS
+    else
+        x_s = xi .+ hi .* (disc.butcher_a[1][1] .* ki[1:docp.dim_OCP_x])
+    end
     c_block[docp.dim_NLP_x+1:docp.dim_NLP_x+docp.dim_OCP_x] .= ki[1:docp.dim_OCP_x] .- ocp.dynamics(t_s, x_s, ui, v)
     # +++ just define extended dynamics !
     docp.has_lagrange && (c_block[docp.dim_NLP_x*2] = ki[end] - ocp.lagrange(t_s, x_s, ui, v))
