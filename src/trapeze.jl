@@ -3,14 +3,14 @@ Internal layout for NLP variables:
 [X_0,U_0, X_1,U_1, .., X_N,U_N, V]
 =#
 
-# +++ todo change arguments order: docp first, then xu
-
-
+# NB. could be defined as a generic IRK
 struct Trapeze <: Discretization
+
     stage::Int
-    additional_controls::Int
-    # add control at tf
-    Trapeze() = new(0, 1)
+    additional_controls::Int  # add control at tf
+    info::String
+
+    Trapeze() = new(0, 1, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
 end
 
 

@@ -4,12 +4,18 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
-# +++ todo change arguments order: docp first, then xu
-
+# +++ TODO: use args
+# NB. could be defined as a generic IRK
 struct Midpoint <: Discretization
+
     stage::Int
     additional_controls::Int
-    Midpoint() = new(1, 0)
+    butcher_a::Matrix{Float64}
+    butcher_b::Vector{Float64}
+    butcher_c::Vector{Float64}
+    info::String
+
+    Midpoint() = new(1, 0, hcat(0.5), [1], [0.5], "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic")
 end
 
 
@@ -79,12 +85,12 @@ function get_NLP_variables_at_t_i(xu, docp::DOCP{Midpoint}, i)
     if i < N
         offset_u = offset
     else
-        offset_u = (nx*2 + m) * (i-1)
-    end 
+        offset_u = (nx * (1 + docp.discretization.stage) + m) * (i - 1)
+    end
     ui = xu[(offset_u + nx + 1):(offset_u + nx + m)]
     # stage
     if i < N
-        ki = xu[(offset + nx + m + 1):(offset + nx + m + nx) ]
+        ki = xu[(offset + nx + m + 1):(offset + nx + m + nx)]
     else
         ki = nothing
     end
@@ -142,22 +148,27 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
     hi = tip1 - ti
 
     # midpoint rule
-    c[offset+1:offset+docp.dim_OCP_x] .= xip1 .- (xi .+ hi * ki[1:docp.dim_OCP_x])
+    h_sum_bk = hi * disc.butcher_b[1] * ki[1:docp.dim_NLP_x]
+    c[offset+1:offset+docp.dim_OCP_x] .= xip1 .- (xi .+ h_sum_bk[1:docp.dim_OCP_x])
 
     if docp.has_lagrange
-        c[offset+docp.dim_NLP_x] = xlip1 - (xli + hi * ki[end])
+        c[offset+docp.dim_NLP_x] = xlip1 - (xli + h_sum_bk[end])
     end
     offset += docp.dim_NLP_x
 
     # stage equation at mid-step
-    t_s = 0.5 * (ti + tip1)
-    x_s = 0.5 * (xi + xip1)
+    t_s = ti + hi * disc.butcher_c[1]
+    if docp.dim_OCP_x == 1
+        x_s = xi + hi * disc.butcher_a[1][1] * ki[1] #FFS
+    else
+        x_s = xi .+ hi .* (disc.butcher_a[1][1] .* ki[1:docp.dim_OCP_x])
+    end
     c[offset+1:offset+docp.dim_OCP_x] .= ki[1:docp.dim_OCP_x] .- ocp.dynamics(t_s, x_s, ui, v)
     # +++ just define extended dynamics !
     if docp.has_lagrange
         c[offset+docp.dim_NLP_x] = ki[end] - ocp.lagrange(t_s, x_s, ui, v)
     end
-    offset += docp.dim_NLP_x    
+    offset += docp.dim_NLP_x
 
     # path constraints
     setPathConstraints!(docp, c, ti, xi, ui, v, offset)
