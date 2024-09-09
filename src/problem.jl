@@ -19,7 +19,9 @@ Contains:
 struct DOCP{T <: Discretization}
 
     ## OCP
-    ocp::OptimalControlModel
+    ocp::OptimalControlModel # remove at some point ?
+
+    # functions
     control_constraints::Any
     state_constraints::Any
     mixed_constraints::Any
@@ -36,6 +38,7 @@ struct DOCP{T <: Discretization}
     has_mayer::Bool
     has_variable::Bool
     has_maximization::Bool
+    has_inplace::Bool
 
     dim_x_box::Int
     dim_u_box::Int
@@ -99,6 +102,7 @@ struct DOCP{T <: Discretization}
         has_mayer = has_mayer_cost(ocp)
         has_variable = is_variable_dependent(ocp)
         has_maximization = is_max(ocp)
+        has_inplace = false #+++ inplace
 
         if has_free_t0 || has_free_tf 
             NLP_time_grid = Vector{Any}(undef, dim_NLP_steps+1)
@@ -172,6 +176,7 @@ struct DOCP{T <: Discretization}
             has_mayer,
             has_variable,
             has_maximization,
+            has_inplace,
             dim_x_box,
             dim_u_box,
             dim_v_box,
@@ -296,7 +301,11 @@ function DOCP_objective(xu, docp::DOCP)
     # mayer cost
     if docp.has_mayer
         x0, u0, xl0 = get_variables_at_time_step(xu, docp, 1)
-        obj = obj + ocp.mayer(x0, xf, v)
+        if docp.has_inplace
+            #+++ inplace
+        else
+            obj = obj + ocp.mayer(x0, xf, v)
+        end
     end
 
     # lagrange cost
@@ -336,6 +345,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     end
 
     # path constraints at final time
+    # +++ could call setConstraintsBlock and skip dynamics part...
     offset = N * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_path_cons)
     tf = docp.NLP_time_grid[N+1]
     xf, uf = get_variables_at_time_step(xu, docp, N+1)
@@ -358,13 +368,25 @@ function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)
 
     # NB. using .= below *doubles* the allocations oO +++ later inplace
     if docp.dim_u_cons > 0
-        c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
+        if docp.has_inplace
+            #+++ inplace view
+        else
+            c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
+        end
     end
     if docp.dim_x_cons > 0 
-        c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
+        if docp.has_inplace
+            #+++ inplace view
+        else
+            c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
+        end
     end
     if docp.dim_mixed_cons > 0 
-        c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
+        if docp.has_inplace
+            #+++ inplace view
+        else
+            c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
+        end
     end
 
 end
@@ -418,12 +440,20 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        c[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[2](x0, xf, v)
+        if docp.has_inplace
+            #+++ inplace view
+        else
+            c[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[2](x0, xf, v)
+        end
     end
 
     # variable constraints
     if docp.dim_v_cons > 0
-        c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
+        if docp.has_inplace
+            #+++ inplace view
+        else
+            c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
+        end
     end
 
     # null initial condition for lagrangian cost state
