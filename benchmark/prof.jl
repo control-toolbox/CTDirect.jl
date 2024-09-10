@@ -9,7 +9,7 @@ using Profile
 
 include("../test/problems/goddard.jl")
 
-function test_unit(test_obj=false, test_cons=false, test_dyn=true, grid_size=10)
+function test_unit(test_obj=false, test_cons=true, test_dyn=false, grid_size=10)
     
     # define problem and variables
     prob = goddard_all()
@@ -36,6 +36,7 @@ function test_unit(test_obj=false, test_cons=false, test_dyn=true, grid_size=10)
     # DOCP_constraints
     if test_cons
         CTDirect.DOCP_constraints!(c, xu, docp) # compile
+        +++ check for undefined
         #@btime CTDirect.DOCP_constraints!($c, $xu, $docp)
         Profile.clear_malloc_data()
         a = @allocated begin

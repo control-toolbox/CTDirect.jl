@@ -21,7 +21,11 @@ function vectorize(fun, dim_x, dim_u)
             fun2 = (t, x, u, v) -> fun(t, x[1:dim_x], u, v)
         end
     end
-    return fun2
+    if length(fun2) == 1
+        return [fun2]
+    else
+        return fun2
+    end
 end
 
 

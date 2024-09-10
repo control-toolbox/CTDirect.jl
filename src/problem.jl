@@ -374,7 +374,7 @@ function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)
         if docp.has_inplace
             #+++ inplace view
         else
-            c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
+           c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
         end
     end
     if docp.dim_x_cons > 0 
