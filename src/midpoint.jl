@@ -158,16 +158,28 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
     offset += docp.dim_NLP_x
 
     # stage equation at mid-step
-    t_s = ti + hi * disc.butcher_c[1]
+    ts = ti + hi * disc.butcher_c[1]
     if docp.dim_OCP_x == 1
-        x_s = xi + hi * disc.butcher_a[1][1] * ki[1] #FFS
+        xs = xi + hi * disc.butcher_a[1][1] * ki[1] #FFS
     else
-        x_s = xi .+ hi .* (disc.butcher_a[1][1] .* ki[1:docp.dim_OCP_x])
+        xs = xi .+ hi .* (disc.butcher_a[1][1] .* ki[1:docp.dim_OCP_x])
     end
-    c[offset+1:offset+docp.dim_OCP_x] .= ki[1:docp.dim_OCP_x] .- ocp.dynamics(t_s, x_s, ui, v)
+    if docp.has_inplace
+        docp.dynamics((@view c[offset+1:offset+docp.dim_OCP_x]), ts, xs, ui, v)
+        @views c[offset+1:offset+docp.dim_OCP_x] = -c[offset+1:offset+docp.dim_OCP_x] + ki[1:docp.dim_OCP_x]
+    else
+        c[offset+1:offset+docp.dim_OCP_x] .= ki[1:docp.dim_OCP_x] .- docp.dynamics(ts, xs, ui, v)
+    end
     # +++ just define extended dynamics !
     if docp.has_lagrange
-        c[offset+docp.dim_NLP_x] = ki[end] - ocp.lagrange(t_s, x_s, ui, v)
+        if docp.has_inplace
+            # ugly...
+            ls = similar(xu, 1)
+            docp.lagrange(ls, ts, xs, ui, v)
+            c[offset+docp.dim_NLP_x] = ki[end] - ls[1] 
+        else
+            c[offset+docp.dim_NLP_x] = ki[end] - docp.lagrange(t_s, x_s, ui, v)
+        end
     end
     offset += docp.dim_NLP_x
 
