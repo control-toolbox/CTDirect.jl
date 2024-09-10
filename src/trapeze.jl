@@ -99,16 +99,18 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
     x0, u0 = get_variables_at_time_step(xu, docp, 1)
     
     if docp.has_inplace
-        #+++ inplace view
+        docp.dynamics((@view work[1:docp.dim_OCP_x]), t0, x0, u0, v)
     else
-        work[1:docp.dim_OCP_x] .= ocp.dynamics(t0, x0, u0, v)
+        work[1:docp.dim_OCP_x] .= docp.dynamics(t0, x0, u0, v)
     end
     
     if docp.has_lagrange
         if docp.has_inplace
-            #+++ inplace
+            l = similar(xu, 1)
+            docp.lagrange(l, t0, x0, u0, v) # +++cannot pass work[end] directly ?
+            work[docp.dim_NLP_x] = l[1]
         else
-            work[docp.dim_NLP_x] = ocp.lagrange(t0, x0, u0, v)
+            work[docp.dim_NLP_x] = docp.lagrange(t0, x0, u0, v)
         end
     end
 
@@ -131,30 +133,30 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     ocp = docp.ocp
     ti = time_grid[i]
     xi, ui, xli = get_variables_at_time_step(xu, docp, i)
-    fi = work[1:docp.dim_OCP_x]
+    fi = work[1:docp.dim_OCP_x] # copy !
 
     tip1 = time_grid[i+1]
     xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1)
     if docp.has_inplace
-        #+++ inplace view ?
+        docp.dynamics((@view work[1:docp.dim_OCP_x]), tip1, xip1, uip1, v)
     else
-        fip1 = ocp.dynamics(tip1, xip1, uip1, v)
+        work[1:docp.dim_OCP_x] .= docp.dynamics(tip1, xip1, uip1, v)
     end
     hi = tip1 - ti
 
     # trapeze rule with 'smart' update for dynamics
-    @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * hi * (fi + fip1))
-    work[1:docp.dim_OCP_x] .= fip1
-
+    @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * hi * (fi + work[1:docp.dim_OCP_x]))
+    
     if docp.has_lagrange
         li = work[docp.dim_OCP_x+1]
         if docp.has_inplace
-            #+++ inplace
+            lip1 = similar(xu, 1)
+            docp.lagrange(lip1, tip1, xip1, uip1, v) # +++cannot pass work[end] directly ?
+            work[docp.dim_OCP_x+1] = lip1[1]
         else
-            lip1 = ocp.lagrange(tip1, xip1, uip1, v)
+            work[docp.dim_OCP_x+1] = docp.lagrange(tip1, xip1, uip1, v)
         end
-        c[offset+docp.dim_OCP_x+1] = xlip1 - (xli + 0.5 * hi * (li + lip1))
-        work[docp.dim_NLP_x] = lip1
+        c[offset+docp.dim_OCP_x+1] = xlip1 - (xli + 0.5 * hi * (li + work[docp.dim_OCP_x+1]))
     end
     offset += docp.dim_NLP_x    
 

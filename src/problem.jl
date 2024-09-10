@@ -22,6 +22,9 @@ struct DOCP{T <: Discretization}
     ocp::OptimalControlModel # remove at some point ?
 
     # functions
+    dynamics::Any
+    lagrange::Any
+    mayer::Any
     control_constraints::Any
     state_constraints::Any
     mixed_constraints::Any
@@ -102,7 +105,7 @@ struct DOCP{T <: Discretization}
         has_mayer = has_mayer_cost(ocp)
         has_variable = is_variable_dependent(ocp)
         has_maximization = is_max(ocp)
-        has_inplace = false #+++ inplace
+        has_inplace = is_in_place(ocp)
 
         if has_free_t0 || has_free_tf 
             NLP_time_grid = Vector{Any}(undef, dim_NLP_steps+1)
@@ -162,6 +165,9 @@ struct DOCP{T <: Discretization}
         # call constructor with const fields
         docp = new{typeof(discretization)}(
             ocp,
+            dynamics(ocp),
+            lagrange(ocp),
+            mayer(ocp),
             control_constraints,
             state_constraints,
             mixed_constraints,
@@ -287,7 +293,7 @@ Compute the objective for the DOCP problem.
 """
 function DOCP_objective(xu, docp::DOCP)
 
-    obj = 0.0
+    obj = similar(xu, 1)
     N = docp.dim_NLP_steps
     ocp = docp.ocp
 
@@ -302,23 +308,27 @@ function DOCP_objective(xu, docp::DOCP)
     if docp.has_mayer
         x0, u0, xl0 = get_variables_at_time_step(xu, docp, 1)
         if docp.has_inplace
-            #+++ inplace
+            docp.mayer(obj, x0, xf, v)
         else
-            obj = obj + ocp.mayer(x0, xf, v)
+            obj[1] = docp.mayer(x0, xf, v)
         end
     end
 
     # lagrange cost
     if docp.has_lagrange
-        obj = obj + xlf
+        if docp.has_mayer # NB can this actually happen in OCP (cf bolza) ?
+            obj[1] = obj[1] + xlf
+        else
+            obj[1] = xlf
+        end
     end
 
     # maximization problem
     if docp.has_maximization
-        obj = -obj
+        obj[1] = -obj[1]
     end
 
-    return obj
+    return obj[1]
 end
 
 
@@ -372,21 +382,21 @@ function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)
     # @views reduces them locally but increases total allocs 
     if docp.dim_u_cons > 0
         if docp.has_inplace
-            #+++ inplace view
+            docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),t_i, u_i, v)
         else
-           c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
+            c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
         end
     end
     if docp.dim_x_cons > 0 
         if docp.has_inplace
-            #+++ inplace view
+            docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),t_i, x_i, v)
         else
             c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
         end
     end
     if docp.dim_mixed_cons > 0 
         if docp.has_inplace
-            #+++ inplace view
+            docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), t_i, x_i, u_i, v)
         else
             c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
         end
@@ -444,7 +454,7 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     # boundary constraints
     if docp.dim_boundary_cons > 0
         if docp.has_inplace
-            #+++ inplace view
+            docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]), x0, xf, v)
         else
             c[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[2](x0, xf, v)
         end
@@ -453,7 +463,7 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     # variable constraints
     if docp.dim_v_cons > 0
         if docp.has_inplace
-            #+++ inplace view
+            docp.variable_constraints[2]((@view c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons]), v)
         else
             c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
         end

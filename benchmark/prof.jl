@@ -9,15 +9,18 @@ using Profile
 
 include("../test/problems/goddard.jl")
 
-function test_unit(test_obj=false, test_cons=true, test_dyn=false, grid_size=10)
+function test_unit(;test_obj=false, test_cons=true, test_dyn=false, grid_size=10, discretization=:trapeze, in_place=false)
     
     # define problem and variables
-    prob = goddard_all()
+    if in_place
+        prob = goddard_a() #ll_inplace()
+    else
+        prob = goddard_all()
+    end
     ocp = prob[:ocp]
-    docp,_ = direct_transcription(ocp, grid_size=grid_size) # nlp creates more allocs !
+    docp,_ = direct_transcription(ocp, grid_size=grid_size, discretization=discretization) # nlp creates more allocs !
     xu = CTDirect.DOCP_initial_guess(docp)
-    #c = Vector{Float64}(undef, docp.dim_NLP_constraints)
-    c = similar(xu, docp.dim_NLP_constraints)
+    c = fill(-666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dim_NLP_x)
     t = xu[end]
     v = CTDirect.get_optim_variable(xu, docp)
@@ -36,7 +39,9 @@ function test_unit(test_obj=false, test_cons=true, test_dyn=false, grid_size=10)
     # DOCP_constraints
     if test_cons
         CTDirect.DOCP_constraints!(c, xu, docp) # compile
-        +++ check for undefined
+        if any(c.==-666.666)
+            error("undefined values in c ",c)
+        end
         #@btime CTDirect.DOCP_constraints!($c, $xu, $docp)
         Profile.clear_malloc_data()
         a = @allocated begin
