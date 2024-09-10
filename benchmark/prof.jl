@@ -13,7 +13,7 @@ function test_unit(;test_obj=false, test_cons=true, test_dyn=false, grid_size=10
     
     # define problem and variables
     if in_place
-        prob = goddard_a() #ll_inplace()
+        prob = goddard_all_inplace()
     else
         prob = goddard_all()
     end

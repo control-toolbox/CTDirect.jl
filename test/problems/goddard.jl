@@ -109,6 +109,27 @@ function goddard_all_inplace()
     vmax = 0.1
     Tmax = 3.5
 
+    function v_fun!(c, x, v)
+        @views c[:] .= x[2]
+        return
+    end
+    function u_fun!(c, u, v)
+        @views c[:] .= u
+        return
+    end
+    function m_fun!(c, x, u, v) 
+        @views c[:] .= x[3]
+        return
+    end
+    function rf_fun!(c, x0, xf, v)
+        @views c[:] .= xf[1]
+        return
+    end
+    function f_fun!(f, x, u, v)
+        @views f[:] .= F0(x, Cd, beta) + u * F1(x, Tmax, b)
+        return
+    end
+
     #ocp
     goddard = Model(variable = true, in_place=true)
     state!(goddard, 3)
@@ -126,13 +147,13 @@ function goddard_all_inplace()
     # variable box (inactive)
     constraint!(goddard, :variable, lb = 0.01, ub = Inf)
     # state constraint (active on constrained arc)
-    +constraint!(goddard, :state, f = (x, v) -> x[2], lb = -Inf, ub = vmax)
+    constraint!(goddard, :state, f = v_fun!, lb = -Inf, ub = vmax)
     # control constraint (active on first bang arc)
-    +constraint!(goddard, :control, f = (u, v) -> u, lb = -Inf, ub = 1)
+    constraint!(goddard, :control, f = u_fun!, lb = -Inf, ub = 1)
     # 'mixed' constraint (active at tf)
-    +constraint!(goddard, :mixed, f = (x, u, v) -> x[3], lb = mf, ub = Inf)
-    +objective!(goddard, :mayer, (x0, xf, v) -> xf[1], :max)
-    +dynamics!(goddard, (x, u, v) -> F0(x, Cd, beta) + u * F1(x, Tmax, b))
+    constraint!(goddard, :mixed, f = m_fun!, lb = mf, ub = Inf)
+    objective!(goddard, :mayer, rf_fun!, :max)
+    dynamics!(goddard, f_fun!)
 
     return ((
         ocp = goddard,
