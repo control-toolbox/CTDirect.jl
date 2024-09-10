@@ -131,7 +131,7 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     ocp = docp.ocp
     ti = time_grid[i]
     xi, ui, xli = get_variables_at_time_step(xu, docp, i)
-    fi = work[1:docp.dim_OCP_x]
+    @views fi = work[1:docp.dim_OCP_x]
 
     tip1 = time_grid[i+1]
     xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1)

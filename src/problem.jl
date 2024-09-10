@@ -354,7 +354,8 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # point constraints
     setPointConstraints!(docp, c, xu, v)
 
-    return c # needed even for inplace version, AD error otherwise
+    # NB. the function *needs* to return c for AD...
+    return c
 end
 
 
@@ -366,7 +367,9 @@ Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)    
 
-    # NB. using .= below *increases* allocations oO
+    # Notes on allocations:
+    # .= *increases* allocations
+    # @views reduces them locally but increases total allocs 
     if docp.dim_u_cons > 0
         if docp.has_inplace
             #+++ inplace view
