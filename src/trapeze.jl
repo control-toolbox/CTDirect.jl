@@ -20,6 +20,7 @@ $(TYPEDSIGNATURES)
 Retrieve state and control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
 """
+#= split getters: same allocations overall...
 function get_variables_at_time_step(xu, docp::DOCP{Trapeze}, i)
 
     nx = docp.dim_NLP_x
@@ -48,7 +49,68 @@ function get_variables_at_time_step(xu, docp::DOCP{Trapeze}, i)
 
     return xi, ui, xli
 end
+=#
 
+function get_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
+
+    nx = docp.dim_NLP_x
+    n = docp.dim_OCP_x
+    m = docp.dim_NLP_u
+    offset = (nx + m) * (i-1)
+
+    # retrieve scalar/vector OCP state (w/o lagrange state) 
+    if n == 1
+        return xu[offset + 1]
+    else
+        return xu[(offset + 1):(offset + n)]
+    end
+end
+#= using Val on dimension is much worse...
+function get_state_at_time_step(xu, docp::DOCP{Trapeze}, ::Val{n}, i) where {n}
+
+    nx = docp.dim_NLP_x
+    #n = docp.dim_OCP_x
+    m = docp.dim_NLP_u
+    offset = (nx + m) * (i-1)
+
+    # retrieve scalar/vector OCP state (w/o lagrange state) 
+    if n == 1
+        return xu[offset + 1]
+    else
+        return xu[(offset + 1):(offset + n)]
+    end
+end
+=#
+
+function get_lagrange_state_at_time_step(xu, docp::DOCP{Trapeze}, i)    
+
+    nx = docp.dim_NLP_x
+    n = docp.dim_OCP_x
+    m = docp.dim_NLP_u
+    offset = (nx + m) * (i-1)
+
+    if docp.has_lagrange
+        return xu[offset + nx]
+    else
+        error("problem has no lagrange cost")
+    end
+end
+
+function get_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
+
+    nx = docp.dim_NLP_x
+    n = docp.dim_OCP_x
+    m = docp.dim_NLP_u
+    offset = (nx + m) * (i-1)
+
+    # retrieve scalar/vector control
+    if m == 1
+        return xu[offset + nx + 1]
+    else
+        return xu[(offset + nx + 1):(offset + nx + m)]
+    end
+
+end
 
 # internal NLP version for solution parsing
 # could be fused with one above if 
@@ -96,8 +158,9 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
 
     ocp = docp.ocp
     t0 = time_grid[1]
-    x0, u0 = get_variables_at_time_step(xu, docp, 1)
-    
+    x0 = get_state_at_time_step(xu, docp, 1)
+    u0 = get_control_at_time_step(xu, docp, 1)
+
     if docp.has_inplace
         docp.dynamics((@view work[1:docp.dim_OCP_x]), t0, x0, u0, v)
     else
@@ -132,11 +195,14 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # variables
     ocp = docp.ocp
     ti = time_grid[i]
-    xi, ui, xli = get_variables_at_time_step(xu, docp, i)
+    xi = get_state_at_time_step(xu, docp, i)
+    ui = get_control_at_time_step(xu, docp, i)
     fi = work[1:docp.dim_OCP_x] # copy !
 
     tip1 = time_grid[i+1]
-    xip1, uip1, xlip1 = get_variables_at_time_step(xu, docp, i+1)
+    xip1 = get_state_at_time_step(xu, docp, i+1)
+    uip1 = get_control_at_time_step(xu, docp, i+1)
+
     if docp.has_inplace
         docp.dynamics((@view work[1:docp.dim_OCP_x]), tip1, xip1, uip1, v)
     else
@@ -148,6 +214,8 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * hi * (fi + work[1:docp.dim_OCP_x]))
     
     if docp.has_lagrange
+        xli = get_lagrange_state_at_time_step(xu, docp, i)
+        xlip1 = get_lagrange_state_at_time_step(xu, docp, i+1)
         li = work[docp.dim_OCP_x+1]
         if docp.has_inplace
             lip1 = similar(xu, 1)

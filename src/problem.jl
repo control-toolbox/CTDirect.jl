@@ -302,11 +302,11 @@ function DOCP_objective(xu, docp::DOCP)
     docp.has_variable && (v = get_optim_variable(xu, docp))
 
     # final state is always needed since lagrange cost is there
-    xf, uf, xlf = get_variables_at_time_step(xu, docp, N+1)
+    xf = get_state_at_time_step(xu, docp, N+1)
 
     # mayer cost
     if docp.has_mayer
-        x0, u0, xl0 = get_variables_at_time_step(xu, docp, 1)
+        x0 = get_state_at_time_step(xu, docp, 1)
         if docp.has_inplace
             docp.mayer(obj, x0, xf, v)
         else
@@ -316,6 +316,7 @@ function DOCP_objective(xu, docp::DOCP)
 
     # lagrange cost
     if docp.has_lagrange
+        xlf = get_lagrange_state_at_time_step(xu, docp, N+1)
         if docp.has_mayer # NB can this actually happen in OCP (cf bolza) ?
             obj[1] = obj[1] + xlf
         else
@@ -358,7 +359,8 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # +++ could call setConstraintsBlock and skip dynamics part...
     offset = N * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_path_cons)
     tf = docp.NLP_time_grid[N+1]
-    xf, uf = get_variables_at_time_step(xu, docp, N+1)
+    xf = get_state_at_time_step(xu, docp, N+1)
+    uf = get_control_at_time_step(xu, docp, N+1)
     setPathConstraints!(docp, c, tf, xf, uf, v, offset)
 
     # point constraints
@@ -448,8 +450,8 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
 
     # variables
-    x0, _, xl0 = get_variables_at_time_step(xu, docp, 1)
-    xf, = get_variables_at_time_step(xu, docp, docp.dim_NLP_steps+1)
+    x0 = get_state_at_time_step(xu, docp, 1)
+    xf = get_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
@@ -471,6 +473,7 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # null initial condition for lagrangian cost state
     if docp.has_lagrange
+        xl0 = get_lagrange_state_at_time_step(xu, docp, 1)
         c[offset+docp.dim_boundary_cons+docp.dim_v_cons+1] = xl0
     end
 end
