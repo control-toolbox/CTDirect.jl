@@ -135,11 +135,12 @@ struct DOCP{T <: Discretization}
         dim_NLP_variables = (N + 1) * dim_NLP_x + (N + discretization.additional_controls) * dim_NLP_u + dim_NLP_v + N * dim_NLP_x * dim_stage
 
         # encapsulated OCP functions
-        dynamics = vectorize(ocp.dynamics, docp.dim_OCP_x, docp.dim_NLP_u, docp.dim_OCP_x)
-        lagrange = vectorize(ocp.lagrange, docp.dim_OCP_x, docp.dim_NLP_u, 1)
+        dynamics = vectorize_xu(ocp.dynamics, docp.dim_OCP_x, docp.dim_NLP_u, docp.dim_OCP_x)
+        lagrange = vectorize_xu(ocp.lagrange, docp.dim_OCP_x, docp.dim_NLP_u, 1)
         mayer = vectorize_xx(ocp.mayer, docp.dim_OCP_x)
         function dynamics_ext(t, x, u, v)
-            # try alloc vector first ?
+            # +++try alloc vector first ?
+            # f = similar(x, docp.dim_NLP_x) etc
             f = dynamics(t, x, u, v)
             if docp.has_lagrange
                 push!(f, lagrange(t, x, u, v))
@@ -322,11 +323,11 @@ function DOCP_objective(xu, docp::DOCP)
     docp.has_variable && (v = get_optim_variable(xu, docp))
 
     # final state is always needed since lagrange cost is there
-    xf = get_state_at_time_step(xu, docp, N+1)
+    xf = vget_state_at_time_step(xu, docp, N+1)
 
     # mayer cost
     if docp.has_mayer
-        x0 = get_state_at_time_step(xu, docp, 1)
+        x0 = vget_state_at_time_step(xu, docp, 1)
         if docp.has_inplace
             docp.mayer(obj, x0, xf, v)
         else
@@ -379,8 +380,8 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # +++ could call setConstraintsBlock and skip dynamics part...
     offset = N * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_path_cons)
     tf = docp.NLP_time_grid[N+1]
-    xf = get_state_at_time_step(xu, docp, N+1)
-    uf = get_control_at_time_step(xu, docp, N+1)
+    xf = vget_state_at_time_step(xu, docp, N+1)
+    uf = vget_control_at_time_step(xu, docp, N+1)
     setPathConstraints!(docp, c, tf, xf, uf, v, offset)
 
     # point constraints
@@ -470,8 +471,8 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
 
     # variables
-    x0 = get_state_at_time_step(xu, docp, 1)
-    xf = get_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
+    x0 = vget_state_at_time_step(xu, docp, 1)
+    xf = vget_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0

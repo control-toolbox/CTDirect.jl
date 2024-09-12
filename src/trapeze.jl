@@ -50,7 +50,7 @@ function get_variables_at_time_step(xu, docp::DOCP{Trapeze}, i)
     return xi, ui, xli
 end
 =#
-
+#=
 function get_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
 
     nx = docp.dim_NLP_x
@@ -66,17 +66,16 @@ function get_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
         return xu[(offset + 1):(offset + n)]
     end
 end
-
+=#
 function vget_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
 
     nx = docp.dim_NLP_x
-    n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     offset = (nx + m) * (i-1)
 
-    return @view xu[(offset + 1):(offset + n)]
+    return @view xu[(offset + 1):(offset + nx)]
 end
-
+#=
 function get_lagrange_state_at_time_step(xu, docp::DOCP{Trapeze}, i)    
 
     nx = docp.dim_NLP_x
@@ -105,10 +104,11 @@ function get_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
         return xu[(offset + nx + 1):(offset + nx + m)]
     end
 end
+=#
+
 function vget_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
 
     nx = docp.dim_NLP_x
-    n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     offset = (nx + m) * (i-1)
 
@@ -162,15 +162,16 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
 
     ocp = docp.ocp
     t0 = time_grid[1]
-    x0 = get_state_at_time_step(xu, docp, 1)
-    u0 = get_control_at_time_step(xu, docp, 1)
+    x0 = vget_state_at_time_step(xu, docp, 1)
+    u0 = vget_control_at_time_step(xu, docp, 1)
 
     if docp.has_inplace
         docp.dynamics((@view work[1:docp.dim_OCP_x]), t0, x0, u0, v)
     else
-        work[1:docp.dim_OCP_x] .= docp.dynamics(t0, x0, u0, v)
+        work[1:docp.dim_NLP_x] .= docp.dynamics_ext(t0, x0, u0, v)
     end
     
+    #=
     if docp.has_lagrange
         if docp.has_inplace
             l = similar(xu, 1)
@@ -180,6 +181,7 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
             work[docp.dim_NLP_x] = docp.lagrange(t0, x0, u0, v)
         end
     end
+    =#
 
     return work
 end
@@ -199,24 +201,25 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # variables
     ocp = docp.ocp
     ti = time_grid[i]
-    xi = get_state_at_time_step(xu, docp, i)
-    ui = get_control_at_time_step(xu, docp, i)
-    fi = work[1:docp.dim_OCP_x] # copy !
+    xi = vget_state_at_time_step(xu, docp, i)
+    ui = vget_control_at_time_step(xu, docp, i)
+    fi = work[1:docp.dim_NLP_x] # copy !
 
     tip1 = time_grid[i+1]
-    xip1 = get_state_at_time_step(xu, docp, i+1)
-    uip1 = get_control_at_time_step(xu, docp, i+1)
+    xip1 = vget_state_at_time_step(xu, docp, i+1)
+    uip1 = vget_control_at_time_step(xu, docp, i+1)
 
     if docp.has_inplace
         docp.dynamics((@view work[1:docp.dim_OCP_x]), tip1, xip1, uip1, v)
     else
-        work[1:docp.dim_OCP_x] .= docp.dynamics(tip1, xip1, uip1, v)
+        work[1:docp.dim_NLP_x] .= docp.dynamics_ext(tip1, xip1, uip1, v)
     end
     hi = tip1 - ti
 
     # trapeze rule with 'smart' update for dynamics
-    @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * hi * (fi + work[1:docp.dim_OCP_x]))
+    @. c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + 0.5 * hi * (fi + work[1:docp.dim_NLP_x]))
     
+    #=
     if docp.has_lagrange
         xli = get_lagrange_state_at_time_step(xu, docp, i)
         xlip1 = get_lagrange_state_at_time_step(xu, docp, i+1)
@@ -230,6 +233,8 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         end
         c[offset+docp.dim_OCP_x+1] = xlip1 - (xli + 0.5 * hi * (li + work[docp.dim_OCP_x+1]))
     end
+    =#
+
     offset += docp.dim_NLP_x    
 
     # path constraints

@@ -22,14 +22,26 @@ end=#
 # +++ add v case v[1] if dim1, v else (including empty v case)
 # vectorization for state or control constraints
 # NB. result is vectorized
-function vectorize_1(fun, dim_arg, dim_f)
-    if dim_arg == 1
-        funv = (x1, x2, v) -> [fun(x1[1], x2[1], v)]
+function vectorize_x(fun, dim_x, dim_f)
+    if dim_x == 1
+        funv = (t, x, v) -> [fun(t, x[1], v)]
+    else
+        funv = (t, x, v) -> fun(t, x[1:dim_x], v)
+    end
+    if dim_f == 1
+        return (t, x, v) -> [funv(t, x, v)]
+    else
+        return funv
+    end
+end
+function vectorize_u(fun, dim_u, dim_f)
+    if dim_u == 1
+        funv = (t, u, v) -> [fun(t, u[1], v)]
     else
         funv = fun
     end
     if dim_f == 1
-        return (x1, x2, v) -> [funv(x1, x2, v)]
+        return (t, u, v) -> [funv(t, u, v)]
     else
         return funv
     end
@@ -40,7 +52,7 @@ function vectorize_xx(fun, dim_x)
     if dim_x == 1
         return (x1, x2, v) -> [fun(x1[1], x2[1], v)]
     else
-        return fun
+        return (x1, x2, v) -> fun(x1[1:dim_x], x2[1:dim_x], v)
     end
 end
 # vectorization for dynamics, lagrange cost, mixed constraints
