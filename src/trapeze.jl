@@ -43,6 +43,7 @@ end
 # could be fused with one above if 
 # - using extended dynamics that include lagrange cost
 # - scalar case is handled at OCP level
+# +++ remove
 function get_NLP_variables_at_t_i(xu, docp::DOCP{Trapeze}, i::Int)
 
     nx = docp.dim_NLP_x
@@ -57,7 +58,7 @@ function get_NLP_variables_at_t_i(xu, docp::DOCP{Trapeze}, i::Int)
     return xi, ui
 end
 
-
+# +++ split
 function set_variables_at_t_i!(xu, x_init, u_init, docp::DOCP{Trapeze}, i::Int)
 
     nx = docp.dim_NLP_x
@@ -89,8 +90,10 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
     u0 = vget_control_at_time_step(xu, docp, 1)
 
     if docp.has_inplace
+        # +++ pass just work
         docp.dynamics_ext((@view work[1:docp.dim_NLP_x]), t0, x0, u0, v)
     else
+        # +++ remove slice and .=
         work[1:docp.dim_NLP_x] .= docp.dynamics_ext(t0, x0, u0, v)
     end
     
@@ -114,20 +117,23 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     ti = time_grid[i]
     xi = vget_state_at_time_step(xu, docp, i)
     ui = vget_control_at_time_step(xu, docp, i)
-    fi = work[1:docp.dim_NLP_x] # copy !
+    fi = work[1:docp.dim_NLP_x] # copy ! +++ remove slice ?
 
     tip1 = time_grid[i+1]
     xip1 = vget_state_at_time_step(xu, docp, i+1)
     uip1 = vget_control_at_time_step(xu, docp, i+1)
 
     if docp.has_inplace
+        # +++ pass just work
         docp.dynamics_ext((@view work[1:docp.dim_NLP_x]), tip1, xip1, uip1, v)
     else
+        # +++ remove slice and .=
         work[1:docp.dim_NLP_x] .= docp.dynamics_ext(tip1, xip1, uip1, v)
     end
     hi = tip1 - ti
 
     # trapeze rule with 'smart' update for dynamics
+    # +++ remove @. ?
     @. c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + 0.5 * hi * (fi + work[1:docp.dim_NLP_x]))
     offset += docp.dim_NLP_x    
 

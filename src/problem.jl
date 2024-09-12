@@ -174,8 +174,8 @@ struct DOCP{T <: Discretization}
             end
         else
             dynamics_ext = function (t, x, u, v)
-                # NB. preallocating f is worse, even with .= ...
-                f = ocp.dynamics(t, _x(x), _u(u), v)
+                # NB. preallocating f is worse than push
+                f = _vec(ocp.dynamics(t, _x(x), _u(u), v))
                 if has_lagrange
                     push!(f, ocp.lagrange(t, _x(x), _u(u), v))
                 end
@@ -408,7 +408,8 @@ Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)    
 
-    # +++REDO Notes on allocations:
+    # +++REDO tests 
+    # Notes on allocations:
     # .= *increases* allocations
     # @views reduces them locally but increases total allocs 
     if docp.dim_u_cons > 0

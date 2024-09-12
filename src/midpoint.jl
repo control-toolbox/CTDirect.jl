@@ -25,46 +25,45 @@ $(TYPEDSIGNATURES)
 Retrieve state and control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
 """
-function get_variables_at_time_step(xu, docp::DOCP{Midpoint}, i)
+function vget_state_at_time_step(xu, docp::DOCP{Midpoint}, i)
 
     nx = docp.dim_NLP_x
-    n = docp.dim_OCP_x
+    m = docp.dim_NLP_u
+    offset = (nx*(1+docp.discretization.stage) + m) * (i-1)
+
+    return @view xu[(offset + 1):(offset + nx)]
+
+end
+
+function vget_control_at_time_step(xu, docp::DOCP{Midpoint}, i)
+
+    nx = docp.dim_NLP_x
+    m = docp.dim_NLP_u
+    N = docp.dim_NLP_steps
+    if i < N+1
+        offset = (nx*(1+docp.discretization.stage) + m) * (i-1)
+    else
+        offset = (nx*(1+docp.discretization.stage) + m) * (i-2)
+    end
+
+    return @view xu[(offset + nx + 1):(offset + nx + m)]
+
+end
+
+function vget_ki_at_time_step(xu, docp::DOCP{Midpoint}, i)
+
+    nx = docp.dim_NLP_x
     m = docp.dim_NLP_u
     N = docp.dim_NLP_steps
     offset = (nx*(1+docp.discretization.stage) + m) * (i-1)
 
-    # retrieve scalar/vector OCP state (w/o lagrange state) 
-    if n == 1
-        xi = xu[offset + 1]
-    else
-        xi = xu[(offset + 1):(offset + n)]
-    end
-    if docp.has_lagrange
-        xli = xu[offset + nx]
-    else
-        xli = nothing # dummy. use xu type ?
-    end
-
-    # retrieve scalar/vector control (convention u(tf) = U_N-1)
-    if i < N+1
-        offset_u = offset
-    else
-        offset_u = (nx*(1+docp.discretization.stage) + m) * (i-2)
-    end
-    if m == 1
-        ui = xu[offset_u + nx + 1]
-    else
-        ui = xu[(offset_u + nx + 1):(offset_u + nx + m)]
-    end
-
     # retrieve vector stage variable (except at final time)
     if i < N+1
-        ki = xu[(offset + nx + m + 1):(offset + nx + m + nx) ]
+        return @view xu[(offset + nx + m + 1):(offset + nx + m + nx) ]
     else
-        ki = nothing
+        return nothing
     end
 
-    return xi, ui, xli, ki
 end
 
 
@@ -141,47 +140,30 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
     ocp = docp.ocp
     disc = docp.discretization
     ti = time_grid[i]
-    xi, ui, xli, ki = get_variables_at_time_step(xu, docp, i)
+    xi = vget_state_at_time_step(xu, docp, i)
+    ui = vget_control_at_time_step(xu, docp, i)
+    u=ki = vget_ki_at_time_step(xu, docp, i)
 
     tip1 = time_grid[i+1]
-    xip1, _, xlip1 = get_variables_at_time_step(xu, docp, i+1)
+    xip1 = vget_state_at_time_step(xu, docp, i+1)
     
     hi = tip1 - ti
 
     # midpoint rule
     h_sum_bk = hi * disc.butcher_b[1] * ki[1:docp.dim_NLP_x]
-    c[offset+1:offset+docp.dim_OCP_x] .= xip1 .- (xi .+ h_sum_bk[1:docp.dim_OCP_x])
-
-    if docp.has_lagrange
-        c[offset+docp.dim_NLP_x] = xlip1 - (xli + h_sum_bk[end])
-    end
+    c[offset+1:offset+docp.dim_NLP_x] .= xip1 .- (xi .+ h_sum_bk)
     offset += docp.dim_NLP_x
 
     # stage equation at mid-step
     ts = ti + hi * disc.butcher_c[1]
-    if docp.dim_OCP_x == 1
-        xs = xi + hi * disc.butcher_a[1][1] * ki[1] #FFS
-    else
-        xs = xi .+ hi .* (disc.butcher_a[1][1] .* ki[1:docp.dim_OCP_x])
-    end
-    #xs = 0.5 * (xi + xip1) compare bench
+    xs = xi + hi * (disc.butcher_a[1][1] * ki)
+    #+++xs = 0.5 * (xi + xip1) compare bench
 
     if docp.has_inplace
-        docp.dynamics((@view c[offset+1:offset+docp.dim_OCP_x]), ts, xs, ui, v)
-        @views c[offset+1:offset+docp.dim_OCP_x] = -c[offset+1:offset+docp.dim_OCP_x] + ki[1:docp.dim_OCP_x]
+        docp.dynamics_ext((@view c[offset+1:offset+docp.dim_NLP_x]), ts, xs, ui, v)
+        @views c[offset+1:offset+docp.dim_NLP_x] = -c[offset+1:offset+docp.dim_NLP_x] + ki
     else
-        c[offset+1:offset+docp.dim_OCP_x] .= ki[1:docp.dim_OCP_x] .- docp.dynamics(ts, xs, ui, v)
-    end
-    # +++ just define extended dynamics !
-    if docp.has_lagrange
-        if docp.has_inplace
-            # ugly...
-            ls = similar(xu, 1)
-            docp.lagrange(ls, ts, xs, ui, v)
-            c[offset+docp.dim_NLP_x] = ki[end] - ls[1] 
-        else
-            c[offset+docp.dim_NLP_x] = ki[end] - docp.lagrange(t_s, x_s, ui, v)
-        end
+        c[offset+1:offset+docp.dim_NLP_x] .= ki .- docp.dynamics_ext(ts, xs, ui, v)
     end
     offset += docp.dim_NLP_x
 
