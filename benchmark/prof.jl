@@ -26,6 +26,15 @@ Tmax = 3.5
 function local_dynamics(t, x, u, v)
     return F0(x, Cd, beta) + u * F1(x, Tmax, b)
 end
+#= compact function is not better...
+function compact_dynamics(t, x, u, vv)
+    r, v, m = x
+    D = Cd * v^2 * exp(-beta * (r - 1))
+    return [v,
+            -D / m - 1 / r^2 + u * Tmax / m ,
+            - b * u * Tmax]
+end=#
+
 
 
 function test_basic()
@@ -61,24 +70,25 @@ function test_unit(;test_obj=true, test_cons=true, test_dyn=true, test_get=true,
     ocp = prob[:ocp]
     docp,_ = direct_transcription(ocp, grid_size=grid_size, discretization=discretization) # nlp creates more allocs !
     xu = CTDirect.DOCP_initial_guess(docp)
-    cons = fill(-666.666, docp.dim_NLP_constraints)
+    cons = fill(666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dim_NLP_x)
+    vdynamics = CTDirect.vectorize(docp.dynamics, docp.dim_OCP_x, docp.dim_NLP_u)
 
     # getters
-    a = @allocated begin
-        t = CTDirect.get_final_time(xu, docp)
+    #NB same numbers with @allocated
+    #t: 16 with getter vs 0 with get_optim_variable[index]... type problem ? note that times are actually type unstable between fixed times / free times OCPs...
+    #x: 80 with scal/vec*, 80 with always vec, 0 with view
+    #u:  0 with scal*/vec, 0 with view
+    #v:  0 with scal*/vec
+    if test_get
+        print("t "); @btime CTDirect.get_final_time($xu, $docp)
+        print("t bis"); @btime CTDirect.get_optim_variable($xu, $docp)[$docp.ocp.final_time]
+        print("x "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
+        print("vx "); @btime CTDirect.vget_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
+        print("u "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps)
+        print("vu "); @btime CTDirect.vget_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
+        print("v "); @btime CTDirect.get_optim_variable($xu, $docp)
     end
-    b = @allocated begin
-        x = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
-    end
-    c = @allocated begin
-        u = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
-    end
-    d = @allocated begin
-        v = CTDirect.get_optim_variable(xu, docp)
-    end
-    println("getters t ", a, " x ", b, " u ", c, " v ", d)
-
 
     # DOCP_objective
     if test_obj
@@ -93,7 +103,7 @@ function test_unit(;test_obj=true, test_cons=true, test_dyn=true, test_get=true,
     # DOCP_constraints
     if test_cons
         CTDirect.DOCP_constraints!(cons, xu, docp) # compile
-        if any(cons.==-666.666)
+        if any(cons.==666.666)
             error("undefined values in constraints ",cons)
         end
         #@btime CTDirect.DOCP_constraints!($c, $xu, $docp)
@@ -104,21 +114,25 @@ function test_unit(;test_obj=true, test_cons=true, test_dyn=true, test_get=true,
         println("DOCP_constraints! ", a)
     end
 
-    # dynamics
+    # dynamics (nb ocp.dynamics idem)
+    # 384 with standard scal/vec getters (@allocated)
+    # 400 with @btime -_- ffs
+    # dynamics x u  649.630 ns (9 allocations: 400 bytes)
+    # dynamics raw  659.401 ns (7 allocations: 432 bytes)
+    # vdynamics vx vu  636.708 ns (7 allocations: 432 bytes)
+    # vdynamics vraw  635.243 ns (7 allocations: 432 bytes)
+    t = CTDirect.get_final_time(xu, docp)
+    x = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
+    u = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
+    v = CTDirect.get_optim_variable(xu, docp)
+    vx = CTDirect.vget_state_at_time_step(xu, docp, docp.dim_NLP_steps)
+    vu = CTDirect.vget_control_at_time_step(xu, docp, docp.dim_NLP_steps)
     if test_dyn
-        docp.ocp.dynamics(t, x, u, v) # compile
-        Profile.clear_malloc_data()
-        println(typeof(t))
-        a = @allocated begin
-            docp.dynamics(t, x, u, v) # 384 ie 6 float64 (args, or vect args + ret ?); 368 sans le t ie 16 de moins, encore le 16 !
-            #nb idem ocp.dynamics
-        end
-        #b = @allocated begin
-        #    local_dynamics(t, x, u, v) # 368 comme sans le t...
-        #end
-        println("dynamics ", a)
+        print("dynamics x u"); @btime $docp.dynamics($t, $x, $u, $v)
+        print("dynamics raw"); @btime $docp.dynamics(1., [1.,1.,1.], 1., 1.)
+        print("vdynamics vx vu"); @btime $vdynamics($t, $vx, $vu, $v)
+        print("vdynamics vraw"); @btime $vdynamics($xu[end], (@view $xu[1:3]), (@view $xu[4:4]), $xu[end])
     end
-
 end
 
 # check vectorize too !

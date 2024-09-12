@@ -59,28 +59,23 @@ function get_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
     offset = (nx + m) * (i-1)
 
     # retrieve scalar/vector OCP state (w/o lagrange state) 
+    # NB. using Val(n) is much worse...
     if n == 1
         return xu[offset + 1]
     else
         return xu[(offset + 1):(offset + n)]
     end
 end
-#= using Val on dimension is much worse...
-function get_state_at_time_step(xu, docp::DOCP{Trapeze}, ::Val{n}, i) where {n}
+
+function vget_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
 
     nx = docp.dim_NLP_x
-    #n = docp.dim_OCP_x
+    n = docp.dim_OCP_x
     m = docp.dim_NLP_u
     offset = (nx + m) * (i-1)
 
-    # retrieve scalar/vector OCP state (w/o lagrange state) 
-    if n == 1
-        return xu[offset + 1]
-    else
-        return xu[(offset + 1):(offset + n)]
-    end
+    return @view xu[(offset + 1):(offset + n)]
 end
-=#
 
 function get_lagrange_state_at_time_step(xu, docp::DOCP{Trapeze}, i)    
 
@@ -109,6 +104,15 @@ function get_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
     else
         return xu[(offset + nx + 1):(offset + nx + m)]
     end
+end
+function vget_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
+
+    nx = docp.dim_NLP_x
+    n = docp.dim_OCP_x
+    m = docp.dim_NLP_u
+    offset = (nx + m) * (i-1)
+
+    return @view xu[(offset + nx + 1):(offset + nx + m)]
 
 end
 

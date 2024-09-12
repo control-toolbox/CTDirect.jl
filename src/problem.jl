@@ -22,9 +22,10 @@ struct DOCP{T <: Discretization}
     ocp::OptimalControlModel # remove at some point ?
 
     # functions
-    dynamics::Any
-    lagrange::Any
-    mayer::Any
+    dynamics::Function
+    lagrange::Function
+    mayer::Function
+    dynamics_ext::Function
     control_constraints::Any
     state_constraints::Any
     mixed_constraints::Any
@@ -133,6 +134,19 @@ struct DOCP{T <: Discretization}
         # NLP unknown (state + control + variable [+ stage])
         dim_NLP_variables = (N + 1) * dim_NLP_x + (N + discretization.additional_controls) * dim_NLP_u + dim_NLP_v + N * dim_NLP_x * dim_stage
 
+        # encapsulated OCP functions
+        dynamics = vectorize(ocp.dynamics, docp.dim_OCP_x, docp.dim_NLP_u, docp.dim_OCP_x)
+        lagrange = vectorize(ocp.lagrange, docp.dim_OCP_x, docp.dim_NLP_u, 1)
+        mayer = vectorize_xx(ocp.mayer, docp.dim_OCP_x)
+        function dynamics_ext(t, x, u, v)
+            # try alloc vector first ?
+            f = dynamics(t, x, u, v)
+            if docp.has_lagrange
+                push!(f, lagrange(t, x, u, v))
+            end
+            return f
+        end
+
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
         control_constraints,
@@ -143,6 +157,10 @@ struct DOCP{T <: Discretization}
         control_box,
         state_box,
         variable_box = CTBase.nlp_constraints!(ocp)
+        # vectorize functions
+        control_constraints[2] = vectorize_u(control_constraints[2], docp.dim_NLP_u)
+        state_constraints[2] = vectorize_x(state_constraints[2], docp.dim_NLP_u)
+        mixed_constraints[2] = vectorize_xu(mixed_constraints[2], docp.dim_NLP_u)
 
         dim_x_box = dim_state_range(ocp)
         dim_u_box = dim_control_range(ocp)
@@ -165,9 +183,10 @@ struct DOCP{T <: Discretization}
         # call constructor with const fields
         docp = new{typeof(discretization)}(
             ocp,
-            dynamics(ocp),
-            lagrange(ocp),
-            mayer(ocp),
+            dynamics,
+            lagrange,
+            mayer,
+            dynamics_ext,
             control_constraints,
             state_constraints,
             mixed_constraints,
@@ -285,6 +304,7 @@ function variables_bounds!(docp::DOCP)
     return var_l, var_u
 end
 
+# Q. should we put objective and constraints *in* DOCP ?
 
 """
 $(TYPEDSIGNATURES)

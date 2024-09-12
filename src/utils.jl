@@ -5,26 +5,64 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
-# +++ todo change arguments order: docp first, then xu
+# +++ todo change arguments order: docp first, then xu ?
 
-function vectorize(fun, dim_x, dim_u)
+
+# Vectorize OCP functions (in and out arguments)
+#= NB try the simpler ?
+_vec(x::Number) = [x]
+_vec(x::AbstractVector) = x
+
+function f(x, y, z)  # could specify ::Union{Number, AbstractVector}
+  xv = _vec(x)
+  yv = _vec(y)
+  ...
+end=#
+
+# +++ add v case v[1] if dim1, v else (including empty v case)
+# vectorization for state or control constraints
+# NB. result is vectorized
+function vectorize_1(fun, dim_arg, dim_f)
+    if dim_arg == 1
+        funv = (x1, x2, v) -> [fun(x1[1], x2[1], v)]
+    else
+        funv = fun
+    end
+    if dim_f == 1
+        return (x1, x2, v) -> [funv(x1, x2, v)]
+    else
+        return funv
+    end
+end
+# vectorization for mayer cost 
+# NB. keep scalar result
+function vectorize_xx(fun, dim_x)
+    if dim_x == 1
+        return (x1, x2, v) -> [fun(x1[1], x2[1], v)]
+    else
+        return fun
+    end
+end
+# vectorization for dynamics, lagrange cost, mixed constraints
+# NB. result is vectorized
+function vectorize_xu(fun, dim_x, dim_u, dim_f)
     if dim_x == 1
         if dim_u == 1
-            fun2 = (t, x, u, v) -> fun(t, x[1], u[1], v)
+            funv = (t, x, u, v) -> fun(t, x[1], u[1], v)
         else
-            fun2 = (t, x, u, v) -> fun(t, x[1], u, v)
+            funv = (t, x, u, v) -> fun(t, x[1], u, v)
         end
     else
         if dim_u == 1
-            fun2 = (t, x, u, v) -> fun(t, x[1:dim_x], u[1], v)
+            funv = (t, x, u, v) -> fun(t, x[1:dim_x], u[1], v)
         else
-            fun2 = (t, x, u, v) -> fun(t, x[1:dim_x], u, v)
+            funv = (t, x, u, v) -> fun(t, x[1:dim_x], u, v)
         end
     end
-    if length(fun2) == 1
-        return [fun2]
+    if dim_f == 1
+        return (t, x, u, v) -> [funv(t, x, u, v)]
     else
-        return fun2
+        return funv
     end
 end
 
