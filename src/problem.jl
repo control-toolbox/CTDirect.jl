@@ -22,9 +22,6 @@ struct DOCP{T <: Discretization}
     ocp::OptimalControlModel # remove at some point ?
 
     # functions
-    dynamics::Function
-    lagrange::Function
-    mayer::Function
     dynamics_ext::Function
     control_constraints::Any
     state_constraints::Any
@@ -54,7 +51,8 @@ struct DOCP{T <: Discretization}
     dim_mixed_cons::Int
     dim_boundary_cons::Int
 
-    ## NLP    
+    ## NLP
+    DOCP_objective::Function    
     dim_NLP_x::Int  # possible lagrange cost
     dim_NLP_u::Int
     dim_NLP_v::Int
@@ -73,6 +71,11 @@ struct DOCP{T <: Discretization}
 
     # discretization scheme
     discretization::T
+
+    # scalar / vector aux function
+    _vec::Function
+    _x::Function
+    _u::Function
 
     # constructor
     function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), discretization=Trapeze())
@@ -134,21 +137,6 @@ struct DOCP{T <: Discretization}
         # NLP unknown (state + control + variable [+ stage])
         dim_NLP_variables = (N + 1) * dim_NLP_x + (N + discretization.additional_controls) * dim_NLP_u + dim_NLP_v + N * dim_NLP_x * dim_stage
 
-        # encapsulated OCP functions
-        dynamics = vectorize_xu(ocp.dynamics, dim_OCP_x, dim_NLP_u; dim_f=dim_OCP_x)
-        lagrange = vectorize_xu(ocp.lagrange, dim_OCP_x, dim_NLP_u)
-        mayer = vectorize_xx(ocp.mayer, dim_OCP_x)
-        function dynamics_ext(t, x, u, v)
-            # +++try alloc vector first ?
-            f = similar(x, dim_NLP_x)
-            f[1:dim_OCP_x] = dynamics(t, x, u, v)
-            if docp.has_lagrange
-                #push!(f, lagrange(t, x, u, v))
-                f[dim_NLP_x] = lagrange(t, x, u, v)
-            end
-            return f
-        end
-
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
         control_constraints,
@@ -171,10 +159,23 @@ struct DOCP{T <: Discretization}
         dim_mixed_cons = dim_mixed_constraints(ocp)
         dim_boundary_cons = dim_boundary_constraints(ocp)
 
-        # vectorize functions and reform tuples
-        control_constraints = (control_constraints[1], vectorize_u(control_constraints[2], dim_NLP_u), control_constraints[3])
-        state_constraints = (state_constraints[1], vectorize_x(state_constraints[2], dim_OCP_x), state_constraints[3])
-        mixed_constraints = (mixed_constraints[1], vectorize_xu(mixed_constraints[2], dim_OCP_x, dim_NLP_u), mixed_constraints[3])
+        # encapsulated OCP functions
+        _vec(f::AbstractVector) = f
+        _vec(f::Number) = [f]
+        _x(x) = (dim_OCP_x == 1) ? x[1] : x[1:dim_OCP_x]
+        _u(u) = (dim_NLP_u == 1) ? u[1] : u
+        if has_inplace
+            error("vectorize todo")
+        else
+            dynamics_ext = function (t, x, u, v)
+                # NB. preallocating f is worse, even with .= ...
+                f = ocp.dynamics(t, _x(x), _u(u), v)
+                if has_lagrange
+                    push!(f, ocp.lagrange(t, _x(x), _u(u), v))
+                end
+                return f
+            end
+        end
 
         # constraints size (dynamics, stage, path, boundary, variable)
         dim_NLP_constraints =
@@ -187,9 +188,6 @@ struct DOCP{T <: Discretization}
         # call constructor with const fields
         docp = new{typeof(discretization)}(
             ocp,
-            dynamics,
-            lagrange,
-            mayer,
             dynamics_ext,
             control_constraints,
             state_constraints,
@@ -215,6 +213,7 @@ struct DOCP{T <: Discretization}
             dim_v_cons,
             dim_mixed_cons,
             dim_boundary_cons,
+            DOCP_objective,
             dim_NLP_x,
             dim_NLP_u,
             dim_NLP_v,
@@ -228,7 +227,10 @@ struct DOCP{T <: Discretization}
             Inf * ones(dim_NLP_variables),
             zeros(dim_NLP_constraints),
             zeros(dim_NLP_constraints),
-            discretization
+            discretization,
+            _vec,
+            _x,
+            _u
         )
 
         return docp
@@ -322,8 +324,7 @@ function DOCP_objective(xu, docp::DOCP)
     ocp = docp.ocp
 
     # optimization variables
-    v = Float64[]
-    docp.has_variable && (v = get_optim_variable(xu, docp))
+    v = get_optim_variable(xu, docp)
 
     # final state is always needed since lagrange cost is there
     xf = vget_state_at_time_step(xu, docp, N+1)
@@ -334,17 +335,16 @@ function DOCP_objective(xu, docp::DOCP)
         if docp.has_inplace
             docp.mayer(obj, x0, xf, v)
         else
-            obj[1] = docp.mayer(x0, xf, v)
+            obj[1] = ocp.mayer(docp._x(x0), docp._x(xf), v)
         end
     end
 
     # lagrange cost
     if docp.has_lagrange
-        xlf = get_lagrange_state_at_time_step(xu, docp, N+1)
         if docp.has_mayer # NB can this actually happen in OCP (cf bolza) ?
-            obj[1] = obj[1] + xlf
+            obj[1] = obj[1] + xf[end]
         else
-            obj[1] = xlf
+            obj[1] = xf[end]
         end
     end
 
@@ -369,9 +369,8 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         get_time_grid!(docp.NLP_time_grid, xu, docp)
     end
 
-    v = Float64[]
-    docp.has_variable && (v = get_optim_variable(xu, docp))
-
+    # initialization
+    v = get_optim_variable(xu, docp)
     work = setWorkArray(docp, xu, docp.NLP_time_grid, v)
 
     # main loop on time steps 
@@ -403,28 +402,28 @@ Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)    
 
-    # Notes on allocations:
+    # +++REDO Notes on allocations:
     # .= *increases* allocations
     # @views reduces them locally but increases total allocs 
     if docp.dim_u_cons > 0
         if docp.has_inplace
             docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),t_i, u_i, v)
         else
-            c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](t_i, u_i, v)
+            c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](t_i, docp._u(u_i), v)
         end
     end
     if docp.dim_x_cons > 0 
         if docp.has_inplace
             docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),t_i, x_i, v)
         else
-            c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, x_i, v)
+            c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, docp._x(x_i), v)
         end
     end
     if docp.dim_mixed_cons > 0 
         if docp.has_inplace
             docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), t_i, x_i, u_i, v)
         else
-            c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, x_i, u_i, v)
+            c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, docp._x(x_i), docp._u(u_i), v)
         end
     end
 
@@ -482,7 +481,7 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
         if docp.has_inplace
             docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]), x0, xf, v)
         else
-            c[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[2](x0, xf, v)
+            c[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[2](docp._x(x0), docp._x(xf), v)
         end
     end
 
@@ -497,8 +496,7 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # null initial condition for lagrangian cost state
     if docp.has_lagrange
-        xl0 = get_lagrange_state_at_time_step(xu, docp, 1)
-        c[offset+docp.dim_boundary_cons+docp.dim_v_cons+1] = xl0
+        c[offset+docp.dim_boundary_cons+docp.dim_v_cons+1] = x0[end]
     end
 end
 

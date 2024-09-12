@@ -8,77 +8,6 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 # +++ todo change arguments order: docp first, then xu ?
 
 
-# Vectorize OCP functions (in and out arguments)
-#= NB try the simpler ?
-_vec(x::Number) = [x]
-_vec(x::AbstractVector) = x
-
-function f(x, y, z)  # could specify ::Union{Number, AbstractVector}
-  xv = _vec(x)
-  yv = _vec(y)
-  ...
-end=#
-
-# +++ add v case v[1] if dim1, v else (including empty v case)
-# vectorization for state or control constraints
-# NB. result is vectorized
-function vectorize_x(fun, dim_x::Int; dim_f=0)
-    if dim_x == 1
-        funv = (t, x, v) -> fun(t, x[1], v)
-    else
-        funv = (t, x, v) -> fun(t, x[1:dim_x], v)
-    end
-    if dim_f == 1
-        return (t, x, v) -> [funv(t, x, v)]
-    else
-        return funv
-    end
-end
-function vectorize_u(fun, dim_u::Int; dim_f=0)
-    if dim_u == 1
-        funv = (t, u, v) -> fun(t, u[1], v)
-    else
-        funv = fun
-    end
-    if dim_f == 1
-        return (t, u, v) -> [funv(t, u, v)]
-    else
-        return funv
-    end
-end
-# vectorization for mayer cost 
-# NB. keep scalar result
-function vectorize_xx(fun, dim_x::Int)
-    if dim_x == 1
-        return (x1, x2, v) -> [fun(x1[1], x2[1], v)]
-    else
-        return (x1, x2, v) -> fun(x1[1:dim_x], x2[1:dim_x], v)
-    end
-end
-# vectorization for dynamics, lagrange cost, mixed constraints
-# NB. result is vectorized
-function vectorize_xu(fun, dim_x::Int, dim_u::Int; dim_f=0)
-    if dim_x == 1
-        if dim_u == 1
-            funv = (t, x, u, v) -> fun(t, x[1], u[1], v)
-        else
-            funv = (t, x, u, v) -> fun(t, x[1], u, v)
-        end
-    else
-        if dim_u == 1
-            funv = (t, x, u, v) -> fun(t, x[1:dim_x], u[1], v)
-        else
-            funv = (t, x, u, v) -> fun(t, x[1:dim_x], u, v)
-        end
-    end
-    if dim_f == 1
-        return (t, x, u, v) -> [funv(t, x, u, v)]
-    else
-        return funv
-    end
-end
-
-
 """
 $(TYPEDSIGNATURES)
 
@@ -93,7 +22,7 @@ function get_optim_variable(xu, docp)
             return xu[(end - docp.dim_NLP_v + 1):end]
         end
     else
-        error("Problem is not variable dependent")
+        return Float64[]
     end
 end
 

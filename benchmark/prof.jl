@@ -59,7 +59,7 @@ function test_basic()
 end
 
 
-function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj=true, test_cons=true, test_trans=true, test_solve=true, grid_size=100, discretization=:trapeze, in_place=false)
+function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, grid_size=100, discretization=:trapeze, in_place=false)
     
     # define problem and variables
     if in_place
@@ -91,11 +91,15 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
     if test_get
         print("t "); @btime CTDirect.get_final_time($xu, $docp)
         print("t bis"); @btime CTDirect.get_optim_variable($xu, $docp)[$docp.ocp.final_time]
-        #print("x "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
-        print("vx "); @btime CTDirect.vget_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
-        #print("u "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps)
-        print("vu "); @btime CTDirect.vget_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
         print("v "); @btime CTDirect.get_optim_variable($xu, $docp)
+        print("vx "); @btime CTDirect.vget_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
+        print("vu "); @btime CTDirect.vget_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
+        if warntype
+            @code_warntype CTDirect.get_final_time(xu, docp)
+            @code_warntype CTDirect.get_optim_variable(xu, docp)
+            @code_warntype CTDirect.vget_state_at_time_step(xu, docp, docp.dim_NLP_steps)
+            @code_warntype CTDirect.vget_control_at_time_step(xu, docp, docp.dim_NLP_steps)
+        end
     end
 
     # dynamics (nb ocp.dynamics idem)
@@ -114,14 +118,14 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
     if test_dyn
         #print("dynamics x u"); @btime $docp.dynamics($t, $x, $u, $v)
         #print("dynamics raw"); @btime $docp.dynamics(1., [1.,1.,1.], 1., 1.)
-        print("dynamics vx vu"); @btime $docp.dynamics($t, $vx, $vu, $v)
+        #print("dynamics vx vu"); @btime $docp.dynamics($t, $vx, $vu, $v)
         print("dynamics_ext"); @btime $docp.dynamics_ext($t, $vx, $vu, $v)
     end
 
     if test_unit_cons
-        println(typeof(docp.control_constraints[2](t, vu, v)))
-        println(typeof(docp.state_constraints[2](t, vx, v)))
-        println(typeof(docp.mixed_constraints[2](t, vx, vu, v)))
+        #println(typeof(docp.control_constraints[2](t, vu, v)))
+        #println(typeof(docp.state_constraints[2](t, vx, v)))
+        #println(typeof(docp.mixed_constraints[2](t, vx, vu, v)))
         print("u cons"); @btime $docp.control_constraints[2]($t, $vu, $v)
         print("x cons"); @btime $docp.state_constraints[2]($t, $vx, $v)
         print("xu cons"); @btime $docp.mixed_constraints[2]($t, $vx, $vu, $v)
@@ -151,3 +155,10 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
     end
 
 end
+
+#=
+Objective  153.872 ns (9 allocations: 384 bytes)
+Constraints  358.777 μs (8688 allocations: 335.06 KiB)
+Transcription  16.985 ms (186093 allocations: 21.25 MiB)
+Solve  170.091 ms (2228302 allocations: 119.74 MiB)
+=#
