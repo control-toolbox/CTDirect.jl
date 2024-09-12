@@ -59,7 +59,7 @@ function test_basic()
 end
 
 
-function test_unit(;test_obj=true, test_cons=true, test_dyn=true, test_get=true, grid_size=10, discretization=:trapeze, in_place=false)
+function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj=true, test_cons=true, test_trans=true, test_solve=true, grid_size=100, discretization=:trapeze, in_place=false)
     
     # define problem and variables
     if in_place
@@ -68,11 +68,19 @@ function test_unit(;test_obj=true, test_cons=true, test_dyn=true, test_get=true,
         prob = goddard_all()
     end
     ocp = prob[:ocp]
-    docp,_ = direct_transcription(ocp, grid_size=grid_size, discretization=discretization) # nlp creates more allocs !
+    discretization = string(discretization)
+    if discretization == "midpoint"
+        disc_method = CTDirect.Midpoint()
+    elseif discretization == "trapeze"
+        disc_method = CTDirect.Trapeze()
+    else
+        error("Unknown discretization method:", discretization)
+    end
+    #docp,_ = direct_transcription(ocp, grid_size=grid_size, discretization=discretization) # nlp creates more allocs !
+    docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), discretization=disc_method)
     xu = CTDirect.DOCP_initial_guess(docp)
     cons = fill(666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dim_NLP_x)
-    vdynamics = CTDirect.vectorize(docp.dynamics, docp.dim_OCP_x, docp.dim_NLP_u)
 
     # getters
     #NB same numbers with @allocated
@@ -83,35 +91,11 @@ function test_unit(;test_obj=true, test_cons=true, test_dyn=true, test_get=true,
     if test_get
         print("t "); @btime CTDirect.get_final_time($xu, $docp)
         print("t bis"); @btime CTDirect.get_optim_variable($xu, $docp)[$docp.ocp.final_time]
-        print("x "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
+        #print("x "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
         print("vx "); @btime CTDirect.vget_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
-        print("u "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps)
+        #print("u "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps)
         print("vu "); @btime CTDirect.vget_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
         print("v "); @btime CTDirect.get_optim_variable($xu, $docp)
-    end
-
-    # DOCP_objective
-    if test_obj
-        CTDirect.DOCP_objective(xu, docp) # compile
-        Profile.clear_malloc_data()
-        a = @allocated begin
-            obj = CTDirect.DOCP_objective(xu, docp)
-        end
-        println("DOCP_objective ", a)
-    end
-
-    # DOCP_constraints
-    if test_cons
-        CTDirect.DOCP_constraints!(cons, xu, docp) # compile
-        if any(cons.==666.666)
-            error("undefined values in constraints ",cons)
-        end
-        #@btime CTDirect.DOCP_constraints!($c, $xu, $docp)
-        Profile.clear_malloc_data()
-        a = @allocated begin
-            CTDirect.DOCP_constraints!(cons, xu, docp)
-        end
-        println("DOCP_constraints! ", a)
     end
 
     # dynamics (nb ocp.dynamics idem)
@@ -122,17 +106,48 @@ function test_unit(;test_obj=true, test_cons=true, test_dyn=true, test_get=true,
     # vdynamics vx vu  636.708 ns (7 allocations: 432 bytes)
     # vdynamics vraw  635.243 ns (7 allocations: 432 bytes)
     t = CTDirect.get_final_time(xu, docp)
-    x = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
-    u = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
+    #x = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
+    #u = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
     v = CTDirect.get_optim_variable(xu, docp)
     vx = CTDirect.vget_state_at_time_step(xu, docp, docp.dim_NLP_steps)
     vu = CTDirect.vget_control_at_time_step(xu, docp, docp.dim_NLP_steps)
     if test_dyn
-        print("dynamics x u"); @btime $docp.dynamics($t, $x, $u, $v)
-        print("dynamics raw"); @btime $docp.dynamics(1., [1.,1.,1.], 1., 1.)
-        print("vdynamics vx vu"); @btime $vdynamics($t, $vx, $vu, $v)
-        print("vdynamics vraw"); @btime $vdynamics($xu[end], (@view $xu[1:3]), (@view $xu[4:4]), $xu[end])
+        #print("dynamics x u"); @btime $docp.dynamics($t, $x, $u, $v)
+        #print("dynamics raw"); @btime $docp.dynamics(1., [1.,1.,1.], 1., 1.)
+        print("dynamics vx vu"); @btime $docp.dynamics($t, $vx, $vu, $v)
+        print("dynamics_ext"); @btime $docp.dynamics_ext($t, $vx, $vu, $v)
     end
-end
 
-# check vectorize too !
+    if test_unit_cons
+        println(typeof(docp.control_constraints[2](t, vu, v)))
+        println(typeof(docp.state_constraints[2](t, vx, v)))
+        println(typeof(docp.mixed_constraints[2](t, vx, vu, v)))
+        print("u cons"); @btime $docp.control_constraints[2]($t, $vu, $v)
+        print("x cons"); @btime $docp.state_constraints[2]($t, $vx, $v)
+        print("xu cons"); @btime $docp.mixed_constraints[2]($t, $vx, $vu, $v)
+    end
+
+    # DOCP_objective
+    if test_obj
+        print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp) 
+    end
+
+    # DOCP_constraints
+    if test_cons
+        print("Constraints"); @btime CTDirect.DOCP_constraints!($cons, $xu, $docp)
+        if any(cons.==666.666)
+            error("undefined values in constraints ",cons)
+        end
+    end
+
+    # transcription
+    if test_trans
+        print("Transcription"); @btime direct_transcription($ocp, grid_size=$grid_size)
+    end
+
+    # solve
+    if test_solve
+        print("Solve"); @btime direct_solve($ocp, display=false, grid_size=$grid_size)
+    end
+
+end

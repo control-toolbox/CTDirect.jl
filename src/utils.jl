@@ -22,9 +22,9 @@ end=#
 # +++ add v case v[1] if dim1, v else (including empty v case)
 # vectorization for state or control constraints
 # NB. result is vectorized
-function vectorize_x(fun, dim_x, dim_f)
+function vectorize_x(fun, dim_x::Int; dim_f=0)
     if dim_x == 1
-        funv = (t, x, v) -> [fun(t, x[1], v)]
+        funv = (t, x, v) -> fun(t, x[1], v)
     else
         funv = (t, x, v) -> fun(t, x[1:dim_x], v)
     end
@@ -34,9 +34,9 @@ function vectorize_x(fun, dim_x, dim_f)
         return funv
     end
 end
-function vectorize_u(fun, dim_u, dim_f)
+function vectorize_u(fun, dim_u::Int; dim_f=0)
     if dim_u == 1
-        funv = (t, u, v) -> [fun(t, u[1], v)]
+        funv = (t, u, v) -> fun(t, u[1], v)
     else
         funv = fun
     end
@@ -48,7 +48,7 @@ function vectorize_u(fun, dim_u, dim_f)
 end
 # vectorization for mayer cost 
 # NB. keep scalar result
-function vectorize_xx(fun, dim_x)
+function vectorize_xx(fun, dim_x::Int)
     if dim_x == 1
         return (x1, x2, v) -> [fun(x1[1], x2[1], v)]
     else
@@ -57,7 +57,7 @@ function vectorize_xx(fun, dim_x)
 end
 # vectorization for dynamics, lagrange cost, mixed constraints
 # NB. result is vectorized
-function vectorize_xu(fun, dim_x, dim_u, dim_f)
+function vectorize_xu(fun, dim_x::Int, dim_u::Int; dim_f=0)
     if dim_x == 1
         if dim_u == 1
             funv = (t, x, u, v) -> fun(t, x[1], u[1], v)

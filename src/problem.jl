@@ -75,7 +75,7 @@ struct DOCP{T <: Discretization}
     discretization::T
 
     # constructor
-    function DOCP(ocp::OptimalControlModel, grid_size::Integer, time_grid, discretization::Discretization)
+    function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), discretization=Trapeze())
 
         # time grid
         if time_grid == nothing
@@ -135,15 +135,16 @@ struct DOCP{T <: Discretization}
         dim_NLP_variables = (N + 1) * dim_NLP_x + (N + discretization.additional_controls) * dim_NLP_u + dim_NLP_v + N * dim_NLP_x * dim_stage
 
         # encapsulated OCP functions
-        dynamics = vectorize_xu(ocp.dynamics, docp.dim_OCP_x, docp.dim_NLP_u, docp.dim_OCP_x)
-        lagrange = vectorize_xu(ocp.lagrange, docp.dim_OCP_x, docp.dim_NLP_u, 1)
-        mayer = vectorize_xx(ocp.mayer, docp.dim_OCP_x)
+        dynamics = vectorize_xu(ocp.dynamics, dim_OCP_x, dim_NLP_u; dim_f=dim_OCP_x)
+        lagrange = vectorize_xu(ocp.lagrange, dim_OCP_x, dim_NLP_u)
+        mayer = vectorize_xx(ocp.mayer, dim_OCP_x)
         function dynamics_ext(t, x, u, v)
             # +++try alloc vector first ?
-            # f = similar(x, docp.dim_NLP_x) etc
-            f = dynamics(t, x, u, v)
+            f = similar(x, dim_NLP_x)
+            f[1:dim_OCP_x] = dynamics(t, x, u, v)
             if docp.has_lagrange
-                push!(f, lagrange(t, x, u, v))
+                #push!(f, lagrange(t, x, u, v))
+                f[dim_NLP_x] = lagrange(t, x, u, v)
             end
             return f
         end
@@ -158,11 +159,8 @@ struct DOCP{T <: Discretization}
         control_box,
         state_box,
         variable_box = CTBase.nlp_constraints!(ocp)
-        # vectorize functions
-        control_constraints[2] = vectorize_u(control_constraints[2], docp.dim_NLP_u)
-        state_constraints[2] = vectorize_x(state_constraints[2], docp.dim_NLP_u)
-        mixed_constraints[2] = vectorize_xu(mixed_constraints[2], docp.dim_NLP_u)
 
+        # get dimensions
         dim_x_box = dim_state_range(ocp)
         dim_u_box = dim_control_range(ocp)
         dim_v_box = dim_variable_range(ocp)
@@ -173,7 +171,12 @@ struct DOCP{T <: Discretization}
         dim_mixed_cons = dim_mixed_constraints(ocp)
         dim_boundary_cons = dim_boundary_constraints(ocp)
 
-        # constraints (dynamics, stage, path, boundary, variable)
+        # vectorize functions and reform tuples
+        control_constraints = (control_constraints[1], vectorize_u(control_constraints[2], dim_NLP_u), control_constraints[3])
+        state_constraints = (state_constraints[1], vectorize_x(state_constraints[2], dim_OCP_x), state_constraints[3])
+        mixed_constraints = (mixed_constraints[1], vectorize_xu(mixed_constraints[2], dim_OCP_x, dim_NLP_u), mixed_constraints[3])
+
+        # constraints size (dynamics, stage, path, boundary, variable)
         dim_NLP_constraints =
             N * (dim_NLP_x + (dim_NLP_x * dim_stage) + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
         if has_lagrange

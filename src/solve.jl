@@ -36,7 +36,7 @@ function direct_transcription(
     else
         error("Unknown discretization method:", discretization)
     end
-    docp = DOCP(ocp, grid_size, time_grid, disc_method)
+    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, discretization=disc_method)
 
     # set bounds in DOCP
     variables_bounds!(docp)
