@@ -76,18 +76,12 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
     else
         error("Unknown discretization method:", discretization)
     end
-    #docp,_ = direct_transcription(ocp, grid_size=grid_size, discretization=discretization) # nlp creates more allocs !
     docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), discretization=disc_method)
     xu = CTDirect.DOCP_initial_guess(docp)
-    cons = fill(666.666, docp.dim_NLP_constraints)
+    c = fill(666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dim_NLP_x)
 
     # getters
-    #NB same numbers with @allocated
-    #t: 16 with getter vs 0 with get_optim_variable[index]... type problem ? note that times are actually type unstable between fixed times / free times OCPs...
-    #x: 80 with scal/vec*, 80 with always vec, 0 with view
-    #u:  0 with scal*/vec, 0 with view
-    #v:  0 with scal*/vec
     if test_get
         print("t "); @btime CTDirect.get_final_time($xu, $docp)
         print("t bis"); @btime CTDirect.get_optim_variable($xu, $docp)[$docp.ocp.final_time]
@@ -102,33 +96,30 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
         end
     end
 
-    # dynamics (nb ocp.dynamics idem)
-    # 384 with standard scal/vec getters (@allocated)
-    # 400 with @btime -_- ffs
-    # dynamics x u  649.630 ns (9 allocations: 400 bytes)
-    # dynamics raw  659.401 ns (7 allocations: 432 bytes)
-    # vdynamics vx vu  636.708 ns (7 allocations: 432 bytes)
-    # vdynamics vraw  635.243 ns (7 allocations: 432 bytes)
     t = CTDirect.get_final_time(xu, docp)
-    #x = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
-    #u = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
     v = CTDirect.get_optim_variable(xu, docp)
     vx = CTDirect.vget_state_at_time_step(xu, docp, docp.dim_NLP_steps)
     vu = CTDirect.vget_control_at_time_step(xu, docp, docp.dim_NLP_steps)
+    f = similar(xu, docp.dim_NLP_x)
+
     if test_dyn
-        #print("dynamics x u"); @btime $docp.dynamics($t, $x, $u, $v)
-        #print("dynamics raw"); @btime $docp.dynamics(1., [1.,1.,1.], 1., 1.)
-        #print("dynamics vx vu"); @btime $docp.dynamics($t, $vx, $vu, $v)
-        print("dynamics_ext"); @btime $docp.dynamics_ext($t, $vx, $vu, $v)
+        if in_place
+            print("dynamics_ext"); @btime $docp.dynamics_ext($f, $t, $vx, $vu, $v)
+        else
+            print("dynamics_ext"); @btime $docp.dynamics_ext($t, $vx, $vu, $v)
+        end
     end
 
     if test_unit_cons
-        #println(typeof(docp.control_constraints[2](t, vu, v)))
-        #println(typeof(docp.state_constraints[2](t, vx, v)))
-        #println(typeof(docp.mixed_constraints[2](t, vx, vu, v)))
-        print("u cons"); @btime $docp.control_constraints[2]($t, $vu, $v)
-        print("x cons"); @btime $docp.state_constraints[2]($t, $vx, $v)
-        print("xu cons"); @btime $docp.mixed_constraints[2]($t, $vx, $vu, $v)
+        if in_place
+            print("u cons"); @btime $docp.control_constraints[2]($c, $t, $vu, $v)
+            print("x cons"); @btime $docp.state_constraints[2]($c, $t, $vx, $v)
+            print("xu cons"); @btime $docp.mixed_constraints[2]($c, $t, $vx, $vu, $v)            
+        else
+            print("u cons"); @btime $docp.control_constraints[2]($t, $vu, $v)
+            print("x cons"); @btime $docp.state_constraints[2]($t, $vx, $v)
+            print("xu cons"); @btime $docp.mixed_constraints[2]($t, $vx, $vu, $v)
+        end
     end
 
     # DOCP_objective
@@ -138,9 +129,9 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
 
     # DOCP_constraints
     if test_cons
-        print("Constraints"); @btime CTDirect.DOCP_constraints!($cons, $xu, $docp)
-        if any(cons.==666.666)
-            error("undefined values in constraints ",cons)
+        print("Constraints"); @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
+        if any(c.==666.666)
+            error("undefined values in constraints ",c)
         end
     end
 
@@ -156,9 +147,24 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
 
 end
 
-#=
-Objective  153.872 ns (9 allocations: 384 bytes)
-Constraints  358.777 μs (8688 allocations: 335.06 KiB)
-Transcription  16.985 ms (186093 allocations: 21.25 MiB)
-Solve  170.091 ms (2228302 allocations: 119.74 MiB)
+#= OUTPLACE
+dynamics_ext  736.197 ns (14 allocations: 608 bytes)
+u cons  1.311 μs (17 allocations: 576 bytes)
+x cons  699.278 ns (17 allocations: 512 bytes)
+xu cons  717.809 ns (20 allocations: 656 bytes)
+Objective  163.728 ns (8 allocations: 368 bytes)
+Constraints  376.813 μs (8878 allocations: 337.77 KiB)
+Transcription  17.200 ms (186428 allocations: 21.28 MiB)
+Solve  168.787 ms (2272314 allocations: 121.02 MiB)
+=#
+
+#= INPLACE
+dynamics_ext  223.439 ns (16 allocations: 704 bytes)
+u cons  411.290 ns (14 allocations: 448 bytes)
+x cons  393.302 ns (14 allocations: 448 bytes)
+xu cons  416.201 ns (17 allocations: 592 bytes)
+Objective  132.614 ns (7 allocations: 352 bytes)
+Constraints  216.509 μs (8322 allocations: 341.91 KiB)
+Transcription  16.147 ms (185178 allocations: 21.30 MiB)
+Solve  127.944 ms (2156581 allocations: 120.32 MiB)
 =#

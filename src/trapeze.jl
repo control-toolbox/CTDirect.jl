@@ -89,7 +89,7 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
     u0 = vget_control_at_time_step(xu, docp, 1)
 
     if docp.has_inplace
-        docp.dynamics((@view work[1:docp.dim_NLP_x]), t0, x0, u0, v)
+        docp.dynamics_ext((@view work[1:docp.dim_NLP_x]), t0, x0, u0, v)
     else
         work[1:docp.dim_NLP_x] .= docp.dynamics_ext(t0, x0, u0, v)
     end
@@ -121,7 +121,7 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     uip1 = vget_control_at_time_step(xu, docp, i+1)
 
     if docp.has_inplace
-        docp.dynamics((@view work[1:docp.dim_NLP_x]), tip1, xip1, uip1, v)
+        docp.dynamics_ext((@view work[1:docp.dim_NLP_x]), tip1, xip1, uip1, v)
     else
         work[1:docp.dim_NLP_x] .= docp.dynamics_ext(tip1, xip1, uip1, v)
     end

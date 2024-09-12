@@ -165,7 +165,13 @@ struct DOCP{T <: Discretization}
         _x(x) = (dim_OCP_x == 1) ? x[1] : x[1:dim_OCP_x]
         _u(u) = (dim_NLP_u == 1) ? u[1] : u
         if has_inplace
-            error("vectorize todo")
+            dynamics_ext = function (f, t, x, u, v)
+                ocp.dynamics((@view f[1:dim_OCP_x]), t, _x(x), _u(u), v)
+                if has_lagrange
+                    ocp.lagrange((@view f[dim_NLP_x:dim_NLP_x]), t, _x(x), _u(u), v)
+                end
+                return
+            end
         else
             dynamics_ext = function (t, x, u, v)
                 # NB. preallocating f is worse, even with .= ...
@@ -333,7 +339,7 @@ function DOCP_objective(xu, docp::DOCP)
     if docp.has_mayer
         x0 = vget_state_at_time_step(xu, docp, 1)
         if docp.has_inplace
-            docp.mayer(obj, x0, xf, v)
+            ocp.mayer(obj, docp._x(x0), docp._x(xf), v)
         else
             obj[1] = ocp.mayer(docp._x(x0), docp._x(xf), v)
         end
@@ -407,21 +413,21 @@ function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)
     # @views reduces them locally but increases total allocs 
     if docp.dim_u_cons > 0
         if docp.has_inplace
-            docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),t_i, u_i, v)
+            docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),t_i, docp._u(u_i), v)
         else
             c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](t_i, docp._u(u_i), v)
         end
     end
     if docp.dim_x_cons > 0 
         if docp.has_inplace
-            docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),t_i, x_i, v)
+            docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),t_i, docp._x(x_i), v)
         else
             c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](t_i, docp._x(x_i), v)
         end
     end
     if docp.dim_mixed_cons > 0 
         if docp.has_inplace
-            docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), t_i, x_i, u_i, v)
+            docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), t_i, docp._x(x_i), docp._u(u_i), v)
         else
             c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](t_i, docp._x(x_i), docp._u(u_i), v)
         end
@@ -479,7 +485,7 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     # boundary constraints
     if docp.dim_boundary_cons > 0
         if docp.has_inplace
-            docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]), x0, xf, v)
+            docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]), docp._x(x0), docp._x(xf), v)
         else
             c[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[2](docp._x(x0), docp._x(xf), v)
         end
