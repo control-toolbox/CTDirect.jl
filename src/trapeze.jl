@@ -83,18 +83,16 @@ end
 function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
    
     work = similar(xu, docp.dim_NLP_x)
-
-    ocp = docp.ocp
     t0 = time_grid[1]
     x0 = vget_state_at_time_step(xu, docp, 1)
     u0 = vget_control_at_time_step(xu, docp, 1)
 
     if docp.has_inplace
-        # +++ pass just work
+        # passing just work fails some tests oO ?
         docp.dynamics_ext((@view work[1:docp.dim_NLP_x]), t0, x0, u0, v)
     else
-        # +++ remove slice and .=
-        work[1:docp.dim_NLP_x] .= docp.dynamics_ext(t0, x0, u0, v)
+        # keep the dot (some tests fail otherwise)
+        work .= docp.dynamics_ext(t0, x0, u0, v)
     end
     
     return work
@@ -109,6 +107,9 @@ Convention: 1 <= i <= dim_NLP_steps
 """
 function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 
+    # NB. the handling of the work array is a bit tricky
+    # some formulations of the copy/affectation give incorrect results...
+
     # offset for previous steps
     offset = (i-1)*(docp.dim_NLP_x + docp.dim_path_cons)
 
@@ -117,25 +118,24 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     ti = time_grid[i]
     xi = vget_state_at_time_step(xu, docp, i)
     ui = vget_control_at_time_step(xu, docp, i)
-    fi = work[1:docp.dim_NLP_x] # copy ! +++ remove slice ?
+    fi = work[1:docp.dim_NLP_x] # copy ! some tests fail without the slice ??
 
     tip1 = time_grid[i+1]
     xip1 = vget_state_at_time_step(xu, docp, i+1)
     uip1 = vget_control_at_time_step(xu, docp, i+1)
 
     if docp.has_inplace
-        # +++ pass just work
+        # passing just work fails some tests oO...
         docp.dynamics_ext((@view work[1:docp.dim_NLP_x]), tip1, xip1, uip1, v)
     else
-        # +++ remove slice and .=
-        work[1:docp.dim_NLP_x] .= docp.dynamics_ext(tip1, xip1, uip1, v)
+        # keep the dot (worse otherwise)
+        work .= docp.dynamics_ext(tip1, xip1, uip1, v)
     end
     hi = tip1 - ti
 
-    # trapeze rule with 'smart' update for dynamics
-    # +++ remove @. ?
-    @. c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + 0.5 * hi * (fi + work[1:docp.dim_NLP_x]))
-    offset += docp.dim_NLP_x    
+    # trapeze rule with 'smart' update for dynamics (similar with @.)
+    c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + 0.5 * hi * (fi + work))
+    offset += docp.dim_NLP_x
 
     # path constraints
     setPathConstraints!(docp, c, ti, xi, ui, v, offset)
