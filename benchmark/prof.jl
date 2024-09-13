@@ -86,20 +86,20 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
         print("t "); @btime CTDirect.get_final_time($xu, $docp)
         print("t bis"); @btime CTDirect.get_optim_variable($xu, $docp)[$docp.ocp.final_time]
         print("v "); @btime CTDirect.get_optim_variable($xu, $docp)
-        print("vx "); @btime CTDirect.vget_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
-        print("vu "); @btime CTDirect.vget_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
+        print("vx "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
+        print("vu "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
         if warntype
             @code_warntype CTDirect.get_final_time(xu, docp)
             @code_warntype CTDirect.get_optim_variable(xu, docp)
-            @code_warntype CTDirect.vget_state_at_time_step(xu, docp, docp.dim_NLP_steps)
-            @code_warntype CTDirect.vget_control_at_time_step(xu, docp, docp.dim_NLP_steps)
+            @code_warntype CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
+            @code_warntype CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
         end
     end
 
     t = CTDirect.get_final_time(xu, docp)
     v = CTDirect.get_optim_variable(xu, docp)
-    vx = CTDirect.vget_state_at_time_step(xu, docp, docp.dim_NLP_steps)
-    vu = CTDirect.vget_control_at_time_step(xu, docp, docp.dim_NLP_steps)
+    vx = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
+    vu = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
     f = similar(xu, docp.dim_NLP_x)
 
     if test_dyn

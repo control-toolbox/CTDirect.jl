@@ -162,8 +162,8 @@ struct DOCP{T <: Discretization}
         # encapsulated OCP functions
         _vec(f::AbstractVector) = f
         _vec(f::Number) = [f]
-        _x(x) = (dim_OCP_x == 1) ? x[1] : x[1:dim_OCP_x]
-        _u(u) = (dim_NLP_u == 1) ? u[1] : u
+        _x(x::AbstractVector) = (dim_OCP_x == 1) ? x[1] : x[1:dim_OCP_x]
+        _u(u::AbstractVector) = (dim_NLP_u == 1) ? u[1] : u
         if has_inplace
             dynamics_ext = function (f, t, x, u, v)
                 # NB. need to match destination size
@@ -194,7 +194,7 @@ struct DOCP{T <: Discretization}
         end
 
         # allocate work arrays for discretization
-        initWork(discretization, dim_NLP_x)
+        #initWork(discretization, dim_NLP_x)
 
         # call constructor with const fields
         docp = new{typeof(discretization)}(
@@ -302,13 +302,14 @@ function variables_bounds!(docp::DOCP)
     ocp = docp.ocp
 
     # first we build full ordered sets of bounds, then set them in NLP
-
     # state / control box
     x_lb, x_ub = build_bounds(docp.dim_OCP_x, docp.dim_x_box, docp.state_box)
     u_lb, u_ub = build_bounds(docp.dim_NLP_u, docp.dim_u_box, docp.control_box)
-    for i = 0:N
-        set_variables_at_t_i!(var_l, x_lb, u_lb, docp, i)
-        set_variables_at_t_i!(var_u, x_ub, u_ub, docp, i)
+    for i = 1:N+1
+        set_state_at_time_step!(var_l, x_lb, docp, i)
+        set_state_at_time_step!(var_u, x_ub, docp, i)
+        set_control_at_time_step!(var_l, u_lb, docp, i)
+        set_control_at_time_step!(var_u, u_ub, docp, i)
     end
 
     # variable box
@@ -338,11 +339,11 @@ function DOCP_objective(xu, docp::DOCP)
     v = get_optim_variable(xu, docp)
 
     # final state is always needed since lagrange cost is there
-    xf = vget_state_at_time_step(xu, docp, N+1)
+    xf = get_state_at_time_step(xu, docp, N+1)
 
     # mayer cost
     if docp.has_mayer
-        x0 = vget_state_at_time_step(xu, docp, 1)
+        x0 = get_state_at_time_step(xu, docp, 1)
         if docp.has_inplace
             ocp.mayer(obj, docp._x(x0), docp._x(xf), v)
         else
@@ -383,18 +384,19 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # initialization
     v = get_optim_variable(xu, docp)
     work = setWorkArray(docp, xu, docp.NLP_time_grid, v)
+    #setWorkArray(docp, xu, docp.NLP_time_grid, v)
 
     # main loop on time steps 
     for i = 1:N
         setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
+        #setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i)
     end
 
     # path constraints at final time
-    # +++ could call setConstraintsBlock and skip dynamics part...
     offset = N * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_path_cons)
     tf = docp.NLP_time_grid[N+1]
-    xf = vget_state_at_time_step(xu, docp, N+1)
-    uf = vget_control_at_time_step(xu, docp, N+1)
+    xf = get_state_at_time_step(xu, docp, N+1)
+    uf = get_control_at_time_step(xu, docp, N+1)
     setPathConstraints!(docp, c, tf, xf, uf, v, offset)
 
     # point constraints
@@ -413,7 +415,6 @@ Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)    
 
-    # +++REDO tests 
     # Notes on allocations:
     # .= seems similar
     if docp.dim_u_cons > 0
@@ -484,8 +485,8 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
 
     # variables
-    x0 = vget_state_at_time_step(xu, docp, 1)
-    xf = vget_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
+    x0 = get_state_at_time_step(xu, docp, 1)
+    xf = get_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
@@ -563,9 +564,10 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
 
     # set state / control variables if provided
     time_grid = get_time_grid(NLP_X, docp)
-    for i = 0:(docp.dim_NLP_steps)
-        ti = time_grid[i+1]
-        set_variables_at_t_i!(NLP_X, init.state_init(ti), init.control_init(ti), docp, i)
+    for i = 1:docp.dim_NLP_steps+1
+        ti = time_grid[i]
+        set_state_at_time_step!(NLP_X, init.state_init(ti), docp, i)
+        set_control_at_time_step!(NLP_X, init.control_init(ti), docp, i)
     end
 
     return NLP_X
