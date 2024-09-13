@@ -59,7 +59,7 @@ function test_basic()
 end
 
 
-function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, grid_size=100, discretization=:trapeze, in_place=false)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=true, test_cons=true, test_trans=false, test_solve=false, warntype=true, grid_size=100, discretization=:trapeze, in_place=false)
     
     # define problem and variables
     if in_place
@@ -86,8 +86,8 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
         print("t "); @btime CTDirect.get_final_time($xu, $docp)
         print("t bis"); @btime CTDirect.get_optim_variable($xu, $docp)[$docp.ocp.final_time]
         print("v "); @btime CTDirect.get_optim_variable($xu, $docp)
-        print("vx "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
-        print("vu "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
+        print("x "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
+        print("u "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
         if warntype
             @code_warntype CTDirect.get_final_time(xu, docp)
             @code_warntype CTDirect.get_optim_variable(xu, docp)
@@ -98,33 +98,46 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
 
     t = CTDirect.get_final_time(xu, docp)
     v = CTDirect.get_optim_variable(xu, docp)
-    vx = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
-    vu = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
+    x = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
+    u = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
     f = similar(xu, docp.dim_NLP_x)
 
     if test_dyn
         if in_place
-            print("dynamics_ext"); @btime $docp.dynamics_ext($f, $t, $vx, $vu, $v)
+            print("dynamics_ext"); @btime $docp.dynamics_ext($f, $t, $x, $u, $v)
+            warntype && @code_warntype docp.dynamics_ext(f, t, x, u, v)
         else
-            print("dynamics_ext"); @btime $docp.dynamics_ext($t, $vx, $vu, $v)
+            print("dynamics_ext"); @btime $docp.dynamics_ext($t, $x, $u, $v)
+            warntype && @code_warntype docp.dynamics_ext(t, x, u, v)
         end
     end
 
     if test_unit_cons
         if in_place
-            print("u cons"); @btime $docp.control_constraints[2]($c, $t, $vu, $v)
-            print("x cons"); @btime $docp.state_constraints[2]($c, $t, $vx, $v)
-            print("xu cons"); @btime $docp.mixed_constraints[2]($c, $t, $vx, $vu, $v)            
+            print("u cons"); @btime $docp.control_constraints[2]($c, $t, $u, $v)
+            print("x cons"); @btime $docp.state_constraints[2]($c, $t, $x, $v)
+            print("xu cons"); @btime $docp.mixed_constraints[2]($c, $t, $x, $u, $v)
+            if warntype
+                @code_warntype docp.control_constraints[2](c, t, u, v)
+                @code_warntype docp.state_constraints[2](c, t, x, v)
+                @code_warntype docp.mixed_constraints[2](c, t, x, u, v)
+            end
         else
-            print("u cons"); @btime $docp.control_constraints[2]($t, $vu, $v)
-            print("x cons"); @btime $docp.state_constraints[2]($t, $vx, $v)
-            print("xu cons"); @btime $docp.mixed_constraints[2]($t, $vx, $vu, $v)
+            print("u cons"); @btime $docp.control_constraints[2]($t, $u, $v)
+            print("x cons"); @btime $docp.state_constraints[2]($t, $x, $v)
+            print("xu cons"); @btime $docp.mixed_constraints[2]($t, $x, $u, $v)
+            if warntype
+                @code_warntype docp.control_constraints[2](t, u, v)
+                @code_warntype docp.state_constraints[2](t, x, v)
+                @code_warntype docp.mixed_constraints[2](t, x, u, v)
+            end
         end
     end
 
     # DOCP_objective
     if test_obj
-        print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp) 
+        print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
+        warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
     end
 
     # DOCP_constraints
@@ -133,6 +146,7 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
         if any(c.==666.666)
             error("undefined values in constraints ",c)
         end
+        warntype && @code_warntype CTDirect.DOCP_constraints!(c, xu, docp)
     end
 
     # transcription
