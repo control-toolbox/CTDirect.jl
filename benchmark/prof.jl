@@ -6,10 +6,11 @@ using LinearAlgebra
 using NLPModelsIpopt
 using BenchmarkTools
 using Profile
+using PProf
 
 include("../test/problems/goddard.jl")
 
-# local version of dynamics
+#= local version of dynamics
 function F0(x, Cd, beta)
     r, v, m = x
     D = Cd * v^2 * exp(-beta * (r - 1))
@@ -25,7 +26,7 @@ b = 2
 Tmax = 3.5
 function local_dynamics(t, x, u, v)
     return F0(x, Cd, beta) + u * F1(x, Tmax, b)
-end
+end=#
 #= compact function is not better...
 function compact_dynamics(t, x, u, vv)
     r, v, m = x
@@ -59,7 +60,7 @@ function test_basic()
 end
 
 
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=true, test_cons=true, test_trans=false, test_solve=false, warntype=true, grid_size=100, discretization=:trapeze, in_place=false)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=false, test_cons=true, test_trans=false, test_solve=false, warntype=false, grid_size=100, discretization=:trapeze, in_place=false)
     
     # define problem and variables
     if in_place
@@ -106,9 +107,13 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
         if in_place
             print("dynamics_ext"); @btime $docp.dynamics_ext($f, $t, $x, $u, $v)
             warntype && @code_warntype docp.dynamics_ext(f, t, x, u, v)
+            Profile.clear_malloc_data()
+            docp.dynamics_ext(f, t, x, u, v)
         else
             print("dynamics_ext"); @btime $docp.dynamics_ext($t, $x, $u, $v)
             warntype && @code_warntype docp.dynamics_ext(t, x, u, v)
+            Profile.clear_malloc_data()
+            docp.dynamics_ext(t, x, u, v)
         end
     end
 
@@ -138,6 +143,10 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
     if test_obj
         print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
         warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
+        #Profile.clear_malloc_data()
+        Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
+        results = Profile.Allocs.fetch()
+        PProf.Allocs.pprof()
     end
 
     # DOCP_constraints
@@ -147,6 +156,10 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
             error("undefined values in constraints ",c)
         end
         warntype && @code_warntype CTDirect.DOCP_constraints!(c, xu, docp)
+        #Profile.clear_malloc_data()
+        Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints!(c, xu, docp)
+        results = Profile.Allocs.fetch()
+        PProf.Allocs.pprof()
     end
 
     # transcription
