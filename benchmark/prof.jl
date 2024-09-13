@@ -152,23 +152,22 @@ function test_unit(;test_get=false, test_dyn=true, test_unit_cons=true, test_obj
 end
 
 #= OUTPLACE
-dynamics_ext  736.197 ns (14 allocations: 608 bytes)
-u cons  1.311 μs (17 allocations: 576 bytes)
-x cons  699.278 ns (17 allocations: 512 bytes)
-xu cons  717.809 ns (20 allocations: 656 bytes)
-Objective  163.728 ns (8 allocations: 368 bytes)
-Constraints  376.813 μs (8878 allocations: 337.77 KiB)
-Transcription  17.200 ms (186428 allocations: 21.28 MiB)
-Solve  168.787 ms (2272314 allocations: 121.02 MiB)
-=#
-
-#= INPLACE
-dynamics_ext  223.439 ns (16 allocations: 704 bytes)
-u cons  411.290 ns (14 allocations: 448 bytes)
-x cons  393.302 ns (14 allocations: 448 bytes)
-xu cons  416.201 ns (17 allocations: 592 bytes)
-Objective  132.614 ns (7 allocations: 352 bytes)
-Constraints  216.509 μs (8322 allocations: 341.91 KiB)
-Transcription  16.147 ms (185178 allocations: 21.30 MiB)
-Solve  127.944 ms (2156581 allocations: 120.32 MiB)
+julia> test_unit()
+dynamics_ext  761.696 ns (14 allocations: 608 bytes)
+u cons  1.186 μs (17 allocations: 576 bytes)
+x cons  681.263 ns (17 allocations: 512 bytes)
+xu cons  693.541 ns (20 allocations: 656 bytes)
+Objective  160.520 ns (8 allocations: 368 bytes)
+Constraints  381.958 μs (8475 allocations: 320.47 KiB)
+Transcription  14.954 ms (165217 allocations: 20.43 MiB)
+Solve  158.425 ms (2192013 allocations: 121.40 MiB)
+julia> test_unit(in_place=true)
+dynamics_ext  220.777 ns (16 allocations: 704 bytes)
+u cons  415.065 ns (14 allocations: 448 bytes)
+x cons  396.473 ns (14 allocations: 448 bytes)
+xu cons  423.005 ns (17 allocations: 592 bytes)
+Objective  135.592 ns (7 allocations: 352 bytes)
+Constraints  210.285 μs (8222 allocations: 335.66 KiB)
+Transcription  14.177 ms (165179 allocations: 20.50 MiB)
+Solve  114.000 ms (2147182 allocations: 123.22 MiB)
 =#

@@ -166,15 +166,17 @@ struct DOCP{T <: Discretization}
         _u(u) = (dim_NLP_u == 1) ? u[1] : u
         if has_inplace
             dynamics_ext = function (f, t, x, u, v)
+                # NB. need to match destination size
                 ocp.dynamics((@view f[1:dim_OCP_x]), t, _x(x), _u(u), v)
                 if has_lagrange
+                    # this is a bit weird...
                     ocp.lagrange((@view f[dim_NLP_x:dim_NLP_x]), t, _x(x), _u(u), v)
                 end
                 return
             end
         else
             dynamics_ext = function (t, x, u, v)
-                # NB. preallocating f is worse than push
+                # NB. preallocating f seems worse than using push
                 f = _vec(ocp.dynamics(t, _x(x), _u(u), v))
                 if has_lagrange
                     push!(f, ocp.lagrange(t, _x(x), _u(u), v))
@@ -190,6 +192,9 @@ struct DOCP{T <: Discretization}
             # add initial condition for lagrange state
             dim_NLP_constraints += 1
         end
+
+        # allocate work arrays for discretization
+        initWork(discretization, dim_NLP_x)
 
         # call constructor with const fields
         docp = new{typeof(discretization)}(
@@ -410,8 +415,7 @@ function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)
 
     # +++REDO tests 
     # Notes on allocations:
-    # .= *increases* allocations
-    # @views reduces them locally but increases total allocs 
+    # .= seems similar
     if docp.dim_u_cons > 0
         if docp.has_inplace
             docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),t_i, docp._u(u_i), v)

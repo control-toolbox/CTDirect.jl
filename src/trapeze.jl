@@ -10,9 +10,16 @@ struct Trapeze <: Discretization
     additional_controls::Int  # add control at tf
     info::String
 
-    Trapeze() = new(0, 1, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
+    # work arrays (x, u etc also ?)
+    work::AbstractVector
+
+    # we could pass some ocp field to constructor (eg dims, lagranage)
+    Trapeze() = new(0, 1, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", [])
 end
 
+function initWork(discretization::Trapeze, dim_NLP_x::Int)
+    resize!(discretization.work, dim_NLP_x)
+end
 
 """
 $(TYPEDSIGNATURES)
@@ -89,10 +96,11 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
 
     if docp.has_inplace
         # passing just work fails some tests oO ?
-        docp.dynamics_ext((@view work[1:docp.dim_NLP_x]), t0, x0, u0, v)
+        #docp.dynamics_ext((@view work[1:docp.dim_NLP_x]), t0, x0, u0, v)
+        docp.dynamics_ext(work, t0, x0, u0, v)
     else
-        # keep the dot (some tests fail otherwise)
-        work .= docp.dynamics_ext(t0, x0, u0, v)
+        # NB. work = will create a new variable ;-) (work .= is fine)
+        work[:] = docp.dynamics_ext(t0, x0, u0, v)
     end
     
     return work
@@ -114,11 +122,10 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     offset = (i-1)*(docp.dim_NLP_x + docp.dim_path_cons)
 
     # variables
-    ocp = docp.ocp
     ti = time_grid[i]
     xi = vget_state_at_time_step(xu, docp, i)
     ui = vget_control_at_time_step(xu, docp, i)
-    fi = work[1:docp.dim_NLP_x] # copy ! some tests fail without the slice ??
+    fi = copy(work) # create new copy, not just a reference
 
     tip1 = time_grid[i+1]
     xip1 = vget_state_at_time_step(xu, docp, i+1)
@@ -126,15 +133,15 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 
     if docp.has_inplace
         # passing just work fails some tests oO...
-        docp.dynamics_ext((@view work[1:docp.dim_NLP_x]), tip1, xip1, uip1, v)
+        #docp.dynamics_ext((@view work[1:docp.dim_NLP_x]), tip1, xip1, uip1, v)
+        docp.dynamics_ext(work, tip1, xip1, uip1, v)
     else
-        # keep the dot (worse otherwise)
-        work .= docp.dynamics_ext(tip1, xip1, uip1, v)
+        # copy, do not create a new variable !
+        work[:] = docp.dynamics_ext(tip1, xip1, uip1, v)
     end
-    hi = tip1 - ti
 
     # trapeze rule with 'smart' update for dynamics (similar with @.)
-    c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + 0.5 * hi * (fi + work))
+    c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi + work))
     offset += docp.dim_NLP_x
 
     # path constraints
