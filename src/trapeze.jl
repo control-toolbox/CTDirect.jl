@@ -5,7 +5,6 @@ Internal layout for NLP variables:
 
 # NB. could be defined as a generic IRK
 struct Trapeze <: Discretization
-
     stage::Int
     additional_controls::Int  # add control at tf
     info::String
