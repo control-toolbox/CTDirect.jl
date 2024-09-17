@@ -10,7 +10,7 @@ using PProf
 
 include("../test/problems/goddard.jl")
 
-#= local version of dynamics
+# local version of dynamics
 function F0(x, Cd, beta)
     r, v, m = x
     D = Cd * v^2 * exp(-beta * (r - 1))
@@ -26,17 +26,39 @@ b = 2
 Tmax = 3.5
 function local_dynamics(t, x, u, v)
     return F0(x, Cd, beta) + u * F1(x, Tmax, b)
-end=#
-#= compact function is not better...
+end
+# compact function is not better...
 function compact_dynamics(t, x, u, vv)
     r, v, m = x
     D = Cd * v^2 * exp(-beta * (r - 1))
     return [v,
             -D / m - 1 / r^2 + u * Tmax / m ,
             - b * u * Tmax]
-end=#
+end
 
+function dummy_dynamics(t,x, u, vv)
+    return [x[2], x[1], u]
+end
 
+function init(;in_place, grid_size, discretization)
+    if in_place
+        prob = goddard_all_inplace()
+    else
+        prob = goddard_all()
+    end
+    ocp = prob[:ocp]
+    discretization = string(discretization)
+    if discretization == "midpoint"
+        disc_method = CTDirect.Midpoint()
+    elseif discretization == "trapeze"
+        disc_method = CTDirect.Trapeze()
+    else
+        error("Unknown discretization method:", discretization)
+    end
+    docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), discretization=disc_method)
+    xu = CTDirect.DOCP_initial_guess(docp)
+    return docp, xu
+end
 
 function test_basic()
 
@@ -60,25 +82,39 @@ function test_basic()
 end
 
 
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=false, test_cons=true, test_trans=false, test_solve=false, warntype=false, grid_size=100, discretization=:trapeze, in_place=false)
+function test_getters(; warntype=false, grid_size=100, discretization=:trapeze, in_place=false)
+
+    # harcdoded arguments
+    a = @allocated begin t_1 = 0. end
+    b = @allocated begin x_1 = [1.,0.,1.] end
+    c = @allocated begin u_1 = [1.] end
+    d = @allocated begin v_1 = .1 end
+    println("Allocation for hardcoded t,x,u,v: ",a, " ", b, " ", c, " ", d)
+
+    # getters for arguments
+    docp, xu = init(in_place=in_place, grid_size=grid_size, discretization=discretization)
+    time_grid = CTDirect.get_time_grid(xu, docp)
+    a = @allocated begin t_2 = time_grid[1] end
+    b = @allocated begin x_2 = CTDirect.get_state_at_time_step(xu, docp, 1) end
+    c = @allocated begin u_2 = CTDirect.get_control_at_time_step(xu, docp, 1) end
+    d = @allocated begin v_2 = CTDirect.get_optim_variable(xu, docp) end
+    e = @allocated begin xx_2 = docp._x(x_2) end
+    f = @allocated begin uu_2 = docp._u(u_2) end
+    println("Allocation for getters t,x,u,v: ",a, " ", b, " ", c, " ", d, " and vectorized x, u: ", e, " ", f)
+
+    # dynamics
+    a = @allocated begin dummy_dynamics(t_2, xx_2, uu_2, v_2) end; println("Allocation for dummy_dynamics (getter vectorized args): ",a)
+    a = @allocated begin compact_dynamics(t_2, xx_2, uu_2, v_2) end; println("Allocation for compact_dynamics (getter vectorized args): ",a)
+    a = @allocated begin local_dynamics(t_2, xx_2, uu_2, v_2) end; println("Allocation for local_dynamics (getter vectorized args): ",a)
+    a = @allocated begin docp.ocp.dynamics(t_2, xx_2, uu_2, v_2) end; println("Allocation for ocp dynamics (getter vectorized args): ",a)
+    a = @allocated begin docp.dynamics_ext(t_2, x_2, u_2, v_2) end; println("Allocation for docp dynamics_ext (getter vectorized args): ",a)
+
+end
+
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=false, test_cons=false, test_trans=false, test_solve=false, warntype=false, grid_size=100, discretization=:trapeze, in_place=false)
     
     # define problem and variables
-    if in_place
-        prob = goddard_all_inplace()
-    else
-        prob = goddard_all()
-    end
-    ocp = prob[:ocp]
-    discretization = string(discretization)
-    if discretization == "midpoint"
-        disc_method = CTDirect.Midpoint()
-    elseif discretization == "trapeze"
-        disc_method = CTDirect.Trapeze()
-    else
-        error("Unknown discretization method:", discretization)
-    end
-    docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), discretization=disc_method)
-    xu = CTDirect.DOCP_initial_guess(docp)
+    docp, xu = init(in_place=in_place, grid_size=grid_size, discretization=discretization)
     c = fill(666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dim_NLP_x)
 
