@@ -3,6 +3,7 @@
 # constraint on max speed
 
 # aux functions
+# NB defining these inside the problem function does not seem to change the allocations
 function F0(x, Cd, beta)
     r, v, m = x
     D = Cd * v^2 * exp(-beta * (r - 1))

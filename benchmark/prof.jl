@@ -8,9 +8,22 @@ using BenchmarkTools
 using Profile
 using PProf
 
-include("../test/problems/goddard.jl")
+#include("../test/problems/goddard.jl")
+include("../test/problems/double_integrator.jl")
 
 # local version of dynamics
+Cd = 310
+beta = 500
+b = 2
+Tmax = 3.5
+# compact function is not better...
+function compact_dynamics(t, x, u, vv)
+    r, v, m = x
+    D = Cd * v^2 * exp(-beta * (r - 1))
+    return [v,
+            -D / m - 1 / r^2 + u * Tmax / m ,
+            - b * u * Tmax]
+end
 function F0(x, Cd, beta)
     r, v, m = x
     D = Cd * v^2 * exp(-beta * (r - 1))
@@ -20,31 +33,22 @@ function F1(x, Tmax, b)
     r, v, m = x
     return [0, Tmax / m, -b * Tmax]
 end
-Cd = 310
-beta = 500
-b = 2
-Tmax = 3.5
 function local_dynamics(t, x, u, v)
     return F0(x, Cd, beta) + u * F1(x, Tmax, b)
 end
-# compact function is not better...
-function compact_dynamics(t, x, u, vv)
-    r, v, m = x
-    D = Cd * v^2 * exp(-beta * (r - 1))
-    return [v,
-            -D / m - 1 / r^2 + u * Tmax / m ,
-            - b * u * Tmax]
-end
 
-function dummy_dynamics(t,x, u, vv)
+
+function dummy_dynamics(t, x, u, vv)
     return [x[2], x[1], u]
 end
 
 function init(;in_place, grid_size, discretization)
     if in_place
-        prob = goddard_all_inplace()
+        #prob = goddard_all_inplace()
+        prob = double_integrator_a()
     else
-        prob = goddard_all()
+        #prob = goddard_all()
+        prob = double_integrator_mintf()
     end
     ocp = prob[:ocp]
     discretization = string(discretization)
@@ -86,7 +90,8 @@ function test_getters(; warntype=false, grid_size=100, discretization=:trapeze, 
 
     # harcdoded arguments
     a = @allocated begin t_1 = 0. end
-    b = @allocated begin x_1 = [1.,0.,1.] end
+    #b = @allocated begin x_1 = [1.,0.,1.] end
+    b = @allocated begin x_1 = [0.,0.] end
     c = @allocated begin u_1 = [1.] end
     d = @allocated begin v_1 = .1 end
     println("Allocation for hardcoded t,x,u,v: ",a, " ", b, " ", c, " ", d)
@@ -103,13 +108,11 @@ function test_getters(; warntype=false, grid_size=100, discretization=:trapeze, 
     println("Allocation for getters t,x,u,v: ",a, " ", b, " ", c, " ", d, " and vectorized x, u: ", e, " ", f)
 
     # dynamics
-    a = @allocated begin dummy_dynamics(t_2, xx_2, uu_2, v_2) end; println("Allocation for dummy_dynamics (getter vectorized args): ",a)
-    a = @allocated begin compact_dynamics(t_2, xx_2, uu_2, v_2) end; println("Allocation for compact_dynamics (getter vectorized args): ",a)
-    a = @allocated begin local_dynamics(t_2, xx_2, uu_2, v_2) end; println("Allocation for local_dynamics (getter vectorized args): ",a)
-    a = @allocated begin docp.ocp.dynamics(t_2, xx_2, uu_2, v_2) end; println("Allocation for ocp dynamics (getter vectorized args): ",a)
-    a = @allocated begin docp.dynamics_ext(t_2, x_2, u_2, v_2) end; println("Allocation for docp dynamics_ext (getter vectorized args): ",a)
+    a = @allocated begin docp.ocp.dynamics(t_2, xx_2, uu_2, v_2) end; println("Allocation for ocp dynamics (getter vectorized args)+vectorization: ",a+e+f)
+    a = @allocated begin docp.dynamics_ext(t_2, x_2, u_2, v_2) end; println("Allocation for docp dynamics_ext (includes vectorization): ",a)
 
 end
+
 
 function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=false, test_cons=false, test_trans=false, test_solve=false, warntype=false, grid_size=100, discretization=:trapeze, in_place=false)
     
@@ -213,24 +216,3 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
     end
 
 end
-
-#= OUTPLACE
-julia> test_unit()
-dynamics_ext  761.696 ns (14 allocations: 608 bytes)
-u cons  1.186 μs (17 allocations: 576 bytes)
-x cons  681.263 ns (17 allocations: 512 bytes)
-xu cons  693.541 ns (20 allocations: 656 bytes)
-Objective  160.520 ns (8 allocations: 368 bytes)
-Constraints  381.958 μs (8475 allocations: 320.47 KiB)
-Transcription  14.954 ms (165217 allocations: 20.43 MiB)
-Solve  158.425 ms (2192013 allocations: 121.40 MiB)
-julia> test_unit(in_place=true)
-dynamics_ext  220.777 ns (16 allocations: 704 bytes)
-u cons  415.065 ns (14 allocations: 448 bytes)
-x cons  396.473 ns (14 allocations: 448 bytes)
-xu cons  423.005 ns (17 allocations: 592 bytes)
-Objective  135.592 ns (7 allocations: 352 bytes)
-Constraints  210.285 μs (8222 allocations: 335.66 KiB)
-Transcription  14.177 ms (165179 allocations: 20.50 MiB)
-Solve  114.000 ms (2147182 allocations: 123.22 MiB)
-=#

@@ -176,7 +176,7 @@ struct DOCP{T <: Discretization}
             end
         else
             dynamics_ext = function (t, x, u, v)
-                # NB. preallocating f seems worse than using push
+                # NB. preallocating f seems worse than using push. This function seems to allocate 32 more than vectorizing x and u and calling dynamics (no lagrange cost case), which is already the case for the one_liner 'return ocp.dynamics(t, _x(x), _u(u), v)'...
                 f = _vec(ocp.dynamics(t, _x(x), _u(u), v))
                 if has_lagrange
                     push!(f, ocp.lagrange(t, _x(x), _u(u), v))
@@ -376,28 +376,28 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
 function DOCP_constraints!(c, xu, docp::DOCP)
 
-    N = docp.dim_NLP_steps
+    # initialization
     if docp.has_free_t0 || docp.has_free_tf
         get_time_grid!(docp.NLP_time_grid, xu, docp)
     end
-
-    # initialization
     v = get_optim_variable(xu, docp)
     work = setWorkArray(docp, xu, docp.NLP_time_grid, v)
     #setWorkArray(docp, xu, docp.NLP_time_grid, v)
 
     # main loop on time steps 
-    for i = 1:N
+    for i = 1:docp.dim_NLP_steps+1
         setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
         #setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i)
     end
 
+    #=
     # path constraints at final time
     offset = N * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_path_cons)
     tf = docp.NLP_time_grid[N+1]
     xf = get_state_at_time_step(xu, docp, N+1)
     uf = get_control_at_time_step(xu, docp, N+1)
     setPathConstraints!(docp, c, tf, xf, uf, v, offset)
+    =#
 
     # point constraints
     setPointConstraints!(docp, c, xu, v)
@@ -407,6 +407,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 end
 
 
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -415,8 +416,7 @@ Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)    
 
-    # Notes on allocations:
-    # .= seems similar
+    # Notes on allocations: .= seems similar
     if docp.dim_u_cons > 0
         if docp.has_inplace
             docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),t_i, docp._u(u_i), v)
@@ -440,6 +440,7 @@ function setPathConstraints!(docp::DOCP, c, t_i, x_i, u_i, v, offset)
     end
 
 end
+=#
 
 
 """

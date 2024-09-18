@@ -110,7 +110,7 @@ end=#
 $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
-Convention: 1 <= i <= dim_NLP_steps
+Convention: 1 <= i <= dim_NLP_steps (+1)
 """
 function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 #function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i)
@@ -123,30 +123,57 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     xi = docp.discretization.xi
     xip1 = docp.discretization.xip1=#
 
-    # variables
+    # 0. variables
     ti = time_grid[i]
     xi = get_state_at_time_step(xu, docp, i)
     #get_state_at_time_step!(xi, xu, docp, i)
     ui = get_control_at_time_step(xu, docp, i)
-    fi = copy(work) # create new copy, not just a reference
 
-    tip1 = time_grid[i+1]
-    xip1 = get_state_at_time_step(xu, docp, i+1)
-    #get_state_at_time_step!(xip1, xu, docp, i+1)
-    uip1 = get_control_at_time_step(xu, docp, i+1)
+    #1. state equation
+    if i <= docp.dim_NLP_steps
+        # more variables
+        fi = copy(work) # create new copy, not just a reference
+        tip1 = time_grid[i+1]
+        xip1 = get_state_at_time_step(xu, docp, i+1)
+        #get_state_at_time_step!(xip1, xu, docp, i+1)
+        uip1 = get_control_at_time_step(xu, docp, i+1)
+        if docp.has_inplace
+            docp.dynamics_ext(work, tip1, xip1, uip1, v)
+        else
+            # copy, do not create a new variable !
+            work[:] = docp.dynamics_ext(tip1, xip1, uip1, v)
+        end
 
-    if docp.has_inplace
-        docp.dynamics_ext(work, tip1, xip1, uip1, v)
-    else
-        # copy, do not create a new variable !
-        work[:] = docp.dynamics_ext(tip1, xip1, uip1, v)
+        # trapeze rule with 'smart' update for dynamics (similar with @.)
+        c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi + work))
+        offset += docp.dim_NLP_x
     end
 
-    # trapeze rule with 'smart' update for dynamics (similar with @.)
-    c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi + work))
-    offset += docp.dim_NLP_x
+    # 2. path constraints
+    #setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    #Apparently function calls always seem to add some overhead allocation...
 
-    # path constraints
-    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    # Notes on allocations:.= seems similar
+    if docp.dim_u_cons > 0
+        if docp.has_inplace
+            docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, docp._u(ui), v)
+        else
+            c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](ti, docp._u(ui), v)
+        end
+    end
+    if docp.dim_x_cons > 0 
+        if docp.has_inplace
+            docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, docp._x(xi), v)
+        else
+            c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](ti, docp._x(xi), v)
+        end
+    end
+    if docp.dim_mixed_cons > 0 
+        if docp.has_inplace
+            docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, docp._x(xi), docp._u(ui), v)
+        else
+            c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](ti, docp._x(xi), docp._u(ui), v)
+        end
+    end
 
 end

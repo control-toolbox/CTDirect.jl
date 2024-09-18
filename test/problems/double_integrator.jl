@@ -1,5 +1,6 @@
 # double integrator
 
+# min tf (abstract)
 function double_integrator_a()
     @def ocp begin
         tf ∈ R, variable
@@ -17,6 +18,30 @@ function double_integrator_a()
     return ((ocp = ocp, obj = 2.0, name = "double_integrator_a", init = nothing))
 end
 
+# min tf
+function double_integrator_mintf(; lagrange = false)
+    ocp = Model(variable = true)
+    state!(ocp, 2)
+    control!(ocp, 1)
+    variable!(ocp, 1)
+    time!(ocp, t0 = 0, indf = 1)
+    constraint!(ocp, :initial, val = [0, 0])
+    constraint!(ocp, :final, val = [1, 0])
+    constraint!(ocp, :control, lb = -1, ub = 1)
+    constraint!(ocp, :variable, lb = 0.05, ub = 10)
+    dynamics!(ocp, (x, u, v) -> [x[2], u])
+    if lagrange
+        objective!(ocp, :lagrange, (x, u, v) -> 1)
+        name = "double_integrator_lagrange"
+    else
+        objective!(ocp, :mayer, (x0, xf, v) -> v)
+        name = "double_integrator_mayer"
+    end
+
+    return ((ocp = ocp, obj = 2.0, name = name, init = nothing))
+end
+
+# min energy with fixed tf
 function double_integrator_T(T)
     @def ocp begin
         t ∈ [0, T], time
@@ -33,29 +58,6 @@ function double_integrator_T(T)
     end
 
     return ((ocp = ocp, obj = nothing, name = "double_integrator_T", init = nothing))
-end
-
-# min tf
-function double_integrator_mintf(; lagrange = false)
-    ocp = Model(variable = true)
-    state!(ocp, 2)
-    control!(ocp, 1)
-    variable!(ocp, 1)
-    time!(ocp, t0 = 0, indf = 1)
-    constraint!(ocp, :initial, val = [0, 0])
-    constraint!(ocp, :final, val = [1, 0])
-    constraint!(ocp, :control, lb = -1, ub = 1)
-    constraint!(ocp, :variable, lb = 0.1, ub = 10)
-    dynamics!(ocp, (x, u, v) -> [x[2], u])
-    if lagrange
-        objective!(ocp, :lagrange, (x, u, v) -> 1)
-        name = "double_integrator_lagrange"
-    else
-        objective!(ocp, :mayer, (x0, xf, v) -> v)
-        name = "double_integrator_mayer"
-    end
-
-    return ((ocp = ocp, obj = 2.0, name = name, init = nothing))
 end
 
 # max t0 with free t0,tf

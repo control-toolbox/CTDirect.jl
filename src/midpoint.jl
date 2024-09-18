@@ -92,7 +92,7 @@ end
 $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
-Convention: 1 <= i <= dim_NLP_steps
+Convention: 1 <= i <= dim_NLP_steps (+1)
 """
 function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
 
@@ -100,35 +100,59 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
     offset = (i-1)*(docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons)
 
     # variables
-    disc = docp.discretization
     ti = time_grid[i]
     xi = get_state_at_time_step(xu, docp, i)
     ui = get_control_at_time_step(xu, docp, i)
-    ki = get_ki_at_time_step(xu, docp, i)
+  
+    if i <= docp.dim_NLP_steps
+        # more variables
+        ki = get_ki_at_time_step(xu, docp, i)
+        tip1 = time_grid[i+1]
+        xip1 = get_state_at_time_step(xu, docp, i+1)
+        hi = tip1 - ti
 
-    tip1 = time_grid[i+1]
-    xip1 = get_state_at_time_step(xu, docp, i+1)
-    
-    hi = tip1 - ti
+        # midpoint rule
+        disc = docp.discretization
+        h_sum_bk = hi * disc.butcher_b[1] * ki
+        c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + h_sum_bk)
+        offset += docp.dim_NLP_x
 
-    # midpoint rule
-    h_sum_bk = hi * disc.butcher_b[1] * ki
-    c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + h_sum_bk)
-    offset += docp.dim_NLP_x
-
-    # stage equation at mid-step
-    ts = ti + hi * disc.butcher_c[1]
-    #xs = xi + hi * (disc.butcher_a[1][1] * ki)
-    xs = 0.5 * (xi + xip1) #compare bench
-    if docp.has_inplace
-        docp.dynamics_ext((@view c[offset+1:offset+docp.dim_NLP_x]), ts, xs, ui, v)
-        @views c[offset+1:offset+docp.dim_NLP_x] = -c[offset+1:offset+docp.dim_NLP_x] + ki
-    else
-        c[offset+1:offset+docp.dim_NLP_x] = ki - docp.dynamics_ext(ts, xs, ui, v)
+        # stage equation at mid-step
+        ts = ti + hi * disc.butcher_c[1]
+        #xs = xi + hi * (disc.butcher_a[1][1] * ki)
+        xs = 0.5 * (xi + xip1) #compare bench
+        if docp.has_inplace
+            docp.dynamics_ext((@view c[offset+1:offset+docp.dim_NLP_x]), ts, xs, ui, v)
+            @views c[offset+1:offset+docp.dim_NLP_x] = -c[offset+1:offset+docp.dim_NLP_x] + ki
+        else
+            c[offset+1:offset+docp.dim_NLP_x] = ki - docp.dynamics_ext(ts, xs, ui, v)
+        end
+        offset += docp.dim_NLP_x
     end
-    offset += docp.dim_NLP_x
 
     # path constraints
-    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    #setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    # Notes on allocations:.= seems similar
+    if docp.dim_u_cons > 0
+        if docp.has_inplace
+            docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, docp._u(ui), v)
+        else
+            c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](ti, docp._u(ui), v)
+        end
+    end
+    if docp.dim_x_cons > 0 
+        if docp.has_inplace
+            docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, docp._x(xi), v)
+        else
+            c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](ti, docp._x(xi), v)
+        end
+    end
+    if docp.dim_mixed_cons > 0 
+        if docp.has_inplace
+            docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, docp._x(xi), docp._u(ui), v)
+        else
+            c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](ti, docp._x(xi), docp._u(ui), v)
+        end
+    end
 
 end
