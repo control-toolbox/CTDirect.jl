@@ -6,7 +6,7 @@ $(TYPEDSIGNATURES)
 Used to set the default discretization method.
 The default value is `trapeze`.
 """
-__discretization() = "trapeze"
+__disc_method() = "trapeze"
 
 """
 $(TYPEDSIGNATURES)

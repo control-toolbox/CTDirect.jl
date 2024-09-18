@@ -11,13 +11,23 @@ struct Trapeze <: Discretization
     additional_controls::Int  # add control at tf
     info::String
 
+    get_state_at_time_step::Function
     #= work arrays (worse allocs even with inplace getters...)
     work::AbstractVector{<:Real}
     xi::AbstractVector{<:Real}
     xip1::AbstractVector{<:Real}=#
 
-    # we could pass some ocp field to constructor (eg dims, lagranage)
-    Trapeze() = new(0, 1, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
+    # constructor
+    function Trapeze(dim_NLP_x, dim_NLP_u)
+
+        # getters for state and control variables
+        get_state_at_time_step = function (xu, i)
+            offset = (dim_NLP_x + dim_NLP_u) * (i-1)
+            return @view xu[(offset + 1):(offset + dim_NLP_x)]
+        end
+
+        return new(0, 1, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", get_state_at_time_step)
+    end
 end
 
 #=function initWork(discretization::Trapeze, dim_NLP_x::Int)
@@ -26,6 +36,7 @@ end
     resize!(discretization.xip1, dim_NLP_x)
 end=#
 
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -38,6 +49,7 @@ function get_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
     offset = (nx + m) * (i-1)
     return @view xu[(offset + 1):(offset + nx)]
 end
+=#
 
 #=function get_state_at_time_step!(x, xu, docp::DOCP{Trapeze}, i)
     nx = docp.dim_NLP_x
@@ -77,9 +89,11 @@ end
 
 function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
    
+    disc = docp.discretization
+
     work = similar(xu, docp.dim_NLP_x)
     t0 = time_grid[1]
-    x0 = get_state_at_time_step(xu, docp, 1)
+    x0 = disc.get_state_at_time_step(xu, 1)
     u0 = get_control_at_time_step(xu, docp, 1)
 
     if docp.has_inplace
@@ -115,6 +129,8 @@ Convention: 1 <= i <= dim_NLP_steps (+1)
 function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 #function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i)
 
+    disc = docp.discretization
+
     # offset for previous steps
     offset = (i-1)*(docp.dim_NLP_x + docp.dim_path_cons)
 
@@ -125,7 +141,7 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 
     # 0. variables
     ti = time_grid[i]
-    xi = get_state_at_time_step(xu, docp, i)
+    xi = disc.get_state_at_time_step(xu, i)
     #get_state_at_time_step!(xi, xu, docp, i)
     ui = get_control_at_time_step(xu, docp, i)
 
@@ -134,7 +150,7 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         # more variables
         fi = copy(work) # create new copy, not just a reference
         tip1 = time_grid[i+1]
-        xip1 = get_state_at_time_step(xu, docp, i+1)
+        xip1 = disc.get_state_at_time_step(xu, i+1)
         #get_state_at_time_step!(xip1, xu, docp, i+1)
         uip1 = get_control_at_time_step(xu, docp, i+1)
         if docp.has_inplace

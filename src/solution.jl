@@ -124,14 +124,15 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     end
 
     # loop over time steps
+    disc = docp.discretization
     for i = 1:(N + 1)
         # state and control variables at current step
-        X[i,:] = get_state_at_time_step(solution, docp, i)
+        X[i,:] = disc.get_state_at_time_step(solution, i)
         U[i,:] = get_control_at_time_step(solution, docp, i)
 
         # box multipliers
-        mult_state_box_lower[i, :] = get_state_at_time_step(mult_LB, docp, i)
-        mult_state_box_upper[i, :] = get_state_at_time_step(mult_UB, docp, i)
+        mult_state_box_lower[i, :] = disc.get_state_at_time_step(mult_LB, i)
+        mult_state_box_upper[i, :] = disc.get_state_at_time_step(mult_UB, i)
         mult_control_box_lower[i, :] = get_control_at_time_step(mult_LB, docp, i)
         mult_control_box_upper[i, :] = get_control_at_time_step(mult_UB, docp, i)
 

@@ -15,10 +15,24 @@ struct Midpoint <: Discretization
     butcher_c::Vector{Float64}
     info::String
 
-    Midpoint() = new(1, 0, hcat(0.5), [1], [0.5], "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic")
+    get_state_at_time_step::Function
+
+    # constructor    
+    function Midpoint(dim_NLP_x, dim_NLP_u) 
+        
+        stage = 1
+
+        # getters for state and control variables
+        get_state_at_time_step = function (xu, i)
+            offset = (dim_NLP_x*(1+stage) + dim_NLP_u) * (i-1)
+            return @view xu[(offset + 1):(offset + dim_NLP_x)]
+        end
+
+        return new(stage, 0, hcat(0.5), [1], [0.5], "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", get_state_at_time_step)
+    end
 end
 
-
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -31,6 +45,7 @@ function get_state_at_time_step(xu, docp::DOCP{Midpoint}, i)
     offset = (nx*(1+docp.discretization.stage) + m) * (i-1)
     return @view xu[(offset + 1):(offset + nx)]
 end
+=#
 
 function get_control_at_time_step(xu, docp::DOCP{Midpoint}, i)
     nx = docp.dim_NLP_x
@@ -96,19 +111,21 @@ Convention: 1 <= i <= dim_NLP_steps (+1)
 """
 function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
 
+    disc = docp.discretization
+
     # offset for previous steps
     offset = (i-1)*(docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons)
 
     # variables
     ti = time_grid[i]
-    xi = get_state_at_time_step(xu, docp, i)
+    xi = disc.get_state_at_time_step(xu, i)
     ui = get_control_at_time_step(xu, docp, i)
   
     if i <= docp.dim_NLP_steps
         # more variables
         ki = get_ki_at_time_step(xu, docp, i)
         tip1 = time_grid[i+1]
-        xip1 = get_state_at_time_step(xu, docp, i+1)
+        xip1 = disc.get_state_at_time_step(xu, i+1)
         hi = tip1 - ti
 
         # midpoint rule

@@ -24,7 +24,7 @@ end
 end
 
 @testset verbose = true showtiming = true ":solve_docp :midpoint" begin
-    docp, nlp = direct_transcription(ocp, discretization = :midpoint)
+    docp, nlp = direct_transcription(ocp, disc_method = :midpoint)
     solver_backend = CTDirect.IpoptBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = OptimalControlSolution(docp, dsol)

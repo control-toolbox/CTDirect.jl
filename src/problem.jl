@@ -84,7 +84,7 @@ struct DOCP{T <: Discretization}
     _u::Function
 
     # constructor
-    function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), discretization=Trapeze())
+    function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method="trapeze")
 
         # time grid
         if time_grid == nothing
@@ -137,10 +137,18 @@ struct DOCP{T <: Discretization}
         end
         dim_OCP_x = ocp.state_dimension
 
-        N = dim_NLP_steps
-        dim_stage = discretization.stage
+        # discretization
+        if disc_method == "midpoint"
+            discretization = CTDirect.Midpoint(dim_NLP_x, dim_NLP_u)
+        elseif disc_method == "trapeze"
+            discretization = CTDirect.Trapeze(dim_NLP_x, dim_NLP_u)
+        else
+            error("Unknown discretization method:", disc_method)
+        end
 
         # NLP unknown (state + control + variable [+ stage])
+        N = dim_NLP_steps
+        dim_stage = discretization.stage
         dim_NLP_variables = (N + 1) * dim_NLP_x + (N + discretization.additional_controls) * dim_NLP_u + dim_NLP_v + N * dim_NLP_x * dim_stage
 
         # NLP constraints 
@@ -380,11 +388,11 @@ function DOCP_objective(xu, docp::DOCP)
     v = docp.get_optim_variable(xu)
 
     # final state is always needed since lagrange cost is there
-    xf = get_state_at_time_step(xu, docp, N+1)
+    xf = docp.discretization.get_state_at_time_step(xu, N+1)
 
     # mayer cost
     if docp.has_mayer
-        x0 = get_state_at_time_step(xu, docp, 1)
+        x0 = docp.discretization.get_state_at_time_step(xu, 1)
         if docp.has_inplace
             ocp.mayer(obj, docp._x(x0), docp._x(xf), v)
         else
@@ -527,8 +535,8 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
 
     # variables
-    x0 = get_state_at_time_step(xu, docp, 1)
-    xf = get_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
+    x0 = docp.discretization.get_state_at_time_step(xu, 1)
+    xf = docp.discretization.get_state_at_time_step(xu, docp.dim_NLP_steps+1)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0

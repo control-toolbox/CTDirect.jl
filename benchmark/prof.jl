@@ -8,8 +8,8 @@ using BenchmarkTools
 using Profile
 using PProf
 
-#include("../test/problems/goddard.jl")
-include("../test/problems/double_integrator.jl")
+include("../test/problems/goddard.jl")
+#include("../test/problems/double_integrator.jl")
 
 # local version of dynamics
 Cd = 310
@@ -44,11 +44,11 @@ end
 
 function init(;in_place, grid_size, discretization)
     if in_place
-        #prob = goddard_all_inplace()
-        prob = double_integrator_a()
+        prob = goddard_all_inplace()
+        #prob = double_integrator_a()
     else
-        #prob = goddard_all()
-        prob = double_integrator_mintf()
+        prob = goddard_all()
+        #prob = double_integrator_mintf()
     end
     ocp = prob[:ocp]
     discretization = string(discretization)
@@ -61,7 +61,7 @@ function init(;in_place, grid_size, discretization)
     end
     docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), discretization=disc_method)
     xu = CTDirect.DOCP_initial_guess(docp)
-    return docp, xu
+    return prob, docp, xu
 end
 
 function test_basic()
@@ -90,8 +90,8 @@ function test_getters(; warntype=false, grid_size=100, discretization=:trapeze, 
 
     # harcdoded arguments
     a = @allocated begin t_1 = 0. end
-    #b = @allocated begin x_1 = [1.,0.,1.] end
-    b = @allocated begin x_1 = [0.,0.] end
+    b = @allocated begin x_1 = [1.,0.,1.] end
+    #b = @allocated begin x_1 = [0.,0.] end
     c = @allocated begin u_1 = [1.] end
     d = @allocated begin v_1 = .1 end
     println("Allocation for hardcoded t,x,u,v: ",a, " ", b, " ", c, " ", d)
@@ -117,27 +117,27 @@ end
 function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, profile=false, grid_size=100, discretization=:trapeze, in_place=false)
     
     # define problem and variables
-    docp, xu = init(in_place=in_place, grid_size=grid_size, discretization=discretization)
+    prob, docp, xu = init(in_place=in_place, grid_size=grid_size, discretization=discretization)
     c = fill(666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dim_NLP_x)
 
     # getters
     if test_get
-        print("t "); @btime CTDirect.get_final_time($xu, $docp)
-        print("t bis"); @btime CTDirect.get_optim_variable($xu, $docp)[$docp.ocp.final_time]
-        print("v "); @btime CTDirect.get_optim_variable($xu, $docp)
+        print("t "); @btime $docp.get_final_time($xu)
+        print("t bis"); @btime $docp.get_optim_variable($xu)[$docp.ocp.final_time]
+        print("v "); @btime $docp.get_optim_variable($xu)
         print("x "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
         print("u "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
         if warntype
-            @code_warntype CTDirect.get_final_time(xu, docp)
-            @code_warntype CTDirect.get_optim_variable(xu, docp)
+            @code_warntype docp.get_final_time(xu)
+            @code_warntype docp.get_optim_variable(xu)
             @code_warntype CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
             @code_warntype CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
         end
     end
 
-    t = CTDirect.get_final_time(xu, docp)
-    v = CTDirect.get_optim_variable(xu, docp)
+    t = docp.get_final_time(xu)
+    v = docp.get_optim_variable(xu)
     x = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
     u = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
     f = similar(xu, docp.dim_NLP_x)
@@ -207,16 +207,16 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
 
     # transcription
     if test_trans
-        print("Transcription"); @btime direct_transcription($ocp, grid_size=$grid_size)
+        print("Transcription"); @btime direct_transcription($prob.ocp, grid_size=$grid_size)
     end
 
     # solve
     if test_solve
-        sol = direct_solve(ocp, display=false, grid_size=grid_size)
+        sol = direct_solve(prob.ocp, display=false, grid_size=grid_size)
         if !isapprox(sol.objective, prob.obj, rtol=1e-2)
             error("objective mismatch: ", sol.objective, " vs ", prob.obj)
         end
-        print("Solve"); @btime direct_solve($ocp, display=false, grid_size=$grid_size)
+        print("Solve"); @btime direct_solve($prob.ocp, display=false, grid_size=$grid_size)
     end
 
 end
