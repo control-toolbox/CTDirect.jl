@@ -8,6 +8,7 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 # +++ todo change arguments order: docp first, then xu ?
 
 
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -25,8 +26,8 @@ function get_optim_variable(xu, docp)
         return Float64[]
     end
 end
-
-
+=#
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -53,8 +54,8 @@ function get_final_time(xu, docp)
         return docp.ocp.final_time
     end
 end
-
-
+=#
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -70,6 +71,7 @@ function get_time_grid!(time_grid, xu, docp)
     tf = get_final_time(xu, docp)
     @. time_grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
 end
+=#
 
 """
 $(TYPEDSIGNATURES)

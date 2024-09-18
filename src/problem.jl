@@ -23,6 +23,12 @@ struct DOCP{T <: Discretization}
 
     # functions
     dynamics_ext::Function
+    get_optim_variable::Function
+    get_initial_time::Function
+    get_final_time::Function
+    get_time_grid!::Function
+
+    # constraints and their bounds
     control_constraints::Any
     state_constraints::Any
     mixed_constraints::Any
@@ -82,7 +88,7 @@ struct DOCP{T <: Discretization}
 
         # time grid
         if time_grid == nothing
-            NLP_normalized_time_grid = collect(LinRange(0, 1, grid_size + 1))
+            NLP_normalized_time_grid = convert(Vector{Float64}, collect(LinRange(0, 1, grid_size + 1)))
             dim_NLP_steps = grid_size
         else
             # check strictly increasing
@@ -114,7 +120,7 @@ struct DOCP{T <: Discretization}
         if has_free_t0 || has_free_tf 
             NLP_time_grid = Vector{Any}(undef, dim_NLP_steps+1)
         else 
-            NLP_time_grid = ocp.initial_time .+ (NLP_normalized_time_grid .* (ocp.final_time - ocp.initial_time))
+            NLP_time_grid = @. ocp.initial_time + (NLP_normalized_time_grid * (ocp.final_time - ocp.initial_time))
         end
 
         # dimensions
@@ -164,25 +170,56 @@ struct DOCP{T <: Discretization}
         _vec(f::Number) = [f]
         _x(x::AbstractVector) = (dim_OCP_x == 1) ? x[1] : x[1:dim_OCP_x]
         _u(u::AbstractVector) = (dim_NLP_u == 1) ? u[1] : u
+
+        # extended dynamics with lagrange cost
         if has_inplace
-            dynamics_ext = function (f, t, x, u, v)
-                # NB. need to match destination size
-                ocp.dynamics((@view f[1:dim_OCP_x]), t, _x(x), _u(u), v)
-                if has_lagrange
-                    # this is a bit weird...
+            if has_lagrange
+                dynamics_ext = function (f, t, x, u, v)
+                    ocp.dynamics((@view f[1:dim_OCP_x]), t, _x(x), _u(u), v)
                     ocp.lagrange((@view f[dim_NLP_x:dim_NLP_x]), t, _x(x), _u(u), v)
+                    return
                 end
-                return
+            else
+                dynamics_ext = (f, t, x, u, v) -> ocp.dynamics((@view f[1:dim_OCP_x]), t, _x(x), _u(u), v)
             end
         else
-            dynamics_ext = function (t, x, u, v)
+            if has_lagrange
                 # NB. preallocating f seems worse than using push. This function seems to allocate 32 more than vectorizing x and u and calling dynamics (no lagrange cost case), which is already the case for the one_liner 'return ocp.dynamics(t, _x(x), _u(u), v)'...
-                f = _vec(ocp.dynamics(t, _x(x), _u(u), v))
-                if has_lagrange
-                    push!(f, ocp.lagrange(t, _x(x), _u(u), v))
-                end
-                return f
+                dynamics_ext = (t, x, u, v) -> push!(_vec(ocp.dynamics(t, _x(x), _u(u), v)), ocp.lagrange(t, _x(x), _u(u), v))
+            else
+                dynamics_ext = (t, x, u, v) -> _vec(ocp.dynamics(t, _x(x), _u(u), v))
             end
+        end
+
+        # getter for optimization variables
+        if has_variable
+            if dim_NLP_v == 1
+                get_optim_variable = (xu) -> xu[end]
+            else
+                get_optim_variable = (xu) -> xu[(end - dim_NLP_v + 1):end]
+            end
+        else
+            get_optim_variable = (xu) -> Float64[]
+        end
+
+        # getters for initial and final time
+        if has_free_t0
+            get_initial_time = (xu) -> get_optim_variable(xu)[ocp.initial_time]
+        else
+            get_initial_time = (xu) -> ocp.initial_time
+        end
+        if has_free_tf
+            get_final_time = (xu) -> get_optim_variable(xu)[ocp.final_time]
+        else
+            get_final_time = (xu) -> ocp.final_time
+        end
+
+        # time grid
+        function get_time_grid!(xu)
+            t0 = get_initial_time(xu)
+            tf = get_final_time(xu)
+            @. NLP_time_grid = t0 + NLP_normalized_time_grid * (tf - t0)
+            return
         end
 
         # constraints size (dynamics, stage, path, boundary, variable)
@@ -200,6 +237,10 @@ struct DOCP{T <: Discretization}
         docp = new{typeof(discretization)}(
             ocp,
             dynamics_ext,
+            get_optim_variable,
+            get_initial_time,
+            get_final_time,
+            get_time_grid!,
             control_constraints,
             state_constraints,
             mixed_constraints,
@@ -336,7 +377,7 @@ function DOCP_objective(xu, docp::DOCP)
     ocp = docp.ocp
 
     # optimization variables
-    v = get_optim_variable(xu, docp)
+    v = docp.get_optim_variable(xu)
 
     # final state is always needed since lagrange cost is there
     xf = get_state_at_time_step(xu, docp, N+1)
@@ -378,9 +419,9 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 
     # initialization
     if docp.has_free_t0 || docp.has_free_tf
-        get_time_grid!(docp.NLP_time_grid, xu, docp)
+        docp.get_time_grid!(xu)
     end
-    v = get_optim_variable(xu, docp)
+    v = docp.get_optim_variable(xu)
     work = setWorkArray(docp, xu, docp.NLP_time_grid, v)
     #setWorkArray(docp, xu, docp.NLP_time_grid, v)
 
@@ -564,9 +605,9 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
     end
 
     # set state / control variables if provided
-    time_grid = get_time_grid(NLP_X, docp)
+    docp.get_time_grid!(NLP_X)
     for i = 1:docp.dim_NLP_steps+1
-        ti = time_grid[i]
+        ti = docp.NLP_time_grid[i]
         set_state_at_time_step!(NLP_X, init.state_init(ti), docp, i)
         set_control_at_time_step!(NLP_X, init.control_init(ti), docp, i)
     end

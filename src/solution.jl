@@ -45,9 +45,10 @@ function CTBase.OptimalControlSolution(
     mult_UB = nothing,
 )
 
-    # time grid
-    T = get_time_grid(primal, docp)
-
+    # time grid (NB. we get a Vector{Any} that requires explicit conversion)
+    docp.get_time_grid!(primal) 
+    T = convert(Vector{Float64},docp.NLP_time_grid)
+    
     # recover primal variables
     X, U, v, box_multipliers =
         parse_DOCP_solution_primal(docp, primal, mult_LB = mult_LB, mult_UB = mult_UB)
@@ -117,9 +118,9 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
 
     # retrieve optimization variables
     if docp.has_variable
-        v = get_optim_variable(solution, docp)
-        mult_variable_box_lower = get_optim_variable(mult_LB, docp)
-        mult_variable_box_upper = get_optim_variable(mult_UB, docp)
+        v = docp.get_optim_variable(solution)
+        mult_variable_box_lower = docp.get_optim_variable(mult_LB)
+        mult_variable_box_upper = docp.get_optim_variable(mult_UB)
     end
 
     # loop over time steps

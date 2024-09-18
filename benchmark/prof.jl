@@ -114,7 +114,7 @@ function test_getters(; warntype=false, grid_size=100, discretization=:trapeze, 
 end
 
 
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=false, test_cons=false, test_trans=false, test_solve=false, warntype=false, grid_size=100, discretization=:trapeze, in_place=false)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, profile=false, grid_size=100, discretization=:trapeze, in_place=false)
     
     # define problem and variables
     docp, xu = init(in_place=in_place, grid_size=grid_size, discretization=discretization)
@@ -183,9 +183,11 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
         print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
         warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
         #Profile.clear_malloc_data()
-        Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
-        results = Profile.Allocs.fetch()
-        PProf.Allocs.pprof()
+        if profile
+            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
+            results = Profile.Allocs.fetch()
+            PProf.Allocs.pprof()
+        end
     end
 
     # DOCP_constraints
@@ -196,9 +198,11 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
         end
         warntype && @code_warntype CTDirect.DOCP_constraints!(c, xu, docp)
         #Profile.clear_malloc_data()
-        Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints!(c, xu, docp)
-        results = Profile.Allocs.fetch()
-        PProf.Allocs.pprof()
+        if profile
+            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints!(c, xu, docp)
+            results = Profile.Allocs.fetch()
+            PProf.Allocs.pprof()
+        end
     end
 
     # transcription
