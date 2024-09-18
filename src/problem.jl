@@ -22,6 +22,7 @@ struct DOCP{T <: Discretization}
     ocp::OptimalControlModel # remove at some point ?
 
     # functions
+    objective::Function
     dynamics_ext::Function
     get_optim_variable::Function
     get_initial_time::Function
@@ -57,8 +58,7 @@ struct DOCP{T <: Discretization}
     dim_mixed_cons::Int
     dim_boundary_cons::Int
 
-    ## NLP
-    DOCP_objective::Function    
+    ## NLP  
     dim_NLP_x::Int  # possible lagrange cost
     dim_NLP_u::Int
     dim_NLP_v::Int
@@ -139,7 +139,7 @@ struct DOCP{T <: Discretization}
 
         # discretization
         if disc_method == "midpoint"
-            discretization = CTDirect.Midpoint(dim_NLP_x, dim_NLP_u)
+            discretization = CTDirect.Midpoint(dim_NLP_x, dim_NLP_u, dim_NLP_steps)
         elseif disc_method == "trapeze"
             discretization = CTDirect.Trapeze(dim_NLP_x, dim_NLP_u)
         else
@@ -241,9 +241,49 @@ struct DOCP{T <: Discretization}
         # allocate work arrays for discretization
         #initWork(discretization, dim_NLP_x)
 
+        # objective
+        objective = function(xu)
+
+            obj = similar(xu, 1)
+            N = dim_NLP_steps
+        
+            # optimization variables
+            v = get_optim_variable(xu)
+        
+            # final state is always needed since lagrange cost is there
+            xf = discretization.get_state_at_time_step(xu, N+1)
+        
+            # mayer cost
+            if has_mayer
+                x0 = discretization.get_state_at_time_step(xu, 1)
+                if has_inplace
+                    ocp.mayer(obj, _x(x0), _x(xf), v)
+                else
+                    obj[1] = ocp.mayer(_x(x0), _x(xf), v)
+                end
+            end
+        
+            # lagrange cost
+            if has_lagrange
+                if has_mayer # NB can this actually happen in OCP (cf bolza) ?
+                    obj[1] = obj[1] + xf[end] # +++ try to initialize at 0.
+                else
+                    obj[1] = xf[end]
+                end
+            end
+        
+            # maximization problem
+            if docp.has_maximization
+                obj[1] = -obj[1]
+            end
+        
+            return obj[1]
+        end
+
         # call constructor with const fields
         docp = new{typeof(discretization)}(
             ocp,
+            objective,
             dynamics_ext,
             get_optim_variable,
             get_initial_time,
@@ -273,7 +313,6 @@ struct DOCP{T <: Discretization}
             dim_v_cons,
             dim_mixed_cons,
             dim_boundary_cons,
-            DOCP_objective,
             dim_NLP_x,
             dim_NLP_u,
             dim_NLP_v,
@@ -373,6 +412,7 @@ end
 
 # Q. should we put objective and constraints *in* DOCP ?
 
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -416,7 +456,7 @@ function DOCP_objective(xu, docp::DOCP)
 
     return obj[1]
 end
-
+=#
 
 """
 $(TYPEDSIGNATURES)

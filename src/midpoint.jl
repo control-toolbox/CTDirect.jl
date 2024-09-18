@@ -16,9 +16,11 @@ struct Midpoint <: Discretization
     info::String
 
     get_state_at_time_step::Function
+    get_control_at_time_step::Function
+    get_stagevars_at_time_step::Function
 
     # constructor    
-    function Midpoint(dim_NLP_x, dim_NLP_u) 
+    function Midpoint(dim_NLP_x, dim_NLP_u, dim_NLP_steps) 
         
         stage = 1
 
@@ -28,7 +30,26 @@ struct Midpoint <: Discretization
             return @view xu[(offset + 1):(offset + dim_NLP_x)]
         end
 
-        return new(stage, 0, hcat(0.5), [1], [0.5], "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", get_state_at_time_step)
+        get_control_at_time_step = function (xu, i)
+            if i < dim_NLP_steps+1
+                offset = (dim_NLP_x*(1+stage) + dim_NLP_u) * (i-1) + dim_NLP_x
+            else
+                offset = (dim_NLP_x*(1+stage) + dim_NLP_u) * (i-2) + dim_NLP_x
+            end
+            return @view xu[(offset + 1):(offset + dim_NLP_u)]
+        end
+
+        get_stagevars_at_time_step = function (xu, i)
+            # retrieve vector stage variable (except at final time)
+            if i < dim_NLP_steps+1
+                offset = (dim_NLP_x *(1+stage) + dim_NLP_u) * (i-1) + dim_NLP_x  + dim_NLP_u
+                return @view xu[(offset + 1):(offset + dim_NLP_x ) ]
+            else
+                return nothing
+            end
+        end
+
+        return new(stage, 0, hcat(0.5), [1], [0.5], "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", get_state_at_time_step, get_control_at_time_step, get_stagevars_at_time_step)
     end
 end
 
@@ -45,7 +66,6 @@ function get_state_at_time_step(xu, docp::DOCP{Midpoint}, i)
     offset = (nx*(1+docp.discretization.stage) + m) * (i-1)
     return @view xu[(offset + 1):(offset + nx)]
 end
-=#
 
 function get_control_at_time_step(xu, docp::DOCP{Midpoint}, i)
     nx = docp.dim_NLP_x
@@ -70,7 +90,7 @@ function get_ki_at_time_step(xu, docp::DOCP{Midpoint}, i)
     else
         return nothing
     end
-end
+end=#
 
 function set_state_at_time_step!(xu, x_init, docp::DOCP{Midpoint}, i)
     nx = docp.dim_NLP_x
@@ -119,11 +139,11 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
     # variables
     ti = time_grid[i]
     xi = disc.get_state_at_time_step(xu, i)
-    ui = get_control_at_time_step(xu, docp, i)
+    ui = disc.get_control_at_time_step(xu, i)
   
     if i <= docp.dim_NLP_steps
         # more variables
-        ki = get_ki_at_time_step(xu, docp, i)
+        ki = disc.get_stagevars_at_time_step(xu, i)
         tip1 = time_grid[i+1]
         xip1 = disc.get_state_at_time_step(xu, i+1)
         hi = tip1 - ti
