@@ -137,20 +137,6 @@ struct DOCP{T <: Discretization}
         end
         dim_OCP_x = ocp.state_dimension
 
-        # discretization
-        if disc_method == "midpoint"
-            discretization = CTDirect.Midpoint(dim_NLP_x, dim_NLP_u, dim_NLP_steps)
-        elseif disc_method == "trapeze"
-            discretization = CTDirect.Trapeze(dim_NLP_x, dim_NLP_u)
-        else
-            error("Unknown discretization method:", disc_method)
-        end
-
-        # NLP unknown (state + control + variable [+ stage])
-        N = dim_NLP_steps
-        dim_stage = discretization.stage
-        dim_NLP_variables = (N + 1) * dim_NLP_x + (N + discretization.additional_controls) * dim_NLP_u + dim_NLP_v + N * dim_NLP_x * dim_stage
-
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
         control_constraints,
@@ -222,6 +208,37 @@ struct DOCP{T <: Discretization}
             get_final_time = (xu) -> ocp.final_time
         end
 
+        # getter for optimization variables
+        if has_variable
+            if dim_NLP_v == 1
+                get_optim_variable = (xu) -> xu[end]
+            else
+                get_optim_variable = (xu) -> xu[(end - dim_NLP_v + 1):end]
+            end
+        else
+            get_optim_variable = (xu) -> Float64[]
+        end
+
+        # getters for initial and final time
+        if has_free_t0
+            get_initial_time = (xu) -> get_optim_variable(xu)[ocp.initial_time]
+        else
+            get_initial_time = (xu) -> ocp.initial_time
+        end
+        if has_free_tf
+            get_final_time = (xu) -> get_optim_variable(xu)[ocp.final_time]
+        else
+            get_final_time = (xu) -> ocp.final_time
+        end
+
+        # time grid
+        function get_time_grid!(xu)
+            t0 = get_initial_time(xu)
+            tf = get_final_time(xu)
+            @. NLP_time_grid = t0 + NLP_normalized_time_grid * (tf - t0)
+            return
+        end                
+
         # time grid
         function get_time_grid!(xu)
             t0 = get_initial_time(xu)
@@ -230,55 +247,84 @@ struct DOCP{T <: Discretization}
             return
         end
 
-        # constraints size (dynamics, stage, path, boundary, variable)
+        # discretization
+        if disc_method == "midpoint"
+            discretization = CTDirect.Midpoint(dim_NLP_x, dim_NLP_u, dim_NLP_steps)
+        elseif disc_method == "trapeze"
+            discretization = CTDirect.Trapeze(dim_NLP_x, dim_NLP_u, dim_NLP_steps, dim_path_cons, dim_u_cons, dim_x_cons, dim_xu_cons, control_constraints[2], state_constraints[2], mixed_constraints[2], has_inplace)
+        else
+            error("Unknown discretization method:", disc_method)
+        end
+
+        # NLP variables size (state, control, variable, stage)
+        dim_stage = discretization.stage
+        dim_NLP_variables = (dim_NLP_steps + 1) * dim_NLP_x + (dim_NLP_steps + discretization.additional_controls) * dim_NLP_u + dim_NLP_v + dim_NLP_steps * dim_NLP_x * dim_stage
+
+        # NLP constraints size (dynamics, stage, path, boundary, variable)
         dim_NLP_constraints =
-            N * (dim_NLP_x + (dim_NLP_x * dim_stage) + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
+        dim_NLP_steps * (dim_NLP_x + (dim_NLP_x * dim_stage) + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
         if has_lagrange
             # add initial condition for lagrange state
             dim_NLP_constraints += 1
         end
 
-        # allocate work arrays for discretization
-        #initWork(discretization, dim_NLP_x)
-
         # objective
-        objective = function(xu)
-
-            obj = similar(xu, 1)
-            N = dim_NLP_steps
-        
-            # optimization variables
-            v = get_optim_variable(xu)
-        
-            # final state is always needed since lagrange cost is there
-            xf = discretization.get_state_at_time_step(xu, N+1)
-        
-            # mayer cost
-            if has_mayer
-                x0 = discretization.get_state_at_time_step(xu, 1)
+        if has_mayer && has_lagrange
+            # Bolza case (is there a bolza flag too ?)
+            objective = function(xu)
+                obj = similar(xu, 1)
+                v = get_optim_variable(xu)
+                x0 = discretization.get_state_at_time_step(xu, 1)        
+                xf = discretization.get_state_at_time_step(xu, dim_NLP_steps+1)
+                # mayer cost
                 if has_inplace
                     ocp.mayer(obj, _x(x0), _x(xf), v)
                 else
                     obj[1] = ocp.mayer(_x(x0), _x(xf), v)
                 end
-            end
-        
-            # lagrange cost
-            if has_lagrange
-                if has_mayer # NB can this actually happen in OCP (cf bolza) ?
-                    obj[1] = obj[1] + xf[end] # +++ try to initialize at 0.
-                else
-                    obj[1] = xf[end]
+                # add lagrange cost
+                obj[1] = obj[1] + xf[end]
+                # maximization problem
+                if has_maximization
+                    obj[1] = -obj[1]
                 end
+                return obj[1]
             end
-        
-            # maximization problem
-            if docp.has_maximization
-                obj[1] = -obj[1]
+        elseif has_mayer
+            # Mayer case
+            objective = function(xu)
+                obj = similar(xu, 1)
+                v = get_optim_variable(xu)
+                x0 = discretization.get_state_at_time_step(xu, 1)        
+                xf = discretization.get_state_at_time_step(xu, dim_NLP_steps+1)
+                # mayer cost
+                if has_inplace
+                    ocp.mayer(obj, _x(x0), _x(xf), v)
+                else
+                    obj[1] = ocp.mayer(_x(x0), _x(xf), v)
+                end
+                # maximization problem
+                if has_maximization
+                    obj[1] = -obj[1]
+                end
+                return obj[1]
             end
-        
-            return obj[1]
+        else
+            # Lagrange case
+            objective = function(xu)
+                obj = similar(xu, 1)      
+                xf = discretization.get_state_at_time_step(xu, dim_NLP_steps+1)
+                # lagrange cost
+                obj[1] = xf[end]
+                # maximization problem
+                if has_maximization
+                    obj[1] = -obj[1]
+                end
+                return obj[1]
+            end
         end
+
+
 
         # call constructor with const fields
         docp = new{typeof(discretization)}(

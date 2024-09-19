@@ -19,7 +19,7 @@ struct Trapeze <: Discretization
     xip1::AbstractVector{<:Real}=#
 
     # constructor
-    function Trapeze(dim_NLP_x, dim_NLP_u)
+    function Trapeze(dim_NLP_x, dim_NLP_u, dim_NLP_steps, dim_path_cons, dim_u_cons, dim_x_cons, dim_xu_cons, u_cons, x_cons, xu_cons)
 
         # getters for state and control variables
         get_state_at_time_step = function (xu, i)
@@ -133,17 +133,15 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps (+1)
 """
 function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
+# docp requirements: NB time grid is passed explicitely now...
+# OK: discretization, dim_NLP_x, dim_path_cons, dim_NLP_steps, dim_u_cons, dim_x_cons, dim_xu_cons, 'u_cons', 'x_cons', 'xu_cons'
+# TO PASS: , has_inplace, dynamics_ext, 
 #function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i)
 
     disc = docp.discretization
 
     # offset for previous steps
     offset = (i-1)*(docp.dim_NLP_x + docp.dim_path_cons)
-
-    #=trying to use work array in discretization struct seems much worse...
-    work = docp.discretization.work
-    xi = docp.discretization.xi
-    xip1 = docp.discretization.xip1=#
 
     # 0. variables
     ti = time_grid[i]
