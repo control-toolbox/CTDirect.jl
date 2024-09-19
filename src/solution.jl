@@ -54,7 +54,8 @@ function CTBase.OptimalControlSolution(
         parse_DOCP_solution_primal(docp, primal, mult_LB = mult_LB, mult_UB = mult_UB)
 
     # recompute / check objective
-    objective_r = docp.objective(primal)
+    #objective_r = docp.objective(primal)
+    objective_r = DOCP_objective(primal, docp)
     if docp.has_maximization
         objective_r = -objective_r
     end
@@ -127,14 +128,20 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     disc = docp.discretization
     for i = 1:(N + 1)
         # state and control variables at current step
-        X[i,:] = disc.get_state_at_time_step(solution, i)
-        U[i,:] = disc.get_control_at_time_step(solution, i)
+        #X[i,:] = disc.get_state_at_time_step(solution, i)
+        #U[i,:] = disc.get_control_at_time_step(solution, i)
+        X[i,:] = get_state_at_time_step(solution, docp, i)
+        U[i,:] = get_control_at_time_step(solution, docp, i)
 
         # box multipliers
-        mult_state_box_lower[i, :] = disc.get_state_at_time_step(mult_LB, i)
-        mult_state_box_upper[i, :] = disc.get_state_at_time_step(mult_UB, i)
-        mult_control_box_lower[i, :] = disc.get_control_at_time_step(mult_LB, i)
-        mult_control_box_upper[i, :] = disc.get_control_at_time_step(mult_UB, i)
+        #mult_state_box_lower[i, :] = disc.get_state_at_time_step(mult_LB, i)
+        #mult_state_box_upper[i, :] = disc.get_state_at_time_step(mult_UB, i)
+        #mult_control_box_lower[i, :] = disc.get_control_at_time_step(mult_LB, i)
+        #mult_control_box_upper[i, :] = disc.get_control_at_time_step(mult_UB, i)
+        mult_state_box_lower[i, :] = get_state_at_time_step(mult_LB, docp, i)
+        mult_state_box_upper[i, :] = get_state_at_time_step(mult_UB, docp, i)
+        mult_control_box_lower[i, :] = get_control_at_time_step(mult_LB, docp, i)
+        mult_control_box_upper[i, :] = get_control_at_time_step(mult_UB, docp, i)
 
     end
 

@@ -22,7 +22,7 @@ struct DOCP{T <: Discretization}
     ocp::OptimalControlModel # remove at some point ?
 
     # functions
-    objective::Function
+    #objective::Function
     dynamics_ext::Function
     get_optim_variable::Function
     get_initial_time::Function
@@ -206,38 +206,7 @@ struct DOCP{T <: Discretization}
             get_final_time = (xu) -> get_optim_variable(xu)[ocp.final_time]
         else
             get_final_time = (xu) -> ocp.final_time
-        end
-
-        # getter for optimization variables
-        if has_variable
-            if dim_NLP_v == 1
-                get_optim_variable = (xu) -> xu[end]
-            else
-                get_optim_variable = (xu) -> xu[(end - dim_NLP_v + 1):end]
-            end
-        else
-            get_optim_variable = (xu) -> Float64[]
-        end
-
-        # getters for initial and final time
-        if has_free_t0
-            get_initial_time = (xu) -> get_optim_variable(xu)[ocp.initial_time]
-        else
-            get_initial_time = (xu) -> ocp.initial_time
-        end
-        if has_free_tf
-            get_final_time = (xu) -> get_optim_variable(xu)[ocp.final_time]
-        else
-            get_final_time = (xu) -> ocp.final_time
-        end
-
-        # time grid
-        function get_time_grid!(xu)
-            t0 = get_initial_time(xu)
-            tf = get_final_time(xu)
-            @. NLP_time_grid = t0 + NLP_normalized_time_grid * (tf - t0)
-            return
-        end                
+        end             
 
         # time grid
         function get_time_grid!(xu)
@@ -268,7 +237,7 @@ struct DOCP{T <: Discretization}
             dim_NLP_constraints += 1
         end
 
-        # objective
+        #=objective
         if has_mayer && has_lagrange
             # Bolza case (is there a bolza flag too ?)
             objective = function(xu)
@@ -322,14 +291,12 @@ struct DOCP{T <: Discretization}
                 end
                 return obj[1]
             end
-        end
-
-
+        end=#
 
         # call constructor with const fields
         docp = new{typeof(discretization)}(
             ocp,
-            objective,
+            #objective,
             dynamics_ext,
             get_optim_variable,
             get_initial_time,
@@ -458,7 +425,6 @@ end
 
 # Q. should we put objective and constraints *in* DOCP ?
 
-#=
 """
 $(TYPEDSIGNATURES)
 
@@ -474,11 +440,13 @@ function DOCP_objective(xu, docp::DOCP)
     v = docp.get_optim_variable(xu)
 
     # final state is always needed since lagrange cost is there
-    xf = docp.discretization.get_state_at_time_step(xu, N+1)
+    #xf = docp.discretization.get_state_at_time_step(xu, N+1)
+    xf = get_state_at_time_step(xu, docp, N+1)
 
     # mayer cost
     if docp.has_mayer
-        x0 = docp.discretization.get_state_at_time_step(xu, 1)
+        #x0 = docp.discretization.get_state_at_time_step(xu, 1)
+        x0 = get_state_at_time_step(xu, docp, 1)
         if docp.has_inplace
             ocp.mayer(obj, docp._x(x0), docp._x(xf), v)
         else
@@ -502,7 +470,7 @@ function DOCP_objective(xu, docp::DOCP)
 
     return obj[1]
 end
-=#
+
 
 """
 $(TYPEDSIGNATURES)
@@ -621,8 +589,10 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
 
     # variables
-    x0 = docp.discretization.get_state_at_time_step(xu, 1)
-    xf = docp.discretization.get_state_at_time_step(xu, docp.dim_NLP_steps+1)
+    #x0 = docp.discretization.get_state_at_time_step(xu, 1)
+    #xf = docp.discretization.get_state_at_time_step(xu, docp.dim_NLP_steps+1)
+    x0 = get_state_at_time_step(xu, docp, 1)
+    xf = get_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
