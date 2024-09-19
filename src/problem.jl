@@ -22,7 +22,6 @@ struct DOCP{T <: Discretization}
     ocp::OptimalControlModel # remove at some point ?
 
     # functions
-    #objective::Function
     dynamics_ext::Function
     get_optim_variable::Function
     get_initial_time::Function
@@ -39,7 +38,7 @@ struct DOCP{T <: Discretization}
     state_box::Any
     variable_box::Any
 
-    # faster than calling ocp functions each time ?
+    # flags
     has_free_t0::Bool
     has_free_tf::Bool
     has_lagrange::Bool
@@ -108,7 +107,7 @@ struct DOCP{T <: Discretization}
             dim_NLP_steps = length(time_grid) - 1
         end
 
-        # additional indicators (faster ?)
+        # additional flags
         has_free_t0 = has_free_initial_time(ocp)
         has_free_tf = has_free_final_time(ocp)
         has_lagrange = has_lagrange_cost(ocp)
@@ -178,7 +177,7 @@ struct DOCP{T <: Discretization}
             end
         else
             if has_lagrange
-                # NB. preallocating f seems worse than using push. This function seems to allocate 32 more than vectorizing x and u and calling dynamics (no lagrange cost case), which is already the case for the one_liner 'return ocp.dynamics(t, _x(x), _u(u), v)'...
+                # NB. preallocating f seems worse than using push. This function seems to allocate 32 more than vectorizing x and u and calling dynamics (no lagrange cost case), which is already the case for the one liner 'return ocp.dynamics(t, _x(x), _u(u), v)'...
                 dynamics_ext = (t, x, u, v) -> push!(_vec(ocp.dynamics(t, _x(x), _u(u), v)), ocp.lagrange(t, _x(x), _u(u), v))
             else
                 dynamics_ext = (t, x, u, v) -> _vec(ocp.dynamics(t, _x(x), _u(u), v))
@@ -237,66 +236,9 @@ struct DOCP{T <: Discretization}
             dim_NLP_constraints += 1
         end
 
-        #=objective
-        if has_mayer && has_lagrange
-            # Bolza case (is there a bolza flag too ?)
-            objective = function(xu)
-                obj = similar(xu, 1)
-                v = get_optim_variable(xu)
-                x0 = discretization.get_state_at_time_step(xu, 1)        
-                xf = discretization.get_state_at_time_step(xu, dim_NLP_steps+1)
-                # mayer cost
-                if has_inplace
-                    ocp.mayer(obj, _x(x0), _x(xf), v)
-                else
-                    obj[1] = ocp.mayer(_x(x0), _x(xf), v)
-                end
-                # add lagrange cost
-                obj[1] = obj[1] + xf[end]
-                # maximization problem
-                if has_maximization
-                    obj[1] = -obj[1]
-                end
-                return obj[1]
-            end
-        elseif has_mayer
-            # Mayer case
-            objective = function(xu)
-                obj = similar(xu, 1)
-                v = get_optim_variable(xu)
-                x0 = discretization.get_state_at_time_step(xu, 1)        
-                xf = discretization.get_state_at_time_step(xu, dim_NLP_steps+1)
-                # mayer cost
-                if has_inplace
-                    ocp.mayer(obj, _x(x0), _x(xf), v)
-                else
-                    obj[1] = ocp.mayer(_x(x0), _x(xf), v)
-                end
-                # maximization problem
-                if has_maximization
-                    obj[1] = -obj[1]
-                end
-                return obj[1]
-            end
-        else
-            # Lagrange case
-            objective = function(xu)
-                obj = similar(xu, 1)      
-                xf = discretization.get_state_at_time_step(xu, dim_NLP_steps+1)
-                # lagrange cost
-                obj[1] = xf[end]
-                # maximization problem
-                if has_maximization
-                    obj[1] = -obj[1]
-                end
-                return obj[1]
-            end
-        end=#
-
         # call constructor with const fields
         docp = new{typeof(discretization)}(
             ocp,
-            #objective,
             dynamics_ext,
             get_optim_variable,
             get_initial_time,
@@ -440,12 +382,10 @@ function DOCP_objective(xu, docp::DOCP)
     v = docp.get_optim_variable(xu)
 
     # final state is always needed since lagrange cost is there
-    #xf = docp.discretization.get_state_at_time_step(xu, N+1)
     xf = get_state_at_time_step(xu, docp, N+1)
 
     # mayer cost
     if docp.has_mayer
-        #x0 = docp.discretization.get_state_at_time_step(xu, 1)
         x0 = get_state_at_time_step(xu, docp, 1)
         if docp.has_inplace
             ocp.mayer(obj, docp._x(x0), docp._x(xf), v)
@@ -484,23 +424,13 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         docp.get_time_grid!(xu)
     end
     v = docp.get_optim_variable(xu)
+    # NB using inplace here did not seem to give better results
     work = setWorkArray(docp, xu, docp.NLP_time_grid, v)
-    #setWorkArray(docp, xu, docp.NLP_time_grid, v)
 
     # main loop on time steps 
     for i = 1:docp.dim_NLP_steps+1
         setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
-        #setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i)
     end
-
-    #=
-    # path constraints at final time
-    offset = N * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_path_cons)
-    tf = docp.NLP_time_grid[N+1]
-    xf = get_state_at_time_step(xu, docp, N+1)
-    uf = get_control_at_time_step(xu, docp, N+1)
-    setPathConstraints!(docp, c, tf, xf, uf, v, offset)
-    =#
 
     # point constraints
     setPointConstraints!(docp, c, xu, v)
@@ -510,7 +440,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 end
 
 
-#=
+#= seems a little bit better to inline code in setConstraintsBlock...
 """
 $(TYPEDSIGNATURES)
 
@@ -589,8 +519,6 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
 
     # variables
-    #x0 = docp.discretization.get_state_at_time_step(xu, 1)
-    #xf = docp.discretization.get_state_at_time_step(xu, docp.dim_NLP_steps+1)
     x0 = get_state_at_time_step(xu, docp, 1)
     xf = get_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
 

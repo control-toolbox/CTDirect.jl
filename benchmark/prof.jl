@@ -121,20 +121,20 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
         print("t "); @btime $docp.get_final_time($xu)
         print("t bis"); @btime $docp.get_optim_variable($xu)[$docp.ocp.final_time]
         print("v "); @btime $docp.get_optim_variable($xu)
-        print("x "); @btime $disc.get_state_at_time_step($xu, $docp.dim_NLP_steps)
-        print("u "); @btime $disc.get_control_at_time_step($xu, $docp.dim_NLP_steps) 
+        print("x "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
+        print("u "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
         if warntype
             @code_warntype docp.get_final_time(xu)
             @code_warntype docp.get_optim_variable(xu)
-            @code_warntype disc.get_state_at_time_step(xu, docp.dim_NLP_steps)
-            @code_warntype disc.get_control_at_time_step(xu, docp.dim_NLP_steps)
+            @code_warntype CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
+            @code_warntype CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
         end
     end
 
     t = docp.get_final_time(xu)
     v = docp.get_optim_variable(xu)
-    x = disc.get_state_at_time_step(xu, docp.dim_NLP_steps)
-    u = disc.get_control_at_time_step(xu, docp.dim_NLP_steps)
+    x = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
+    u = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
     f = similar(xu, docp.dim_NLP_x)
 
     if test_dyn
@@ -175,11 +175,11 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
 
     # objective
     if test_obj
-        print("Objective"); @btime $docp.objective($xu)
-        warntype && @code_warntype docp.objective(xu)
+        print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
+        warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
         Profile.clear_malloc_data()
         if profile
-            Profile.Allocs.@profile sample_rate=1.0 docp.objective(xu)
+            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
             results = Profile.Allocs.fetch()
             PProf.Allocs.pprof()
         end

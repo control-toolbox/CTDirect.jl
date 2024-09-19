@@ -48,7 +48,6 @@ function direct_transcription(
     # call NLP problem constructor
     nlp = ADNLPModel!(
         x -> DOCP_objective(x, docp),
-        #docp.objective,
         x0,
         docp.var_l,
         docp.var_u,
@@ -94,7 +93,6 @@ function direct_solve(
     kwargs...,
 )
     method = getFullDescription(description, available_methods())
-    #println(method)
 
     # build discretized OCP, including initial guess
     docp, nlp = direct_transcription(

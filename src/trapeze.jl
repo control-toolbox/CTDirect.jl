@@ -10,25 +10,9 @@ struct Trapeze <: Discretization
     additional_controls::Int  # add control at tf
     info::String
 
-    #get_state_at_time_step::Function
-    #get_control_at_time_step::Function
-    # work arrays here seem to give worse allocs even with inplace getters...
-
     # constructor
     function Trapeze(dim_NLP_x, dim_NLP_u)
-
-        #= getters for state and control variables
-        get_state_at_time_step = function (xu, i)
-            offset = (dim_NLP_x + dim_NLP_u) * (i-1)
-            return @view xu[(offset + 1):(offset + dim_NLP_x)]
-        end
-
-        get_control_at_time_step = function (xu, i)
-            offset = (dim_NLP_x + dim_NLP_u) * (i-1) + dim_NLP_x
-            return @view xu[(offset + 1):(offset + dim_NLP_u)]
-        end=#
-
-        return new(0, 1, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable") #, get_state_at_time_step, get_control_at_time_step)
+        return new(0, 1, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
     end
 end
 
@@ -80,8 +64,6 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
 
     work = similar(xu, docp.dim_NLP_x)
     t0 = time_grid[1]
-    #x0 = disc.get_state_at_time_step(xu, 1)
-    #u0 = disc.get_control_at_time_step(xu, 1)
     x0 = get_state_at_time_step(xu, docp, 1)
     u0 = get_control_at_time_step(xu, docp, 1)
 
@@ -110,8 +92,6 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 
     # 0. variables
     ti = time_grid[i]
-    #xi = disc.get_state_at_time_step(xu, i)
-    #ui = disc.get_control_at_time_step(xu, i)
     xi = get_state_at_time_step(xu, docp, i)
     ui = get_control_at_time_step(xu, docp, i)
 
@@ -120,8 +100,6 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         # more variables
         fi = copy(work) # create new copy, not just a reference
         tip1 = time_grid[i+1]
-        #xip1 = disc.get_state_at_time_step(xu, i+1)
-        #uip1 = disc.get_control_at_time_step(xu, i+1)
         xip1 = get_state_at_time_step(xu, docp, i+1)
         uip1 = get_control_at_time_step(xu, docp, i+1)
         if docp.has_inplace
@@ -137,9 +115,6 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     end
 
     # 2. path constraints
-    #setPathConstraints!(docp, c, ti, xi, ui, v, offset)
-    #Apparently function calls always seem to add some overhead allocation...
-
     # Notes on allocations:.= seems similar
     if docp.dim_u_cons > 0
         if docp.has_inplace
