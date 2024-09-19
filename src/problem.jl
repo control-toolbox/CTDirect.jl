@@ -251,7 +251,7 @@ struct DOCP{T <: Discretization}
         if disc_method == "midpoint"
             discretization = CTDirect.Midpoint(dim_NLP_x, dim_NLP_u, dim_NLP_steps)
         elseif disc_method == "trapeze"
-            discretization = CTDirect.Trapeze(dim_NLP_x, dim_NLP_u, dim_NLP_steps, dim_path_cons, dim_u_cons, dim_x_cons, dim_xu_cons, control_constraints[2], state_constraints[2], mixed_constraints[2], has_inplace)
+            discretization = CTDirect.Trapeze(dim_NLP_x, dim_NLP_u)
         else
             error("Unknown discretization method:", disc_method)
         end
