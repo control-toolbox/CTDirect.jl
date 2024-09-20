@@ -86,7 +86,8 @@ function goddard_all()
     # 'mixed' constraint (active at tf)
     constraint!(goddard, :mixed, f = (x, u, v) -> x[3], lb = mf, ub = Inf)
     objective!(goddard, :mayer, (x0, xf, v) -> xf[1], :max)
-    dynamics!(goddard, (x, u, v) -> F0(x, Cd, beta) + u * F1(x, Tmax, b))
+    #dynamics!(goddard, (x, u, v) ->  F0(x, Cd, beta) .+ u .* F1(x, Tmax, b)) slightly better
+    dynamics!(goddard, (x, u, v) ->  F0(x, Cd, beta) + u * F1(x, Tmax, b))
 
     return ((
         ocp = goddard,
