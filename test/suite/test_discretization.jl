@@ -1,6 +1,5 @@
 println("Test: discretization options")
 
-
 normalize_grid(t) = return (t .- t[1]) ./ (t[end] - t[1])
 
 # 1. simple integrator min energy (dual control for test)
@@ -73,4 +72,3 @@ end
     sol_m = direct_solve(ocp, display = false, disc_method = :midpoint)
     @test sol_m.objective ≈ sol_t.objective rtol = 1e-2 
 end
-

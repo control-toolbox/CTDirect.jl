@@ -18,5 +18,11 @@ struct GaussLegendre2 <: Discretization
     butcher_a::Matrix{Float64}
     butcher_b::Vector{Float64}
     butcher_c::Vector{Float64}
-    GaussLegendre2() = new(2, 0, [0.25 (0.25 - sqrt(3)/6); (0.25 + sqrt(3)/6) 0.25], [0.5, 0.5], [(0.5 - sqrt(3)/6), (0.5 + sqrt(3)/6)])
+    GaussLegendre2() = new(
+        2,
+        0,
+        [0.25 (0.25-sqrt(3) / 6); (0.25+sqrt(3) / 6) 0.25],
+        [0.5, 0.5],
+        [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
+    )
 end

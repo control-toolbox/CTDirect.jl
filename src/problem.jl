@@ -3,7 +3,12 @@
 # - for now the path constraints are checked on the time steps ie g(t_i, x_i, u_i). This requires a getter that provide a control value at each time step, which may not coincide with the actual control discretization (eg RK stages). In this case we will use the 'average' control using the same coefficients as the RK method. Later we can add an option for control discretization, step or stage. Taking a control constant per step would solve the question for the path constraints evaluation and reduces the number of variables. Compared to the more standard stage control discretization, the consistency of the costate would need to be checked, as well as the oscillations in the trajectory (which may actually be better). Further options may include CVP (control vector parametrization) on a coarser grid.
 # - for the other choice of enforcing path constraints at the time stages, the symmetric question of getting state values at time stages can be solved by reusing the states used in the evaluation of the stage dynamics. This second choice (as in Bocop2) has the drawback of a larger problem size, and does not check the constraints at the points of the actual trajectory computed (including tf).
 
+<<<<<<< HEAD
 # generic discretization
+=======
+# generic discretization struct
+# NB. can we mutualize common fields at the abstract level ?
+>>>>>>> main
 abstract type Discretization end
 abstract type ArgsAtStep end
 
@@ -83,7 +88,16 @@ struct DOCP{T <: Discretization}
     _u::Function
 
     # constructor
+<<<<<<< HEAD
     function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method="trapeze")
+=======
+    function DOCP(
+        ocp::OptimalControlModel,
+        grid_size::Integer,
+        time_grid,
+        discretization::Discretization,
+    )
+>>>>>>> main
 
         # time grid
         if time_grid == nothing
@@ -136,6 +150,19 @@ struct DOCP{T <: Discretization}
         end
         dim_OCP_x = ocp.state_dimension
 
+<<<<<<< HEAD
+=======
+        N = dim_NLP_steps
+        dim_stage = discretization.stage
+
+        # NLP unknown (state + control + variable [+ stage])
+        dim_NLP_variables =
+            (N + 1) * dim_NLP_x +
+            (N + discretization.additional_controls) * dim_NLP_u +
+            dim_NLP_v +
+            N * dim_NLP_x * dim_stage
+
+>>>>>>> main
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
         control_constraints,
@@ -230,7 +257,14 @@ struct DOCP{T <: Discretization}
 
         # NLP constraints size (dynamics, stage, path, boundary, variable)
         dim_NLP_constraints =
+<<<<<<< HEAD
         dim_NLP_steps * (dim_NLP_x + (dim_NLP_x * dim_stage) + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
+=======
+            N * (dim_NLP_x + (dim_NLP_x * dim_stage) + dim_path_cons) +
+            dim_path_cons +
+            dim_boundary_cons +
+            dim_v_cons
+>>>>>>> main
         if has_lagrange
             # add initial condition for lagrange state
             dim_NLP_constraints += 1
@@ -282,15 +316,17 @@ struct DOCP{T <: Discretization}
             zeros(dim_NLP_constraints),
             zeros(dim_NLP_constraints),
             discretization,
+<<<<<<< HEAD
             _vec,
             _x,
             _u
+=======
+>>>>>>> main
         )
 
         return docp
     end
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -302,14 +338,12 @@ function is_solvable(ocp)
     return solvable
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
 Build upper and lower bounds vectors for the DOCP nonlinear constraints.
 """
 function constraints_bounds!(docp::DOCP)
-
     lb = docp.con_l
     ub = docp.con_u
 
@@ -331,7 +365,6 @@ function constraints_bounds!(docp::DOCP)
 
     return lb, ub
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -365,16 +398,23 @@ function variables_bounds!(docp::DOCP)
     return var_l, var_u
 end
 
+<<<<<<< HEAD
 # Q. should we put objective and constraints *in* DOCP ?
 
+=======
+>>>>>>> main
 """
 $(TYPEDSIGNATURES)
 
 Compute the objective for the DOCP problem.
 """
 function DOCP_objective(xu, docp::DOCP)
+<<<<<<< HEAD
 
     obj = similar(xu, 1)
+=======
+    obj = 0.0
+>>>>>>> main
     N = docp.dim_NLP_steps
     ocp = docp.ocp
 
@@ -411,7 +451,6 @@ function DOCP_objective(xu, docp::DOCP)
     return obj[1]
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -420,6 +459,7 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 function DOCP_constraints!(c, xu, docp::DOCP)
 
     # initialization
+<<<<<<< HEAD
     if docp.has_free_t0 || docp.has_free_tf
         docp.get_time_grid!(xu)
     end
@@ -430,6 +470,22 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     # main loop on time steps 
     for i = 1:docp.dim_NLP_steps+1
         setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
+=======
+    # +++ use and pass a single tuple (args, v, time_grid) instead ?
+    time_grid = get_time_grid(xu, docp)
+    args, v = initArgs(xu, docp, time_grid)
+
+    # main loop on time steps
+    index = 1 # counter for the constraints
+    for i = 0:(docp.dim_NLP_steps - 1)
+
+        # state equation
+        index = setStateEquation!(docp, c, index, args, v, i)
+        # path constraints 
+        index = setPathConstraints!(docp, c, index, args, v, i)
+        # update
+        args = updateArgs(args, xu, docp, v, time_grid, i)
+>>>>>>> main
     end
 
     # point constraints
@@ -439,6 +495,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     return c
 end
 
+<<<<<<< HEAD
 
 #= seems a little bit better to inline code in setConstraintsBlock...
 """
@@ -476,12 +533,18 @@ end
 =#
 
 
+=======
+>>>>>>> main
 """
 $(TYPEDSIGNATURES)
 
 Set bounds for the path constraints at given time step
 """
 function setPathBounds!(docp::DOCP, index::Int, lb, ub)
+<<<<<<< HEAD
+=======
+    ocp = docp.ocp
+>>>>>>> main
 
     # pure control constraints
     if docp.dim_u_cons > 0
@@ -507,16 +570,20 @@ function setPathBounds!(docp::DOCP, index::Int, lb, ub)
     return index
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
 Set the boundary and variable constraints
 """
+<<<<<<< HEAD
 function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # offset
     offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
+=======
+function setPointConstraints!(docp::DOCP, c, index::Int, xu, v)
+    ocp = docp.ocp
+>>>>>>> main
 
     # variables
     x0 = get_state_at_time_step(xu, docp, 1)
@@ -546,14 +613,12 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     end
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
 Set bounds for the boundary and variable constraints
 """
 function setPointBounds!(docp::DOCP, index::Int, lb, ub)
-
     ocp = docp.ocp
 
     # boundary constraints
@@ -580,7 +645,6 @@ function setPointBounds!(docp::DOCP, index::Int, lb, ub)
     return index
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -597,11 +661,25 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
     end
 
     # set state / control variables if provided
+<<<<<<< HEAD
     docp.get_time_grid!(NLP_X)
     for i = 1:docp.dim_NLP_steps+1
         ti = docp.NLP_time_grid[i]
         set_state_at_time_step!(NLP_X, init.state_init(ti), docp, i)
         set_control_at_time_step!(NLP_X, init.control_init(ti), docp, i)
+=======
+    time_grid = get_time_grid(NLP_X, docp)
+    for i = 0:(docp.dim_NLP_steps)
+        ti = time_grid[i + 1]
+        set_variables_at_time_step!(
+            NLP_X,
+            init.state_init(ti),
+            init.control_init(ti),
+            docp,
+            i,
+            docp.discretization,
+        )
+>>>>>>> main
     end
 
     return NLP_X

@@ -29,22 +29,22 @@ u_vec = [0, 0.3, 0.1]
 @testset verbose = true showtiming = true ":default_init_no_arg" begin
     sol = direct_solve(ocp, display = false, max_iter = maxiter)
     T = sol.time_grid
-    @test isapprox(sol.state.(T), (t->[0.1,0.1]).(T), rtol = 1e-2)
-    @test isapprox(sol.control.(T), (t->0.1).(T), rtol = 1e-2)
+    @test isapprox(sol.state.(T), (t -> [0.1, 0.1]).(T), rtol = 1e-2)
+    @test isapprox(sol.control.(T), (t -> 0.1).(T), rtol = 1e-2)
     @test isapprox(sol.variable, 0.1, rtol = 1e-2)
 end
 @testset verbose = true showtiming = true ":default_init_()" begin
     sol = direct_solve(ocp, display = false, init = (), max_iter = maxiter)
     T = sol.time_grid
-    @test isapprox(sol.state.(T), (t->[0.1,0.1]).(T), rtol = 1e-2)
-    @test isapprox(sol.control.(T), (t->0.1).(T), rtol = 1e-2)
+    @test isapprox(sol.state.(T), (t -> [0.1, 0.1]).(T), rtol = 1e-2)
+    @test isapprox(sol.control.(T), (t -> 0.1).(T), rtol = 1e-2)
     @test isapprox(sol.variable, 0.1, rtol = 1e-2)
 end
 @testset verbose = true showtiming = true ":default_init_nothing" begin
     sol = direct_solve(ocp, display = false, init = nothing, max_iter = maxiter)
     T = sol.time_grid
-    @test isapprox(sol.state.(T), (t->[0.1,0.1]).(T), rtol = 1e-2)
-    @test isapprox(sol.control.(T), (t->0.1).(T), rtol = 1e-2)
+    @test isapprox(sol.state.(T), (t -> [0.1, 0.1]).(T), rtol = 1e-2)
+    @test isapprox(sol.control.(T), (t -> 0.1).(T), rtol = 1e-2)
     @test sol.variable == 0.1
 end
 
@@ -52,12 +52,12 @@ end
 @testset verbose = true showtiming = true ":constant_x" begin
     sol = direct_solve(ocp, display = false, init = (state = x_const,), max_iter = maxiter)
     T = sol.time_grid
-    @test isapprox(sol.state.(T), (t->x_const).(T), rtol = 1e-2)
+    @test isapprox(sol.state.(T), (t -> x_const).(T), rtol = 1e-2)
 end
 @testset verbose = true showtiming = true ":constant_u" begin
     sol = direct_solve(ocp, display = false, init = (control = u_const,), max_iter = maxiter)
     T = sol.time_grid
-    @test isapprox(sol.control.(T), (t->u_const).(T), rtol = 1e-2)
+    @test isapprox(sol.control.(T), (t -> u_const).(T), rtol = 1e-2)
 end
 @testset verbose = true showtiming = true ":constant_v" begin
     sol = direct_solve(ocp, display = false, init = (variable = v_const,), max_iter = maxiter)
@@ -71,8 +71,8 @@ end
         max_iter = maxiter,
     )
     T = sol.time_grid
-    @test isapprox(sol.state.(T), (t->x_const).(T), rtol = 1e-2)
-    @test isapprox(sol.control.(T), (t->u_const).(T), rtol = 1e-2)
+    @test isapprox(sol.state.(T), (t -> x_const).(T), rtol = 1e-2)
+    @test isapprox(sol.control.(T), (t -> u_const).(T), rtol = 1e-2)
 end
 @testset verbose = true showtiming = true ":constant_xv" begin
     sol = direct_solve(
@@ -82,7 +82,7 @@ end
         max_iter = maxiter,
     )
     T = sol.time_grid
-    @test isapprox(sol.state.(T), (t->x_const).(T), rtol = 1e-2)
+    @test isapprox(sol.state.(T), (t -> x_const).(T), rtol = 1e-2)
     @test sol.variable == v_const
 end
 @testset verbose = true showtiming = true ":constant_uv" begin
@@ -93,7 +93,7 @@ end
         max_iter = maxiter,
     )
     T = sol.time_grid
-    @test isapprox(sol.control.(T), (t->u_const).(T), rtol = 1e-2)
+    @test isapprox(sol.control.(T), (t -> u_const).(T), rtol = 1e-2)
     @test sol.variable == v_const
 end
 @testset verbose = true showtiming = true ":constant_xuv" begin
@@ -104,8 +104,8 @@ end
         max_iter = maxiter,
     )
     T = sol.time_grid
-    @test isapprox(sol.state.(T), (t->x_const).(T), rtol = 1e-2)
-    @test isapprox(sol.control.(T), (t->u_const).(T), rtol = 1e-2)
+    @test isapprox(sol.state.(T), (t -> x_const).(T), rtol = 1e-2)
+    @test isapprox(sol.control.(T), (t -> u_const).(T), rtol = 1e-2)
     @test sol.variable == v_const
 end
 
@@ -164,7 +164,7 @@ end
         init = (time = t_vec, state = x_matrix, control = u_vec, variable = v_const),
         max_iter = maxiter,
     )
-    @test isapprox(stack(sol.state.(t_matrix),dims=1), x_matrix, rtol = 1e-2)
+    @test isapprox(stack(sol.state.(t_matrix), dims = 1), x_matrix, rtol = 1e-2)
     @test isapprox(sol.control.(t_vec), u_vec, rtol = 1e-2)
     @test sol.variable == v_const
 end
