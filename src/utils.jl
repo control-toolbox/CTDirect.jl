@@ -5,86 +5,6 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
-<<<<<<< HEAD
-# +++ todo change arguments order: docp first, then xu ?
-
-
-#=
-=======
->>>>>>> main
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve optimization variables from the NLP variables.
-"""
-function get_optim_variable(xu, docp)
-    if docp.has_variable
-        if docp.dim_NLP_v == 1
-            return xu[end]
-        else
-            return xu[(end - docp.dim_NLP_v + 1):end]
-        end
-    else
-        return Float64[]
-    end
-end
-<<<<<<< HEAD
-=#
-#=
-=======
-
->>>>>>> main
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve initial time for OCP (may be fixed or variable)
-"""
-function get_initial_time(xu, docp)
-    if docp.has_free_t0
-        return get_optim_variable(xu, docp)[docp.ocp.initial_time]
-    else
-        return docp.ocp.initial_time
-    end
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve final time for OCP (may be fixed or variable)
-"""
-function get_final_time(xu, docp)
-    if docp.has_free_tf
-        return get_optim_variable(xu, docp)[docp.ocp.final_time]
-    else
-        return docp.ocp.final_time
-    end
-end
-<<<<<<< HEAD
-=#
-#=
-=======
-
->>>>>>> main
-"""
-$(TYPEDSIGNATURES)
-
-Get full (un-normalized) time grid
-"""
-function get_time_grid(xu, docp)
-    t0 = get_initial_time(xu, docp)
-    tf = get_final_time(xu, docp)
-    return @. t0 + docp.NLP_normalized_time_grid * (tf - t0)
-end
-<<<<<<< HEAD
-function get_time_grid!(time_grid, xu, docp)
-    t0 = get_initial_time(xu, docp)
-    tf = get_final_time(xu, docp)
-    @. time_grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
-end
-=#
-=======
->>>>>>> main
-
 """
 $(TYPEDSIGNATURES)
 
@@ -111,11 +31,7 @@ function build_bounds(dim_var, dim_box, box_triplet)
     return x_lb, x_ub
 end
 
-<<<<<<< HEAD
 
 # placeholders (see CTDirectExt) +++ can be removed if functions moved to ctbase
-=======
-# placeholders (see CTDirectExt)
->>>>>>> main
 function export_ocp_solution end
 function import_ocp_solution end
