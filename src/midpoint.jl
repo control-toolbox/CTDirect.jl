@@ -125,12 +125,8 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
         ts = ti + hi * disc.butcher_c[1]
         #xs = xi + hi * (disc.butcher_a[1][1] * ki)
         xs = 0.5 * (xi + xip1) #compare bench
-        if docp.has_inplace
-            docp.dynamics_ext((@view c[offset+1:offset+docp.dim_NLP_x]), ts, xs, ui, v)
-            @views c[offset+1:offset+docp.dim_NLP_x] = -c[offset+1:offset+docp.dim_NLP_x] + ki
-        else
-            c[offset+1:offset+docp.dim_NLP_x] = ki - docp.dynamics_ext(ts, xs, ui, v)
-        end
+        docp.dynamics_ext!((@view c[offset+1:offset+docp.dim_NLP_x]), ts, xs, ui, v)
+        @views c[offset+1:offset+docp.dim_NLP_x] = -c[offset+1:offset+docp.dim_NLP_x] + ki
         offset += docp.dim_NLP_x
     end
 

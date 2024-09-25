@@ -109,7 +109,7 @@ function test_getters(; warntype=false, grid_size=100, disc_method=:trapeze, in_
 end
 
 
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=false, test_cons=true, test_trans=false, test_solve=false, warntype=true, jet=true, profile=true, grid_size=10, disc_method=:trapeze, in_place=false)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=false)
     
     # define problem and variables
     prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)

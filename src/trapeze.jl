@@ -61,18 +61,11 @@ end
 function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
    
     disc = docp.discretization
-
     work = similar(xu, docp.dim_NLP_x)
     t0 = time_grid[1]
     x0 = get_state_at_time_step(xu, docp, 1)
     u0 = get_control_at_time_step(xu, docp, 1)
-
-    if docp.has_inplace
-        docp.dynamics_ext(work, t0, x0, u0, v)
-    else
-        # NB. work = will create a new variable ;-) (work .= is fine)
-        work[:] = docp.dynamics_ext(t0, x0, u0, v) #+++ jet runtime dispatch here
-    end
+    docp.dynamics_ext!(work, t0, x0, u0, v)
     return work
 end
 
@@ -101,12 +94,7 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         tip1 = time_grid[i+1]
         xip1 = get_state_at_time_step(xu, docp, i+1)
         uip1 = get_control_at_time_step(xu, docp, i+1)
-        if docp.has_inplace
-            docp.dynamics_ext(work, tip1, xip1, uip1, v)
-        else
-            # copy, do not create a new variable !
-            work[:] = docp.dynamics_ext(tip1, xip1, uip1, v) #+++ jet runtime dispatch here
-        end
+        docp.dynamics_ext!(work, tip1, xip1, uip1, v)
 
         # trapeze rule with 'smart' update for dynamics (similar with @.)
         c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi + work)) #+++ jet runtime dispatch here even with explicit index ranges

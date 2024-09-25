@@ -22,7 +22,7 @@ struct DOCP{T <: Discretization}
     ocp::OptimalControlModel # remove at some point ?
 
     # functions
-    dynamics_ext::Function
+    dynamics_ext!::Function
     get_optim_variable::Function
     get_initial_time::Function
     get_final_time::Function
@@ -167,22 +167,30 @@ struct DOCP{T <: Discretization}
         # extended dynamics with lagrange cost
         if has_inplace
             if has_lagrange
-                dynamics_ext = function (f, t, x, u, v)
+                dynamics_ext! = function (f, t, x, u, v)
                     ocp.dynamics((@view f[1:dim_OCP_x]), t, _x(x), _u(u), v)
                     ocp.lagrange((@view f[dim_NLP_x:dim_NLP_x]), t, _x(x), _u(u), v)
                     return
                 end
+
             else
-                dynamics_ext = (f, t, x, u, v) -> ocp.dynamics((@view f[1:dim_OCP_x]), t, _x(x), _u(u), v)
+                dynamics_ext! = (f, t, x, u, v) -> ocp.dynamics(f, t, _x(x), _u(u), v)
             end
         else
             if has_lagrange
-                # NB. preallocating f seems worse than using push. This function seems to allocate 32 more than vectorizing x and u and calling dynamics (no lagrange cost case), which is already the case for the one liner 'return ocp.dynamics(t, _x(x), _u(u), v)'...
-                dynamics_ext = (t, x, u, v) -> push!(_vec(ocp.dynamics(t, _x(x), _u(u), v)), ocp.lagrange(t, _x(x), _u(u), v))
+                dynamics_ext! = function (f, t, x, u, v)
+                    f[1:docp.dim_OCP_x] .= ocp.dynamics(t, _x(x), _u(u), v) # .= required for scalar case
+                    f[docp.dim_NLP_x] = ocp.lagrange(t, _x(x), _u(u), v)
+                    return
+                end                
             else
-                dynamics_ext = (t, x, u, v) -> _vec(ocp.dynamics(t, _x(x), _u(u), v))
+                dynamics_ext! = function (f, t, x, u, v)
+                    f[:] = ocp.dynamics(t, _x(x), _u(u), v)
+                    return
+                end
             end
         end
+
 
         # getter for optimization variables
         if has_variable
@@ -239,7 +247,7 @@ struct DOCP{T <: Discretization}
         # call constructor with const fields
         docp = new{typeof(discretization)}(
             ocp,
-            dynamics_ext,
+            dynamics_ext!,
             get_optim_variable,
             get_initial_time,
             get_final_time,
