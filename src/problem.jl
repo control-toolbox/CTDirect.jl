@@ -370,6 +370,9 @@ Compute the objective for the DOCP problem.
 """
 function DOCP_objective(xu, docp::DOCP)
 
+    # +++ use a functor to build the specific objective funtion once ?
+    # call should be made in docp, maybe put back DOCP_objective(xu) as DOCP member and write an external setter that builds the function ? 
+
     obj = similar(xu, 1)
     N = docp.dim_NLP_steps
     ocp = docp.ocp
