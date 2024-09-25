@@ -120,7 +120,8 @@ function goddard_all_inplace()
         return
     end
     function m_fun!(c, x, u, v) 
-        @views c[:] .= x[3]
+        #@views c[:] .= x[3]
+        c[1] = x[3]
         return
     end
     function rf_fun!(c, x0, xf, v)

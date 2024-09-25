@@ -109,7 +109,7 @@ function test_getters(; warntype=false, grid_size=100, disc_method=:trapeze, in_
 end
 
 
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=false)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=false, test_block=true, test_cons=true, test_trans=false, test_solve=false, warntype=true, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=false)
     
     # define problem and variables
     prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)
@@ -178,12 +178,21 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
     if test_obj
         print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
         warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
-        Profile.clear_malloc_data()
         if profile
             Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
             results = Profile.Allocs.fetch()
             PProf.Allocs.pprof()
         end
+    end
+
+    if test_block
+        print("Constraints block")
+        docp.get_time_grid!(xu)
+        v = docp.get_optim_variable(xu)
+        work = CTDirect.setWorkArray(docp, xu, docp.NLP_time_grid, v)
+        i = 1
+        @code_warntype CTDirect.setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
+
     end
 
     # DOCP_constraints

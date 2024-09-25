@@ -116,7 +116,6 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
         hi = tip1 - ti
 
         # midpoint rule
-        disc = docp.discretization
         h_sum_bk = hi * disc.butcher_b[1] * ki
         c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + h_sum_bk)
         offset += docp.dim_NLP_x

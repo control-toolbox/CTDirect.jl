@@ -28,7 +28,6 @@ function get_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
     m = docp.dim_NLP_u
     offset = (nx + m) * (i-1)
     return @view xu[(offset + 1):(offset + nx)]
-    #NB. From basic tests, views with constant indices seems to take 48bytes, 80 with indices computation, regardless of size (including scalar). Copying values for slices (computed indices) takes 96, 112, 112, 128, 128, etc (16 bytes alignment). Views seem always better in terms of allocations (maybe not for speed). Note that the size 1 view is still a subarray and is not necessarily compatible with scalar syntax in OCP functions. Actual tests (goddard functional) indicate a bit less allocations for the slice version (299kB vs 308kB for views) but performance is similar. The main drawback of views is that they are allocated at each getter call, while the slice version may work inplace with a reusable work array ?
 end
 
 function get_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
