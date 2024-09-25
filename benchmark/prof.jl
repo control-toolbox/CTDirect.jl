@@ -79,37 +79,7 @@ function test_basic()
 end
 
 
-function test_getters(; warntype=false, grid_size=100, disc_method=:trapeze, in_place=false)
-
-    # harcdoded arguments
-    a = @allocated begin t_1 = 0. end
-    b = @allocated begin x_1 = [1.,0.,1.] end
-    #b = @allocated begin x_1 = [0.,0.] end
-    c = @allocated begin u_1 = [1.] end
-    d = @allocated begin v_1 = .1 end
-    println("Allocation for hardcoded t,x,u,v: ",a, " ", b, " ", c, " ", d)
-
-    # getters for arguments
-    prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)
-    disc = docp.discretization
-    docp.get_time_grid!(xu)
-    time_grid = docp.NLP_time_grid
-    a = @allocated begin t_2 = time_grid[1] end
-    b = @allocated begin x_2 = disc.get_state_at_time_step(xu, 1) end
-    c = @allocated begin u_2 = disc.get_control_at_time_step(xu, 1) end
-    d = @allocated begin v_2 = docp.get_optim_variable(xu) end
-    e = @allocated begin xx_2 = docp._x(x_2) end
-    f = @allocated begin uu_2 = docp._u(u_2) end
-    println("Allocation for getters t,x,u,v: ",a, " ", b, " ", c, " ", d, " and vectorized x, u: ", e, " ", f)
-
-    # dynamics
-    a = @allocated begin docp.ocp.dynamics(t_2, xx_2, uu_2, v_2) end; println("Allocation for ocp dynamics (getter vectorized args)+vectorization: ",a+e+f)
-    a = @allocated begin docp.dynamics_ext(t_2, x_2, u_2, v_2) end; println("Allocation for docp dynamics_ext (includes vectorization): ",a)
-
-end
-
-
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_obj=false, test_block=true, test_cons=true, test_trans=false, test_solve=false, warntype=true, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=false)
+function test_unit(;test_get=true, test_dyn=false, test_unit_cons=false, test_obj=false, test_block=true, test_cons=true, test_trans=false, test_solve=false, warntype=true, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=false)
     
     # define problem and variables
     prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)
@@ -119,21 +89,21 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
 
     # getters
     if test_get
-        print("t "); @btime $docp.get_final_time($xu)
-        print("t bis"); @btime $docp.get_optim_variable($xu)[$docp.ocp.final_time]
-        print("v "); @btime $docp.get_optim_variable($xu)
+        print("t "); @btime CTDirect.get_final_time($xu, $docp)
+        print("v "); @btime CTDirect.get_optim_variable($xu, $docp)
         print("x "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
         print("u "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
         if warntype
-            @code_warntype docp.get_final_time(xu)
-            @code_warntype docp.get_optim_variable(xu)
+            @code_warntype CTDirect.get_final_time(xu, docp)
+            @code_warntype CTDirect.get_optim_variable(xu, docp)
             @code_warntype CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
             @code_warntype CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
+            @code_warntype CTDirect.get_time_grid!(xu, docp)
         end
     end
 
-    t = docp.get_final_time(xu)
-    v = docp.get_optim_variable(xu)
+    t = CTDirect.get_final_time(xu, docp)
+    v = CTDirect.get_optim_variable(xu, docp)
     x = CTDirect.get_state_at_time_step(xu, docp, docp.dim_NLP_steps)
     u = CTDirect.get_control_at_time_step(xu, docp, docp.dim_NLP_steps)
     f = similar(xu, docp.dim_NLP_x)
@@ -187,11 +157,11 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_o
 
     if test_block
         print("Constraints block")
-        docp.get_time_grid!(xu)
-        v = docp.get_optim_variable(xu)
-        work = CTDirect.setWorkArray(docp, xu, docp.NLP_time_grid, v)
+        CTDirect.get_time_grid!(xu, docp)
+        v = CTDirect.get_optim_variable(xu, docp)
+        #@code_warntype work = CTDirect.setWorkArray(docp, xu, docp.NLP_time_grid, v)
         i = 1
-        @code_warntype CTDirect.setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
+        #@code_warntype CTDirect.setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
 
     end
 

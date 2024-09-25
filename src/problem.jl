@@ -23,10 +23,10 @@ struct DOCP{T <: Discretization}
 
     # functions
     dynamics_ext!::Function
-    get_optim_variable::Function
+    #=get_optim_variable::Function
     get_initial_time::Function
     get_final_time::Function
-    get_time_grid!::Function
+    get_time_grid!::Function=#
 
     # constraints and their bounds
     control_constraints::Any
@@ -192,7 +192,7 @@ struct DOCP{T <: Discretization}
         end
 
 
-        # getter for optimization variables
+        #= getter for optimization variables
         if has_variable
             if dim_NLP_v == 1
                 get_optim_variable = (xu) -> xu[end]
@@ -209,10 +209,11 @@ struct DOCP{T <: Discretization}
         else
             get_initial_time = (xu) -> ocp.initial_time
         end
-        if has_free_tf
+        #if has_free_tf
+        if ocp.final_time isa Index
             get_final_time = (xu) -> get_optim_variable(xu)[ocp.final_time]
-        else
-            get_final_time = (xu) -> ocp.final_time
+        elseif ocp.final_time isa Real
+            get_final_time = (xu) -> convert(Float64, ocp.final_time)
         end             
 
         # time grid
@@ -221,7 +222,7 @@ struct DOCP{T <: Discretization}
             tf = get_final_time(xu)
             @. NLP_time_grid = t0 + NLP_normalized_time_grid * (tf - t0)
             return
-        end
+        end=#
 
         # discretization
         if disc_method == "midpoint"
@@ -248,10 +249,10 @@ struct DOCP{T <: Discretization}
         docp = new{typeof(discretization)}(
             ocp,
             dynamics_ext!,
-            get_optim_variable,
+            #=get_optim_variable,
             get_initial_time,
             get_final_time,
-            get_time_grid!,
+            get_time_grid!,=#
             control_constraints,
             state_constraints,
             mixed_constraints,
@@ -427,9 +428,9 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 
     # initialization
     if docp.has_free_t0 || docp.has_free_tf
-        docp.get_time_grid!(xu)
+        get_time_grid!(xu, docp)
     end
-    v = docp.get_optim_variable(xu)
+    v = get_optim_variable(xu, docp)
     # NB using inplace here did not seem to give better results
     work = setWorkArray(docp, xu, docp.NLP_time_grid, v)
 
@@ -599,7 +600,7 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
     end
 
     # set state / control variables if provided
-    docp.get_time_grid!(NLP_X)
+    get_time_grid!(NLP_X, docp)
     for i = 1:docp.dim_NLP_steps+1
         ti = docp.NLP_time_grid[i]
         set_state_at_time_step!(NLP_X, init.state_init(ti), docp, i)
