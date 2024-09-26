@@ -7,7 +7,7 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 
 # getter for optimization variables
 function get_optim_variable(xu, docp)
-    if docp.has_variable
+    if docp.is_variable
         if docp.dim_NLP_v == 1
             return xu[end]
         else
@@ -20,24 +20,19 @@ end
 
 # getters for initial and final time
 function get_initial_time(xu, docp)
-    if 
-    return get_initial_time(xu, docp, docp.ocp.initial_time)
-end
-function get_initial_time(xu, docp, ti::Real)
-    return ti
-end
-function get_initial_time(xu, docp, ti_index::Index)
-    return get_optim_variable(xu, docp)[ti_index]
+    if docp.is_free_initial_time
+        return get_optim_variable(xu, docp)[docp.index_initial_time]
+    else
+        return docp.fixed_initial_time
+    end
 end
 
 function get_final_time(xu, docp)
-    return get_final_time(xu, docp, docp.ocp.final_time)           
-end
-function get_final_time(xu, docp, tf::Real)
-    return tf
-end
-function get_final_time(xu, docp, tf_index::Index)
-    return get_optim_variable(xu, docp)[tf_index]
+    if docp.is_free_final_time
+        return get_optim_variable(xu, docp)[docp.index_final_time]
+    else
+        return docp.fixed_final_time
+    end
 end
 
 # time grid

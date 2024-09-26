@@ -8,7 +8,7 @@ Build OCP functional solution from DOCP discrete solution (given as a SolverCore
 function CTBase.OptimalControlSolution(docp, docp_solution)
 
     # retrieve data (could pass some status info too (get_status ?))
-    if docp.has_maximization
+    if docp.is_maximization
         objective = -docp_solution.objective
     else
         objective = docp_solution.objective
@@ -46,7 +46,7 @@ function CTBase.OptimalControlSolution(
 )
 
     # time grid (NB. we get a Vector{Any} that requires explicit conversion)
-    docp.get_time_grid!(primal) 
+    get_time_grid!(primal, docp) 
     T = convert(Vector{Float64},docp.NLP_time_grid)
     
     # recover primal variables
@@ -55,7 +55,7 @@ function CTBase.OptimalControlSolution(
 
     # recompute / check objective
     objective_r = DOCP_objective(primal, docp)
-    if docp.has_maximization
+    if docp.is_maximization
         objective_r = -objective_r
     end
     if isnothing(objective)
@@ -117,10 +117,10 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     mult_variable_box_upper = zeros(N + 1, docp.dim_NLP_v)
 
     # retrieve optimization variables
-    if docp.has_variable
-        v = docp.get_optim_variable(solution)
-        mult_variable_box_lower = docp.get_optim_variable(mult_LB)
-        mult_variable_box_upper = docp.get_optim_variable(mult_UB)
+    if docp.is_variable
+        v = get_optim_variable(solution, docp)
+        mult_variable_box_lower = get_optim_variable(mult_LB, docp)
+        mult_variable_box_upper = get_optim_variable(mult_UB, docp)
     end
 
     # loop over time steps

@@ -29,6 +29,7 @@ function get_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
     offset = (nx + m) * (i-1)
     return @view xu[(offset + 1):(offset + nx)]
 end
+   
 
 function get_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
     nx = docp.dim_NLP_x
@@ -104,21 +105,21 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # 2. path constraints
     # Notes on allocations:.= seems similar
     if docp.dim_u_cons > 0
-        if docp.has_inplace
+        if docp.is_inplace
             docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, docp._u(ui), v)
         else
             c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](ti, docp._u(ui), v)
         end
     end
     if docp.dim_x_cons > 0 
-        if docp.has_inplace
+        if docp.is_inplace
             docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, docp._x(xi), v)
         else
             c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](ti, docp._x(xi), v)
         end
     end
     if docp.dim_mixed_cons > 0 
-        if docp.has_inplace
+        if docp.is_inplace
             docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, docp._x(xi), docp._u(ui), v)
         else
             c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](ti, docp._x(xi), docp._u(ui), v)

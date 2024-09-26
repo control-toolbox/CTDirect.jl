@@ -45,7 +45,8 @@ end
 
 function init(;in_place, grid_size, disc_method)
     if in_place
-        prob = goddard_all_inplace()
+        #prob = goddard_all_inplace()
+        prob = goddard_a()
         #prob = double_integrator_a()
     else
         prob = goddard_all()
@@ -79,7 +80,7 @@ function test_basic()
 end
 
 
-function test_unit(;test_get=true, test_dyn=false, test_unit_cons=false, test_obj=false, test_block=true, test_cons=true, test_trans=false, test_solve=false, warntype=true, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=false)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=true, test_block=false, test_cons=false, test_trans=false, test_solve=false, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
     
     # define problem and variables
     prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)
@@ -145,9 +146,37 @@ function test_unit(;test_get=true, test_dyn=false, test_unit_cons=false, test_ob
     end
 
     # objective
+    if test_mayer
+        n = docp.dim_OCP_x
+        nx = docp.dim_NLP_x
+        m = docp.dim_NLP_u
+        N = docp.dim_NLP_steps
+        obj = similar(xu,1)
+        print("Mayer"); @btime $docp.ocp.mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
+        if warntype 
+            println("code warntype")
+            @code_warntype docp.ocp.mayer(obj, (@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end])
+            println("code warntype end")
+        end
+        if jet 
+            println("JET")
+            display(@report_opt docp.ocp.mayer(obj, (@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end]))
+            println("JET end")
+        end             
+    end
+
     if test_obj
         print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
-        warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
+        if warntype 
+            println("code warntype")
+            @code_warntype CTDirect.DOCP_objective(xu, docp)
+            println("code warntype end")
+        end            
+        if jet
+            println("JET")
+            display(@report_opt CTDirect.DOCP_objective(xu, docp))
+            println("JET end")
+        end
         if profile
             Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
             results = Profile.Allocs.fetch()
