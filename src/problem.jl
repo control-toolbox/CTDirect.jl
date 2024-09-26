@@ -22,11 +22,7 @@ struct DOCP{T <: Discretization}
     ocp::OptimalControlModel # remove at some point ?
 
     # functions
-    mayer::Function
     dynamics_ext!::Function
-    #=get_initial_time::Function
-    get_final_time::Function
-    get_time_grid!::Function=#
 
     # constraints and their bounds
     control_constraints::Any
@@ -88,6 +84,7 @@ struct DOCP{T <: Discretization}
     _vec::Function
     _x::Function
     _u::Function
+    _v::Function
 
     # constructor
     function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method="trapeze")
@@ -162,29 +159,6 @@ struct DOCP{T <: Discretization}
             index_final_time = Index(1) # unused
         end
 
-
-        #= getters for initial and final time
-        if has_free_t0
-            get_initial_time = (xu) -> get_optim_variable(xu)[ocp.initial_time]
-        else
-            fixed_initial_time = convert(Float64, ocp.initial_time)
-            get_initial_time = (xu) -> fixed_initial_time
-        end
-        if has_free_tf
-            get_final_time = (xu) -> get_optim_variable(xu)[ocp.final_time]
-        else
-            get_final_time = (xu) -> convert(Float64, ocp.final_time)
-        end             
-
-        # time grid
-        function get_time_grid!(xu)
-            t0 = get_initial_time(xu)
-            tf = get_final_time(xu)
-            @. NLP_time_grid = t0 + NLP_normalized_time_grid * (tf - t0)
-            return
-        end=#
-
-
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
         control_constraints,
@@ -210,15 +184,21 @@ struct DOCP{T <: Discretization}
         # encapsulated OCP functions
         _vec(f::AbstractVector) = f
         _vec(f::Number) = [f]
-        if dim_OCP_x == 1
-            _x = (x) -> x[1]
-        else
-            _x = (x) -> x[1:dim_OCP_x]
-        end
-        #_x(x::AbstractVector) = (dim_OCP_x == 1) ? x[1] : x[1:dim_OCP_x] #view not better
-        _u(u::AbstractVector) = (dim_NLP_u == 1) ? u[1] : u
 
-        # mayer cost (better with 4 function definitions)
+
+        # x[1:dim_OCP_x] adds allocations even with a view
+        # returning just x also allocates, although a bit less
+        _x(x) = (dim_OCP_x == 1) ? x[1] : x[1:dim_OCP_x]
+        _u(u) = (dim_NLP_u == 1) ? u[1] : u
+        _v(v) = (dim_NLP_v == 1) ? v[1] : v
+        #= NB. defining 2 functions inside the if is not better
+        if dim_NLP_v == 1
+            _v = (v::AbstractVector) -> v[1]
+        else
+            _v = (v::AbstractVector) -> v
+        end=#
+
+        #= mayer cost
         function mayer(obj, x0, xf, v) 
         
             if dim_OCP_x == 1
@@ -239,30 +219,31 @@ struct DOCP{T <: Discretization}
                 obj[1] = ocp.mayer(_x0, _xf, _v)
             end
             return
-        end
+        end=#
 
         # extended dynamics with lagrange cost
+        # use only one function ?
         if is_inplace
             if is_lagrange
                 dynamics_ext! = function (f, t, x, u, v)
-                    ocp.dynamics((@view f[1:dim_OCP_x]), t, _x(x), _u(u), v)
-                    ocp.lagrange((@view f[dim_NLP_x:dim_NLP_x]), t, _x(x), _u(u), v)
+                    ocp.dynamics((@view f[1:dim_OCP_x]), t, _x(x), _u(u), _v(v))
+                    ocp.lagrange((@view f[dim_NLP_x:dim_NLP_x]), t, _x(x), _u(u), _v(v))
                     return
                 end
 
             else
-                dynamics_ext! = (f, t, x, u, v) -> ocp.dynamics(f, t, _x(x), _u(u), v)
+                dynamics_ext! = (f, t, x, u, v) -> ocp.dynamics(f, t, _x(x), _u(u), _v(v))
             end
         else
             if is_lagrange
                 dynamics_ext! = function (f, t, x, u, v)
-                    f[1:docp.dim_OCP_x] .= ocp.dynamics(t, _x(x), _u(u), v) # .= required for scalar case
-                    f[docp.dim_NLP_x] = ocp.lagrange(t, _x(x), _u(u), v)
+                    f[1:docp.dim_OCP_x] .= ocp.dynamics(t, _x(x), _u(u), _v(v)) # .= required for scalar case
+                    f[docp.dim_NLP_x] = ocp.lagrange(t, _x(x), _u(u), _v(v))
                     return
                 end                
             else
                 dynamics_ext! = function (f, t, x, u, v)
-                    f[:] = ocp.dynamics(t, _x(x), _u(u), v)
+                    f[:] = ocp.dynamics(t, _x(x), _u(u), _v(v))
                     return
                 end
             end
@@ -293,12 +274,7 @@ struct DOCP{T <: Discretization}
         # call constructor with const fields
         docp = new{typeof(discretization)}(
             ocp,
-            mayer,
             dynamics_ext!,
-            #get_optim_variable,
-            #=get_initial_time,
-            get_final_time,
-            get_time_grid!,=#
             control_constraints,
             state_constraints,
             mixed_constraints,
@@ -343,7 +319,8 @@ struct DOCP{T <: Discretization}
             discretization,
             _vec,
             _x,
-            _u
+            _u,
+            _v
         )
 
         return docp
@@ -429,34 +406,24 @@ Compute the objective for the DOCP problem.
 """
 function DOCP_objective(xu, docp::DOCP)
 
-    # +++ use a functor to build the specific objective funtion once ?
-    # call should be made in docp, maybe put back DOCP_objective(xu) as DOCP member and write an external setter that builds the function ? 
-
     obj = similar(xu, 1)
     N = docp.dim_NLP_steps
 
     # optimization variables
-    #v = xu[end] # 4 allocs (1 more than just mayer, for obj. OK)
-    v = get_optim_variable(xu, docp) # causes +3 allocs (7 vs 4)
+    v = get_optim_variable(xu, docp)
 
     # final state is always needed since lagrange cost is there
     xf = get_state_at_time_step(xu, docp, N+1)
-    nx = docp.dim_NLP_x
-    n = docp.dim_OCP_x
-    m = docp.dim_NLP_u
 
     # mayer cost
     if docp.is_mayer
         x0 = get_state_at_time_step(xu, docp, 1)
         if docp.is_inplace
-            docp.mayer(obj, x0, xf, v)
-            #docp.ocp.mayer(obj, docp._x(x0), docp._x(xf), v)
+            docp.ocp.mayer(obj, docp._x(x0), docp._x(xf), docp._v(v))
             #docp.ocp.mayer(obj, x0, xf, v)
-            #docp.ocp.mayer(obj, (@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end])
         else
-            #obj[1] = docp.ocp.mayer(docp._x(x0), docp._x(xf), v)
+            obj[1] = docp.ocp.mayer(docp._x(x0), docp._x(xf), docp._v(v))
             #obj[1] = docp.ocp.mayer(docp, x0, xf, v)
-            #obj[1] = docp.ocp.mayer((@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end])
         end
     end
 

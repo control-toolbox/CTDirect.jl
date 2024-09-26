@@ -113,9 +113,9 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
         println("")
         print("Local Mayer: views for x0/xf and scalar v"); @btime local_mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
 
-        print("Local Mayer: getters for x0/xf and v"); @btime local_mayer($obj, $x0, $xf, $v)
+        print("Local Mayer: raw getters for x0/xf and v"); @btime local_mayer($obj, $x0, $xf, $v)
 
-        print("Local Mayer: getters + x scalarization"); @btime local_mayer($obj, $docp._x($x0), $docp._x($xf), $v)
+        print("Local Mayer: getters with scalarization"); @btime local_mayer($obj, $docp._x($x0), $docp._x($xf), $docp._v($v))
 
         println("")
 
