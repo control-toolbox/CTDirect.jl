@@ -22,8 +22,8 @@ struct DOCP{T <: Discretization}
     ocp::OptimalControlModel # remove at some point ?
 
     # functions
+    mayer::Function
     dynamics_ext!::Function
-    get_optim_variable::Function
     #=get_initial_time::Function
     get_final_time::Function
     get_time_grid!::Function=#
@@ -162,16 +162,6 @@ struct DOCP{T <: Discretization}
             index_final_time = Index(1) # unused
         end
 
-        # apparently this one causes the same additional allocations then the one in utils... check warntype/jet ?
-        if is_variable
-            if dim_NLP_v == 1
-                get_optim_variable = (xu) -> xu[end]
-            else
-                get_optim_variable = (xu) -> @view xu[(end - dim_NLP_v + 1):end]
-            end
-        else
-            get_optim_variable = (xu) -> Float64[]
-        end
 
         #= getters for initial and final time
         if has_free_t0
@@ -193,6 +183,7 @@ struct DOCP{T <: Discretization}
             @. NLP_time_grid = t0 + NLP_normalized_time_grid * (tf - t0)
             return
         end=#
+
 
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
@@ -226,6 +217,29 @@ struct DOCP{T <: Discretization}
         end
         #_x(x::AbstractVector) = (dim_OCP_x == 1) ? x[1] : x[1:dim_OCP_x] #view not better
         _u(u::AbstractVector) = (dim_NLP_u == 1) ? u[1] : u
+
+        # mayer cost (better with 4 function definitions)
+        function mayer(obj, x0, xf, v) 
+        
+            if dim_OCP_x == 1
+                _x0 = x0[1]
+                _xf = xf[1]
+            else
+                _x0 = x0
+                _xf = xf
+            end
+            if dim_NLP_v == 1
+                _v = v[1]
+            else
+                _v = v
+            end
+            if is_inplace
+                ocp.mayer(obj, _x0, _xf, _v)
+            else
+                obj[1] = ocp.mayer(_x0, _xf, _v)
+            end
+            return
+        end
 
         # extended dynamics with lagrange cost
         if is_inplace
@@ -279,8 +293,9 @@ struct DOCP{T <: Discretization}
         # call constructor with const fields
         docp = new{typeof(discretization)}(
             ocp,
+            mayer,
             dynamics_ext!,
-            get_optim_variable,
+            #get_optim_variable,
             #=get_initial_time,
             get_final_time,
             get_time_grid!,=#
@@ -423,7 +438,6 @@ function DOCP_objective(xu, docp::DOCP)
     # optimization variables
     #v = xu[end] # 4 allocs (1 more than just mayer, for obj. OK)
     v = get_optim_variable(xu, docp) # causes +3 allocs (7 vs 4)
-    #v = docp.get_optim_variable(xu) # 7 allocs as well...
 
     # final state is always needed since lagrange cost is there
     xf = get_state_at_time_step(xu, docp, N+1)
@@ -435,11 +449,12 @@ function DOCP_objective(xu, docp::DOCP)
     if docp.is_mayer
         x0 = get_state_at_time_step(xu, docp, 1)
         if docp.is_inplace
-            docp.ocp.mayer(obj, docp._x(x0), docp._x(xf), v)
+            docp.mayer(obj, x0, xf, v)
+            #docp.ocp.mayer(obj, docp._x(x0), docp._x(xf), v)
             #docp.ocp.mayer(obj, x0, xf, v)
             #docp.ocp.mayer(obj, (@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end])
         else
-            obj[1] = docp.ocp.mayer(docp._x(x0), docp._x(xf), v)
+            #obj[1] = docp.ocp.mayer(docp._x(x0), docp._x(xf), v)
             #obj[1] = docp.ocp.mayer(docp, x0, xf, v)
             #obj[1] = docp.ocp.mayer((@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end])
         end

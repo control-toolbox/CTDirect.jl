@@ -12,35 +12,10 @@ using JET
 include("../test/problems/goddard.jl")
 #include("../test/problems/double_integrator.jl")
 
-# local version of dynamics
-Cd = 310
-beta = 500
-b = 2
-Tmax = 3.5
-# compact function is not better...
-function compact_dynamics(t, x, u, vv)
-    r, v, m = x
-    D = Cd * v^2 * exp(-beta * (r - 1))
-    return [v,
-            -D / m - 1 / r^2 + u * Tmax / m ,
-            - b * u * Tmax]
-end
-function F0(x, Cd, beta)
-    r, v, m = x
-    D = Cd * v^2 * exp(-beta * (r - 1))
-    return [v, -D / m - 1 / r^2, 0]
-end
-function F1(x, Tmax, b)
-    r, v, m = x
-    return [0, Tmax / m, -b * Tmax]
-end
-function local_dynamics(t, x, u, v)
-    return F0(x, Cd, beta) + u * F1(x, Tmax, b)
-end
-
-
-function dummy_dynamics(t, x, u, vv)
-    return [x[2], x[1], u]
+# local version of mayer cost
+function local_mayer(obj, x0, xf, v)
+    obj[1] = xf[3]
+    return
 end
 
 function init(;in_place, grid_size, disc_method)
@@ -58,29 +33,8 @@ function init(;in_place, grid_size, disc_method)
     return prob, docp, xu
 end
 
-function test_basic()
 
-    a = @allocated begin x = 1. end
-    println("x = 1. ALLOC ", a)
-    a = @allocated begin x = [1.] end
-    println("x = [1.] ALLOC ", a)
-    a = @allocated begin x = [1.,2] end
-    println("x = [1.,2] ALLOC ", a)
-    a = @allocated begin x = [1.,2,3] end
-    println("x = [1.,2,3] ALLOC ", a)
-    a = @allocated begin x = [1.,2,3,4] end
-    println("x = [1.,2,3,4] ALLOC ", a)
-    a = @allocated begin x = [1.,2,3,4,5] end
-    println("x = [1.,2,3,4,5] ALLOC ", a)
-    a = @allocated begin x = [1,2,3,4,5] end
-    println("x = [1,2,3,4,5] ALLOC ", a)
-    a = @allocated begin x = [1.,2.,3.,4.,5.] end
-    println("x = [1.,2.,3.,4.,5.] ALLOC ", a)
-
-end
-
-
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=true, test_block=false, test_cons=false, test_trans=false, test_solve=false, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=true, test_obj=false, test_block=false, test_cons=false, test_trans=false, test_solve=false, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
     
     # define problem and variables
     prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)
@@ -90,6 +44,7 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
 
     # getters
     if test_get
+        println("Getters")
         print("t "); @btime CTDirect.get_final_time($xu, $docp)
         print("v "); @btime CTDirect.get_optim_variable($xu, $docp)
         print("x "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
@@ -151,10 +106,27 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
         nx = docp.dim_NLP_x
         m = docp.dim_NLP_u
         N = docp.dim_NLP_steps
+        x0 = CTDirect.get_state_at_time_step(xu, docp, 1)
+        xf = CTDirect.get_state_at_time_step(xu, docp, N+1)
+        v = CTDirect.get_optim_variable(xu, docp)
         obj = similar(xu,1)
-        print("Mayer"); @btime $docp.ocp.mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
-        if warntype 
-            println("code warntype")
+        println("")
+        print("Local Mayer: views for x0/xf and scalar v"); @btime local_mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
+
+        print("Local Mayer: getters for x0/xf and v"); @btime local_mayer($obj, $x0, $xf, $v)
+
+        print("Local Mayer: getters + x scalarization"); @btime local_mayer($obj, $docp._x($x0), $docp._x($xf), $v)
+
+        println("")
+
+        #print("OCP Mayer raw"); @btime $docp.ocp.mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
+
+
+        if warntype
+            println("code warntype local mayer")
+            @code_warntype local_mayer(obj, (@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end])
+            println("code warntype end")
+            println("code warntype ocp mayer")
             @code_warntype docp.ocp.mayer(obj, (@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end])
             println("code warntype end")
         end
@@ -233,6 +205,7 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
         print("Solve"); @btime direct_solve($prob.ocp, display=false, grid_size=$grid_size)
     end
 
+    return docp
 end
 
 

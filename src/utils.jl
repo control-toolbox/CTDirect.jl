@@ -7,15 +7,8 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 
 # getter for optimization variables
 function get_optim_variable(xu, docp)
-    if docp.is_variable
-        if docp.dim_NLP_v == 1
-            return xu[end]
-        else
-            return @view xu[(end - docp.dim_NLP_v + 1):end]
-        end
-    else
-        return Float64[]
-    end
+    # empty for dim 0
+    return @view xu[(end - docp.dim_NLP_v + 1):end]
 end
 
 # getters for initial and final time
