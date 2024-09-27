@@ -33,7 +33,7 @@ function init(;in_place, grid_size, disc_method)
 end
 
 
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=true, test_block=false, test_cons=true, test_trans=false, test_solve=false, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=false, test_block=true, test_cons=false, test_trans=false, test_solve=false, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
     
     # define problem and variables
     prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)
@@ -157,14 +157,10 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
 
     if test_obj
         print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
-        print("Objective_ocp"); @btime CTDirect.DOCP_objective_OCP($xu, $docp)
         print("Objective_param"); @btime CTDirect.DOCP_objective_param($xu, $docp)
         if warntype 
             println("code warntype Objective")
             @code_warntype CTDirect.DOCP_objective(xu, docp)
-            println("code warntype end")
-            println("code warntype Objective_ocp")
-            @code_warntype CTDirect.DOCP_objective_OCP(xu, docp)
             println("code warntype end")
             println("code warntype Objective_param")
             @code_warntype CTDirect.DOCP_objective_param(xu, docp)
@@ -173,6 +169,9 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
         if jet
             println("JET Objective")
             display(@report_opt CTDirect.DOCP_objective(xu, docp))
+            println("JET end")
+            println("JET Objective_param")
+            display(@report_opt CTDirect.DOCP_objective_param(xu, docp))
             println("JET end")
         end
         if profile
@@ -185,36 +184,34 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
     if test_block
         print("Constraints block")
         CTDirect.get_time_grid!(xu, docp)
-        v = CTDirect.get_optim_variable(xu, docp)
-        work = CTDirect.setWorkArray(docp, xu, docp.NLP_time_grid, v)
+        v = CTDirect.get_OCP_variable_param(xu, docp)
+        work = CTDirect.setWorkArray_param(docp, xu, docp.NLP_time_grid, v)
         i = 1
-        @btime CTDirect.setConstraintBlock!($docp, $c, $xu, $v, $docp.NLP_time_grid, $i, $work)
+        @btime CTDirect.setConstraintBlock_param!($docp, $c, $xu, $v, $docp.NLP_time_grid, $i, $work)
+        +warntype
+        +profile
 
     end
 
     # DOCP_constraints
     if test_cons
-        print("\nConstraints"); @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
+        #print("Constraints"); @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
         print("Constraints param"); @btime CTDirect.DOCP_constraints_param!($c, $xu, $docp)
         if any(c.==666.666)
             error("undefined values in constraints ",c)
         end
         if warntype 
-            println("code warntype")
-            @code_warntype CTDirect.DOCP_constraints!(c, xu, docp)
-            println("code warntype end")
+            #@code_warntype CTDirect.DOCP_constraints!(c, xu, docp)
+            @code_warntype CTDirect.DOCP_constraints_param!(c, xu, docp)
         end
         if jet
-            println("JET")
-            display(@report_opt CTDirect.DOCP_constraints!(c, xu, docp))
-            println("JET end")
+            #display(@report_opt CTDirect.DOCP_constraints!(c, xu, docp))
+            display(@report_opt CTDirect.DOCP_constraints_param!(c, xu, docp))
         end
         if profile
-            println("Profile")
-            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints!(c, xu, docp)
+            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints_param!(c, xu, docp)
             results = Profile.Allocs.fetch()
             PProf.Allocs.pprof()
-            println("Profile end")
         end
     end
 

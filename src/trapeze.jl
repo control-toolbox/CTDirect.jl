@@ -168,8 +168,13 @@ function setConstraintBlock_param!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, 
             end
         end
 
-        # trapeze rule with 'smart' update for dynamics (need @. for scalar ?)
-        @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi[1:docp.dim_OCP_x] + work[1:docp.dim_OCP_x]))
+        # trapeze rule with 'smart' update for dynamics (@. allocs more and is slower -_-)
+        # or split dyn and lag ?
+        if docp.dim_OCP_x == 1
+            c[offset+1] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi + work))
+        else
+            c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi + work))
+        end
         if docp.is_lagrange
             c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + 0.5 * (tip1 - ti) * (fi[docp.dim_NLP_x] + work[docp.dim_NLP_x]))
         end
