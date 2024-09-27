@@ -7,7 +7,6 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 # +++ TODO: use args
 # NB. could be defined as a generic IRK
 struct Midpoint <: Discretization
-
     stage::Int
     additional_controls::Int
     butcher_a::Matrix{Float64}
@@ -15,7 +14,14 @@ struct Midpoint <: Discretization
     butcher_c::Vector{Float64}
     info::String
 
-    Midpoint() = new(1, 0, hcat(0.5), [1], [0.5], "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic")
+    Midpoint() = new(
+        1,
+        0,
+        hcat(0.5),
+        [1],
+        [0.5],
+        "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic",
+    )
 end
 
 """
@@ -161,7 +167,6 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 """
 function setStateEquation!(docp::DOCP{Midpoint}, c, index::Int, args, v, i)
-    
     ocp = docp.ocp
     disc = docp.discretization
 
@@ -177,8 +182,8 @@ function setStateEquation!(docp::DOCP{Midpoint}, c, index::Int, args, v, i)
     hi = tip1 - ti
 
     # midpoint rule
-    h_sum_bk = hi * disc.butcher_b[1] * ki[1:docp.dim_NLP_x]
-    c[index:(index + docp.dim_OCP_x - 1)] .= xip1 .- (xi .+ h_sum_bk[1:docp.dim_OCP_x])
+    h_sum_bk = hi * disc.butcher_b[1] * ki[1:(docp.dim_NLP_x)]
+    c[index:(index + docp.dim_OCP_x - 1)] .= xip1 .- (xi .+ h_sum_bk[1:(docp.dim_OCP_x)])
     # +++ just define extended dynamics !
     if docp.has_lagrange
         c[index + docp.dim_OCP_x] = xlip1 - (xli + h_sum_bk[end])
@@ -190,7 +195,7 @@ function setStateEquation!(docp::DOCP{Midpoint}, c, index::Int, args, v, i)
     if docp.dim_OCP_x == 1
         x_s = xi + hi * disc.butcher_a[1][1] * ki[1] #FFS
     else
-        x_s = xi .+ hi .* (disc.butcher_a[1][1] .* ki[1:docp.dim_OCP_x])
+        x_s = xi .+ hi .* (disc.butcher_a[1][1] .* ki[1:(docp.dim_OCP_x)])
     end
     c[index:(index + docp.dim_OCP_x - 1)] .= ki[1:(docp.dim_OCP_x)] .- ocp.dynamics(t_s, x_s, ui, v)
     # +++ just define extended dynamics !

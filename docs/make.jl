@@ -19,7 +19,7 @@ makedocs(;
     warnonly = [:cross_references, :autodocs_block],
     sitename = "CTDirect.jl",
     format = Documenter.HTML(
-        repolink = "https://"*repo_url,
+        repolink = "https://" * repo_url,
         prettyurls = false,
         size_threshold_ignore = ["api-ctbase.md"],
         assets = [
@@ -30,6 +30,4 @@ makedocs(;
     pages = ["Introduction" => "index.md", "API" => "api.md", "Developers" => "dev-api.md"],
 )
 
-deploydocs(;
-    repo=repo_url*".git", devbranch="main"
-)
+deploydocs(; repo = repo_url * ".git", devbranch = "main")
