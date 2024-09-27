@@ -112,7 +112,7 @@ function setWorkArray_param(docp::DOCP{Trapeze}, xu, time_grid, v)
     if docp.is_inplace
         docp.ocp.dynamics((@view work[1:docp.dim_OCP_x]), t0, x0, u0, v)
     else
-        work[1:docp.dim_OCP_x] = docp.ocp.dynamics(t0, x0, u0, v)
+        work[1:docp.dim_OCP_x] .= docp.ocp.dynamics(t0, x0, u0, v)
     end
     if docp.is_lagrange
         if docp.is_inplace
@@ -158,7 +158,7 @@ function setConstraintBlock_param!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, 
         if docp.is_inplace
             docp.ocp.dynamics((@view work[1:docp.dim_OCP_x]), tip1, xip1, uip1, v)
         else
-            work[1:docp.dim_OCP_x] = docp.ocp.dynamics(tip1, xip1, uip1, v)
+            work[1:docp.dim_OCP_x] .= docp.ocp.dynamics(tip1, xip1, uip1, v)
         end
         if docp.is_lagrange
             if docp.is_inplace
@@ -169,7 +169,7 @@ function setConstraintBlock_param!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, 
         end
 
         # trapeze rule with 'smart' update for dynamics (need @. for scalar ?)
-        c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi[1:docp.dim_OCP_x] + work[1:dim_OCP_x])) 
+        @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi[1:docp.dim_OCP_x] + work[1:docp.dim_OCP_x]))
         if docp.is_lagrange
             c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + 0.5 * (tip1 - ti) * (fi[docp.dim_NLP_x] + work[docp.dim_NLP_x]))
         end

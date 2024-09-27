@@ -47,11 +47,11 @@ function direct_transcription(
 
     # call NLP problem constructor
     nlp = ADNLPModel!(
-        x -> DOCP_objective(x, docp),
+        x -> DOCP_objective_param(x, docp),
         x0,
         docp.var_l,
         docp.var_u,
-        (c, x) -> DOCP_constraints!(c, x, docp),
+        (c, x) -> DOCP_constraints_param!(c, x, docp),
         docp.con_l,
         docp.con_u,
         backend = :optimized,
