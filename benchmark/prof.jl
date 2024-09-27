@@ -20,8 +20,8 @@ end
 
 function init(;in_place, grid_size, disc_method)
     if in_place
-        prob = goddard_all_inplace()
-        #prob = goddard_a()
+        #prob = goddard_all_inplace()
+        prob = goddard_a()
         #prob = double_integrator_a()
     else
         prob = goddard_all()
@@ -34,7 +34,7 @@ function init(;in_place, grid_size, disc_method)
 end
 
 
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=true, test_obj=false, test_block=false, test_cons=false, test_trans=false, test_solve=false, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=true, test_block=false, test_cons=false, test_trans=false, test_solve=false, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
     
     # define problem and variables
     prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)
@@ -115,50 +115,64 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
         v = CTDirect.get_optim_variable(xu, docp)
         vv = CTDirect.get_OCP_variable(xu, docp)
         obj = similar(xu,1)
-        println("")
+        
+        #=println("")
         print("Local Mayer: views for x0/xf and scalar v"); @btime local_mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
 
         print("Local Mayer: raw getters for x0/xf and v"); @btime local_mayer($obj, $x0, $xf, $v)
-
         print("Local Mayer: getters with scalarization"); @btime local_mayer($obj, $docp._x($x0), $docp._x($xf), $docp._v($v))
-
+        
         print("Local Mayer: scal/vec getters"); @btime local_mayer($obj, $xx0, $xxf, $vv)
+        =#
 
         println("")
 
-        print("OCP Mayer: views for x0/xf and scalar v"); @btime $docp.ocp.mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
+        #print("OCP Mayer: views for x0/xf and scalar v"); @btime $docp.ocp.mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
 
-        print("OCP Mayer: raw getters for x0/xf and v"); @btime $docp.ocp.mayer($obj, $x0, $xf, $v)
+        #print("OCP Mayer: raw getters for x0/xf and v"); @btime $docp.ocp.mayer($obj, $x0, $xf, $v)
 
         print("OCP Mayer: getters with scalarization"); @btime $docp.ocp.mayer($obj, $docp._x($x0), $docp._x($xf), $docp._v($v))
 
         print("OCP Mayer: scal/vec getters"); @btime $docp.ocp.mayer($obj, $xx0, $xxf, $vv)
 
         if warntype
-            println("code warntype local mayer")
-            @code_warntype local_mayer(obj, (@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end])
+            #println("code warntype local mayer")
+            #@code_warntype local_mayer(obj, (@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end])
+            #println("code warntype end")
+            println("code warntype ocp mayer getters + scalarization")
+            @code_warntype docp.ocp.mayer(obj, docp._x(x0), docp._x(xf), docp._v(v))
             println("code warntype end")
-            println("code warntype ocp mayer")
-            @code_warntype docp.ocp.mayer(obj, (@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end])
+            println("code warntype ocp mayer scal/vect getters")
+            @code_warntype docp.ocp.mayer(obj, xx0, xxf, vv)
             println("code warntype end")
         end
         if jet 
-            println("JET")
-            display(@report_opt docp.ocp.mayer(obj, (@view xu[1:n]), (@view xu[(nx + m) * N + 1: (nx + m) * N + n]), xu[end]))
+            println("JET ocp mayer getters + scalarization")
+            display(@report_opt docp.ocp.mayer(obj, docp._x(x0), docp._x(xf), docp._v(v)))
+            println("JET end")
+            println("JET ocp mayer scal/vect getters")
+            display(@report_opt docp.ocp.mayer(obj, xx0, xxf, vv))
             println("JET end")
         end             
     end
 
     if test_obj
-        print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
+        print("Objective (vec getters + scalarization)"); @btime CTDirect.DOCP_objective($xu, $docp)
+        print("Objective (scal/vec getters)"); @btime CTDirect.DOCP_objective2($xu, $docp)
         if warntype 
-            println("code warntype")
+            println("code warntype Objective")
             @code_warntype CTDirect.DOCP_objective(xu, docp)
+            println("code warntype end")
+            println("code warntype Objective2")
+            @code_warntype CTDirect.DOCP_objective2(xu, docp)
             println("code warntype end")
         end            
         if jet
-            println("JET")
+            println("JET Objective")
             display(@report_opt CTDirect.DOCP_objective(xu, docp))
+            println("JET end")
+            println("JET Objective2")
+            display(@report_opt CTDirect.DOCP_objective2(xu, docp))
             println("JET end")
         end
         if profile

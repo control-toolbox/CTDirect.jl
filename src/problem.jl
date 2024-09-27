@@ -404,6 +404,44 @@ $(TYPEDSIGNATURES)
 
 Compute the objective for the DOCP problem.
 """
+function DOCP_objective2(xu, docp::DOCP)
+
+    obj = similar(xu, 1)
+    N = docp.dim_NLP_steps
+
+    # optimization variables
+    v = get_OCP_variable(xu, docp)
+
+    # final state is always needed since lagrange cost is there
+    xf = get_OCP_state_at_time_step(xu, docp, N+1)
+
+    # mayer cost
+    if docp.is_mayer
+        x0 = get_OCP_state_at_time_step(xu, docp, 1)
+        if docp.is_inplace
+            docp.ocp.mayer(obj, x0, xf, v)
+        else
+            obj[1] = docp.ocp.mayer(x0, xf, v)
+        end
+    end
+
+    # lagrange cost
+    if docp.is_lagrange
+        if docp.is_mayer # NB can this actually happen in OCP (cf bolza) ?
+            obj[1] = obj[1] + xf[end]
+        else
+            obj[1] = xf[end]
+        end
+    end
+
+    # maximization problem
+    if docp.is_maximization
+        obj[1] = -obj[1]
+    end
+    
+    return obj[1]
+end
+
 function DOCP_objective(xu, docp::DOCP)
 
     obj = similar(xu, 1)
@@ -420,10 +458,8 @@ function DOCP_objective(xu, docp::DOCP)
         x0 = get_state_at_time_step(xu, docp, 1)
         if docp.is_inplace
             docp.ocp.mayer(obj, docp._x(x0), docp._x(xf), docp._v(v))
-            #docp.ocp.mayer(obj, x0, xf, v)
         else
             obj[1] = docp.ocp.mayer(docp._x(x0), docp._x(xf), docp._v(v))
-            #obj[1] = docp.ocp.mayer(docp, x0, xf, v)
         end
     end
 
@@ -431,10 +467,8 @@ function DOCP_objective(xu, docp::DOCP)
     if docp.is_lagrange
         if docp.is_mayer # NB can this actually happen in OCP (cf bolza) ?
             obj[1] = obj[1] + xf[end]
-            #obj[1] = obj[1] + xu[ (nx + m) * N + n]
         else
             obj[1] = xf[end]
-            #obj[1] = xu[ (nx + m) * N + n]
         end
     end
 
@@ -445,6 +479,7 @@ function DOCP_objective(xu, docp::DOCP)
     
     return obj[1]
 end
+
 
 """
 $(TYPEDSIGNATURES)
