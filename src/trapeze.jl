@@ -17,6 +17,14 @@ struct Trapeze <: Discretization
 end
 
 
+function get_OCP_variable_param(xu, docp::DOCP{<: Discretization, <: ScalVect, ScalVariable})
+    return xu[end]
+end
+function get_OCP_variable_param(xu, docp::DOCP{<: Discretization, <: ScalVect, VectVariable})
+    return @view xu[(end - docp.dim_NLP_v + 1):end]
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -36,6 +44,16 @@ function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
         return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
     end
 end
+
+function get_OCP_state_at_time_step_param(xu, docp::DOCP{Trapeze, ScalVariable, <: ScalVect}, i)
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
+    return xu[offset+1]
+end
+function get_OCP_state_at_time_step_param(xu, docp::DOCP{Trapeze, VectVariable, <: ScalVect}, i)
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
+    return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
+end
+
 
 function get_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x

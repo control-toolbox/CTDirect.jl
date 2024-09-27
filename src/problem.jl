@@ -6,6 +6,9 @@
 # generic discretization
 abstract type Discretization end
 abstract type ArgsAtStep end
+abstract type ScalVect end
+struct ScalVariable <: ScalVect end
+struct VectVariable <: ScalVect end
 
 """
 $(TYPEDSIGNATURES)
@@ -16,7 +19,7 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T <: Discretization}
+struct DOCP{T <: Discretization, X <: ScalVect, V <: ScalVect}
 
     ## OCP
     ocp::OptimalControlModel # remove at some point ?
@@ -85,6 +88,8 @@ struct DOCP{T <: Discretization}
     _x::Function
     _u::Function
     _v::Function
+    _type_x::X    
+    _type_v::V
 
     # constructor
     function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method="trapeze")
@@ -191,13 +196,17 @@ struct DOCP{T <: Discretization}
         _x(x) = (dim_OCP_x == 1) ? x[1] : x[1:dim_OCP_x]
         _u(u) = (dim_NLP_u == 1) ? u[1] : u
         _v(v) = (dim_NLP_v == 1) ? v[1] : v
-        #= NB. defining 2 functions inside the if is not better
+        # NB. defining 2 functions inside the if is not better
         if dim_NLP_v == 1
-            _v = (v::AbstractVector) -> v[1]
+            _type_v = ScalVariable()
         else
-            _v = (v::AbstractVector) -> v
-        end=#
-
+            _type_v = VectVariable()
+        end
+        if dim_OCP_x == 1
+            _type_x = ScalVariable()
+        else
+            _type_x = VectVariable()
+        end
         #= mayer cost
         function mayer(obj, x0, xf, v) 
         
@@ -272,7 +281,7 @@ struct DOCP{T <: Discretization}
         end
 
         # call constructor with const fields
-        docp = new{typeof(discretization)}(
+        docp = new{typeof(discretization), typeof(_type_x), typeof(_type_v)}(
             ocp,
             dynamics_ext!,
             control_constraints,
@@ -320,7 +329,9 @@ struct DOCP{T <: Discretization}
             _vec,
             _x,
             _u,
-            _v
+            _v,
+            _type_x,
+            _type_v
         )
 
         return docp
@@ -404,20 +415,20 @@ $(TYPEDSIGNATURES)
 
 Compute the objective for the DOCP problem.
 """
-function DOCP_objective3(xu, docp::DOCP)
+function DOCP_objective_param(xu, docp::DOCP)
 
     obj = similar(xu, 1)
     N = docp.dim_NLP_steps
 
     # optimization variables
-    v = get_OCP_variable(xu, docp, Val(docp.dim_NLP_v))
+    v = get_OCP_variable_param(xu, docp)
 
     # final state is always needed since lagrange cost is there
-    xf = get_OCP_state_at_time_step(xu, docp, N+1)
+    xf = get_OCP_state_at_time_step_param(xu, docp, N+1)
 
     # mayer cost
     if docp.is_mayer
-        x0 = get_OCP_state_at_time_step(xu, docp, 1)
+        x0 = get_OCP_state_at_time_step_param(xu, docp, 1)
         if docp.is_inplace
             docp.ocp.mayer(obj, x0, xf, v)
         else
@@ -443,7 +454,7 @@ function DOCP_objective3(xu, docp::DOCP)
     return obj[1]
 end
 
-function DOCP_objective2(xu, docp::DOCP)
+function DOCP_objective_OCP(xu, docp::DOCP)
 
     obj = similar(xu, 1)
     N = docp.dim_NLP_steps
