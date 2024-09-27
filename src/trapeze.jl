@@ -24,18 +24,31 @@ Retrieve state and control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function get_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
-    nx = docp.dim_NLP_x
-    m = docp.dim_NLP_u
-    offset = (nx + m) * (i-1)
-    return @view xu[(offset + 1):(offset + nx)]
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
+    return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
 end
    
+function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
+    if docp.dim_OCP_x == 1
+        return xu[offset+1]
+    else
+        return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
+    end
+end
 
 function get_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
-    nx = docp.dim_NLP_x
-    m = docp.dim_NLP_u
-    offset = (nx + m) * (i-1)
-    return @view xu[(offset + nx + 1):(offset + nx + m)]
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
+end
+
+function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+    if docp.dim_NLP_u == 1
+        return xu[offset+1]
+    else
+        return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
+    end
 end
 
 function set_state_at_time_step!(xu, x_init, docp::DOCP{Trapeze}, i)

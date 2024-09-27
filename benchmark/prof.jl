@@ -20,8 +20,8 @@ end
 
 function init(;in_place, grid_size, disc_method)
     if in_place
-        #prob = goddard_all_inplace()
-        prob = goddard_a()
+        prob = goddard_all_inplace()
+        #prob = goddard_a()
         #prob = double_integrator_a()
     else
         prob = goddard_all()
@@ -45,10 +45,12 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
     # getters
     if test_get
         println("Getters")
-        print("t "); @btime CTDirect.get_final_time($xu, $docp)
-        print("v "); @btime CTDirect.get_optim_variable($xu, $docp)
-        print("x "); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
-        print("u "); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
+        print("t"); @btime CTDirect.get_final_time($xu, $docp)
+        print("v"); @btime CTDirect.get_optim_variable($xu, $docp)
+        print("vv"); @btime CTDirect.get_OCP_variable($xu, $docp)
+        print("x"); @btime CTDirect.get_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)
+        print("xx"); @btime CTDirect.get_OCP_state_at_time_step($xu, $docp, $docp.dim_NLP_steps)        
+        print("u"); @btime CTDirect.get_control_at_time_step($xu, $docp, $docp.dim_NLP_steps) 
         if warntype
             @code_warntype CTDirect.get_final_time(xu, docp)
             @code_warntype CTDirect.get_optim_variable(xu, docp)
@@ -107,8 +109,11 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
         m = docp.dim_NLP_u
         N = docp.dim_NLP_steps
         x0 = CTDirect.get_state_at_time_step(xu, docp, 1)
+        xx0 = CTDirect.get_OCP_state_at_time_step(xu, docp, 1)
         xf = CTDirect.get_state_at_time_step(xu, docp, N+1)
+        xxf = CTDirect.get_OCP_state_at_time_step(xu, docp, N+1)
         v = CTDirect.get_optim_variable(xu, docp)
+        vv = CTDirect.get_OCP_variable(xu, docp)
         obj = similar(xu,1)
         println("")
         print("Local Mayer: views for x0/xf and scalar v"); @btime local_mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
@@ -117,10 +122,17 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
 
         print("Local Mayer: getters with scalarization"); @btime local_mayer($obj, $docp._x($x0), $docp._x($xf), $docp._v($v))
 
+        print("Local Mayer: scal/vec getters"); @btime local_mayer($obj, $xx0, $xxf, $vv)
+
         println("")
 
-        #print("OCP Mayer raw"); @btime $docp.ocp.mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
+        print("OCP Mayer: views for x0/xf and scalar v"); @btime $docp.ocp.mayer($obj, (@view $xu[1:$n]), (@view $xu[($nx + $m) * $N + 1: ($nx + $m) * $N + $n]), $xu[end])
 
+        print("OCP Mayer: raw getters for x0/xf and v"); @btime $docp.ocp.mayer($obj, $x0, $xf, $v)
+
+        print("OCP Mayer: getters with scalarization"); @btime $docp.ocp.mayer($obj, $docp._x($x0), $docp._x($xf), $docp._v($v))
+
+        print("OCP Mayer: scal/vec getters"); @btime $docp.ocp.mayer($obj, $xx0, $xxf, $vv)
 
         if warntype
             println("code warntype local mayer")

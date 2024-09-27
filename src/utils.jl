@@ -11,6 +11,15 @@ function get_optim_variable(xu, docp)
     return @view xu[(end - docp.dim_NLP_v + 1):end]
 end
 
+function get_OCP_variable(xu, docp)
+    # empty for dim 0
+    if docp.dim_NLP_v == 1
+        return xu[end]
+    else
+        return @view xu[(end - docp.dim_NLP_v + 1):end]
+    end
+end
+
 # getters for initial and final time
 function get_initial_time(xu, docp)
     if docp.is_free_initial_time
