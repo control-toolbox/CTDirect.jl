@@ -1,10 +1,15 @@
 # Benchmark
-include("../test/deps.jl")
+using CTDirect
+using CTBase
+
+using LinearAlgebra
+using NLPModelsIpopt
+
 using Printf
 
 using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
 
-using MadNLPMumps
+#using MadNLPMumps
 
 #######################################################
 # load examples library

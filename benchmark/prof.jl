@@ -33,7 +33,7 @@ function init(;in_place, grid_size, disc_method)
 end
 
 
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=true, test_block=false, test_cons=false, test_trans=false, test_solve=false, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=true, test_block=false, test_cons=true, test_trans=false, test_solve=false, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
     
     # define problem and variables
     prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)
@@ -194,7 +194,7 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
 
     # DOCP_constraints
     if test_cons
-        print("Constraints"); @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
+        print("\nConstraints"); @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
         print("Constraints param"); @btime CTDirect.DOCP_constraints_param!($c, $xu, $docp)
         if any(c.==666.666)
             error("undefined values in constraints ",c)
@@ -232,7 +232,6 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
         print("Solve"); @btime direct_solve($prob.ocp, display=false, grid_size=$grid_size)
     end
 
-    return docp
 end
 
 

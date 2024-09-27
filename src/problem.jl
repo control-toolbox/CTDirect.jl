@@ -415,11 +415,10 @@ function DOCP_objective_param(xu, docp::DOCP)
 
     # lagrange cost
     if docp.is_lagrange
-        error("get lagrange state")
         if docp.is_mayer # NB can this actually happen in OCP (cf bolza) ?
-            obj[1] = obj[1] + xf[end]
+            obj[1] = obj[1] + get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
         else
-            obj[1] = xf[end]
+            obj[1] = get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
         end
     end
 
@@ -530,7 +529,7 @@ function DOCP_constraints_param!(c, xu, docp::DOCP)
     end
 
     # point constraints
-    setPointConstraints!(docp, c, xu, v)
+    setPointConstraints_param!(docp, c, xu, v)
 
     # NB. the function *needs* to return c for AD...
     return c
@@ -595,6 +594,39 @@ $(TYPEDSIGNATURES)
 
 Set the boundary and variable constraints
 """
+function setPointConstraints_param!(docp::DOCP, c, xu, v)
+
+    # offset
+    offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
+
+    # variables
+    x0 = get_OCP_state_at_time_step_param(xu, docp, 1)
+    xf = get_OCP_state_at_time_step_param(xu, docp, docp.dim_NLP_steps+1)
+
+    # boundary constraints
+    if docp.dim_boundary_cons > 0
+        if docp.is_inplace
+            docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
+        else
+            c[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[2](x0, xf, v)
+        end
+    end
+
+    # variable constraints
+    if docp.dim_v_cons > 0
+        if docp.is_inplace
+            docp.variable_constraints[2]((@view c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons]), v)
+        else
+            c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
+        end
+    end
+
+    # null initial condition for lagrangian cost state
+    if docp.is_lagrange
+        c[offset+docp.dim_boundary_cons+docp.dim_v_cons+1] = get_lagrange_state_at_time_step(xu, docp, 1)
+    end
+end
+
 function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # offset
