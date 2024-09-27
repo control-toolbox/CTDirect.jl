@@ -11,6 +11,7 @@ function get_optim_variable(xu, docp)
     return @view xu[(end - docp.dim_NLP_v + 1):end]
 end
 
+
 function get_OCP_variable(xu, docp)
     # empty for dim 0
     if docp.dim_NLP_v == 1
@@ -18,6 +19,12 @@ function get_OCP_variable(xu, docp)
     else
         return @view xu[(end - docp.dim_NLP_v + 1):end]
     end
+end
+function get_OCP_variable(xu, docp, dim_v::Val{1})
+    return xu[end]
+end
+function get_OCP_variable(xu, docp, dim_v)
+    return @view xu[(end - docp.dim_NLP_v + 1):end]
 end
 
 # getters for initial and final time

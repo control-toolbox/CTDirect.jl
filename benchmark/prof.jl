@@ -159,12 +159,16 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
     if test_obj
         print("Objective (vec getters + scalarization)"); @btime CTDirect.DOCP_objective($xu, $docp)
         print("Objective (scal/vec getters)"); @btime CTDirect.DOCP_objective2($xu, $docp)
+        print("Objective (Val in getters)"); @btime CTDirect.DOCP_objective3($xu, $docp)
         if warntype 
             println("code warntype Objective")
             @code_warntype CTDirect.DOCP_objective(xu, docp)
             println("code warntype end")
             println("code warntype Objective2")
             @code_warntype CTDirect.DOCP_objective2(xu, docp)
+            println("code warntype end")
+            println("code warntype Objective3")
+            @code_warntype CTDirect.DOCP_objective3(xu, docp)
             println("code warntype end")
         end            
         if jet
