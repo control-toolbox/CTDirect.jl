@@ -20,8 +20,7 @@ end
 
 function init(;in_place, grid_size, disc_method)
     if in_place
-        #prob = goddard_all_inplace()
-        prob = goddard_a()
+        prob = goddard_all_inplace()
         #prob = double_integrator_a()
     else
         prob = goddard_all()
@@ -165,18 +164,15 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
             @code_warntype CTDirect.DOCP_objective(xu, docp)
             println("code warntype end")
             println("code warntype Objective_ocp")
-            @code_warntype CTDirect.DOCP_objective2(xu, docp)
+            @code_warntype CTDirect.DOCP_objective_OCP(xu, docp)
             println("code warntype end")
             println("code warntype Objective_param")
-            @code_warntype CTDirect.DOCP_objective3(xu, docp)
+            @code_warntype CTDirect.DOCP_objective_param(xu, docp)
             println("code warntype end")
         end            
         if jet
             println("JET Objective")
             display(@report_opt CTDirect.DOCP_objective(xu, docp))
-            println("JET end")
-            println("JET Objective2")
-            display(@report_opt CTDirect.DOCP_objective2(xu, docp))
             println("JET end")
         end
         if profile
@@ -190,15 +186,16 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
         print("Constraints block")
         CTDirect.get_time_grid!(xu, docp)
         v = CTDirect.get_optim_variable(xu, docp)
-        #@code_warntype work = CTDirect.setWorkArray(docp, xu, docp.NLP_time_grid, v)
+        work = CTDirect.setWorkArray(docp, xu, docp.NLP_time_grid, v)
         i = 1
-        #@code_warntype CTDirect.setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
+        @btime CTDirect.setConstraintBlock!($docp, $c, $xu, $v, $docp.NLP_time_grid, $i, $work)
 
     end
 
     # DOCP_constraints
     if test_cons
         print("Constraints"); @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
+        print("Constraints param"); @btime CTDirect.DOCP_constraints_param!($c, $xu, $docp)
         if any(c.==666.666)
             error("undefined values in constraints ",c)
         end

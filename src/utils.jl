@@ -26,7 +26,7 @@ function get_OCP_variable2(xu, docp, dim_v)
     return @view xu[(end - docp.dim_NLP_v + 1):end]
 end=#
 
-
+# +++ in problem.jl ?
 # getters for initial and final time
 function get_initial_time(xu, docp)
     if docp.is_free_initial_time

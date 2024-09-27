@@ -19,7 +19,7 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T <: Discretization, X <: ScalVect, V <: ScalVect}
+struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
 
     ## OCP
     ocp::OptimalControlModel # remove at some point ?
@@ -88,7 +88,8 @@ struct DOCP{T <: Discretization, X <: ScalVect, V <: ScalVect}
     _x::Function
     _u::Function
     _v::Function
-    _type_x::X    
+    _type_x::X
+    _type_u::U  
     _type_v::V
 
     # constructor
@@ -197,41 +198,11 @@ struct DOCP{T <: Discretization, X <: ScalVect, V <: ScalVect}
         _u(u) = (dim_NLP_u == 1) ? u[1] : u
         _v(v) = (dim_NLP_v == 1) ? v[1] : v
         # NB. defining 2 functions inside the if is not better
-        if dim_NLP_v == 1
-            _type_v = ScalVariable()
-        else
-            _type_v = VectVariable()
-        end
-        if dim_OCP_x == 1
-            _type_x = ScalVariable()
-        else
-            _type_x = VectVariable()
-        end
-        #= mayer cost
-        function mayer(obj, x0, xf, v) 
-        
-            if dim_OCP_x == 1
-                _x0 = x0[1]
-                _xf = xf[1]
-            else
-                _x0 = x0
-                _xf = xf
-            end
-            if dim_NLP_v == 1
-                _v = v[1]
-            else
-                _v = v
-            end
-            if is_inplace
-                ocp.mayer(obj, _x0, _xf, _v)
-            else
-                obj[1] = ocp.mayer(_x0, _xf, _v)
-            end
-            return
-        end=#
+
+
 
         # extended dynamics with lagrange cost
-        # use only one function ?
+        # remove ?
         if is_inplace
             if is_lagrange
                 dynamics_ext! = function (f, t, x, u, v)
@@ -259,7 +230,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, V <: ScalVect}
         end
 
 
-        # discretization
+        # parameter: discretization method
         if disc_method == "midpoint"
             discretization = CTDirect.Midpoint(dim_NLP_x, dim_NLP_u, dim_NLP_steps)
         elseif disc_method == "trapeze"
@@ -267,6 +238,11 @@ struct DOCP{T <: Discretization, X <: ScalVect, V <: ScalVect}
         else
             error("Unknown discretization method:", disc_method)
         end
+
+        # parameters: scalar / vector for state, control, variable 
+        dim_OCP_x == 1 ? _type_x = ScalVariable() : _type_x = VectVariable()
+        dim_NLP_u == 1 ? _type_u = ScalVariable() : _type_u = VectVariable()
+        dim_NLP_v == 1 ? _type_v = ScalVariable() : _type_v = VectVariable()
 
         # NLP variables size (state, control, variable, stage)
         dim_stage = discretization.stage
@@ -281,7 +257,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, V <: ScalVect}
         end
 
         # call constructor with const fields
-        docp = new{typeof(discretization), typeof(_type_x), typeof(_type_v)}(
+        docp = new{typeof(discretization), typeof(_type_x), typeof(_type_u), typeof(_type_v)}(
             ocp,
             dynamics_ext!,
             control_constraints,
@@ -331,6 +307,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, V <: ScalVect}
             _u,
             _v,
             _type_x,
+            _type_u,
             _type_v
         )
 
@@ -537,6 +514,28 @@ $(TYPEDSIGNATURES)
 
 Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
+function DOCP_constraints_param!(c, xu, docp::DOCP)
+
+    # initialization
+    if docp.is_free_initial_time || docp.is_free_final_time
+        get_time_grid!(xu, docp)
+    end
+    v = get_OCP_variable_param(xu, docp)
+    # NB using inplace here did not seem to give better results
+    work = setWorkArray_param(docp, xu, docp.NLP_time_grid, v)
+
+    # main loop on time steps 
+    for i = 1:docp.dim_NLP_steps+1
+        setConstraintBlock_param!(docp, c, xu, v, docp.NLP_time_grid, i, work)
+    end
+
+    # point constraints
+    setPointConstraints!(docp, c, xu, v)
+
+    # NB. the function *needs* to return c for AD...
+    return c
+end
+
 function DOCP_constraints!(c, xu, docp::DOCP)
 
     # initialization
@@ -686,64 +685,3 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
 
     return NLP_X
 end
-
-#= OLD
-
-    # recompute value of constraints at solution
-    # NB. the constraint formulation is LB <= C <= UB
-    constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraints!(constraints, solution, docp)
-    # set constraint violation if needed
-    # is not saved in OCP solution currently...
-    if constraints_violation==nothing
-        constraints_check = zeros(docp.dim_NLP_constraints)
-        DOCP_constraints_check!(constraints_check, constraints, docp)
-        println("Recomputed constraints violation ", norm(constraints_check, Inf))
-        variables_check = zeros(docp.dim_NLP_variables)
-        DOCP_variables_check!(variables_check, solution, docp)
-        println("Recomputed variable bounds violation ", norm(variables_check, Inf))
-        constraints_violation = norm(append!(variables_check, constraints_check), Inf)
-
-    end
-
-"""
-$(TYPEDSIGNATURES)
-
-Check the nonlinear constraints violation for the DOCP problem. 
-"""
-function DOCP_constraints_check!(cb, constraints, docp)
-
-    # todo add a single utils function check_bounds(v,lb,ub) that returns the error vector ?
-
-    # check constraints vs bounds
-    # by construction only one of the two can be active
-    for i = 1:(docp.dim_NLP_constraints)
-        if constraints[i] < docp.con_l[i]
-            cb[i] = constraints[i] - docp.con_l[i]
-        end
-        if constraints[i] > docp.con_u[i]
-            cb[i] = constraints[i] - docp.con_u[i]
-        end
-    end
-    return nothing
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Check the variables box constraints violation for the DOCP problem. 
-"""
-function DOCP_variables_check!(vb, variables, docp)
-    # check variables vs bounds
-    # by construction only one of the two can be active
-    for i = 1:(docp.dim_NLP_variables)
-        if variables[i] < docp.var_l[i]
-            vb[i] = variables[i] - docp.var_l[i] # < 0
-        end
-        if variables[i] > docp.var_u[i]
-            vb[i] = variables[i] - docp.var_u[i] # > 0
-        end
-    end
-    return nothing
-end
-=#

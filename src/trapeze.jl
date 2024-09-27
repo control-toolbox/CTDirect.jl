@@ -16,11 +16,11 @@ struct Trapeze <: Discretization
     end
 end
 
-
-function get_OCP_variable_param(xu, docp::DOCP{<: Discretization, <: ScalVect, ScalVariable})
+# not only for Trapeze, but may be redefined if needed
+function get_OCP_variable_param(xu, docp::DOCP{<: Discretization, <: ScalVect, <: ScalVect, ScalVariable})
     return xu[end]
 end
-function get_OCP_variable_param(xu, docp::DOCP{<: Discretization, <: ScalVect, VectVariable})
+function get_OCP_variable_param(xu, docp::DOCP{<: Discretization, <: ScalVect, <: ScalVect, VectVariable})
     return @view xu[(end - docp.dim_NLP_v + 1):end]
 end
 
@@ -45,15 +45,19 @@ function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
     end
 end
 
-function get_OCP_state_at_time_step_param(xu, docp::DOCP{Trapeze, ScalVariable, <: ScalVect}, i)
+function get_OCP_state_at_time_step_param(xu, docp::DOCP{Trapeze, ScalVariable, <: ScalVect, <: ScalVect}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     return xu[offset+1]
 end
-function get_OCP_state_at_time_step_param(xu, docp::DOCP{Trapeze, VectVariable, <: ScalVect}, i)
+function get_OCP_state_at_time_step_param(xu, docp::DOCP{Trapeze, VectVariable, <: ScalVect, <: ScalVect}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
 end
 
+function get_lagrange_state_at_time_step(xu, docp, i)
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
+    return xu[offset + docp.dim_NLP_x]
+end
 
 function get_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
@@ -68,6 +72,16 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
         return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
     end
 end
+
+function get_OCP_control_at_time_step_param(xu, docp::DOCP{Trapeze, <: ScalVect, ScalVariable, <: ScalVect}, i)
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+    return xu[offset+1]
+end
+function get_OCP_control_at_time_step_param(xu, docp::DOCP{Trapeze, <: ScalVect, VectVariable, <: ScalVect}, i)
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
+end
+
 
 function set_state_at_time_step!(xu, x_init, docp::DOCP{Trapeze}, i)
     nx = docp.dim_NLP_x
@@ -90,8 +104,18 @@ function set_control_at_time_step!(xu, u_init, docp::DOCP{Trapeze}, i)
 end
 
 
+function setWorkArray_param(docp::DOCP{Trapeze}, xu, time_grid, v)
+    if docp.is_lagrange || !docp.is_inplace
+        error("setworkarray to complete")
+    end
+    work = similar(xu, docp.dim_NLP_x)
+    t0 = time_grid[1]
+    x0 = get_OCP_state_at_time_step_param(xu, docp, 1)
+    u0 = get_OCP_control_at_time_step_param(xu, docp, 1)
+    docp.ocp.dynamics(work, t0, x0, u0, v)
+    return work
+end
 function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
-   
     work = similar(xu, docp.dim_NLP_x)
     t0 = time_grid[1]
     x0 = get_state_at_time_step(xu, docp, 1)
@@ -100,13 +124,68 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
     return work
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps (+1)
 """
+function setConstraintBlock_param!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
+    if docp.is_lagrange || !docp.is_inplace
+        error("setconstraintsblock to complete")
+    end
+
+    disc = docp.discretization
+
+    # offset for previous steps
+    offset = (i-1)*(docp.dim_NLP_x + docp.dim_path_cons)
+
+    # 0. variables
+    ti = time_grid[i]
+    xi = get_OCP_state_at_time_step_param(xu, docp, i)
+    ui = get_OCP_control_at_time_step_param(xu, docp, i)
+
+    #1. state equation
+    if i <= docp.dim_NLP_steps
+        # more variables
+        fi = copy(work) # create new copy, not just a reference
+        tip1 = time_grid[i+1]
+        xip1 = get_OCP_state_at_time_step_param(xu, docp, i+1)
+        uip1 = get_OCP_control_at_time_step_param(xu, docp, i+1)
+        docp.ocp.dynamics(work, tip1, xip1, uip1, v)
+
+        # trapeze rule with 'smart' update for dynamics (need @. for scalar ?)
+        c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi + work)) 
+        offset += docp.dim_NLP_x
+    end
+
+    # 2. path constraints
+    # Notes on allocations:.= seems similar
+    if docp.dim_u_cons > 0
+        if docp.is_inplace
+            docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
+        else
+            c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](ti, ui, v)
+        end
+    end
+    if docp.dim_x_cons > 0 
+        if docp.is_inplace
+            docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, xi, v)
+        else
+            c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](ti, xi, v)
+        end
+    end
+    if docp.dim_mixed_cons > 0 
+        if docp.is_inplace
+            docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, xi, ui, v)
+        else
+            c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](ti, xi, ui, v)
+        end
+    end
+
+end
+
+
 function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 
     disc = docp.discretization
