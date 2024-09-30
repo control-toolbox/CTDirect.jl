@@ -5,32 +5,12 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
-# getter for optimization variables
-function get_optim_variable(xu, docp)
-    # empty for dim 0
-    return @view xu[(end - docp.dim_NLP_v + 1):end]
-end
-
-function get_OCP_variable(xu, docp)
-    # empty for dim 0
-    if docp.dim_NLP_v == 1
-        return xu[end]
-    else
-        return @view xu[(end - docp.dim_NLP_v + 1):end]
-    end
-end
-#=function get_OCP_variable2(xu, docp, dim_v::Val{1})
-    return xu[end]
-end
-function get_OCP_variable2(xu, docp, dim_v)
-    return @view xu[(end - docp.dim_NLP_v + 1):end]
-end=#
 
 # +++ in problem.jl ?
 # getters for initial and final time
 function get_initial_time(xu, docp)
     if docp.is_free_initial_time
-        return get_optim_variable(xu, docp)[docp.index_initial_time]
+        return get_OCP_variable(xu, docp)[docp.index_initial_time]
     else
         return docp.fixed_initial_time
     end
@@ -38,7 +18,7 @@ end
 
 function get_final_time(xu, docp)
     if docp.is_free_final_time
-        return get_optim_variable(xu, docp)[docp.index_final_time]
+        return get_OCP_variable(xu, docp)[docp.index_final_time]
     else
         return docp.fixed_final_time
     end
@@ -46,10 +26,13 @@ end
 
 # time grid
 function get_time_grid!(xu, docp)
-    t0 = get_initial_time(xu, docp)
-    tf = get_final_time(xu, docp)
-    @. docp.NLP_time_grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
-    return
+    if docp.is_free_initial_time || docp.is_free_final_time
+        t0 = get_initial_time(xu, docp)
+        tf = get_final_time(xu, docp)
+        return @. t0 + docp.NLP_normalized_time_grid * (tf - t0)
+    else
+        return docp.NLP_time_grid
+    end
 end
 
 

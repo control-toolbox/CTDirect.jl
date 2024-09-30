@@ -45,9 +45,8 @@ function CTBase.OptimalControlSolution(
     mult_UB = nothing,
 )
 
-    # time grid (NB. we get a Vector{Any} that requires explicit conversion)
-    get_time_grid!(primal, docp) 
-    T = convert(Vector{Float64},docp.NLP_time_grid)
+    # time grid
+    T = get_time_grid!(primal, docp)
     
     # recover primal variables
     X, U, v, box_multipliers =
@@ -98,7 +97,7 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
 
     # state and control variables
     N = docp.dim_NLP_steps
-    X = zeros(N + 1, docp.dim_NLP_x)
+    X = zeros(N + 1, docp.dim_OCP_x)
     U = zeros(N + 1, docp.dim_NLP_u)
     v = Float64[]
 
@@ -109,8 +108,8 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     if isnothing(mult_UB) || length(mult_UB) == 0
         mult_UB = zeros(docp.dim_NLP_variables)
     end
-    mult_state_box_lower = zeros(N + 1, docp.dim_NLP_x)
-    mult_state_box_upper = zeros(N + 1, docp.dim_NLP_x)
+    mult_state_box_lower = zeros(N + 1, docp.dim_OCP_x)
+    mult_state_box_upper = zeros(N + 1, docp.dim_OCP_x)
     mult_control_box_lower = zeros(N + 1, docp.dim_NLP_u)
     mult_control_box_upper = zeros(N + 1, docp.dim_NLP_u)
     mult_variable_box_lower = zeros(N + 1, docp.dim_NLP_v)
@@ -118,23 +117,23 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
 
     # retrieve optimization variables
     if docp.is_variable
-        v = get_optim_variable(solution, docp)
-        mult_variable_box_lower = get_optim_variable(mult_LB, docp)
-        mult_variable_box_upper = get_optim_variable(mult_UB, docp)
+        v = get_OCP_variable(solution, docp)
+        mult_variable_box_lower = get_OCP_variable(mult_LB, docp)
+        mult_variable_box_upper = get_OCP_variable(mult_UB, docp)
     end
 
     # loop over time steps
     disc = docp.discretization
     for i = 1:(N + 1)
         # state and control variables at current step
-        X[i,:] = get_state_at_time_step(solution, docp, i)
-        U[i,:] = get_control_at_time_step(solution, docp, i)
+        X[i,:] .= get_OCP_state_at_time_step(solution, docp, i)
+        U[i,:] .= get_OCP_control_at_time_step(solution, docp, i)
 
         # box multipliers
-        mult_state_box_lower[i, :] = get_state_at_time_step(mult_LB, docp, i)
-        mult_state_box_upper[i, :] = get_state_at_time_step(mult_UB, docp, i)
-        mult_control_box_lower[i, :] = get_control_at_time_step(mult_LB, docp, i)
-        mult_control_box_upper[i, :] = get_control_at_time_step(mult_UB, docp, i)
+        mult_state_box_lower[i, :] .= get_OCP_state_at_time_step(mult_LB, docp, i)
+        mult_state_box_upper[i, :] .= get_OCP_state_at_time_step(mult_UB, docp, i)
+        mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(mult_LB, docp, i)
+        mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(mult_UB, docp, i)
 
     end
 

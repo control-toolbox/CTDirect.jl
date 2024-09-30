@@ -24,9 +24,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     ## OCP
     ocp::OptimalControlModel # remove at some point ?
 
-    # functions
-    dynamics_ext!::Function
-
     # constraints and their bounds
     control_constraints::Any
     state_constraints::Any
@@ -70,7 +67,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     dim_OCP_x::Int  # original OCP state
     dim_NLP_steps::Int
     NLP_normalized_time_grid::Vector{Float64}
-    NLP_time_grid::Vector{Any}
+    NLP_time_grid::Vector{Float64}
     dim_NLP_variables::Int
     dim_NLP_constraints::Int
 
@@ -84,10 +81,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     discretization::T
 
     # scalar / vector aux function
-    _vec::Function
-    _x::Function
-    _u::Function
-    _v::Function
     _type_x::X
     _type_u::U  
     _type_v::V
@@ -141,14 +134,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         dim_OCP_x = ocp.state_dimension
 
         # times
-        if is_free_initial_time || is_free_final_time
-            # time grid will be recomputed at each NLP iteration
-            NLP_time_grid = Vector{Any}(undef, dim_NLP_steps+1)
-        else
-            # compute time grid once for all 
-            NLP_time_grid = @. ocp.initial_time + (NLP_normalized_time_grid * (ocp.final_time - ocp.initial_time))
-        end
-
         # use 2 different variables for value / index (type stability)
         if is_free_initial_time
             index_initial_time = ocp.initial_time
@@ -163,6 +148,14 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         else
             fixed_final_time = ocp.final_time
             index_final_time = Index(1) # unused
+        end
+
+        if is_free_initial_time || is_free_final_time
+            # time grid will be recomputed at each NLP iteration
+            NLP_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
+        else
+            # compute time grid once for all 
+            NLP_time_grid = @. fixed_initial_time + (NLP_normalized_time_grid * (fixed_final_time - fixed_initial_time))
         end
 
         # NLP constraints 
@@ -186,49 +179,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         dim_v_cons = dim_variable_constraints(ocp)
         dim_mixed_cons = dim_mixed_constraints(ocp)
         dim_boundary_cons = dim_boundary_constraints(ocp)
-
-        # encapsulated OCP functions
-        _vec(f::AbstractVector) = f
-        _vec(f::Number) = [f]
-
-
-        # x[1:dim_OCP_x] adds allocations even with a view
-        # returning just x also allocates, although a bit less
-        _x(x) = (dim_OCP_x == 1) ? x[1] : x[1:dim_OCP_x]
-        _u(u) = (dim_NLP_u == 1) ? u[1] : u
-        _v(v) = (dim_NLP_v == 1) ? v[1] : v
-        # NB. defining 2 functions inside the if is not better
-
-
-
-        # extended dynamics with lagrange cost
-        # remove ?
-        if is_inplace
-            if is_lagrange
-                dynamics_ext! = function (f, t, x, u, v)
-                    ocp.dynamics((@view f[1:dim_OCP_x]), t, _x(x), _u(u), _v(v))
-                    ocp.lagrange((@view f[dim_NLP_x:dim_NLP_x]), t, _x(x), _u(u), _v(v))
-                    return
-                end
-
-            else
-                dynamics_ext! = (f, t, x, u, v) -> ocp.dynamics(f, t, _x(x), _u(u), _v(v))
-            end
-        else
-            if is_lagrange
-                dynamics_ext! = function (f, t, x, u, v)
-                    f[1:docp.dim_OCP_x] .= ocp.dynamics(t, _x(x), _u(u), _v(v)) # .= required for scalar case
-                    f[docp.dim_NLP_x] = ocp.lagrange(t, _x(x), _u(u), _v(v))
-                    return
-                end                
-            else
-                dynamics_ext! = function (f, t, x, u, v)
-                    f[:] = ocp.dynamics(t, _x(x), _u(u), _v(v))
-                    return
-                end
-            end
-        end
-
 
         # parameter: discretization method
         if disc_method == "midpoint"
@@ -259,7 +209,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         # call constructor with const fields
         docp = new{typeof(discretization), typeof(_type_x), typeof(_type_u), typeof(_type_v)}(
             ocp,
-            dynamics_ext!,
             control_constraints,
             state_constraints,
             mixed_constraints,
@@ -302,10 +251,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             zeros(dim_NLP_constraints),
             zeros(dim_NLP_constraints),
             discretization,
-            _vec,
-            _x,
-            _u,
-            _v,
             _type_x,
             _type_u,
             _type_v
@@ -392,20 +337,20 @@ $(TYPEDSIGNATURES)
 
 Compute the objective for the DOCP problem.
 """
-function DOCP_objective_param(xu, docp::DOCP)
+function DOCP_objective(xu, docp::DOCP)
 
     obj = similar(xu, 1)
     N = docp.dim_NLP_steps
 
     # optimization variables
-    v = get_OCP_variable_param(xu, docp)
+    v = get_OCP_variable(xu, docp)
 
     # final state is always needed since lagrange cost is there
-    xf = get_OCP_state_at_time_step_param(xu, docp, N+1)
+    xf = get_OCP_state_at_time_step(xu, docp, N+1)
 
     # mayer cost
     if docp.is_mayer
-        x0 = get_OCP_state_at_time_step_param(xu, docp, 1)
+        x0 = get_OCP_state_at_time_step(xu, docp, 1)
         if docp.is_inplace
             docp.ocp.mayer(obj, x0, xf, v)
         else
@@ -430,124 +375,22 @@ function DOCP_objective_param(xu, docp::DOCP)
     return obj[1]
 end
 
-function DOCP_objective_OCP(xu, docp::DOCP)
-
-    obj = similar(xu, 1)
-    N = docp.dim_NLP_steps
-
-    # optimization variables
-    v = get_OCP_variable(xu, docp)
-
-    # final state is always needed since lagrange cost is there
-    xf = get_OCP_state_at_time_step(xu, docp, N+1)
-
-    # mayer cost
-    if docp.is_mayer
-        x0 = get_OCP_state_at_time_step(xu, docp, 1)
-        if docp.is_inplace
-            docp.ocp.mayer(obj, x0, xf, v)
-        else
-            obj[1] = docp.ocp.mayer(x0, xf, v)
-        end
-    end
-
-    # lagrange cost
-    if docp.is_lagrange
-        error("get lagrange state")
-        if docp.is_mayer # NB can this actually happen in OCP (cf bolza) ?
-            obj[1] = obj[1] + xf[end]
-        else
-            obj[1] = xf[end]
-        end
-    end
-
-    # maximization problem
-    if docp.is_maximization
-        obj[1] = -obj[1]
-    end
-    
-    return obj[1]
-end
-
-function DOCP_objective(xu, docp::DOCP)
-
-    obj = similar(xu, 1)
-    N = docp.dim_NLP_steps
-
-    # optimization variables
-    v = get_optim_variable(xu, docp)
-
-    # final state is always needed since lagrange cost is there
-    xf = get_state_at_time_step(xu, docp, N+1)
-
-    # mayer cost
-    if docp.is_mayer
-        x0 = get_state_at_time_step(xu, docp, 1)
-        if docp.is_inplace
-            docp.ocp.mayer(obj, docp._x(x0), docp._x(xf), docp._v(v))
-        else
-            obj[1] = docp.ocp.mayer(docp._x(x0), docp._x(xf), docp._v(v))
-        end
-    end
-
-    # lagrange cost
-    if docp.is_lagrange
-        if docp.is_mayer # NB can this actually happen in OCP (cf bolza) ?
-            obj[1] = obj[1] + xf[end]
-        else
-            obj[1] = xf[end]
-        end
-    end
-
-    # maximization problem
-    if docp.is_maximization
-        obj[1] = -obj[1]
-    end
-    
-    return obj[1]
-end
-
 
 """
 $(TYPEDSIGNATURES)
 
 Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 """
-function DOCP_constraints_param!(c, xu, docp::DOCP)
-
-    # initialization
-    if docp.is_free_initial_time || docp.is_free_final_time
-        get_time_grid!(xu, docp)
-    end
-    v = get_OCP_variable_param(xu, docp)
-    # NB using inplace here did not seem to give better results
-    work = setWorkArray_param(docp, xu, docp.NLP_time_grid, v)
-
-    # main loop on time steps 
-    for i = 1:docp.dim_NLP_steps+1
-        setConstraintBlock_param!(docp, c, xu, v, docp.NLP_time_grid, i, work)
-    end
-
-    # point constraints
-    setPointConstraints_param!(docp, c, xu, v)
-
-    # NB. the function *needs* to return c for AD...
-    return c
-end
-
 function DOCP_constraints!(c, xu, docp::DOCP)
 
     # initialization
-    if docp.is_free_initial_time || docp.is_free_final_time
-        get_time_grid!(xu, docp)
-    end
-    v = get_optim_variable(xu, docp)
-    # NB using inplace here did not seem to give better results
-    work = setWorkArray(docp, xu, docp.NLP_time_grid, v)
+    time_grid = get_time_grid!(xu, docp)
+    v = get_OCP_variable(xu, docp)
+    work = setWorkArray(docp, xu, time_grid, v)
 
     # main loop on time steps 
     for i = 1:docp.dim_NLP_steps+1
-        setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
+        setConstraintBlock!(docp, c, xu, v, time_grid, i, work)
     end
 
     # point constraints
@@ -594,14 +437,14 @@ $(TYPEDSIGNATURES)
 
 Set the boundary and variable constraints
 """
-function setPointConstraints_param!(docp::DOCP, c, xu, v)
+function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # offset
     offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
 
     # variables
-    x0 = get_OCP_state_at_time_step_param(xu, docp, 1)
-    xf = get_OCP_state_at_time_step_param(xu, docp, docp.dim_NLP_steps+1)
+    x0 = get_OCP_state_at_time_step(xu, docp, 1)
+    xf = get_OCP_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
@@ -627,38 +470,6 @@ function setPointConstraints_param!(docp::DOCP, c, xu, v)
     end
 end
 
-function setPointConstraints!(docp::DOCP, c, xu, v)
-
-    # offset
-    offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
-
-    # variables
-    x0 = get_state_at_time_step(xu, docp, 1)
-    xf = get_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
-
-    # boundary constraints
-    if docp.dim_boundary_cons > 0
-        if docp.is_inplace
-            docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]), docp._x(x0), docp._x(xf), v)
-        else
-            c[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[2](docp._x(x0), docp._x(xf), v)
-        end
-    end
-
-    # variable constraints
-    if docp.dim_v_cons > 0
-        if docp.is_inplace
-            docp.variable_constraints[2]((@view c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons]), v)
-        else
-            c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
-        end
-    end
-
-    # null initial condition for lagrangian cost state
-    if docp.is_lagrange
-        c[offset+docp.dim_boundary_cons+docp.dim_v_cons+1] = x0[end]
-    end
-end
 
 """
 $(TYPEDSIGNATURES)
