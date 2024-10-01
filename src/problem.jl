@@ -384,7 +384,7 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 function DOCP_constraints!(c, xu, docp::DOCP)
 
     # initialization
-    time_grid = get_time_grid!(xu, docp)
+    time_grid = get_time_grid(xu, docp)
     v = get_OCP_variable(xu, docp)
     work = setWorkArray(docp, xu, time_grid, v)
 
@@ -519,9 +519,9 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
     end
 
     # set state / control variables if provided
-    get_time_grid!(NLP_X, docp)
+    time_grid = get_time_grid(NLP_X, docp)
     for i = 1:docp.dim_NLP_steps+1
-        ti = docp.NLP_time_grid[i]
+        ti = time_grid[i]
         set_state_at_time_step!(NLP_X, init.state_init(ti), docp, i)
         set_control_at_time_step!(NLP_X, init.control_init(ti), docp, i)
     end

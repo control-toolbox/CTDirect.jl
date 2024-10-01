@@ -39,8 +39,7 @@ function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze, VectVariable, <: Sca
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
 end
-
-function get_lagrange_state_at_time_step(xu, docp, i)
+function get_lagrange_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     return xu[offset + docp.dim_NLP_x]
 end
@@ -57,22 +56,17 @@ end
 
 
 function set_state_at_time_step!(xu, x_init, docp::DOCP{Trapeze}, i)
-    nx = docp.dim_NLP_x
-    n = docp.dim_OCP_x
-    m = docp.dim_NLP_u
-    offset = (nx + m) * (i-1)
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     # initialize only actual state variables from OCP (not lagrange state)
     if !isnothing(x_init)
-        xu[(offset + 1):(offset + n)] .= x_init
+        xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
     end
 end
 
 function set_control_at_time_step!(xu, u_init, docp::DOCP{Trapeze}, i)
-    nx = docp.dim_NLP_x
-    m = docp.dim_NLP_u
-    offset = (nx + m) * (i-1)
+    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
     if !isnothing(u_init)
-        xu[(offset + nx + 1):(offset + nx + m)] .= u_init
+        xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
     end
 end
 

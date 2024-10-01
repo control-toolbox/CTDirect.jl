@@ -28,24 +28,37 @@ $(TYPEDSIGNATURES)
 Retrieve state and control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
 """
-function get_state_at_time_step(xu, docp::DOCP{Midpoint}, i)
-    nx = docp.dim_NLP_x
-    m = docp.dim_NLP_u
-    offset = (nx*(1+docp.discretization.stage) + m) * (i-1)
-    return @view xu[(offset + 1):(offset + nx)]
+function get_OCP_state_at_time_step(xu, docp::DOCP{Midpoint, ScalVariable, <: ScalVect, <: ScalVect}, i)
+    offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u)
+    return xu[offset+1]
+end
+function get_OCP_state_at_time_step(xu, docp::DOCP{Midpoint, VectVariable, <: ScalVect, <: ScalVect}, i)
+    offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u)
+    return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
+end
+function get_lagrange_state_at_time_step(xu, docp::DOCP{Midpoint}, i)
+    offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u)
+    return xu[offset + docp.dim_NLP_x]
 end
 
-function get_control_at_time_step(xu, docp::DOCP{Midpoint}, i)
-    nx = docp.dim_NLP_x
-    m = docp.dim_NLP_u
-    N = docp.dim_NLP_steps
-    if i < N+1
-        offset = (nx*(1+docp.discretization.stage) + m) * (i-1)
+
+function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint, <: ScalVect, ScalVariable, <: ScalVect}, i)
+    if i < docp.dim_NLP_steps+1
+        offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u) + docp.dim_NLP_x
     else
-        offset = (nx*(1+docp.discretization.stage) + m) * (i-2)
+        offset = (i-2) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u) + docp.dim_NLP_x
     end
-    return @view xu[(offset + nx + 1):(offset + nx + m)]
+    return xu[offset+1]
 end
+function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint, <: ScalVect, VectVariable, <: ScalVect}, i)
+    if i < docp.dim_NLP_steps+1
+        offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u) + docp.dim_NLP_x
+    else
+        offset = (i-2) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u) + docp.dim_NLP_x
+    end
+    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
+end
+
 
 function get_stagevars_at_time_step(xu, docp::DOCP{Midpoint}, i)
     nx = docp.dim_NLP_x

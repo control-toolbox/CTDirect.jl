@@ -25,7 +25,7 @@ function get_final_time(xu, docp)
 end
 
 # time grid
-function get_time_grid!(xu, docp)
+function get_time_grid(xu, docp)
     if docp.is_free_initial_time || docp.is_free_final_time
         t0 = get_initial_time(xu, docp)
         tf = get_final_time(xu, docp)

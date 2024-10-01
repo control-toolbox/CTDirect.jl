@@ -46,7 +46,7 @@ function CTBase.OptimalControlSolution(
 )
 
     # time grid
-    T = get_time_grid!(primal, docp)
+    T = get_time_grid(primal, docp)
     
     # recover primal variables
     X, U, v, box_multipliers =
