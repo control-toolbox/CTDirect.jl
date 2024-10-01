@@ -50,7 +50,7 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
         print("v"); @btime CTDirect.get_OCP_variable($xu, $docp)
         if warntype
             @code_warntype CTDirect.get_final_time(xu, docp)
-            @code_warntype CTDirect.get_time_grid!(xu, docp)
+            @code_warntype CTDirect.get_time_grid(xu, docp)
             @code_warntype CTDirect.get_OCP_state_at_time_step(xu, docp, 1)
             @code_warntype CTDirect.get_OCP_control_at_time_step(xu, docp, 1)
             @code_warntype CTDirect.get_OCP_variable(xu, docp)
@@ -133,16 +133,16 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
     end
 
     if test_block
-        CTDirect.get_time_grid!(xu, docp) # type OK
+        times = CTDirect.get_time_grid(xu, docp) # type OK
         i = 1
         v = CTDirect.get_OCP_variable(xu, docp)
-        work = CTDirect.setWorkArray(docp, xu, docp.NLP_time_grid, v)
+        work = CTDirect.setWorkArray(docp, xu, times, v)
         print("Constraints block")
-        @btime CTDirect.setConstraintBlock!($docp, $c, $xu, $v, $docp.NLP_time_grid, $i, $work)
-        warntype && @code_warntype CTDirect.setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
-        jet && display(@report_opt CTDirect.setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work))
+        @btime CTDirect.setConstraintBlock!($docp, $c, $xu, $v, $times, $i, $work)
+        warntype && @code_warntype CTDirect.setConstraintBlock!(docp, c, xu, v, times, i, work)
+        jet && display(@report_opt CTDirect.setConstraintBlock!(docp, c, xu, v, times, i, work))
         if profile
-            Profile.Allocs.@profile sample_rate=1.0 CTDirect.setConstraintBlock!(docp, c, xu, v, docp.NLP_time_grid, i, work)
+            Profile.Allocs.@profile sample_rate=1.0 CTDirect.setConstraintBlock!(docp, c, xu, v, times, i, work)
             results = Profile.Allocs.fetch()
             PProf.Allocs.pprof()
         end        
