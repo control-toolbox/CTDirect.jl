@@ -39,7 +39,7 @@ function goddard(; vmax = 0.1, Tmax = 3.5, functional_constraints = false)
         constraint!(goddard, :state, f = (x, v) -> x, lb = [r0, v0, mf], ub = [r0 + 0.2, vmax, m0])
         constraint!(goddard, :control, f = (u, v) -> u, lb = 0, ub = 1)
     else
-        constraint!(goddard, :state, lb = [r0, v0, mf], ub = [r0 + 0.2, vmax, m0])
+        constraint!(goddard, :state, lb = [r0, v0, mf], ub = [r0 + 0.1, vmax, m0])
         constraint!(goddard, :control, lb = 0, ub = 1)
     end
     constraint!(goddard, :variable, lb = 0.01, ub = Inf)
@@ -48,6 +48,47 @@ function goddard(; vmax = 0.1, Tmax = 3.5, functional_constraints = false)
 
     return ((ocp = goddard, obj = 1.01257, name = "goddard", init = (state = [1.01, 0.05, 0.8],)))
 end
+
+# abstract definition
+function goddard_a(; vmax = 0.1, Tmax = 3.5)
+    # constants
+    Cd = 310
+    beta = 500
+    b = 2
+    r0 = 1
+    v0 = 0
+    m0 = 1
+    mf = 0.6
+    x0 = [r0, v0, m0]
+
+    @def goddard_a begin
+        tf ∈ R, variable
+        t ∈ [0, tf], time
+        x ∈ R^3, state
+        u ∈ R, control
+        0.01 ≤ tf ≤ Inf
+        r = x[1]
+        v = x[2]
+        m = x[3]
+        x(0) == x0
+        m(tf) == mf
+        r0 ≤ r(t) ≤ r0 + 0.1
+        v0 ≤ v(t) ≤ vmax
+        mf ≤ m(t) ≤ m0
+        0 ≤ u(t) ≤ 1
+        ẋ(t) == F0(x(t), Cd, beta) + u(t) * F1(x(t), Tmax, b)
+        r(tf) → max
+    end
+
+    return ((
+        ocp = goddard_a,
+        obj = 1.01257,
+        name = "goddard_a",
+        init = (state = [1.01, 0.05, 0.8],),
+    ))
+end
+
+
 
 # all constraint types formulation
 function goddard_all()
@@ -162,46 +203,6 @@ function goddard_all_inplace()
         ocp = goddard,
         obj = 1.01257,
         name = "goddard_all_inplace",
-        init = (state = [1.01, 0.05, 0.8],),
-    ))
-end
-
-
-# abstract definition
-function goddard_a(; vmax = 0.1, Tmax = 3.5)
-    # constants
-    Cd = 310
-    beta = 500
-    b = 2
-    r0 = 1
-    v0 = 0
-    m0 = 1
-    mf = 0.6
-    x0 = [r0, v0, m0]
-
-    @def goddard_a begin
-        tf ∈ R, variable
-        t ∈ [0, tf], time
-        x ∈ R^3, state
-        u ∈ R, control
-        0.1 ≤ tf ≤ Inf
-        r = x[1]
-        v = x[2]
-        m = x[3]
-        x(0) == x0
-        m(tf) == mf
-        r0 ≤ r(t) ≤ 1.1
-        v0 ≤ v(t) ≤ 0.1
-        mf ≤ m(t) ≤ m0
-        0 ≤ u(t) ≤ 1
-        ẋ(t) == F0(x(t), Cd, beta) + u(t) * F1(x(t), Tmax, b)
-        r(tf) → max
-    end
-
-    return ((
-        ocp = goddard_a,
-        obj = 1.01257,
-        name = "goddard_a",
         init = (state = [1.01, 0.05, 0.8],),
     ))
 end
