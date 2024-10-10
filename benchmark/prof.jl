@@ -20,12 +20,12 @@ end
 
 function init(;in_place, grid_size, disc_method)
     if in_place
-        #prob = goddard_all_inplace()
-        prob = goddard_a()
+        prob = goddard_all_inplace()
+        #prob = goddard_a()
         #prob = double_integrator_a()
     else
         prob = goddard_all()
-        prob = goddard()       
+        #prob = goddard()       
         #prob = double_integrator_mintf()
     end
     ocp = prob[:ocp]
@@ -35,7 +35,7 @@ function init(;in_place, grid_size, disc_method)
 end
 
 
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=false, test_block=false, test_cons=false, test_trans=false, test_solve=false, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=true, test_block=false, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
     
     # define problem and variables
     prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)
