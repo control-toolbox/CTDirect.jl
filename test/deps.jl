@@ -1,13 +1,11 @@
 using CTDirect
 using CTBase
 
-using LinearAlgebra
+using LinearAlgebra # still needed ?
 using NLPModelsIpopt
 using MadNLP
 using HSL
-using SplitApplyCombine
+using SplitApplyCombine # still needed ?
 
-using JLD2
-using JSON3
-
-using Aqua
+using JLD2 # to be moved to CTBase ?
+using JSON3 # to be moved to CTBase ?
