@@ -8,7 +8,7 @@ Build OCP functional solution from DOCP discrete solution (given as a SolverCore
 function CTBase.OptimalControlSolution(docp, docp_solution)
 
     # retrieve data (could pass some status info too (get_status ?))
-    if docp.has_maximization
+    if docp.is_maximization
         objective = -docp_solution.objective
     else
         objective = docp_solution.objective
@@ -47,14 +47,14 @@ function CTBase.OptimalControlSolution(
 
     # time grid
     T = get_time_grid(primal, docp)
-
+    
     # recover primal variables
     X, U, v, box_multipliers =
         parse_DOCP_solution_primal(docp, primal, mult_LB = mult_LB, mult_UB = mult_UB)
 
     # recompute / check objective
     objective_r = DOCP_objective(primal, docp)
-    if docp.has_maximization
+    if docp.is_maximization
         objective_r = -objective_r
     end
     if isnothing(objective)
@@ -96,9 +96,8 @@ Recover OCP primal variables from DOCP solution
 function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB = nothing)
 
     # state and control variables
-    disc = docp.discretization
     N = docp.dim_NLP_steps
-    X = zeros(N + 1, docp.dim_NLP_x)
+    X = zeros(N + 1, docp.dim_OCP_x)
     U = zeros(N + 1, docp.dim_NLP_u)
     v = Float64[]
 
@@ -109,30 +108,33 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     if isnothing(mult_UB) || length(mult_UB) == 0
         mult_UB = zeros(docp.dim_NLP_variables)
     end
-    mult_state_box_lower = zeros(N + 1, docp.dim_NLP_x)
-    mult_state_box_upper = zeros(N + 1, docp.dim_NLP_x)
+    mult_state_box_lower = zeros(N + 1, docp.dim_OCP_x)
+    mult_state_box_upper = zeros(N + 1, docp.dim_OCP_x)
     mult_control_box_lower = zeros(N + 1, docp.dim_NLP_u)
     mult_control_box_upper = zeros(N + 1, docp.dim_NLP_u)
     mult_variable_box_lower = zeros(N + 1, docp.dim_NLP_v)
     mult_variable_box_upper = zeros(N + 1, docp.dim_NLP_v)
 
     # retrieve optimization variables
-    if docp.has_variable
-        v = get_optim_variable(solution, docp)
-        mult_variable_box_lower = get_optim_variable(mult_LB, docp)
-        mult_variable_box_upper = get_optim_variable(mult_UB, docp)
+    if docp.is_variable
+        v = get_OCP_variable(solution, docp)
+        mult_variable_box_lower = get_OCP_variable(mult_LB, docp)
+        mult_variable_box_upper = get_OCP_variable(mult_UB, docp)
     end
 
     # loop over time steps
+    disc = docp.discretization
     for i = 1:(N + 1)
         # state and control variables at current step
-        X[i, :], U[i, :] = get_NLP_variables_at_time_step(solution, docp, i - 1, disc)
+        X[i,:] .= get_OCP_state_at_time_step(solution, docp, i)
+        U[i,:] .= get_OCP_control_at_time_step(solution, docp, i)
 
         # box multipliers
-        mult_state_box_lower[i, :], mult_control_box_lower[i, :] =
-            get_NLP_variables_at_time_step(mult_LB, docp, i - 1, disc)
-        mult_state_box_upper[i, :], mult_control_box_upper[i, :] =
-            get_NLP_variables_at_time_step(mult_UB, docp, i - 1, disc)
+        mult_state_box_lower[i, :] .= get_OCP_state_at_time_step(mult_LB, docp, i)
+        mult_state_box_upper[i, :] .= get_OCP_state_at_time_step(mult_UB, docp, i)
+        mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(mult_LB, docp, i)
+        mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(mult_UB, docp, i)
+
     end
 
     box_multipliers = (

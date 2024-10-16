@@ -24,19 +24,11 @@ function direct_transcription(
     init = CTBase.__ocp_init(),
     grid_size = __grid_size(),
     time_grid = __time_grid(),
-    discretization = __discretization(),
+    disc_method = __disc_method()
 )
 
     # build DOCP
-    discretization = string(discretization)
-    if discretization == "midpoint"
-        disc_method = CTDirect.Midpoint()
-    elseif discretization == "trapeze"
-        disc_method = CTDirect.Trapeze()
-    else
-        error("Unknown discretization method:", discretization)
-    end
-    docp = DOCP(ocp, grid_size, time_grid, disc_method)
+    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=string(disc_method))
 
     # set bounds in DOCP
     variables_bounds!(docp)
@@ -97,11 +89,10 @@ function direct_solve(
     init = CTBase.__ocp_init(),
     grid_size::Int = CTDirect.__grid_size(),
     time_grid = CTDirect.__time_grid(),
-    discretization = __discretization(),
+    disc_method = __disc_method(),
     kwargs...,
 )
     method = getFullDescription(description, available_methods())
-    #println(method)
 
     # build discretized OCP, including initial guess
     docp, nlp = direct_transcription(
@@ -110,7 +101,7 @@ function direct_solve(
         init = init,
         grid_size = grid_size,
         time_grid = time_grid,
-        discretization = discretization,
+        disc_method = disc_method
     )
 
     # solve DOCP

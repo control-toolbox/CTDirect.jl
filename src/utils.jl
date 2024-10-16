@@ -5,59 +5,36 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
-"""
-$(TYPEDSIGNATURES)
 
-Retrieve optimization variables from the NLP variables.
-"""
-function get_optim_variable(xu, docp)
-    if docp.has_variable
-        if docp.dim_NLP_v == 1
-            return xu[end]
-        else
-            return xu[(end - docp.dim_NLP_v + 1):end]
-        end
-    else
-        error("Problem is not variable dependent")
-    end
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve initial time for OCP (may be fixed or variable)
-"""
+# +++ in problem.jl ?
+# getters for initial and final time
 function get_initial_time(xu, docp)
-    if docp.has_free_t0
-        return get_optim_variable(xu, docp)[docp.ocp.initial_time]
+    if docp.is_free_initial_time
+        return get_OCP_variable(xu, docp)[docp.index_initial_time]
     else
-        return docp.ocp.initial_time
+        return docp.fixed_initial_time
     end
 end
 
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve final time for OCP (may be fixed or variable)
-"""
 function get_final_time(xu, docp)
-    if docp.has_free_tf
-        return get_optim_variable(xu, docp)[docp.ocp.final_time]
+    if docp.is_free_final_time
+        return get_OCP_variable(xu, docp)[docp.index_final_time]
     else
-        return docp.ocp.final_time
+        return docp.fixed_final_time
     end
 end
 
-"""
-$(TYPEDSIGNATURES)
-
-Get full (un-normalized) time grid
-"""
+# time grid
 function get_time_grid(xu, docp)
-    t0 = get_initial_time(xu, docp)
-    tf = get_final_time(xu, docp)
-    return @. t0 + docp.NLP_normalized_time_grid * (tf - t0)
+    if docp.is_free_initial_time || docp.is_free_final_time
+        t0 = get_initial_time(xu, docp)
+        tf = get_final_time(xu, docp)
+        return @. t0 + docp.NLP_normalized_time_grid * (tf - t0)
+    else
+        return docp.NLP_time_grid
+    end
 end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -85,6 +62,7 @@ function build_bounds(dim_var, dim_box, box_triplet)
     return x_lb, x_ub
 end
 
-# placeholders (see CTDirectExt)
+
+# placeholders (see CTDirectExt) +++ can be removed if functions moved to ctbase
 function export_ocp_solution end
 function import_ocp_solution end
