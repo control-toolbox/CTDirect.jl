@@ -13,10 +13,13 @@ using Plots
 DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)
 DocMeta.setdocmeta!(CTDirect, :DocTestSetup, :(using CTDirect); recursive = true)
 
-makedocs(
+repo_url = "github.com/control-toolbox/CTDirect.jl"
+
+makedocs(;
     warnonly = [:cross_references, :autodocs_block],
     sitename = "CTDirect.jl",
     format = Documenter.HTML(
+        repolink = "https://"*repo_url,
         prettyurls = false,
         size_threshold_ignore = ["api-ctbase.md"],
         assets = [
@@ -27,4 +30,6 @@ makedocs(
     pages = ["Introduction" => "index.md", "API" => "api.md", "Developers" => "dev-api.md"],
 )
 
-deploydocs(repo = "github.com/control-toolbox/CTDirect.jl.git", devbranch = "main")
+deploydocs(;
+    repo=repo_url*".git", devbranch="main"
+)

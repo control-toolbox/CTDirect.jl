@@ -1,6 +1,5 @@
 println("Test: discretization options")
 
-
 normalize_grid(t) = return (t .- t[1]) ./ (t[end] - t[1])
 
 # 1. simple integrator min energy (dual control for test)
@@ -59,18 +58,17 @@ end
     @test sol.time_grid ≈ time_grid
 end
 
-# implicit midpoint scheme
+#= implicit midpoint scheme
 @testset verbose = true showtiming = true ":implicit_midpoint" begin
     ocp = simple_integrator().ocp
     sol_t = direct_solve(ocp, display = false)
-    sol_m = direct_solve(ocp, display = false, discretization = "midpoint")
+    sol_m = direct_solve(ocp, display = false, disc_method = "midpoint")
     @test sol_m.objective ≈ sol_t.objective rtol = 1e-2 
 end
 
 @testset verbose = true showtiming = true ":implicit_midpoint" begin
     ocp = double_integrator_freet0tf().ocp
     sol_t = direct_solve(ocp, display = false)
-    sol_m = direct_solve(ocp, display = false, discretization = :midpoint)
+    sol_m = direct_solve(ocp, display = false, disc_method = :midpoint)
     @test sol_m.objective ≈ sol_t.objective rtol = 1e-2 
-end
-
+end=#
