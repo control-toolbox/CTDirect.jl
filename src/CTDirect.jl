@@ -24,8 +24,6 @@ export available_methods
 export is_solvable
 export direct_transcription
 export set_initial_guess
-export save
-export load
 export export_ocp_solution
 export import_ocp_solution
 export direct_solve
