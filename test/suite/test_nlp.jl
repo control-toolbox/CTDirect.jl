@@ -23,7 +23,7 @@ end
     @test sol.objective ≈ 0.313 rtol = 1e-2
 end
 
-#=@testset verbose = true showtiming = true ":solve_docp :midpoint" begin
+@testset verbose = true showtiming = true ":solve_docp :midpoint" begin
     docp, nlp = direct_transcription(ocp, disc_method = :midpoint)
     solver_backend = CTDirect.IpoptBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
@@ -33,7 +33,7 @@ end
     @test sol.objective ≈ 0.313 rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution, dual = dsol.multipliers)
     @test sol.objective ≈ 0.313 rtol = 1e-2
-end=#
+end
 
 @testset verbose = true showtiming = true ":solve_docp :madnlp" begin
     docp, nlp = direct_transcription(ocp)
