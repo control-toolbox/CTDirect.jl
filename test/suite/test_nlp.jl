@@ -48,10 +48,10 @@ end
 end
 
 # check solution building
-if !isdefined(Main, :double_integrator_T)
+if !isdefined(Main, :double_integrator_minenergy)
     include("../problems/double_integrator.jl")
 end
-ocp = double_integrator_T(1).ocp
+ocp = double_integrator_minenergy(1).ocp
 x_opt = t -> [6 * (t^2 / 2 - t^3 / 3), 6 * (t - t^2)]
 u_opt = t -> 6 - 12 * t
 p_opt = t -> [24, 12 - 24 * t]

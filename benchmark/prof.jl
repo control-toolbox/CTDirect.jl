@@ -18,16 +18,10 @@ function local_mayer(obj, x0, xf, v)
     return
 end
 
-function init(;in_place, grid_size, disc_method)
-    if in_place
-        prob = goddard_all_inplace()
-        #prob = goddard_a()
-        #prob = double_integrator_a()
-    else
-        prob = goddard_all()
-        #prob = goddard()       
-        #prob = double_integrator_mintf()
-    end
+function init(;grid_size, disc_method)
+    prob = goddard_all()
+    #prob = goddard()
+    #prob = double_integrator_mintf()
     ocp = prob[:ocp]
     docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=string(disc_method))
     xu = CTDirect.DOCP_initial_guess(docp)
@@ -35,10 +29,10 @@ function init(;in_place, grid_size, disc_method)
 end
 
 
-function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=true, test_block=false, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze, in_place=true)
+function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_mayer=false, test_obj=true, test_block=false, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
     
     # define problem and variables
-    prob, docp, xu = init(in_place=in_place, grid_size=grid_size, disc_method=disc_method)
+    prob, docp, xu = init(grid_size=grid_size, disc_method=disc_method)
     disc = docp.discretization
     #= OK, same as calling the functions with docp
     NLP_objective = (xu) -> CTDirect.DOCP_objective(xu, docp)
@@ -65,38 +59,20 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
     f = similar(xu, docp.dim_NLP_x)
 
     if test_dyn
-        if in_place
-            print("dynamics_ext"); @btime $docp.dynamics_ext($f, $t, $x, $u, $v)
-            warntype && @code_warntype docp.dynamics_ext(f, t, x, u, v)
-            Profile.clear_malloc_data()
-            docp.dynamics_ext(f, t, x, u, v)
-        else
-            print("dynamics_ext"); @btime $docp.dynamics_ext($t, $x, $u, $v)
-            warntype && @code_warntype docp.dynamics_ext(t, x, u, v)
-            Profile.clear_malloc_data()
-            docp.dynamics_ext(t, x, u, v)
-        end
+        print("dynamics_ext"); @btime $docp.dynamics_ext($f, $t, $x, $u, $v)
+        warntype && @code_warntype docp.dynamics_ext(f, t, x, u, v)
+        Profile.clear_malloc_data()
+        docp.dynamics_ext(f, t, x, u, v)
     end
 
     if test_unit_cons
-        if in_place
-            print("u cons"); @btime $docp.control_constraints[2]($c, $t, $u, $v)
-            print("x cons"); @btime $docp.state_constraints[2]($c, $t, $x, $v)
-            print("xu cons"); @btime $docp.mixed_constraints[2]($c, $t, $x, $u, $v)
-            if warntype
-                @code_warntype docp.control_constraints[2](c, t, u, v)
-                @code_warntype docp.state_constraints[2](c, t, x, v)
-                @code_warntype docp.mixed_constraints[2](c, t, x, u, v)
-            end
-        else
-            print("u cons"); @btime $docp.control_constraints[2]($t, $u, $v)
-            print("x cons"); @btime $docp.state_constraints[2]($t, $x, $v)
-            print("xu cons"); @btime $docp.mixed_constraints[2]($t, $x, $u, $v)
-            if warntype
-                @code_warntype docp.control_constraints[2](t, u, v)
-                @code_warntype docp.state_constraints[2](t, x, v)
-                @code_warntype docp.mixed_constraints[2](t, x, u, v)
-            end
+        print("u cons"); @btime $docp.control_constraints[2]($c, $t, $u, $v)
+        print("x cons"); @btime $docp.state_constraints[2]($c, $t, $x, $v)
+        print("xu cons"); @btime $docp.mixed_constraints[2]($c, $t, $x, $u, $v)
+        if warntype
+            @code_warntype docp.control_constraints[2](c, t, u, v)
+            @code_warntype docp.state_constraints[2](c, t, x, v)
+            @code_warntype docp.mixed_constraints[2](c, t, x, u, v)
         end
     end
 
@@ -128,7 +104,7 @@ function test_unit(;test_get=false, test_dyn=false, test_unit_cons=false, test_m
 
     if test_obj
         print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
-        warntype && @code_warntype CTDirect.DOCP_objective(xu, docp) # quasi OK (inplace/outplace for ocp.mayer return ?)
+        warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
         jet && display(@report_opt CTDirect.DOCP_objective(xu, docp))
         if profile
             Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
