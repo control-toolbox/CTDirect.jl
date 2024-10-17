@@ -41,7 +41,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     is_mayer::Bool
     is_variable::Bool
     is_maximization::Bool
-    is_inplace::Bool
 
     # initial / final time
     fixed_initial_time::Float64
@@ -117,7 +116,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         is_mayer = has_mayer_cost(ocp)
         is_variable = is_variable_dependent(ocp)
         is_maximization = is_max(ocp)
-        is_inplace = is_in_place(ocp)
 
         # dimensions
         if is_lagrange
@@ -223,7 +221,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             is_mayer,
             is_variable,
             is_maximization,
-            is_inplace,
             fixed_initial_time,
             fixed_final_time,
             index_initial_time,
@@ -351,11 +348,7 @@ function DOCP_objective(xu, docp::DOCP)
     # mayer cost
     if docp.is_mayer
         x0 = get_OCP_state_at_time_step(xu, docp, 1)
-        if docp.is_inplace
-            docp.ocp.mayer(obj, x0, xf, v)
-        else
-            obj[1] = docp.ocp.mayer(x0, xf, v)
-        end
+        docp.ocp.mayer(obj, x0, xf, v)
     end
 
     # lagrange cost
@@ -448,20 +441,12 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        if docp.is_inplace
-            docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
-        else
-            c[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[2](x0, xf, v)
-        end
+        docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
     end
 
     # variable constraints
     if docp.dim_v_cons > 0
-        if docp.is_inplace
-            docp.variable_constraints[2]((@view c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons]), v)
-        else
-            c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons] = docp.variable_constraints[2](v)
-        end
+        docp.variable_constraints[2]((@view c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons]), v)
     end
 
     # null initial condition for lagrangian cost state
