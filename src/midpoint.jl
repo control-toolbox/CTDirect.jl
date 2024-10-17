@@ -118,31 +118,51 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
 
     # variables
     ti = time_grid[i]
-    xi = get_state_at_time_step(xu, docp, i)
-    ui = get_control_at_time_step(xu, docp, i) 
+    xi = get_OCP_state_at_time_step(xu, docp, i)
+    ui = get_OCP_control_at_time_step(xu, docp, i) 
 
+    # 1. state equation
     if i <= docp.dim_NLP_steps
         # more variables
         ki = get_stagevars_at_time_step(xu, docp, i)
         tip1 = time_grid[i+1]
-        xip1 = get_state_at_time_step(xu, docp, i+1)
+        xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
         hi = tip1 - ti
 
         # midpoint rule
         h_sum_bk = hi * disc.butcher_b[1] * ki
-        c[offset+1:offset+docp.dim_NLP_x] = xip1 - (xi + h_sum_bk)
+        if docp.dim_OCP_x == 1
+            c[offset+1] = xip1 - (xi + h_sum_bk[1])
+        else
+            c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + h_sum_bk[1:docp.dim_OCP_x])
+        end
+        if docp.is_lagrange
+            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + h_sum_bk[docp.dim_NLP_x])
+        end
         offset += docp.dim_NLP_x
 
         # stage equation at mid-step
         ts = ti + hi * disc.butcher_c[1]
         #xs = xi + hi * (disc.butcher_a[1][1] * ki)
         xs = 0.5 * (xi + xip1) #compare bench
-        docp.dynamics_ext!((@view c[offset+1:offset+docp.dim_NLP_x]), ts, xs, ui, v)
-        @views c[offset+1:offset+docp.dim_NLP_x] = -c[offset+1:offset+docp.dim_NLP_x] + ki
+        if docp.is_inplace
+            docp.ocp.dynamics((@view c[offset+1:offset+docp.dim_OCP_x]), ts, xs, ui, v)
+            @views c[offset+1:offset+docp.dim_OCP_x] = -c[offset+1:offset+docp.dim_OCP_x] + ki[1:docp.dim_OCP_x]
+        else
+            c[offset+1:offset+docp.dim_OCP_x] .= ki[1:docp.dim_OCP_x] .- docp.ocp.dynamics(ts, xs, ui, v)
+        end
+        if docp.is_lagrange
+            if docp.is_inplace
+                docp.ocp.lagrange((@view c[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ts, xs, ui, v)
+                @views c[offset+docp.dim_NLP_x] = -c[offset+docp.dim_NLP_x] + ki[docp.dim_NLP_x]
+            else
+                c[offset+docp.dim_NLP_x] = ki[docp.dim_NLP_x] - docp.ocp.lagrange(ts, xs, ui, v)
+            end
+        end
         offset += docp.dim_NLP_x
     end
 
-    # path constraints
+    # 2. path constraints
     # Notes on allocations:.= seems similar
     if docp.dim_u_cons > 0
         if docp.has_inplace

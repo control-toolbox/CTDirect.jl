@@ -1,9 +1,12 @@
+# +++ todo: add as abstract goddard_bocop in goddard.jl
 using CTDirect
 using CTBase
 using BenchmarkTools
 
 # Goddard with same formulation as bocop3
 # max altitude, speed limit, only box constraints
+
+
 n = 3
 m = 1
 Cd = 310
