@@ -4,6 +4,7 @@ using CTBase
 using DocStringExtensions
 using ADNLPModels               # docp model with AD
 using LinearAlgebra             # norm and misc
+using HSL
 
 import CTBase: OptimalControlSolution, CTBase   # extended
 
