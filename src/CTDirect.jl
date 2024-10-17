@@ -4,6 +4,7 @@ using CTBase
 using DocStringExtensions
 using ADNLPModels               # docp model with AD
 using LinearAlgebra             # norm and misc
+using HSL
 
 import CTBase: OptimalControlSolution, CTBase   # extended
 
@@ -24,8 +25,6 @@ export available_methods
 export is_solvable
 export direct_transcription
 export set_initial_guess
-export save
-export load
 export export_ocp_solution
 export import_ocp_solution
 export direct_solve

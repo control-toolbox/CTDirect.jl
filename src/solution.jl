@@ -5,7 +5,7 @@ $(TYPEDSIGNATURES)
    
 Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
 """
-function CTBase.OptimalControlSolution(docp, docp_solution)
+function CTBase.OptimalControlSolution(docp::DOCP, docp_solution)
 
     # retrieve data (could pass some status info too (get_status ?))
     if docp.is_maximization
@@ -34,7 +34,7 @@ $(TYPEDSIGNATURES)
 Build OCP functional solution from the DOCP discrete solution, given as a vector. Costate will be retrieved from dual variables (multipliers) if available.
 """
 function CTBase.OptimalControlSolution(
-    docp;
+    docp::DOCP;
     primal = Vector(),
     dual = nothing,
     objective = nothing,
@@ -138,9 +138,9 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     end
 
     box_multipliers = (
-        (mult_state_box_lower, mult_state_box_upper),
-        (mult_control_box_lower, mult_control_box_upper),
-        (mult_variable_box_lower, mult_variable_box_upper),
+        mult_state_box_lower, mult_state_box_upper,
+        mult_control_box_lower, mult_control_box_upper,
+        mult_variable_box_lower, mult_variable_box_upper
     )
 
     return X, U, v, box_multipliers
@@ -254,6 +254,8 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
     return P, constraints_types, constraints_mult
 end
 
+
+# +++ move this one to CTBase ? (aqua flags a type piracy since we don't have arguments DOCP specific types)
 """
 $(TYPEDSIGNATURES)
     
@@ -274,7 +276,7 @@ function CTBase.OptimalControlSolution(
     success = nothing,
     constraints_types = (nothing, nothing, nothing, nothing, nothing),
     constraints_mult = (nothing, nothing, nothing, nothing, nothing),
-    box_multipliers = ((nothing, nothing), (nothing, nothing), (nothing, nothing)),
+    box_multipliers = (nothing, nothing, nothing, nothing, nothing, nothing),
 )
     dim_x = state_dimension(ocp)
     dim_u = control_dimension(ocp)
@@ -306,29 +308,26 @@ function CTBase.OptimalControlSolution(
     infos = Dict{Symbol, Any}()
     infos[:constraints_violation] = constraints_violation
 
-    # +++ put interpolations here directly and reuse vectors ?
     # nonlinear constraints and multipliers
-    (
-        control_constraints,
-        state_constraints,
-        mixed_constraints,
-        boundary_constraints,
-        variable_constraints,
-        mult_control_constraints,
-        mult_state_constraints,
-        mult_mixed_constraints,
-        mult_boundary_constraints,
-        mult_variable_constraints,
-    ) = set_constraints_and_multipliers(T, constraints_types, constraints_mult)
+    control_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[1], 1))(t)
+    mult_control_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[1], 1))(t)
+    state_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[2], 1))(t)
+    mult_state_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[2], 1))(t)
+    mixed_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[3], 1))(t)
+    mult_mixed_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[3], 1))(t)
+
+    # boundary and variable constraints
+    boundary_constraints = constraints_types[4]
+    mult_boundary_constraints = constraints_mult[4]
+    variable_constraints = constraints_types[5]
+    mult_variable_constraints = constraints_mult[5]
+
     # box constraints multipliers
-    (
-        mult_state_box_lower,
-        mult_state_box_upper,
-        mult_control_box_lower,
-        mult_control_box_upper,
-        mult_variable_box_lower,
-        mult_variable_box_upper,
-    ) = set_box_multipliers(T, box_multipliers, dim_x, dim_u)
+    mult_state_box_lower = t -> ctinterpolate(T, matrix2vec(box_multipliers[1][:, 1:dim_x], 1))(t)
+    mult_state_box_upper = t -> ctinterpolate(T, matrix2vec(box_multipliers[2][:, 1:dim_x], 1))
+    mult_control_box_lower = t -> ctinterpolate(T, matrix2vec(box_multipliers[3][:, 1:dim_u], 1))(t)
+    mult_control_box_upper = t -> ctinterpolate(T, matrix2vec(box_multipliers[4][:, 1:dim_u], 1))
+    mult_variable_box_lower, mult_variable_box_upper = box_multipliers[5], box_multipliers[6]
 
     # build and return solution
     if is_variable_dependent(ocp)
@@ -389,80 +388,4 @@ function CTBase.OptimalControlSolution(
             mult_control_box_upper = mult_control_box_upper,
         )
     end
-end
-
-"""
-$(TYPEDSIGNATURES)
-    
-Process data related to constraints for solution building
-"""
-function set_constraints_and_multipliers(T, constraints_types, constraints_mult)
-
-    # control, state, mixed constraints
-    control_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[1], 1))(t)
-    mult_control_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[1], 1))(t)
-
-    state_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[2], 1))(t)
-    mult_state_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[2], 1))(t)
-
-    mixed_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[3], 1))(t)
-    mult_mixed_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[3], 1))(t)
-
-    # boundary and variable constraints
-    boundary_constraints = constraints_types[4]
-    mult_boundary_constraints = constraints_mult[4]
-    variable_constraints = constraints_types[5]
-    mult_variable_constraints = constraints_mult[5]
-
-    return (
-        control_constraints,
-        state_constraints,
-        mixed_constraints,
-        boundary_constraints,
-        variable_constraints,
-        mult_control_constraints,
-        mult_state_constraints,
-        mult_mixed_constraints,
-        mult_boundary_constraints,
-        mult_variable_constraints,
-    )
-end
-
-"""
-$(TYPEDSIGNATURES)
-    
-Process data related to box constraints for solution building
-"""
-function set_box_multipliers(T, box_multipliers, dim_x, dim_u)
-
-    # state box
-    mult_state_box_lower, mult_state_box_upper = set_box_block(T, box_multipliers[1], dim_x)
-    # control box
-    mult_control_box_lower, mult_control_box_upper = set_box_block(T, box_multipliers[2], dim_u)
-    # variable box
-    mult_variable_box_lower, mult_variable_box_upper = box_multipliers[3]
-
-    return (
-        mult_state_box_lower,
-        mult_state_box_upper,
-        mult_control_box_lower,
-        mult_control_box_upper,
-        mult_variable_box_lower,
-        mult_variable_box_upper,
-    )
-end
-
-"""
-$(TYPEDSIGNATURES)
-    
-Process data related to a box type for solution building
-"""
-# +++ integrate above ?
-function set_box_block(T, mults, dim)
-    mult_l, mult_u = mults
-    if !isnothing(mult_l) && !isnothing(mult_u)
-        m_l = ctinterpolate(T, matrix2vec(mult_l[:, 1:dim], 1))
-        m_u = ctinterpolate(T, matrix2vec(mult_u[:, 1:dim], 1))
-    end
-    return t -> m_l(t), t -> m_u(t)
 end

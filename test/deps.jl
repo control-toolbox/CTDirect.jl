@@ -1,11 +1,9 @@
 using CTDirect
 using CTBase
 
-using LinearAlgebra
 using NLPModelsIpopt
 using MadNLP
-using HSL
-using SplitApplyCombine
+using SplitApplyCombine # for flatten in some tests
 
-using JLD2
-using JSON3
+using JLD2 # to be moved to CTBase ?
+using JSON3 # to be moved to CTBase ?
