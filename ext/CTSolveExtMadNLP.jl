@@ -36,7 +36,8 @@ function CTDirect.solve_docp(
     return docp_solution
 end
 
-function CTBase.OptimalControlSolution(docp, docp_solution::MadNLP.MadNLPExecutionStats)
+
+function CTBase.OptimalControlSolution(docp::CTDirect.DOCP, docp_solution::MadNLP.MadNLPExecutionStats)
 
     # adjust objective sign for maximization problems
     if is_min(docp.ocp)
