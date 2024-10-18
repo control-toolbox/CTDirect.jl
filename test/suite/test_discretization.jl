@@ -41,10 +41,10 @@ end
 end
 
 # 3. parametric ocp (T=2) with explicit / non-uniform grid
-if !isdefined(Main, :double_integrator_T)
+if !isdefined(Main, :double_integrator_minenergy)
     include("../problems/double_integrator.jl")
 end
-ocp = double_integrator_T(2).ocp
+ocp = double_integrator_minenergy(2).ocp
 sol0 = direct_solve(ocp, display = false)
 
 @testset verbose = true showtiming = true ":explicit_grid" begin

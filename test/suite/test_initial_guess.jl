@@ -4,7 +4,7 @@ println("Test: initial guess options")
 maxiter = 0
 
 # reference solution
-prob = double_integrator_a()
+prob = double_integrator_mintf()
 ocp = prob.ocp
 sol0 = direct_solve(ocp, display = false)
 

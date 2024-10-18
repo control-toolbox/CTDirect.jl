@@ -108,13 +108,6 @@ else
         @test sol.objective ≈ ocp.obj rtol = 1e-2
     end
 
-    # functional constraints
-    @testset verbose = true showtiming = true ":goddard :functional_constraints" begin
-        ocp = goddard(functional_constraints = true)
-        sol = direct_solve(ocp.ocp, display = false, init = ocp.init)
-        @test sol.objective ≈ ocp.obj rtol = 1e-2
-    end
-
     # all constraints
     @testset verbose = true showtiming = true ":goddard :all_constraints" begin
         ocp = goddard_all()

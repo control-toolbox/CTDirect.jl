@@ -76,17 +76,10 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
     t0 = time_grid[1]
     x0 = get_OCP_state_at_time_step(xu, docp, 1)
     u0 = get_OCP_control_at_time_step(xu, docp, 1)
-    if docp.is_inplace
-        docp.ocp.dynamics((@view work[1:docp.dim_OCP_x]), t0, x0, u0, v)
-    else
-        work[1:docp.dim_OCP_x] .= docp.ocp.dynamics(t0, x0, u0, v)
-    end
+    
+    docp.ocp.dynamics((@view work[1:docp.dim_OCP_x]), t0, x0, u0, v)
     if docp.is_lagrange
-        if docp.is_inplace
-            docp.ocp.lagrange((@view work[docp.dim_NLP_x:docp.dim_NLP_x]), t0, x0, u0, v)
-        else
-            work[docp.dim_NLP_x] = docp.ocp.lagrange(t0, x0, u0, v)
-        end
+        docp.ocp.lagrange((@view work[docp.dim_NLP_x:docp.dim_NLP_x]), t0, x0, u0, v)
     end
     return work
 end
@@ -115,17 +108,9 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         tip1 = time_grid[i+1]
         xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
         uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
-        if docp.is_inplace
-            docp.ocp.dynamics((@view work[1:docp.dim_OCP_x]), tip1, xip1, uip1, v)
-        else
-            work[1:docp.dim_OCP_x] .= docp.ocp.dynamics(tip1, xip1, uip1, v)
-        end
+        docp.ocp.dynamics((@view work[1:docp.dim_OCP_x]), tip1, xip1, uip1, v)
         if docp.is_lagrange
-            if docp.is_inplace
-                docp.ocp.lagrange((@view work[docp.dim_NLP_x:docp.dim_NLP_x]), tip1, xip1, uip1, v)
-            else
-                work[docp.dim_NLP_x] = docp.ocp.lagrange(tip1, xip1, uip1, v)
-            end
+            docp.ocp.lagrange((@view work[docp.dim_NLP_x:docp.dim_NLP_x]), tip1, xip1, uip1, v)
         end
 
         # trapeze rule with 'smart' update for dynamics (@. allocs more and is slower -_-)
@@ -144,25 +129,13 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # 2. path constraints
     # Notes on allocations:.= seems similar
     if docp.dim_u_cons > 0
-        if docp.is_inplace
-            docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
-        else
-            c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](ti, ui, v)
-        end
+        docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
     end
     if docp.dim_x_cons > 0 
-        if docp.is_inplace
-            docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, xi, v)
-        else
-            c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](ti, xi, v)
-        end
+        docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, xi, v)
     end
     if docp.dim_mixed_cons > 0 
-        if docp.is_inplace
-            docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, xi, ui, v)
-        else
-            c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](ti, xi, ui, v)
-        end
+        docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, xi, ui, v)
     end
 
 end
