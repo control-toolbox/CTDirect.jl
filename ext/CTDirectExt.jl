@@ -12,7 +12,9 @@ $(TYPEDSIGNATURES)
   
 Export OCP solution in JLD / JSON format
 """
-function CTDirect.export_ocp_solution(sol::OptimalControlSolution; filename_prefix = "solution", format = :JLD)
+function CTDirect.export_ocp_solution(
+    sol::OptimalControlSolution; filename_prefix="solution", format=:JLD
+)
     if format == :JLD
         save_object(filename_prefix * ".jld2", sol)
     elseif format == :JSON
@@ -38,11 +40,12 @@ $(TYPEDSIGNATURES)
   
 Read OCP solution in JLD / JSON format
 """
-function CTDirect.import_ocp_solution(ocp::OptimalControlModel; filename_prefix = "solution", format = :JLD)
-
+function CTDirect.import_ocp_solution(
+    ocp::OptimalControlModel; filename_prefix="solution", format=:JLD
+)
     if format == :JLD
         return load_object(filename_prefix * ".jld2")
-    elseif format == :JSON 
+    elseif format == :JSON
         json_string = read(filename_prefix * ".json", String)
         blob = JSON3.read(json_string)
 
@@ -50,16 +53,15 @@ function CTDirect.import_ocp_solution(ocp::OptimalControlModel; filename_prefix 
         return OptimalControlSolution(
             ocp,
             blob.time_grid,
-            stack(blob.state, dims = 1),
-            stack(blob.control, dims = 1),
+            stack(blob.state; dims=1),
+            stack(blob.control; dims=1),
             blob.variable,
-            stack(blob.costate, dims = 1);
-            objective = blob.objective,
+            stack(blob.costate; dims=1);
+            objective=blob.objective,
         )
     else
         error("Export_ocp_solution: unknow format (should be :JLD or :JSON): ", format)
-    end        
+    end
 end
-
 
 end

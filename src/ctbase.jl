@@ -12,13 +12,14 @@ using DocStringExtensions
 using JLD2
 using JSON3
 
-
 """
 $(TYPEDSIGNATURES)
   
 Export OCP solution in JLD / JSON format
 """
-function CTDirect.export_ocp_solution(sol::OptimalControlSolution; filename_prefix = "solution", format = :JLD)
+function CTDirect.export_ocp_solution(
+    sol::OptimalControlSolution; filename_prefix="solution", format=:JLD
+)
     if format == :JLD
         save_object(filename_prefix * ".jld2", sol)
     elseif format == :JSON
@@ -44,11 +45,12 @@ $(TYPEDSIGNATURES)
   
 Read OCP solution in JLD / JSON format
 """
-function CTDirect.import_ocp_solution(ocp::OptimalControlModel; filename_prefix = "solution", format = :JLD)
-
+function CTDirect.import_ocp_solution(
+    ocp::OptimalControlModel; filename_prefix="solution", format=:JLD
+)
     if format == :JLD
         return load_object(filename_prefix * ".jld2")
-    elseif format == :JSON 
+    elseif format == :JSON
         json_string = read(filename_prefix * ".json", String)
         blob = JSON3.read(json_string)
 
@@ -56,20 +58,18 @@ function CTDirect.import_ocp_solution(ocp::OptimalControlModel; filename_prefix 
         return OptimalControlSolution(
             ocp,
             blob.time_grid,
-            stack(blob.state, dims = 1),
-            stack(blob.control, dims = 1),
+            stack(blob.state; dims=1),
+            stack(blob.control; dims=1),
             blob.variable,
-            stack(blob.costate, dims = 1);
-            objective = blob.objective,
+            stack(blob.costate; dims=1);
+            objective=blob.objective,
         )
     else
         error("Export_ocp_solution: unknow format (should be :JLD or :JSON): ", format)
-    end        
+    end
 end
 
 end
-
-
 
 ################################################################
 ################################################################
@@ -86,15 +86,15 @@ function CTBase.OptimalControlSolution(
     U,
     v,
     P;
-    objective = 0,
-    iterations = 0,
-    constraints_violation = 0,
-    message = "No msg",
-    stopping = nothing,
-    success = nothing,
-    constraints_types = (nothing, nothing, nothing, nothing, nothing),
-    constraints_mult = (nothing, nothing, nothing, nothing, nothing),
-    box_multipliers = (nothing, nothing, nothing, nothing, nothing, nothing),
+    objective=0,
+    iterations=0,
+    constraints_violation=0,
+    message="No msg",
+    stopping=nothing,
+    success=nothing,
+    constraints_types=(nothing, nothing, nothing, nothing, nothing),
+    constraints_mult=(nothing, nothing, nothing, nothing, nothing),
+    box_multipliers=(nothing, nothing, nothing, nothing, nothing, nothing),
 )
     dim_x = state_dimension(ocp)
     dim_u = control_dimension(ocp)
@@ -102,7 +102,7 @@ function CTBase.OptimalControlSolution(
 
     # check that time grid is strictly increasing
     # if not proceed with list of indexes as time grid
-    if !issorted(T, lt = <=)
+    if !issorted(T; lt=<=)
         println(
             "WARNING: time grid at solution is not strictly increasing, replacing with list of indices...",
         )
@@ -123,7 +123,7 @@ function CTBase.OptimalControlSolution(
     var = (dim_v == 1) ? v[1] : v
 
     # misc infos
-    infos = Dict{Symbol, Any}()
+    infos = Dict{Symbol,Any}()
     infos[:constraints_violation] = constraints_violation
 
     # nonlinear constraints and multipliers
@@ -141,69 +141,74 @@ function CTBase.OptimalControlSolution(
     mult_variable_constraints = constraints_mult[5]
 
     # box constraints multipliers
-    mult_state_box_lower = t -> ctinterpolate(T, matrix2vec(box_multipliers[1][:, 1:dim_x], 1))(t)
-    mult_state_box_upper = t -> ctinterpolate(T, matrix2vec(box_multipliers[2][:, 1:dim_x], 1))
-    mult_control_box_lower = t -> ctinterpolate(T, matrix2vec(box_multipliers[3][:, 1:dim_u], 1))(t)
-    mult_control_box_upper = t -> ctinterpolate(T, matrix2vec(box_multipliers[4][:, 1:dim_u], 1))
-    mult_variable_box_lower, mult_variable_box_upper = box_multipliers[5], box_multipliers[6]
+    mult_state_box_lower =
+        t -> ctinterpolate(T, matrix2vec(box_multipliers[1][:, 1:dim_x], 1))(t)
+    mult_state_box_upper =
+        t -> ctinterpolate(T, matrix2vec(box_multipliers[2][:, 1:dim_x], 1))
+    mult_control_box_lower =
+        t -> ctinterpolate(T, matrix2vec(box_multipliers[3][:, 1:dim_u], 1))(t)
+    mult_control_box_upper =
+        t -> ctinterpolate(T, matrix2vec(box_multipliers[4][:, 1:dim_u], 1))
+    mult_variable_box_lower, mult_variable_box_upper = box_multipliers[5],
+    box_multipliers[6]
 
     # build and return solution
     if is_variable_dependent(ocp)
         return OptimalControlSolution(
             ocp;
-            state = fx,
-            control = fu,
-            objective = objective,
-            costate = fp,
-            time_grid = T,
-            variable = var,
-            iterations = iterations,
-            stopping = stopping,
-            message = message,
-            success = success,
-            infos = infos,
-            control_constraints = control_constraints,
-            state_constraints = state_constraints,
-            mixed_constraints = mixed_constraints,
-            boundary_constraints = boundary_constraints,
-            variable_constraints = variable_constraints,
-            mult_control_constraints = mult_control_constraints,
-            mult_state_constraints = mult_state_constraints,
-            mult_mixed_constraints = mult_mixed_constraints,
-            mult_boundary_constraints = mult_boundary_constraints,
-            mult_variable_constraints = mult_variable_constraints,
-            mult_state_box_lower = mult_state_box_lower,
-            mult_state_box_upper = mult_state_box_upper,
-            mult_control_box_lower = mult_control_box_lower,
-            mult_control_box_upper = mult_control_box_upper,
-            mult_variable_box_lower = mult_variable_box_lower,
-            mult_variable_box_upper = mult_variable_box_upper,
+            state=fx,
+            control=fu,
+            objective=objective,
+            costate=fp,
+            time_grid=T,
+            variable=var,
+            iterations=iterations,
+            stopping=stopping,
+            message=message,
+            success=success,
+            infos=infos,
+            control_constraints=control_constraints,
+            state_constraints=state_constraints,
+            mixed_constraints=mixed_constraints,
+            boundary_constraints=boundary_constraints,
+            variable_constraints=variable_constraints,
+            mult_control_constraints=mult_control_constraints,
+            mult_state_constraints=mult_state_constraints,
+            mult_mixed_constraints=mult_mixed_constraints,
+            mult_boundary_constraints=mult_boundary_constraints,
+            mult_variable_constraints=mult_variable_constraints,
+            mult_state_box_lower=mult_state_box_lower,
+            mult_state_box_upper=mult_state_box_upper,
+            mult_control_box_lower=mult_control_box_lower,
+            mult_control_box_upper=mult_control_box_upper,
+            mult_variable_box_lower=mult_variable_box_lower,
+            mult_variable_box_upper=mult_variable_box_upper,
         )
     else
         return OptimalControlSolution(
             ocp;
-            state = fx,
-            control = fu,
-            objective = objective,
-            costate = fp,
-            time_grid = T,
-            iterations = iterations,
-            stopping = stopping,
-            message = message,
-            success = success,
-            infos = infos,
-            control_constraints = control_constraints,
-            state_constraints = state_constraints,
-            mixed_constraints = mixed_constraints,
-            boundary_constraints = boundary_constraints,
-            mult_control_constraints = mult_control_constraints,
-            mult_state_constraints = mult_state_constraints,
-            mult_mixed_constraints = mult_mixed_constraints,
-            mult_boundary_constraints = mult_boundary_constraints,
-            mult_state_box_lower = mult_state_box_lower,
-            mult_state_box_upper = mult_state_box_upper,
-            mult_control_box_lower = mult_control_box_lower,
-            mult_control_box_upper = mult_control_box_upper,
+            state=fx,
+            control=fu,
+            objective=objective,
+            costate=fp,
+            time_grid=T,
+            iterations=iterations,
+            stopping=stopping,
+            message=message,
+            success=success,
+            infos=infos,
+            control_constraints=control_constraints,
+            state_constraints=state_constraints,
+            mixed_constraints=mixed_constraints,
+            boundary_constraints=boundary_constraints,
+            mult_control_constraints=mult_control_constraints,
+            mult_state_constraints=mult_state_constraints,
+            mult_mixed_constraints=mult_mixed_constraints,
+            mult_boundary_constraints=mult_boundary_constraints,
+            mult_state_box_lower=mult_state_box_lower,
+            mult_state_box_upper=mult_state_box_upper,
+            mult_control_box_lower=mult_control_box_lower,
+            mult_control_box_upper=mult_control_box_upper,
         )
     end
 end
