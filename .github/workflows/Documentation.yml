@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+          with:
+            path: ${{ github.sha }}
       - uses: julia-actions/setup-julia@latest
       - uses: julia-actions/julia-buildpkg@latest
       - name: Install dependencies
