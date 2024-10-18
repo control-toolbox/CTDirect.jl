@@ -1,6 +1,6 @@
 ################################################################
 ################################################################
-# A integrer dans CTBase vu que c'est la sauvegarde d'une solution OCP
+# 1. integrer dans CTBase vu que c'est la sauvegarde d'une solution OCP
 # copie de CTDirectExt.jl qui definit l'extension avec les weakdeps JLD2 / JSON3
 
 module CTDirectExt
@@ -73,7 +73,7 @@ end
 
 ################################################################
 ################################################################
-# cf solution.jl: a mettre dans CTBase ? (aqua indique un type piracy car on ne passe pas d'argument avec des types specifiques a DOCP). Ce constructeur pourrait etre utilise pour toute solution sous forme discrete, pas seulement les methodes directes.
+# 2. cf solution.jl: a mettre dans CTBase ? (aqua indique un type piracy car on ne passe pas d'argument avec des types specifiques a DOCP). Ce constructeur pourrait etre utilise pour toute solution sous forme discrete, pas seulement les methodes directes.
 """
 $(TYPEDSIGNATURES)
     
