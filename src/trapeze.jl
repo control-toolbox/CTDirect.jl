@@ -111,7 +111,6 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # 1. state equation
     if i <= docp.dim_NLP_steps
         # more variables
-        +++
         tip1 = time_grid[i+1]
         xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
         offset_dyn_i = (i-1)*docp.dim_NLP_x
