@@ -72,20 +72,20 @@ end
 
 
 function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
-    work = similar(xu, docp.dim_NLP_x)
-    t0 = time_grid[1]
-    x0 = get_OCP_state_at_time_step(xu, docp, 1)
-    u0 = get_OCP_control_at_time_step(xu, docp, 1)
-    if docp.is_inplace
-        docp.ocp.dynamics((@view work[1:docp.dim_OCP_x]), t0, x0, u0, v)
-    else
-        work[1:docp.dim_OCP_x] .= docp.ocp.dynamics(t0, x0, u0, v)
-    end
-    if docp.is_lagrange
-        if docp.is_inplace
-            docp.ocp.lagrange((@view work[docp.dim_NLP_x:docp.dim_NLP_x]), t0, x0, u0, v)
-        else
-            work[docp.dim_NLP_x] = docp.ocp.lagrange(t0, x0, u0, v)
+    # use work array to store all dynamics + lagrange costs
+    work = similar(xu, docp.dim_NLP_x * (docp.dim_NLP_steps+1))
+
+    # loop over time steps
+    for i = 1:docp.dim_NLP_steps+1
+        offset = (i-1) * docp.dim_NLP_x
+        ti = time_grid[i]
+        xi = get_OCP_state_at_time_step(xu, docp, i)
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        # OCP dynamics
+        docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), ti, xi, ui, v)
+        # lagrange cost
+        if docp.is_lagrange
+            docp.ocp.lagrange((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ti, xi, ui, v)
         end
     end
     return work
@@ -111,58 +111,28 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # 1. state equation
     if i <= docp.dim_NLP_steps
         # more variables
-        fi = copy(work) # create new copy, not just a reference
         tip1 = time_grid[i+1]
         xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
-        uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
-        if docp.is_inplace
-            docp.ocp.dynamics((@view work[1:docp.dim_OCP_x]), tip1, xip1, uip1, v)
-        else
-            work[1:docp.dim_OCP_x] .= docp.ocp.dynamics(tip1, xip1, uip1, v)
-        end
-        if docp.is_lagrange
-            if docp.is_inplace
-                docp.ocp.lagrange((@view work[docp.dim_NLP_x:docp.dim_NLP_x]), tip1, xip1, uip1, v)
-            else
-                work[docp.dim_NLP_x] = docp.ocp.lagrange(tip1, xip1, uip1, v)
-            end
-        end
+        offset_dyn_i = (i-1)*docp.dim_NLP_x
+        offset_dyn_ip1 = i*docp.dim_NLP_x
 
-        # trapeze rule with 'smart' update for dynamics (@. allocs more and is slower -_-)
-        # or split dyn and lag ?
-        if docp.dim_OCP_x == 1
-            c[offset+1] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi[1] + work[1]))
-        else
-            c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (fi[1:docp.dim_OCP_x] + work[1:docp.dim_OCP_x]))
-        end
+        # trapeze rule
+        @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x] + work[offset_dyn_ip1+1:offset_dyn_ip1+docp.dim_OCP_x]))
         if docp.is_lagrange
-            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + 0.5 * (tip1 - ti) * (fi[docp.dim_NLP_x] + work[docp.dim_NLP_x]))
+            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + 0.5 * (tip1 - ti) * (work[offset_dyn_i+docp.dim_NLP_x] + work[offset_dyn_ip1+docp.dim_NLP_x]))
         end
         offset += docp.dim_NLP_x
     end
 
     # 2. path constraints
-    # Notes on allocations:.= seems similar
     if docp.dim_u_cons > 0
-        if docp.is_inplace
-            docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
-        else
-            c[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[2](ti, ui, v)
-        end
+        docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
     end
     if docp.dim_x_cons > 0 
-        if docp.is_inplace
-            docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, xi, v)
-        else
-            c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons] = docp.state_constraints[2](ti, xi, v)
-        end
+        docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, xi, v)
     end
     if docp.dim_mixed_cons > 0 
-        if docp.is_inplace
-            docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, xi, ui, v)
-        else
-            c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons] = docp.mixed_constraints[2](ti, xi, ui, v)
-        end
+        docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, xi, ui, v)
     end
 
 end
