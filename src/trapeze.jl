@@ -116,12 +116,8 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         offset_dyn_i = (i-1)*docp.dim_NLP_x
         offset_dyn_ip1 = i*docp.dim_NLP_x
 
-        # trapeze rule with 'smart' update for dynamics (@. allocs more and is slower -_-)
-        if docp.dim_OCP_x == 1
-            c[offset+1] = xip1 - (xi + 0.5 * (tip1 - ti) * (work[offset_dyn_i+1] + work[offset_dyn_ip1+1]))
-        else
-            c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x] + work[offset_dyn_ip1+1:offset_dyn_ip1+docp.dim_OCP_x]))
-        end
+        # trapeze rule
+        @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + 0.5 * (tip1 - ti) * (work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x] + work[offset_dyn_ip1+1:offset_dyn_ip1+docp.dim_OCP_x]))
         if docp.is_lagrange
             c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + 0.5 * (tip1 - ti) * (work[offset_dyn_i+docp.dim_NLP_x] + work[offset_dyn_ip1+docp.dim_NLP_x]))
         end
@@ -129,7 +125,6 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     end
 
     # 2. path constraints
-    # Notes on allocations:.= seems similar
     if docp.dim_u_cons > 0
         docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
     end
