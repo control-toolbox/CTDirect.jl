@@ -19,8 +19,8 @@ function local_mayer(obj, x0, xf, v)
 end
 
 function init(;grid_size, disc_method)
-    prob = goddard_all()
-    #prob = goddard()
+    #prob = goddard_all()
+    prob = goddard()
     #prob = double_integrator_mintf()
     ocp = prob[:ocp]
     docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=string(disc_method))
