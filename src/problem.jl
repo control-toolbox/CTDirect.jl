@@ -180,9 +180,9 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
 
         # parameter: discretization method
         if disc_method == "midpoint"
-            discretization = CTDirect.Midpoint(dim_NLP_x, dim_NLP_u, dim_NLP_steps)
+            discretization = CTDirect.Midpoint()
         elseif disc_method == "trapeze"
-            discretization = CTDirect.Trapeze(dim_NLP_x, dim_NLP_u)
+            discretization = CTDirect.Trapeze()
         else
             error("Unknown discretization method:", disc_method)
         end
