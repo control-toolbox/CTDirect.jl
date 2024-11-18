@@ -126,7 +126,7 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         offset += docp.dim_NLP_x
     end
 
-    # 2. path constraints
+    # 2. path constraints +++ use a function in problem.jl ?
     if docp.dim_u_cons > 0
         docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
     end

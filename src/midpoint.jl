@@ -78,8 +78,6 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP{Midpoint}, i)
         xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
     end
 end
-
-
 function set_control_at_time_step!(xu, u_init, docp::DOCP{Midpoint}, i)
     if i < docp.dim_NLP_steps+1
         offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u) + docp.dim_NLP_x
@@ -166,7 +164,7 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
         offset += docp.dim_NLP_x
     end
 
-    # 2. path constraints
+    # 2. path constraints +++ use a function in problem.jl ?
     if docp.dim_u_cons > 0
         docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
     end
