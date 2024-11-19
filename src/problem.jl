@@ -192,6 +192,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         dim_NLP_u == 1 ? _type_u = ScalVariable() : _type_u = VectVariable()
         dim_NLP_v == 1 ? _type_v = ScalVariable() : _type_v = VectVariable()
 
+        # +++ have these 2 dims returned by the disc constructor so that dim_stage does not appear here anymore ?
         # NLP variables size (state, control, variable, stage)
         dim_stage = discretization.stage
         dim_NLP_variables = (dim_NLP_steps + 1) * dim_NLP_x + (dim_NLP_steps + discretization.additional_controls) * dim_NLP_u + dim_NLP_v + dim_NLP_steps * dim_NLP_x * dim_stage
