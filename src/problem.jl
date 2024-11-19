@@ -180,30 +180,22 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
 
         # parameter: discretization method
         if disc_method == "midpoint"
-            discretization = CTDirect.Midpoint()
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == "trapeze"
-            discretization = CTDirect.Trapeze()
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
         else
             error("Unknown discretization method:", disc_method)
+        end
+
+        # add initial condition for lagrange state
+        if is_lagrange
+            dim_NLP_constraints += 1
         end
 
         # parameters: scalar / vector for state, control, variable 
         dim_OCP_x == 1 ? _type_x = ScalVariable() : _type_x = VectVariable()
         dim_NLP_u == 1 ? _type_u = ScalVariable() : _type_u = VectVariable()
         dim_NLP_v == 1 ? _type_v = ScalVariable() : _type_v = VectVariable()
-
-        # +++ have these 2 dims returned by the disc constructor so that dim_stage does not appear here anymore ?
-        # NLP variables size (state, control, variable, stage)
-        dim_stage = discretization.stage
-        dim_NLP_variables = (dim_NLP_steps + 1) * dim_NLP_x + (dim_NLP_steps + discretization.additional_controls) * dim_NLP_u + dim_NLP_v + dim_NLP_steps * dim_NLP_x * dim_stage
-
-        # NLP constraints size (dynamics, stage, path, boundary, variable)
-        dim_NLP_constraints =
-        dim_NLP_steps * (dim_NLP_x + (dim_NLP_x * dim_stage) + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
-        if is_lagrange
-            # add initial condition for lagrange state
-            dim_NLP_constraints += 1
-        end
 
         # call constructor with const fields
         docp = new{typeof(discretization), typeof(_type_x), typeof(_type_u), typeof(_type_v)}(

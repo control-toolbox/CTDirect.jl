@@ -7,12 +7,20 @@ Internal layout for NLP variables:
 struct Trapeze <: Discretization
 
     stage::Int
-    additional_controls::Int  # add control at tf
     info::String
 
     # constructor
-    function Trapeze()
-        return new(0, 1, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
+    function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+
+        # NLP variables size (state, control, variable, stage)
+        dim_NLP_variables = (dim_NLP_steps + 1) * (dim_NLP_x + dim_NLP_u) + dim_NLP_v
+
+        # NLP constraints size (dynamics, stage, path, boundary, variable)
+        dim_NLP_constraints = dim_NLP_steps * (dim_NLP_x + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
+
+        disc = new(0, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
+
+        return disc, dim_NLP_variables, dim_NLP_constraints
     end
 end
 

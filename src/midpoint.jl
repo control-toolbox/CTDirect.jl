@@ -12,12 +12,22 @@ with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 struct Midpoint <: Discretization
 
     stage::Int
-    additional_controls::Int  # add control at tf
     info::String
 
     # constructor
-    function Midpoint()
-        return new(1, 0, "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic")
+    function Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+
+        stage = 1
+
+        disc = new(stage, "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic")
+
+        # NLP variables size (state, control, variable, stage)
+        dim_NLP_variables = (dim_NLP_steps + 1) * dim_NLP_x + dim_NLP_steps * dim_NLP_u + dim_NLP_v + dim_NLP_steps * dim_NLP_x * stage
+
+        # NLP constraints size (dynamics, stage, path, boundary, variable)
+        dim_NLP_constraints = dim_NLP_steps * (dim_NLP_x + (dim_NLP_x * stage) + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
+
+        return disc, dim_NLP_variables, dim_NLP_constraints
     end
 end
 
