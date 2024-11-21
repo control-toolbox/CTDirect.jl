@@ -23,7 +23,7 @@ function init(;grid_size, disc_method)
     #prob = goddard()
     prob = simple_integrator()
     ocp = prob[:ocp]
-    docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=string(disc_method))
+    docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=disc_method)
     xu = CTDirect.DOCP_initial_guess(docp)
     return prob, docp, xu
 end
@@ -83,16 +83,16 @@ function test_unit(;test_get=false, test_obj=true, test_cons=true, test_trans=tr
 
     # transcription
     if test_trans
-        print("Transcription"); @btime direct_transcription($prob.ocp, grid_size=$grid_size)
+        print("Transcription"); @btime direct_transcription($prob.ocp, grid_size=$grid_size, disc_method=$disc_method)
     end
 
     # solve
     if test_solve
-        sol = direct_solve(prob.ocp, display=false, grid_size=grid_size)
+        sol = direct_solve(prob.ocp, display=false, grid_size=grid_size, disc_method=disc_method)
         if !isapprox(sol.objective, prob.obj, rtol=1e-2)
             error("objective mismatch: ", sol.objective, " vs ", prob.obj)
         end
-        print("Solve"); @btime direct_solve($prob.ocp, display=false, grid_size=$grid_size)
+        print("Solve"); @btime direct_solve($prob.ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
     end
 
 end

@@ -85,7 +85,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     _type_v::V
 
     # constructor
-    function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method="trapeze")
+    function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method())
 
         # time grid
         if time_grid == nothing
@@ -179,13 +179,15 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         dim_boundary_cons = dim_boundary_constraints(ocp)
 
         # parameter: discretization method
-        if disc_method == "midpoint"
+        if disc_method == :midpoint
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
-        elseif disc_method == "trapeze"
+        elseif disc_method == :trapeze
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
-        elseif disc_method == "midpoint_irk"
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)            
-            error("Unknown discretization method:", disc_method)
+        elseif disc_method == :midpoint_irk
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+        else           
+            error("Unknown discretization method: ", disc_method, " of type (should be Symbol) ", typeof(disc_method))
+            # print list of available methods (as symbols)
         end
 
         # add initial condition for lagrange state
