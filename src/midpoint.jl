@@ -31,12 +31,16 @@ struct Midpoint <: Discretization
     end
 end
 
+# NB. some of these are actually the same as for IRK
+# later compare performance of this one vs the irk midpoint
+# and remove this one if no noticeable gain
 
 """
 $(TYPEDSIGNATURES)
 
-Retrieve state and control variables at given time step from the NLP variables.
+Retrieve state variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
+Scalar / Vector output
 """
 function get_OCP_state_at_time_step(xu, docp::DOCP{Midpoint, ScalVariable, <: ScalVect, <: ScalVect}, i)
     offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u)
@@ -46,12 +50,23 @@ function get_OCP_state_at_time_step(xu, docp::DOCP{Midpoint, VectVariable, <: Sc
     offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u)
     return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
 end
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve state variable for lagrange cost at given time step from the NLP variables.
+Convention: 1 <= i <= dim_NLP_steps+1
+"""
 function get_lagrange_state_at_time_step(xu, docp::DOCP{Midpoint}, i)
     offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u)
     return xu[offset + docp.dim_NLP_x]
 end
+"""
+$(TYPEDSIGNATURES)
 
-
+Retrieve control variables at given time step from the NLP variables.
+Convention: 1 <= i <= dim_NLP_steps+1
+Scalar / Vector output
+"""
 function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint, <: ScalVect, ScalVariable, <: ScalVect}, i)
     if i < docp.dim_NLP_steps+1
         offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u) + docp.dim_NLP_x
@@ -69,7 +84,12 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint, <: ScalVect, Vect
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Retrieve stage variables at given time step from the NLP variables.
+Convention: 1 <= i <= dim_NLP_steps+1
+"""
 function get_stagevars_at_time_step(xu, docp::DOCP{Midpoint}, i)
     offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u) + docp.dim_NLP_x + docp.dim_NLP_u
     # retrieve vector stage variable (except at final time)
@@ -80,7 +100,12 @@ function get_stagevars_at_time_step(xu, docp::DOCP{Midpoint}, i)
     end
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Set initial guess for state variables at given time step
+Convention: 1 <= i <= dim_NLP_steps+1
+"""
 function set_state_at_time_step!(xu, x_init, docp::DOCP{Midpoint}, i)
     offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u)
     # initialize only actual state variables from OCP (not lagrange state)
@@ -88,6 +113,12 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP{Midpoint}, i)
         xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
     end
 end
+"""
+$(TYPEDSIGNATURES)
+
+Set initial guess for control variables at given time step
+Convention: 1 <= i <= dim_NLP_steps+1
+"""
 function set_control_at_time_step!(xu, u_init, docp::DOCP{Midpoint}, i)
     if i < docp.dim_NLP_steps+1
         offset = (i-1) * (docp.dim_NLP_x*(1+docp.discretization.stage) + docp.dim_NLP_u) + docp.dim_NLP_x
