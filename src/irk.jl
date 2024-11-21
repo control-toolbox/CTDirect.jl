@@ -227,7 +227,7 @@ function setWorkArray(docp::DOCP{ <: GenericIRK}, xu, time_grid, v)
             if docp.dim_OCP_x == 1
                 xij = work[end]
             else
-                xij = work[end-docp.dim_OCP_x+1:end] #view ?
+                @views xij = work[end-docp.dim_OCP_x+1:end]
             end
             # dynamics for stage equation k_i^j = f(t_i^j, x_i^j, u_i, v) 
             docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), tij, xij, ui, v)
