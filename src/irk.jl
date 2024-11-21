@@ -197,15 +197,15 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
         hi = tip1 - ti
         for j = 1:docp.discretization.stage
             offset = (i-1) * docp.dim_NLP_x * docp.discretization.stage + (j-1) * docp.dim_NLP_x
-            # time at stage: tij = ti + c[j] hi
+            # time at stage: t_i^j = t_i + c[j] h_i
             tij = ti + docp.discretization.butcher_c[j] * hi 
-            # state at stage: xij = xi + hi sum ajl kl
+            # state at stage: x_i^j = x_i + h_i sum a_jl k_i^l
             xij = xi
             # +++ check for allocs here !
             for l = 1:docp.discretization.stage
-                xij += (hi * docp.discretization.butcher_a[j][l] * get_stagevars_at_time_step(xu, docp, i, j)
+                xij += (hi * docp.discretization.butcher_a[j][l] * get_stagevars_at_time_step(xu, docp, i, l)
             end
-            # OCP dynamics
+            # dynamics for stage equation k_i^j = f(t_i^j, x_i^j, u_i, v) 
             docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), tij, xij, ui, v)
             # lagrange cost
             if docp.is_lagrange
@@ -224,5 +224,58 @@ Convention: 1 <= i <= dim_NLP_steps (+1)
 """
 function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
 
+    # offset for previous steps
+    offset = (i-1)*(docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons)
+
+    # 0. variables
+    ti = time_grid[i]
+    xi = get_OCP_state_at_time_step(xu, docp, i)
+    ui = get_OCP_control_at_time_step(xu, docp, i)
     
+    # 1. state and stage equations
+    if i <= docp.dim_NLP_steps
+        # more variables
+        tip1 = time_grid[i+1]
+        xip1 = get_OCP_state_at_time_step(xu, docp, i+1)        
+        hi = tip1 - ti
+        offset_dyn_i = (i-1) * docp.dim_NLP_x * docp.discretization.stage
+
+        # state equation x_i+1 = x_i + h_i sum b_j k_i^j
+        # probably one alloc here. may be removed by rewriting the state equation
+        # ie starting with storing sumbk in c ?
+        # maybe fuse the 2 loops over j as well ?
+        sum_bki = docp.discretization.butcher_b[1] * get_stagevars_at_time_step(xu, docp, i, 1)
+        for j=2:docp.discretization.stage
+            sum_bki += docp.discretization.butcher_b[j] * get_stagevars_at_time_step(xu, docp, i, j)
+        end
+
+        @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * sum_bki[1:docp.dim_OCP_x])
+        if docp.is_lagrange
+            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * sum_bki[docp.dim_NLP_x])
+        end
+        offset += docp.dim_NLP_x
+
+        # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) cf setWorkArray()
+        for j=1:docp.discretization.stage
+            kij = get_stagevars_at_time_step(xu, docp, i, j)
+            @views @. c[offset+1:offset+docp.dim_OCP_x] = kij[1:docp.dim_OCP_x] - work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x]
+            if docp.is_lagrange
+                c[offset+docp.dim_NLP_x] = kij[docp.dim_NLP_x] - work[offset_work+docp.dim_NLP_x]
+            end
+            offset += docp.dim_NLP_x
+        end
+
+    end
+
+    # 2. path constraints +++ use a function in problem.jl ?
+    if docp.dim_u_cons > 0
+        docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
+    end
+    if docp.dim_x_cons > 0 
+        docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, xi, v)
+    end
+    if docp.dim_mixed_cons > 0 
+        docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, xi, ui, v)
+    end
+
 end

@@ -188,15 +188,14 @@ function setConstraintBlock!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
     # 1. state equation
     if i <= docp.dim_NLP_steps
         # more variables
-        ki = get_stagevars_at_time_step(xu, docp, i)
         tip1 = time_grid[i+1]
         xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
         hi = tip1 - ti
+        ki = get_stagevars_at_time_step(xu, docp, i)
         offset_dyn_i = (i-1)*docp.dim_NLP_x
 
         # midpoint rule
         @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * ki[1:docp.dim_OCP_x])
-
         if docp.is_lagrange
             c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * ki[docp.dim_NLP_x])
         end
