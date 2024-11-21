@@ -13,7 +13,7 @@ struct Trapeze <: Discretization
     function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
 
         disc = new(0, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
-        
+
         # NLP variables size (state, control, variable, stage)
         dim_NLP_variables = (dim_NLP_steps + 1) * (dim_NLP_x + dim_NLP_u) + dim_NLP_v
 
@@ -36,8 +36,9 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve state and control variables at given time step from the NLP variables.
+Retrieve state variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
+Scalar / Vector output
 """
 function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze, ScalVariable, <: ScalVect, <: ScalVect}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
@@ -47,12 +48,23 @@ function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze, VectVariable, <: Sca
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
 end
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve state variable for lagrange cost at given time step from the NLP variables.
+Convention: 1 <= i <= dim_NLP_steps+1
+"""
 function get_lagrange_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     return xu[offset + docp.dim_NLP_x]
 end
+"""
+$(TYPEDSIGNATURES)
 
-
+Retrieve control variables at given time step from the NLP variables.
+Convention: 1 <= i <= dim_NLP_steps+1
+Scalar / Vector output
+"""
 function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, ScalVariable, <: ScalVect}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
     return xu[offset+1]
@@ -62,7 +74,12 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, VectV
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Set initial guess for state variables at given time step
+Convention: 1 <= i <= dim_NLP_steps+1
+"""
 function set_state_at_time_step!(xu, x_init, docp::DOCP{Trapeze}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     # initialize only actual state variables from OCP (not lagrange state)
@@ -70,7 +87,12 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP{Trapeze}, i)
         xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
     end
 end
+"""
+$(TYPEDSIGNATURES)
 
+Set initial guess for control variables at given time step
+Convention: 1 <= i <= dim_NLP_steps+1
+"""
 function set_control_at_time_step!(xu, u_init, docp::DOCP{Trapeze}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
     if !isnothing(u_init)
@@ -78,7 +100,11 @@ function set_control_at_time_step!(xu, u_init, docp::DOCP{Trapeze}, i)
     end
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Set work array for all dynamics and lagrange cost evaluations
+"""
 function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
     # use work array to store all dynamics + lagrange costs
     work = similar(xu, docp.dim_NLP_x * (docp.dim_NLP_steps+1))

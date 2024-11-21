@@ -130,8 +130,13 @@ function set_control_at_time_step!(xu, u_init, docp::DOCP{Midpoint}, i)
     end
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Set work array for all dynamics and lagrange cost evaluations
+"""
 function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
+    
     # use work array to store all dynamics + lagrange costs
     work = similar(xu, docp.dim_NLP_x * (docp.dim_NLP_steps))
     if docp.dim_OCP_x > 1
