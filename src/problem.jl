@@ -185,9 +185,10 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :midpoint_irk
                 discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+        elseif disc_method == :gauss_legendre_2
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)                
         else           
-            error("Unknown discretization method: ", disc_method, " of type (should be Symbol) ", typeof(disc_method))
-            # print list of available methods (as symbols)
+            error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :midpoint_irk, :gauss_legendre_2}\n", typeof(disc_method))
         end
 
         # add initial condition for lagrange state

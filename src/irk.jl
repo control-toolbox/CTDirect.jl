@@ -63,7 +63,7 @@ $(TYPEDSIGNATURES)
 
 Gauss Legendre 2 discretization, formulated as a generic IRK
 """
-struct GaussLegendre2 <: GenericIRK
+struct Gauss_Legendre_2 <: GenericIRK
 
     stage::Int
     butcher_a::Matrix{Float64}
@@ -72,7 +72,7 @@ struct GaussLegendre2 <: GenericIRK
     _step_block::Int
     info::String
 
-    function GaussLegendre2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
         
         stage = 2
 
@@ -140,17 +140,8 @@ $(TYPEDSIGNATURES)
 
 Retrieve stage variables at given time step/stage from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1,	1 <= j <= s
-Scalar / Vector output
+Vector output
 """
-#=function get_stagevars_at_time_step(xu, docp::DOCP{ <: GenericIRK, ScalVariable, <: ScalVect, <: ScalVect}, i, j)
-    if i == docp.dim_NLP_steps+1
-        return xu[1] # unused but keep same type !
-    else
-        offset = (i-1) * docp.discretization._step_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
-        return xu[offset + 1]
-    end
-end
-function get_stagevars_at_time_step(xu, docp::DOCP{ <: GenericIRK, VectVariable, <: ScalVect, <: ScalVect}, i, j)=#
 function get_stagevars_at_time_step(xu, docp::DOCP{ <: GenericIRK}, i, j)    
     if i == docp.dim_NLP_steps+1
         return @view xu[1:docp.dim_NLP_x] # unused but keep same type !
@@ -159,14 +150,6 @@ function get_stagevars_at_time_step(xu, docp::DOCP{ <: GenericIRK}, i, j)
         return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
     end
 end
-#=function get_lagrange_stagevar_at_time_step(xu, docp::DOCP{ <: GenericIRK}, i, j)
-    if i == docp.dim_NLP_steps+1
-        return xu[1] # unused but keep same type !
-    else
-        offset = (i-1) * docp.discretization._step_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
-        return xu[offset + docp.dim_NLP_x]
-    end
-end=#
 
 """
 $(TYPEDSIGNATURES)
@@ -205,7 +188,7 @@ function setWorkArray(docp::DOCP{ <: GenericIRK}, xu, time_grid, v)
 
     # use work array to store all dynamics + lagrange costs 
     # + one state/stage variable (including lagrange part for setConstraintsBlock)
-    work = similar(xu, docp.dim_NLP_x * (docp.dim_NLP_steps) + docp.dim_NLP_x)
+    work = similar(xu, docp.dim_NLP_x * (docp.discretization.stage * docp.dim_NLP_steps + 1))
 
     # loop over time steps ans stages
     for i = 1:docp.dim_NLP_steps
@@ -222,7 +205,7 @@ function setWorkArray(docp::DOCP{ <: GenericIRK}, xu, time_grid, v)
             @. work[end-docp.dim_OCP_x+1:end] = xi
             for l = 1:docp.discretization.stage
                 kil = get_stagevars_at_time_step(xu, docp, i, l)
-                @views @. work[end-docp.dim_OCP_x+1:end] = work[end-docp.dim_OCP_x+1:end] + hi * docp.discretization.butcher_a[j][l] * kil[1:docp.dim_OCP_x]
+                @views @. work[end-docp.dim_OCP_x+1:end] = work[end-docp.dim_OCP_x+1:end] + hi * docp.discretization.butcher_a[j,l] * kil[1:docp.dim_OCP_x]
             end
             if docp.dim_OCP_x == 1
                 xij = work[end]
@@ -264,6 +247,7 @@ function setConstraintBlock!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
         hi = tip1 - ti
         offset_dyn_i = (i-1) * docp.dim_NLP_x * docp.discretization.stage
         offset_x = length(work) - docp.dim_NLP_x
+        offset_stage_eq = docp.dim_NLP_x
 
         # work array for sum b_j k_i^j (w/ lagrange term)
         #@. work[offset_x+1:offset_x+docp.dim_NLP_x] = 0 known AD bug with :optimized backend: cannot affect constants       
@@ -271,7 +255,6 @@ function setConstraintBlock!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
 
         # loop over stages
         for j=1:docp.discretization.stage
-            offset_stage_eq = docp.dim_NLP_x
             kij = get_stagevars_at_time_step(xu, docp, i, j)
             
             # update sum b_j k_i^j (w/ lagrange term) for state equation below
