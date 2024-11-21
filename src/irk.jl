@@ -142,20 +142,28 @@ Retrieve stage variables at given time step/stage from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1,	1 <= j <= s
 Scalar / Vector output
 """
-#=function get_stagevars_at_time_step(xu, docp::DOCP{ <: GenericIRK, ScalVariable, <: ScalVect, <: ScalVect}, i, j)
+function get_stagevars_at_time_step(xu, docp::DOCP{ <: GenericIRK, ScalVariable, <: ScalVect, <: ScalVect}, i, j)
     if i == docp.dim_NLP_steps+1
         return xu[1] # unused but keep same type !
     else
         offset = (i-1) * docp.discretization._step_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
         return xu[offset + 1]
     end
-end=#
-function get_stagevars_at_time_step(xu, docp::DOCP{ <: GenericIRK}, i, j)
+end
+function get_stagevars_at_time_step(xu, docp::DOCP{ <: GenericIRK, VectVariable, <: ScalVect, <: ScalVect}, i, j)
     if i == docp.dim_NLP_steps+1
-        return @view xu[1:docp.dim_NLP_x] # unused but keep same type !
+        return @view xu[1:docp.dim_OCP_x] # unused but keep same type !
     else
         offset = (i-1) * docp.discretization._step_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
-        return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
+        return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
+    end
+end
+function get_lagrange_stagevar_at_time_step(xu, docp::DOCP{ <: GenericIRK}, i, j)
+    if i == docp.dim_NLP_steps+1
+        return xu[1] # unused but keep same type !
+    else
+        offset = (i-1) * docp.discretization._step_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
+        return xu[offset + docp.dim_NLP_x]
     end
 end
 
@@ -194,11 +202,8 @@ Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{ <: GenericIRK}, xu, time_grid, v)
 
-    # use work array to store all dynamics + lagrange costs
-    work = similar(xu, docp.dim_NLP_x * (docp.dim_NLP_steps))
-    if docp.dim_OCP_x > 1
-        xij = similar(xu, docp.dim_OCP_x)
-    end
+    # use work array to store all dynamics + lagrange costs + one state/stage variable
+    work = similar(xu, docp.dim_NLP_x * (docp.dim_NLP_steps) + docp.dim_OCP_x)
 
     # loop over time steps ans stages
     for i = 1:docp.dim_NLP_steps
@@ -212,25 +217,16 @@ function setWorkArray(docp::DOCP{ <: GenericIRK}, xu, time_grid, v)
             # time at stage: t_i^j = t_i + c[j] h_i
             tij = ti + docp.discretization.butcher_c[j] * hi 
             # state at stage: x_i^j = x_i + h_i sum a_jl k_i^l
-            # +++ check for allocs here !
-            if docp.dim_OCP_x == 1
-                xij = xi
-            else
-                @. xij = xi
-            end
+            @. work[end-docp.dim_OCP_x+1:end] = xi
             for l = 1:docp.discretization.stage
                 kil = get_stagevars_at_time_step(xu, docp, i, l)
-                if docp.dim_OCP_x == 1
-                    xij = xij + hi * docp.discretization.butcher_a[j][l] * kil[1]
-                else
-                    @. xij = xij + hi * docp.discretization.butcher_a[j][l] * kil
-                end
+                @. work[end-docp.dim_OCP_x+1:end] = work[end-docp.dim_OCP_x+1:end] + hi * docp.discretization.butcher_a[j][l] * kil
             end
             # dynamics for stage equation k_i^j = f(t_i^j, x_i^j, u_i, v) 
-            docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), tij, xij, ui, v)
+            docp.ocp.dynamics((@view fwork[offset+1:offset+docp.dim_OCP_x]), tij, work[end-docp.dim_OCP_x+1:end], ui, v)
             # lagrange cost
             if docp.is_lagrange
-                docp.ocp.lagrange((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), tij, xij, ui, v)
+                docp.ocp.lagrange((@view fwork[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), tij, work[end-docp.dim_OCP_x+1:end], ui, v)
             end
         end
     end
@@ -252,7 +248,7 @@ function setConstraintBlock!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
     ui = get_OCP_control_at_time_step(xu, docp, i)
-    
+
     # 1. state and stage equations
     if i <= docp.dim_NLP_steps
         # more variables
@@ -265,14 +261,14 @@ function setConstraintBlock!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
         # probably one alloc here. may be removed by rewriting the state equation
         # ie starting with storing sumbk in c ?
         # maybe fuse the 2 loops over j as well ?
-        sum_bki = docp.discretization.butcher_b[1] * get_stagevars_at_time_step(xu, docp, i, 1)
+        @. work[end-docp.dim_OCP_x+1:end] = docp.discretization.butcher_b[1] * get_stagevars_at_time_step(xu, docp, i, 1)            
         for j=2:docp.discretization.stage
-            sum_bki += docp.discretization.butcher_b[j] * get_stagevars_at_time_step(xu, docp, i, j)
+            @. work[end-docp.dim_OCP_x+1:end] += docp.discretization.butcher_b[j] * get_stagevars_at_time_step(xu, docp, i, j)
         end
 
-        @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * sum_bki[1:docp.dim_OCP_x])
+        @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * work[end-docp.dim_OCP_x+1:end])
         if docp.is_lagrange
-            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * sum_bki[docp.dim_NLP_x])
+            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[end-docp.dim_OCP_x+1:end])
         end
         offset += docp.dim_NLP_x
 
@@ -281,7 +277,7 @@ function setConstraintBlock!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
             kij = get_stagevars_at_time_step(xu, docp, i, j)
             @views @. c[offset+1:offset+docp.dim_OCP_x] = kij[1:docp.dim_OCP_x] - work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x]
             if docp.is_lagrange
-                c[offset+docp.dim_NLP_x] = kij[docp.dim_NLP_x] - work[offset_dyn_i+docp.dim_NLP_x]
+                c[offset+docp.dim_NLP_x] = get_lagrange_stagevar_at_time_step(xu, docp, i, j) - work[offset_dyn_i+docp.dim_NLP_x]
             end
             offset += docp.dim_NLP_x
         end

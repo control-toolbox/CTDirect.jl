@@ -30,7 +30,11 @@ end
 
 
 function test_unit(;test_get=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
-    
+
+    if profile
+        Profile.Allocs.clear()
+    end
+
     # define problem and variables
     prob, docp, xu = init(grid_size=grid_size, disc_method=disc_method)
     disc = docp.discretization
