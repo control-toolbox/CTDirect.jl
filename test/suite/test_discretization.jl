@@ -63,66 +63,39 @@ if !isdefined(Main, :goddard_all)
     include("../problems/goddard.jl")
 end
 
-@testset verbose = true showtiming = true ":trapeze :simple_integrator" begin
+@testset verbose = true showtiming = true ":simple_integrator :trapeze :midpoint :gl2" begin
     prob = simple_integrator()
     sol = direct_solve(prob.ocp, display = false, disc_method = :trapeze)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint_irk)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
+    @test sol.objective ≈ prob.obj rtol = 1e-2   
 end
-@testset verbose = true showtiming = true ":trapeze :double_integrator" begin
+
+#=@testset verbose = true showtiming = true ":double_integrator :trapeze :midpoint :gl2" begin
     prob = double_integrator_freet0tf()
     sol = direct_solve(prob.ocp, display = false, disc_method = :trapeze)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
-end
-@testset verbose = true showtiming = true ":trapeze :goddard" begin
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint_irk)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
+    @test sol.objective ≈ prob.obj rtol = 1e-2   
+end=#
+
+@testset verbose = true showtiming = true ":goddard :trapeze :midpoint :gl2" begin
     prob = goddard_all()
     sol = direct_solve(prob.ocp, display = false, disc_method = :trapeze)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint_irk)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
+    @test sol.objective ≈ prob.obj rtol = 1e-2   
 end
 
-@testset verbose = true showtiming = true ":implicit_midpoint :simple_integrator" begin
-    prob = simple_integrator()
-    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint, grid_size=100)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
-end
-@testset verbose = true showtiming = true ":implicit_midpoint :double_integrator" begin
-    prob = double_integrator_freet0tf()
-    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint, grid_size=100)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
-end
-@testset verbose = true showtiming = true ":implicit_midpoint :goddard" begin
-    prob = goddard_all()
-    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint, grid_size=100)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
-end
-
-@testset verbose = true showtiming = true ":midpoint_irk :simple_integrator" begin
-    prob = simple_integrator()
-    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint_irk, grid_size=100)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
-end
-@testset verbose = true showtiming = true ":midpoint_irk :double_integrator" begin
-    prob = double_integrator_freet0tf()
-    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint_irk, grid_size=100)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
-end
-@testset verbose = true showtiming = true ":midpoint_irk :goddard" begin
-    prob = goddard_all()
-    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint_irk, grid_size=100)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
-end
-
-@testset verbose = true showtiming = true ":gauss_legendre_2 :simple_integrator" begin
-    prob = simple_integrator()
-    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2, grid_size=100)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
-end
-@testset verbose = true showtiming = true ":gauss_legendre_2 :double_integrator" begin
-    prob = double_integrator_freet0tf()
-    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2, grid_size=100)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
-end
-@testset verbose = true showtiming = true ":gauss_legendre_2 :goddard" begin
-    prob = goddard_all()
-    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2, grid_size=100)
-    @test sol.objective ≈ prob.obj rtol = 1e-2 
-end

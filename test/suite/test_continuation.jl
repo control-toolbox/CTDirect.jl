@@ -15,7 +15,7 @@ if test1
         obj_list = []
         for T = 1:5
             ocp = double_integrator_minenergy(T).ocp
-            sol = direct_solve(ocp, display = false, init = init)
+            sol = direct_solve(ocp, display = false, init = init, grid_size=100)
             init = sol
             push!(obj_list, sol.objective)
         end
@@ -34,7 +34,7 @@ if test2
         obj_list = []
         for ρ in [0.1, 5, 10, 30, 100]
             ocp = parametric(ρ).ocp
-            sol = direct_solve(ocp, display = false, init = init)
+            sol = direct_solve(ocp, display = false, init = init, grid_size=100)
             init = sol
             push!(obj_list, sol.objective)
         end

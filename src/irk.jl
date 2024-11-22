@@ -8,6 +8,8 @@ Internal layout for NLP variables:
 with s the stage number and U_i taken constant per step
 =#
 
+#+++ TODO: add option for stage control, eg control_disc=[:step], :stage. For path constraints, maybe a further refinement is to use always steps for state constraints, same as control disc for the control constraints, and have an option step/stage for the mixed constraints (using RK state at stages and/or average control at steps if needed) ? Since we have the constraints sorted by type it would be nice to use the information. Start maybe with stage controls and average controls per step for mixed constraints ? For path constraints keep the main lopp on steps with possible inner loops on stages for constraints involving the control.
+
 abstract type GenericIRK <: Discretization end
 
 

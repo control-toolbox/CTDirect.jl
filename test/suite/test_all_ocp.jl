@@ -1,4 +1,4 @@
-println("Test: OCP definition")
+println("Test: OCP definitions")
 
 # beam
 if !isdefined(Main, :beam)
