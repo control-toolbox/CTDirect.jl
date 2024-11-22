@@ -22,14 +22,9 @@ function alga_bact()
         u ∈ R², control
         
         x(t0) == x0
-        x₁(t) ≥ 0
-        x₂(t) ≥ 0
-        x₃(t) ≥ 0
-        x₄(t) ≥ qmin
-        x₅(t) ≥ 0
-        0 ≤ u₁(t) ≤ 1
-        0 ≤ u₂(t) ≤ dmax
-        
+        x(t) ≥ [0, 0, 0, qmin, 0, 0]
+        [0, 0] ≤ u(t) ≤ [1, dmax]
+
         ẋ(t) == [
             u₂(t)*(s_in - x₁(t)) - ϕ(x₁(t))*x₂(t)/γ,
             ((1 - u₁(t))*ϕ(x₁(t)) - u₂(t))*x₂(t),
@@ -42,5 +37,5 @@ function alga_bact()
         x₆(tf) → max
     end
 
-return ((ocp = alga_bact, obj = 1.0, name = "algal-bacterial", init = nothing))
+return ((ocp = alga_bact, obj = 5.45, name = "algal-bacterial", init = nothing))
 end
