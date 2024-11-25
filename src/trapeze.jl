@@ -6,21 +6,24 @@ Internal layout for NLP variables:
 # NB. could be defined as a generic IRK
 struct Trapeze <: Discretization
 
-    stage::Int # 0 but value used for constraints bounds...
+    stage::Int # 0 but value used for some index computations in problem.jl
     info::String
 
     # constructor
-    function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+    function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
 
         disc = new(0, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
 
         # NLP variables size (state, control, variable, stage)
         dim_NLP_variables = (dim_NLP_steps + 1) * (dim_NLP_x + dim_NLP_u) + dim_NLP_v
 
+        # Path constraints (control, state, mixed) 
+        dim_path_cons = dim_u_cons + dim_x_cons + dim_xu_cons
+
         # NLP constraints size (dynamics, stage, path, boundary, variable)
         dim_NLP_constraints = dim_NLP_steps * (dim_NLP_x + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
 
-        return disc, dim_NLP_variables, dim_NLP_constraints
+        return disc, dim_NLP_variables, dim_NLP_constraints, dim_path_cons
     end
 end
 
@@ -167,8 +170,8 @@ function setConstraintBlock!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     if docp.dim_x_cons > 0 
         docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, xi, v)
     end
-    if docp.dim_mixed_cons > 0 
-        docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, xi, ui, v)
+    if docp.dim_xu_cons > 0 
+        docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_xu_cons]), ti, xi, ui, v)
     end
 
 end

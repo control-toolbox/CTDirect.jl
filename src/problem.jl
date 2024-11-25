@@ -1,7 +1,4 @@
 # Discretized Optimal Control Problem DOCP
-# Notes:
-# - for now the path constraints are checked on the time steps ie g(t_i, x_i, u_i). This requires a getter that provide a control value at each time step, which may not coincide with the actual control discretization (eg RK stages). In this case we will use the 'average' control using the same coefficients as the RK method. Later we can add an option for control discretization, step or stage. Taking a control constant per step would solve the question for the path constraints evaluation and reduces the number of variables. Compared to the more standard stage control discretization, the consistency of the costate would need to be checked, as well as the oscillations in the trajectory (which may actually be better). Further options may include CVP (control vector parametrization) on a coarser grid.
-# - for the other choice of enforcing path constraints at the time stages, the symmetric question of getting state values at time stages can be solved by reusing the states used in the evaluation of the stage dynamics. This second choice (as in Bocop2) has the drawback of a larger problem size, and does not check the constraints at the points of the actual trajectory computed (including tf).
 
 # generic discretization
 abstract type Discretization end
@@ -56,7 +53,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     dim_x_cons::Int
     dim_u_cons::Int
     dim_v_cons::Int
-    dim_mixed_cons::Int
+    dim_xu_cons::Int
     dim_boundary_cons::Int
 
     ## NLP  
@@ -175,18 +172,20 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         dim_x_cons = dim_state_constraints(ocp)
         dim_u_cons = dim_control_constraints(ocp)
         dim_v_cons = dim_variable_constraints(ocp)
-        dim_mixed_cons = dim_mixed_constraints(ocp)
+        dim_xu_cons = dim_mixed_constraints(ocp)
         dim_boundary_cons = dim_boundary_constraints(ocp)
 
         # parameter: discretization method
         if disc_method == :midpoint
-            discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :trapeze
-            discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :midpoint_irk
-                discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons)
+                discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_2
-                discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons)                
+                discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+        elseif disc_method == :gauss_legendre_2_stage_control
+                discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_con, dim_v_cons, control_disc=:stage)                             
         else           
             error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :midpoint_irk, :gauss_legendre_2}\n", typeof(disc_method))
         end
@@ -229,7 +228,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             dim_x_cons,
             dim_u_cons,
             dim_v_cons,
-            dim_mixed_cons,
+            dim_xu_cons,
             dim_boundary_cons,
             dim_NLP_x,
             dim_NLP_u,
@@ -413,10 +412,10 @@ function setPathBounds!(docp::DOCP, index::Int, lb, ub)
     end
 
     # mixed state / control constraints
-    if docp.dim_mixed_cons > 0
-        lb[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[1]
-        ub[index:(index + docp.dim_mixed_cons - 1)] = docp.mixed_constraints[3]
-        index = index + docp.dim_mixed_cons
+    if docp.dim_xu_cons > 0
+        lb[index:(index + docp.dim_xu_cons - 1)] = docp.mixed_constraints[1]
+        ub[index:(index + docp.dim_xu_cons - 1)] = docp.mixed_constraints[3]
+        index = index + docp.dim_xu_cons
     end
 
     return index

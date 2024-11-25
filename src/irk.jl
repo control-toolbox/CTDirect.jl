@@ -18,14 +18,14 @@ $(TYPEDSIGNATURES)
 
 Return the dimension of the NLP variables and constraints for a generic IRK discretizion, with the control taken constant per step (ie not distinct controls at time stages)
 """
-function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons, stage, control_disc)
+function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage; control_disc=:step)
 
     if control_disc == :step
         # NLP variables size (state, control, variable, stage)
         dim_NLP_variables = (dim_NLP_steps + 1) * dim_NLP_x + dim_NLP_steps * dim_NLP_u + dim_NLP_v + dim_NLP_steps * dim_NLP_x * stage
 
         # Path constraints (control, state, mixed) 
-        dim_path_cons = dim_control_cons + dim_state_cons + dim_mixed_cons
+        dim_path_cons = dim_u_cons + dim_x_cons + dim_xu_cons
 
         # size of variables block for one step
         step_block = dim_NLP_x + dim_NLP_u + dim_NLP_x * stage
@@ -35,7 +35,7 @@ function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_co
         dim_NLP_variables = (dim_NLP_steps + 1) * dim_NLP_x + dim_NLP_steps * dim_NLP_u * stage + dim_NLP_v + dim_NLP_steps * dim_NLP_x * stage
 
         # Path constraints (control, state, mixed) 
-        dim_path_cons = dim_control_cons * stage + dim_state_cons + dim_mixed_cons * stage
+        dim_path_cons = dim_u_cons * stage + dim_x_cons + dim_xu_cons * stage
 
         # size of variables block for one step
         step_block = dim_NLP_x + dim_NLP_u + dim_NLP_x * stage
@@ -55,6 +55,7 @@ function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_co
 $(TYPEDSIGNATURES)
 
 Implicit Midpoint discretization, formulated as a generic IRK
+NB. does not use the simplification xs = 0.5 * (xi + xip1) as in midpoint.jl
 """
 struct Midpoint_IRK <: GenericIRK
 
@@ -62,17 +63,16 @@ struct Midpoint_IRK <: GenericIRK
     butcher_a::Matrix{Float64}
     butcher_b::Vector{Float64}
     butcher_c::Vector{Float64}
-    control_disc::Symbol
     _step_block::Int
     info::String
 
-    function Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons; control_disc = :step)
+    function Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         
         stage = 1
 
-        dim_NLP_variables, dim_NLP_constraints, dim_path_cons, _step_block = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons, stage, control_disc)
+        dim_NLP_variables, dim_NLP_constraints, dim_path_cons, _step_block = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
 
-        disc = new(stage, hcat(0.5), [1], [0.5], control_disc, _step_block,
+        disc = new(stage, hcat(0.5), [1], [0.5], _step_block,
         "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic")
 
         return disc, dim_NLP_variables, dim_NLP_constraints, dim_path_cons
@@ -94,11 +94,11 @@ struct Gauss_Legendre_2 <: GenericIRK
     _step_block::Int
     info::String
 
-    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons; control_disc=:step)
+    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons; control_disc=:step)
         
         stage = 2
 
-        dim_NLP_variables, dim_NLP_constraints, dim_path_cons, _step_block = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons, stage, control_disc)
+        dim_NLP_variables, dim_NLP_constraints, dim_path_cons, _step_block = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage; control_disc)
 
         disc = new(stage,
         [0.25 (0.25-sqrt(3) / 6); (0.25+sqrt(3) / 6) 0.25],
@@ -312,8 +312,8 @@ function setConstraintBlock!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
     if docp.dim_x_cons > 0 
         docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, xi, v)
     end
-    if docp.dim_mixed_cons > 0 
-        docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_mixed_cons]), ti, xi, ui, v)
+    if docp.dim_xu_cons > 0 
+        docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_xu_cons]), ti, xi, ui, v)
     end
 
 end
