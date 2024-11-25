@@ -171,7 +171,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         dim_x_box = dim_state_range(ocp)
         dim_u_box = dim_control_range(ocp)
         dim_v_box = dim_variable_range(ocp)
-        dim_path_cons = dim_path_constraints(ocp)
+        #dim_path_cons = dim_path_constraints(ocp)
         dim_x_cons = dim_state_constraints(ocp)
         dim_u_cons = dim_control_constraints(ocp)
         dim_v_cons = dim_variable_constraints(ocp)
@@ -180,13 +180,13 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
 
         # parameter: discretization method
         if disc_method == :midpoint
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :trapeze
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :midpoint_irk
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+                discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_2
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)                
+                discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons)                
         else           
             error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :midpoint_irk, :gauss_legendre_2}\n", typeof(disc_method))
         end

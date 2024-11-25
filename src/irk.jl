@@ -8,7 +8,7 @@ Internal layout for NLP variables:
 with s the stage number and U_i taken constant per step
 =#
 
-#+++ TODO: add option for stage control, eg control_disc=[:step], :stage. For path constraints, maybe a further refinement is to use always steps for state constraints, same as control disc for the control constraints, and have an option step/stage for the mixed constraints (using RK state at stages and/or average control at steps if needed) ? Since we have the constraints sorted by type it would be nice to use the information. Start maybe with stage controls and average controls per step for mixed constraints ? For path constraints keep the main lopp on steps with possible inner loops on stages for constraints involving the control.
+#+++ TODO: add option for stage control, eg control_disc=[:step], :stage. For path constraints, maybe a further refinement is to use always steps for state constraints, same as control disc for the control constraints, and for the mixed constraints use the same state/control combo as the dynamics and lagrange functions who also use both x,u ? Since we have the constraints sorted by type it would be nice to use the information.
 
 abstract type GenericIRK <: Discretization end
 
@@ -18,18 +18,36 @@ $(TYPEDSIGNATURES)
 
 Return the dimension of the NLP variables and constraints for a generic IRK discretizion, with the control taken constant per step (ie not distinct controls at time stages)
 """
-function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons, stage)
-    
-    # NLP variables size (state, control, variable, stage)
-    dim_NLP_variables = (dim_NLP_steps + 1) * dim_NLP_x + dim_NLP_steps * dim_NLP_u + dim_NLP_v + dim_NLP_steps * dim_NLP_x * stage
+function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons, stage, control_disc)
+
+    if control_disc == :step
+        # NLP variables size (state, control, variable, stage)
+        dim_NLP_variables = (dim_NLP_steps + 1) * dim_NLP_x + dim_NLP_steps * dim_NLP_u + dim_NLP_v + dim_NLP_steps * dim_NLP_x * stage
+
+        # Path constraints (control, state, mixed) 
+        dim_path_cons = dim_control_cons + dim_state_cons + dim_mixed_cons
+
+        # size of variables block for one step
+        step_block = dim_NLP_x + dim_NLP_u + dim_NLP_x * stage
+
+    elseif control_disc == :stage
+        # NLP variables size (state, control, variable, stage)
+        dim_NLP_variables = (dim_NLP_steps + 1) * dim_NLP_x + dim_NLP_steps * dim_NLP_u * stage + dim_NLP_v + dim_NLP_steps * dim_NLP_x * stage
+
+        # Path constraints (control, state, mixed) 
+        dim_path_cons = dim_control_cons * stage + dim_state_cons + dim_mixed_cons * stage
+
+        # size of variables block for one step
+        step_block = dim_NLP_x + dim_NLP_u + dim_NLP_x * stage
+
+    else
+        error("IRK_dims: Unknown control discretization mode (:step or :stage): ", control_disc)
+    end
 
     # NLP constraints size (dynamics, stage, path, boundary, variable)
     dim_NLP_constraints = dim_NLP_steps * (dim_NLP_x + (dim_NLP_x * stage) + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
 
-    # size of variables block for one step
-    step_block = dim_NLP_x + dim_NLP_u + dim_NLP_x * stage
-
-    return dim_NLP_variables, dim_NLP_constraints, step_block
+    return dim_NLP_variables, dim_NLP_constraints, dim_path_cons, step_block
  end
 
 
@@ -44,19 +62,20 @@ struct Midpoint_IRK <: GenericIRK
     butcher_a::Matrix{Float64}
     butcher_b::Vector{Float64}
     butcher_c::Vector{Float64}
+    control_disc::Symbol
     _step_block::Int
     info::String
 
-    function Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+    function Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons; control_disc = :step)
         
         stage = 1
 
-        dim_NLP_variables, dim_NLP_constraints,_step_block = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons, stage)
+        dim_NLP_variables, dim_NLP_constraints, dim_path_cons, _step_block = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons, stage, control_disc)
 
-        disc = new(stage, hcat(0.5), [1], [0.5], _step_block,
+        disc = new(stage, hcat(0.5), [1], [0.5], control_disc, _step_block,
         "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic")
 
-        return disc, dim_NLP_variables, dim_NLP_constraints
+        return disc, dim_NLP_variables, dim_NLP_constraints, dim_path_cons
     end
 end
 
@@ -71,23 +90,25 @@ struct Gauss_Legendre_2 <: GenericIRK
     butcher_a::Matrix{Float64}
     butcher_b::Vector{Float64}
     butcher_c::Vector{Float64}
+    control_disc::Symbol
     _step_block::Int
     info::String
 
-    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons; control_disc=:step)
         
         stage = 2
 
-        dim_NLP_variables, dim_NLP_constraints,_step_block = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons, stage)
+        dim_NLP_variables, dim_NLP_constraints, dim_path_cons, _step_block = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_control_cons, dim_state_cons, dim_mixed_cons, dim_boundary_cons, dim_v_cons, stage, control_disc)
 
         disc = new(stage,
         [0.25 (0.25-sqrt(3) / 6); (0.25+sqrt(3) / 6) 0.25],
         [0.5, 0.5],
         [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
+        control_disc,
         _step_block,
         "Implicit Gauss-Legendre collocation for s=2, 4th order, symplectic")
 
-        return disc, dim_NLP_variables, dim_NLP_constraints
+        return disc, dim_NLP_variables, dim_NLP_constraints, dim_path_cons
     end
 end
 
@@ -111,7 +132,7 @@ end
 $(TYPEDSIGNATURES)
 
 Retrieve state variable for lagrange cost at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
+Convention: 1 <= i <= dim_NLP_steps+1   (no check for actual lagrange cost presence !)
 """
 function get_lagrange_state_at_time_step(xu, docp::DOCP{ <: GenericIRK}, i)
     offset = (i-1) * docp.discretization._step_block
@@ -187,6 +208,8 @@ $(TYPEDSIGNATURES)
 Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{ <: GenericIRK}, xu, time_grid, v)
+
+    # +++ PUT BACK COMPUTATIONS in setconstraintblock to reuse kij and xij better ??
 
     # use work array to store all dynamics + lagrange costs 
     # + one state/stage variable (including lagrange part for setConstraintsBlock)
