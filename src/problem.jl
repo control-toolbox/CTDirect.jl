@@ -49,7 +49,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     dim_x_box::Int
     dim_u_box::Int
     dim_v_box::Int
-    dim_path_cons::Int
     dim_x_cons::Int
     dim_u_cons::Int
     dim_v_cons::Int
@@ -168,7 +167,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         dim_x_box = dim_state_range(ocp)
         dim_u_box = dim_control_range(ocp)
         dim_v_box = dim_variable_range(ocp)
-        #dim_path_cons = dim_path_constraints(ocp)
         dim_x_cons = dim_state_constraints(ocp)
         dim_u_cons = dim_control_constraints(ocp)
         dim_v_cons = dim_variable_constraints(ocp)
@@ -177,15 +175,15 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
 
         # parameter: discretization method
         if disc_method == :midpoint
-            discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :trapeze
-            discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :midpoint_irk
-                discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_2
-                discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_2_stage_control
-                discretization, dim_NLP_variables, dim_NLP_constraints, dim_path_cons = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_con, dim_v_cons, control_disc=:stage)                             
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_disc=:stage)                             
         else           
             error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :midpoint_irk, :gauss_legendre_2}\n", typeof(disc_method))
         end
@@ -224,7 +222,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             dim_x_box,
             dim_u_box,
             dim_v_box,
-            dim_path_cons,
             dim_x_cons,
             dim_u_cons,
             dim_v_cons,
@@ -429,7 +426,7 @@ Set the boundary and variable constraints
 function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # offset
-    offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.dim_path_cons) + docp.dim_path_cons
+    offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
 
     # variables
     x0 = get_OCP_state_at_time_step(xu, docp, 1)

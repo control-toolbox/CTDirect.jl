@@ -7,23 +7,25 @@ Internal layout for NLP variables:
 struct Trapeze <: Discretization
 
     stage::Int # 0 but value used for some index computations in problem.jl
+    _step_pathcons_block::Int
     info::String
 
     # constructor
     function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
 
-        disc = new(0, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
 
         # NLP variables size (state, control, variable, stage)
         dim_NLP_variables = (dim_NLP_steps + 1) * (dim_NLP_x + dim_NLP_u) + dim_NLP_v
 
         # Path constraints (control, state, mixed) 
-        dim_path_cons = dim_u_cons + dim_x_cons + dim_xu_cons
+        step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
 
         # NLP constraints size (dynamics, stage, path, boundary, variable)
-        dim_NLP_constraints = dim_NLP_steps * (dim_NLP_x + dim_path_cons) + dim_path_cons + dim_boundary_cons + dim_v_cons
+        dim_NLP_constraints = dim_NLP_steps * (dim_NLP_x + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
 
-        return disc, dim_NLP_variables, dim_NLP_constraints, dim_path_cons
+        disc = new(0, step_pathcons_block, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
+
+        return disc, dim_NLP_variables, dim_NLP_constraints
     end
 end
 

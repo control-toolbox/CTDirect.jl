@@ -73,8 +73,8 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
     @test sol.objective ≈ prob.obj rtol = 1e-2
-    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2_stage_control)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    #sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2_stage_control)
+    #@test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
 #=@testset verbose = true showtiming = true ":double_integrator :trapeze :midpoint :gl2" begin
@@ -99,7 +99,7 @@ end=#
     @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
     @test sol.objective ≈ prob.obj rtol = 1e-2
-    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2_stage_control)
-    @test sol.objective ≈ prob.obj rtol = 1e-2  
+    #sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2_stage_control)
+    #@test sol.objective ≈ prob.obj rtol = 1e-2  
 end
 

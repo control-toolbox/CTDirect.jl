@@ -4,14 +4,17 @@ Internal layout for NLP variables:
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N-1
 =#
 
-struct Midpoint <: Discretization
+# +++ ditch work array and put everything in setconstraintblock.
+# compare bench vs previous midpoint
+
+struct Midpoint2 <: Discretization
 
     stage::Int
     _step_pathcons_block::Int
     info::String
 
     # constructor
-    function Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+    function Midpoint2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
 
         stage = 1
 
