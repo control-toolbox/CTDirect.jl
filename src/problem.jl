@@ -270,7 +270,7 @@ function constraints_bounds!(docp::DOCP)
     ub = docp.con_u
 
     index = 1 # counter for the constraints
-    for i = 0:(docp.dim_NLP_steps - 1)
+    for i = 1:docp.dim_NLP_steps
         # skip (ie leave 0) for equality dynamics constraint
         index = index + docp.dim_NLP_x
         # skip (ie leave 0) for equality stage constraint (ki)
@@ -278,9 +278,6 @@ function constraints_bounds!(docp::DOCP)
         # path constraints
         index = setPathBounds!(docp, index, lb, ub)
     end
-
-    # path constraints at final time
-    index = setPathBounds!(docp, index, lb, ub)
 
     # boundary and variable constraints
     index = setPointBounds!(docp, index, lb, ub)
@@ -375,8 +372,8 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     work = setWorkArray(docp, xu, time_grid, v)
 
     # main loop on time steps 
-    for i = 1:docp.dim_NLP_steps+1
-        setConstraintBlock!(docp, c, xu, v, time_grid, i, work)
+    for i = 1:docp.dim_NLP_steps
+        setStepConstraints!(docp, c, xu, v, time_grid, i, work)
     end
 
     # point constraints
@@ -393,6 +390,8 @@ $(TYPEDSIGNATURES)
 Set bounds for the path constraints at given time step
 """
 function setPathBounds!(docp::DOCP, index::Int, lb, ub)
+
+    #NB. use version in irk.jl with stage control case
 
     # pure control constraints
     if docp.dim_u_cons > 0
@@ -426,11 +425,13 @@ Set the boundary and variable constraints
 function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # offset
-    offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
+    offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.discretization._step_pathcons_block)
 
     # variables
     x0 = get_OCP_state_at_time_step(xu, docp, 1)
     xf = get_OCP_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
+
+    # +++ later add here pure state constraints at final time, with bounds also
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
@@ -496,9 +497,9 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
         set_optim_variable!(NLP_X, init.variable_init, docp)
     end
 
-    # set state / control variables if provided
+    # set state / control variables if provided (final control case handled by setter)
     time_grid = get_time_grid(NLP_X, docp)
-    for i = 1:docp.dim_NLP_steps+1
+    for i = 1:docp.dim_NLP_steps + 1
         ti = time_grid[i]
         set_state_at_time_step!(NLP_X, init.state_init(ti), docp, i)
         set_control_at_time_step!(NLP_X, init.control_init(ti), docp, i)

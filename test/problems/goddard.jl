@@ -78,8 +78,12 @@ function goddard_all()
         return
     end
     function m_fun!(c, x, u, v) 
-        #@views c[:] .= x[3]
-        c[1] = x[3]
+        @views c[:] .= x[3]
+        return
+    end
+    function xu_fun!(c, x, u, v) 
+        #dummy mixed constraint
+        @views c[:] .= x[1] + x[2] + x[3] + u + v
         return
     end
     function rf_fun!(c, x0, xf, v)
@@ -111,8 +115,8 @@ function goddard_all()
     constraint!(goddard, :state, f = v_fun!, lb = -Inf, ub = vmax)
     # control constraint (active on first bang arc)
     constraint!(goddard, :control, f = u_fun!, lb = -Inf, ub = 1)
-    # 'mixed' constraint (active at tf)
-    constraint!(goddard, :mixed, f = m_fun!, lb = mf, ub = Inf)
+    # 'mixed' constraint (inactive)
+    constraint!(goddard, :mixed, f = xu_fun!, lb = 0, ub = Inf)
     objective!(goddard, :mayer, rf_fun!, :max)
     dynamics!(goddard, f_fun!)
 
