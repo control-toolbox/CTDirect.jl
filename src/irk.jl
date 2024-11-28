@@ -164,7 +164,7 @@ function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVec
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + (j-1) * docp.dim_NLP_u
     return xu[offset+1]
 end
-function get_OCP_control_at_time_step(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, VectVariable, <: ScalVect}, i, j)
+function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, VectVariable, <: ScalVect}, i, j)
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + (j-1) * docp.dim_NLP_u
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
@@ -211,7 +211,10 @@ function set_control_at_time_step!(xu, u_init, docp::DOCP{ <: GenericIRK}, i)
         if docp.discretization.control_disc == :step
             xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
         else
-            xu[offset+1:offset+docp.dim_NLP_u*docp.discretization.stage] .= u_init
+            for j=1:docp.discretization.stage
+                xu[offset+1:offset+docp.dim_NLP_u] .= u_init
+                offset += docp.dim_NLP_u
+            end
         end
     end
 end
