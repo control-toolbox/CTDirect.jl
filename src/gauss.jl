@@ -21,7 +21,7 @@ struct GaussLegendre2 <: Discretization
     GaussLegendre2() = new(
         2,
         0,
-        [0.25 (0.25-sqrt(3) / 6); (0.25+sqrt(3) / 6) 0.25],
+        [0.25 (0.25-sqrt(3)/6); (0.25+sqrt(3)/6) 0.25],
         [0.5, 0.5],
         [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
     )
