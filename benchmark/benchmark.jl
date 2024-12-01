@@ -14,19 +14,19 @@ using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
 #######################################################
 # load examples library
 problem_path = pwd() * "/test/problems"
-for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true))
+for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
 function bench(;
-    nlp_solver = :ipopt,
-    linear_solver = nothing,
-    tol = 1e-8,
-    grid_size = 1000,
-    precompile = true,
-    display = false,
-    verbose = true,
-    disc_method = :trapeze
+    nlp_solver=:ipopt,
+    linear_solver=nothing,
+    tol=1e-8,
+    grid_size=1000,
+    precompile=true,
+    display=false,
+    verbose=true,
+    disc_method=:trapeze
 )
 
     #######################################################
@@ -69,10 +69,10 @@ function bench(;
             t = @elapsed direct_solve(
                 problem[:ocp],
                 nlp_solver,
-                linear_solver = linear_solver,
-                max_iter = 0,
-                display = display,
-                disc_method = disc_method
+                linear_solver=linear_solver,
+                max_iter=0,
+                display=display,
+                disc_method=disc_method
             )
             t_precomp += t
         end
@@ -86,14 +86,14 @@ function bench(;
         t = @elapsed sol = direct_solve(
             problem[:ocp],
             nlp_solver,
-            init = problem[:init],
-            display = display,
-            linear_solver = linear_solver,
-            grid_size = grid_size,
-            tol = tol,
-            disc_method = disc_method
+            init=problem[:init],
+            display=display,
+            linear_solver=linear_solver,
+            grid_size=grid_size,
+            tol=tol,
+            disc_method=disc_method
         )
-        if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
+        if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol=5e-2)
             error(
                 "Objective mismatch for ",
                 problem[:name],
@@ -123,12 +123,12 @@ function bench(;
 end
 
 # +++ put repeat directly in bench()
-function bench_average(; repeat = 4, verbose = false, kwargs...)
+function bench_average(; repeat=4, verbose=false, kwargs...)
 
     # execute series of benchmark runs
     t_list = []
     for i = 1:repeat
-        t = bench(; verbose = verbose, kwargs...)
+        t = bench(; verbose=verbose, kwargs...)
         append!(t_list, t)
         verbose && @printf("Run %d / %d: time (s) = %6.2f\n", i, repeat, t)
     end
@@ -139,11 +139,11 @@ function bench_average(; repeat = 4, verbose = false, kwargs...)
     return avg_time
 end
 
-function bench_series(; grid_size_list = [250, 500, 1000, 2500, 5000], kwargs...)
+function bench_series(; grid_size_list=[250, 500, 1000, 2500, 5000], kwargs...)
     println(grid_size_list)
     t_list = []
     for grid_size in grid_size_list
-        t = bench_average(; grid_size = grid_size, kwargs...)
+        t = bench_average(; grid_size=grid_size, kwargs...)
         append!(t_list, t)
         @printf("Grid size %d: time (s) = %6.1f\n", grid_size, t)
     end

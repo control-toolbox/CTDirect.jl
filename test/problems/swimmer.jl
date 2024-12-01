@@ -131,5 +131,5 @@ function swimmer()
         #∫(u1^2 + u2^2) → min
     end
 
-    return ((ocp = swimmer, obj = 0.984273, name = "swimmer", init = nothing))
+    return ((ocp=swimmer, obj=0.984273, name="swimmer", init=nothing))
 end

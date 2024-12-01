@@ -9,7 +9,7 @@ end
 
 @testset verbose = true showtiming = true ":double_integrator :min_tf" begin
     prob = double_integrator_mintf()
-    sol = direct_solve(prob.ocp, display = false)
+    sol = direct_solve(prob.ocp, display=false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
@@ -20,7 +20,7 @@ if !isdefined(Main, :goddard)
 end
 @testset verbose = true showtiming = true ":goddard :max_rf" begin
     prob = goddard()
-    sol = direct_solve(prob.ocp, display = false)
+    sol = direct_solve(prob.ocp, display=false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
