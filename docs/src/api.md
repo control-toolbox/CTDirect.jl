@@ -15,8 +15,3 @@ Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 Private = false
 ```
-
-```@docs
-export_ocp_solution
-import_ocp_solution
-```
