@@ -5,8 +5,6 @@ using CTBase
 
 using NLPModelsIpopt
 using HSL
-using JLD2
-using JSON3
 using Plots
 
 # to add docstrings from external packages
