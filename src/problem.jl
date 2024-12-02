@@ -181,9 +181,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         elseif disc_method == :midpoint_irk
                 discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_2
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
-        elseif disc_method == :gauss_legendre_2_stage_control
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_disc=:stage)                             
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)                           
         else           
             error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :midpoint_irk, :gauss_legendre_2}\n", typeof(disc_method))
         end
@@ -371,12 +369,12 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     v = get_OCP_variable(xu, docp)
     work = setWorkArray(docp, xu, time_grid, v)
 
-    # main loop on time steps 
+    # main loop on time steps (NB. view on c block could be used with offset here) 
     for i = 1:docp.dim_NLP_steps
         setStepConstraints!(docp, c, xu, v, time_grid, i, work)
     end
 
-    # point constraints
+    # point constraints (NB. view on c block could be used with offset here)
     setPointConstraints!(docp, c, xu, v)
 
     # NB. the function *needs* to return c for AD...
@@ -390,8 +388,6 @@ $(TYPEDSIGNATURES)
 Set bounds for the path constraints at given time step
 """
 function setPathBounds!(docp::DOCP, index::Int, lb, ub)
-
-    #NB. use version in irk.jl with stage control case
 
     # pure control constraints
     if docp.dim_u_cons > 0
@@ -430,8 +426,6 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     # variables
     x0 = get_OCP_state_at_time_step(xu, docp, 1)
     xf = get_OCP_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
-
-    # +++ later add here pure state constraints at final time, with bounds also
 
     # boundary constraints
     if docp.dim_boundary_cons > 0

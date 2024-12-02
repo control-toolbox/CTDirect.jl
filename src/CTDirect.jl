@@ -1,6 +1,6 @@
 module CTDirect
 
-using CTBase
+using CTBase # later import CTBase and import CTModels
 using DocStringExtensions
 using ADNLPModels               # docp model with AD
 using LinearAlgebra             # norm and misc
