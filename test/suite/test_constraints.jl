@@ -1,4 +1,4 @@
-println("Test: constraint types")
+println("testing: constraint types")
 
 if !isdefined(Main, :goddard)
     include("../problems/goddard.jl")
