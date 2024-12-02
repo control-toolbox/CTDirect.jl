@@ -1,4 +1,4 @@
-println("Test: nlp options")
+println("testing: nlp options")
 
 if !isdefined(Main, :simple_integrator)
     include("../problems/simple_integrator.jl")

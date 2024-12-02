@@ -1,4 +1,4 @@
-println("Test: discrete continuation")
+println("testing: discrete continuation")
 
 test1 = true
 test2 = true

@@ -1,4 +1,4 @@
-println("Test: OCP definition")
+println("testing: OCP definition")
 
 # + beam
 

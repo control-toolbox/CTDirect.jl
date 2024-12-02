@@ -1,4 +1,4 @@
-println("Test: misc")
+println("testing: misc")
 
 @testset verbose = true ":default_direct" begin
     @test CTDirect.__grid_size() isa Integer

@@ -1,4 +1,4 @@
-println("Test: discretization options")
+println("testing: discretization options")
 
 normalize_grid(t) = return (t .- t[1]) ./ (t[end] - t[1])
 

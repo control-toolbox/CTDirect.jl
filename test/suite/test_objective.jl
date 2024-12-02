@@ -1,4 +1,4 @@
-println("Test: objective")
+println("testing: objective")
 
 # min tf
 if !isdefined(Main, :double_integrator_mintf)
