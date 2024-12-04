@@ -26,15 +26,16 @@ struct Midpoint_IRK <: GenericIRK
     butcher_b::Vector{Float64}
     butcher_c::Vector{Float64}
     _step_variables_block::Int
+    _state_stage_eqs_block::Int
     _step_pathcons_block::Int
 
     function Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         
         stage = 1
 
-        step_variables_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
 
-        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", stage, hcat(0.5), [1], [0.5], step_variables_block, step_pathcons_block)
+        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", stage, hcat(0.5), [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -53,8 +54,8 @@ struct Gauss_Legendre_2 <: GenericIRK
     butcher_b::Vector{Float64}
     butcher_c::Vector{Float64}
     _step_variables_block::Int
-    _step_pathcons_block::Int
     _state_stage_eqs_block::Int
+    _step_pathcons_block::Int
 
     function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         
@@ -66,7 +67,7 @@ struct Gauss_Legendre_2 <: GenericIRK
         [0.25 (0.25-sqrt(3) / 6); (0.25+sqrt(3) / 6) 0.25],
         [0.5, 0.5],
         [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
-        step_variables_block, step_pathcons_block, state_stage_eqs_block
+        step_variables_block, state_stage_eqs_block, step_pathcons_block
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -83,10 +84,11 @@ function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, di
     # size of variables block for one step: x, u, k
     step_variables_block = dim_NLP_x + dim_NLP_u + dim_NLP_x * stage
 
+    # size of state + stage equations for one step
+    state_stage_eqs_block = dim_NLP_x * (1 + stage)
+
     # size of path constraints block for one step: u, x, xu 
     step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
-
-    state_stage_eqs_block = dim_NLP_x * (1 + stage)
 
     # NLP variables size ([state, control, stage]_1..N, final state and control, variable)
     dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_u + dim_NLP_v
@@ -94,7 +96,7 @@ function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, di
     # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
     dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
 
-    return step_variables_block, step_pathcons_block, state_stage_eqs_block, dim_NLP_variables, dim_NLP_constraints
+    return step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints
 end
 
 
