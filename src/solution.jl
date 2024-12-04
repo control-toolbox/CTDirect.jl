@@ -22,7 +22,7 @@ function CTBase.OptimalControlSolution(docp, docp_solution)
         objective = objective,
         iterations = docp_solution.iter,
         constraints_violation = docp_solution.primal_feas,
-        message = String(docp_solution.solver_specific[:internal_msg]),
+        message = String(docp_solution.solver_specific[:internal_msg][1]),
         mult_LB = docp_solution.multipliers_L,
         mult_UB = docp_solution.multipliers_U,
     )
