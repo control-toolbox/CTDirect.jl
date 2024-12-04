@@ -1,4 +1,4 @@
-println("Test: discrete continuation")
+println("testing: discrete continuation")
 
 test1 = true
 test2 = true
@@ -7,14 +7,14 @@ draw_plot = false
 
 # double integrator 
 if test1
-    if !isdefined(Main, :double_integrator_T)
+    if !isdefined(Main, :double_integrator_minenergy)
         include("../problems/double_integrator.jl")
     end
     @testset verbose = true showtiming = true ":continuation :double_integrator" begin
         init = ()
         obj_list = []
         for T = 1:5
-            ocp = double_integrator_T(T).ocp
+            ocp = double_integrator_minenergy(T).ocp
             sol = direct_solve(ocp, display = false, init = init)
             init = sol
             push!(obj_list, sol.objective)
@@ -22,7 +22,6 @@ if test1
         @test obj_list ≈ [12, 1.5, 0.44, 0.19, 0.096] rtol = 1e-2
     end
 end
-
 
 # parametric
 if test2
@@ -42,7 +41,6 @@ if test2
         @test obj_list ≈ [-0.034, -1.7, -6.2, -35, -148] rtol = 1e-2
     end
 end
-
 
 # goddard
 if test3

@@ -24,6 +24,9 @@
 [licence-img]: https://img.shields.io/badge/License-MIT-yellow.svg
 [licence-url]: https://github.com/control-toolbox/CTDirect.jl/blob/master/LICENSE
 
+[blue-img]: https://img.shields.io/badge/code%20style-blue-4495d1.svg
+[blue-url]: https://github.com/JuliaDiff/BlueStyle
+
 The CTDirect.jl package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
 The control-toolbox ecosystem gathers Julia packages for mathematical control and applications. The root package is [OptimalControl.jl](https://github.com/control-toolbox/OptimalControl.jl) which aims to provide tools to modelise and solve optimal control problems with ordinary differential equations by direct and indirect methods.
 
@@ -32,7 +35,7 @@ The control-toolbox ecosystem gathers Julia packages for mathematical control an
 | **Name**          | **Badge**         |
 :-------------------|:------------------|
 | Documentation     | [![Documentation][doc-stable-img]][doc-stable-url] [![Documentation][doc-dev-img]][doc-dev-url]                   | 
-| Code Status       | [![Build Status][ci-img]][ci-url] [![Covering Status][co-img]][co-url] [![pkgeval][pkg-eval-img]][pkg-eval-url]   |
+| Code Status       | [![Build Status][ci-img]][ci-url] [![Covering Status][co-img]][co-url] [![pkgeval][pkg-eval-img]][pkg-eval-url] [![Code Style: Blue][blue-img]][blue-url]  |
 | Dependencies      | [![deps][deps-img]][deps-url] |
 | Licence           | [![License: MIT][licence-img]][licence-url]   |
 | Release           | [![Release][release-img]][release-url]        |
@@ -53,11 +56,14 @@ pkg> add CTDirect
 [issue-url]: https://github.com/control-toolbox/CTDirect.jl/issues
 [first-good-issue-url]: https://github.com/control-toolbox/CTDirect.jl/contribute
 
-If you think you found a bug or if you have a feature request or suggestion, feel free to open an [issue][issue-url].
-Before opening a pull request, start an issue or a discussion on the topic, please. 
+If you think you found a bug or if you have a feature request / suggestion, feel free to open an [issue][issue-url].
+Before opening a pull request, please start an issue or a discussion on the topic. 
 
-Any contributions are welcomed, check out [how to contribute to a Github project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project). 
+Contributions are welcomed, check out [how to contribute to a Github project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project). 
 If it is your first contribution, you can also check [this first contribution tutorial](https://github.com/firstcontributions/first-contributions).
-You can find first good issues, if any, at the [first good issues page][first-good-issue-url]. You may find other packages to contribute to at the [control-toolbox organization](https://github.com/control-toolbox).
+You can find first good issues (if any 🙂) [here][first-good-issue-url]. You may find other packages to contribute to at the [control-toolbox organization](https://github.com/control-toolbox).
 
-If you want to ask a question, feel free to start a discussion [here](https://github.com/orgs/control-toolbox/discussions). This forum is for general discussion about this repository and the [control-toolbox organization](https://github.com/control-toolbox), so questions about any of our packages are welcome.
+If you want to ask a question, feel free to start a discussion [here](https://github.com/orgs/control-toolbox/discussions). This forum is for general discussion about this repository and the [control-toolbox organization](https://github.com/control-toolbox).
+
+>[!NOTE]
+> If you want to add an application or a package to the control-toolbox ecosystem, please follow this [set up tutorial](https://github.com/control-toolbox/CTApp.jl/discussions/9).

@@ -1,4 +1,4 @@
-println("Test: nlp options")
+println("testing: nlp options")
 
 if !isdefined(Main, :simple_integrator)
     include("../problems/simple_integrator.jl")
@@ -11,10 +11,22 @@ ocp = simple_integrator().ocp
     @test (:adnlp, :madnlp) in available_methods()
 end
 
-@testset verbose = true showtiming = true ":solve_docp :ipopt" begin
+@testset verbose = true showtiming = true ":solve_docp" begin
     docp, nlp = direct_transcription(ocp)
-    tag = CTDirect.IpoptTag()
-    dsol = CTDirect.solve_docp(tag, docp, nlp, display = false)
+    solver_backend = CTDirect.IpoptBackend()
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
+    sol = OptimalControlSolution(docp, dsol)
+    @test sol.objective ≈ 0.313 rtol = 1e-2
+    sol = OptimalControlSolution(docp, primal = dsol.solution)
+    @test sol.objective ≈ 0.313 rtol = 1e-2
+    sol = OptimalControlSolution(docp, primal = dsol.solution, dual = dsol.multipliers)
+    @test sol.objective ≈ 0.313 rtol = 1e-2
+end
+
+@testset verbose = true showtiming = true ":solve_docp :midpoint" begin
+    docp, nlp = direct_transcription(ocp, disc_method = :midpoint)
+    solver_backend = CTDirect.IpoptBackend()
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = OptimalControlSolution(docp, dsol)
     @test sol.objective ≈ 0.313 rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution)
@@ -25,8 +37,8 @@ end
 
 @testset verbose = true showtiming = true ":solve_docp :madnlp" begin
     docp, nlp = direct_transcription(ocp)
-    tag = CTDirect.MadNLPTag()
-    dsol = CTDirect.solve_docp(tag, docp, nlp, display = false)
+    solver_backend = CTDirect.MadNLPBackend()
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = OptimalControlSolution(docp, dsol)
     @test sol.objective ≈ 0.313 rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution)
@@ -36,10 +48,10 @@ end
 end
 
 # check solution building
-if !isdefined(Main, :double_integrator_T)
+if !isdefined(Main, :double_integrator_minenergy)
     include("../problems/double_integrator.jl")
 end
-ocp = double_integrator_T(1).ocp
+ocp = double_integrator_minenergy(1).ocp
 x_opt = t -> [6 * (t^2 / 2 - t^3 / 3), 6 * (t - t^2)]
 u_opt = t -> 6 - 12 * t
 p_opt = t -> [24, 12 - 24 * t]

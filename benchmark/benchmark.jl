@@ -1,10 +1,15 @@
 # Benchmark
-include("../test/deps.jl")
+using CTDirect
+using CTBase
+
+using LinearAlgebra
+using NLPModelsIpopt
+
 using Printf
 
 using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
 
-using MadNLPMumps
+#using MadNLPMumps
 
 #######################################################
 # load examples library
@@ -12,7 +17,6 @@ problem_path = pwd() * "/test/problems"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true))
     include(problem_file)
 end
-
 
 function bench(;
     nlp_solver = :ipopt,
@@ -22,6 +26,7 @@ function bench(;
     precompile = true,
     display = false,
     verbose = true,
+    disc_method = :trapeze
 )
 
     #######################################################
@@ -37,19 +42,14 @@ function bench(;
         linear_solver = "UmfpackSolver"
     end
 
-    verbose &&
-        @printf("Profile: NLP Solver %s with linear solver %s\n", nlp_solver, linear_solver)
+    verbose && @printf("Profile: NLP Solver %s with linear solver %s\n", nlp_solver, linear_solver)
 
     # blas backend (cf using MKL above, should be option...)
     verbose && @printf("Blas config: %s\n", LinearAlgebra.BLAS.lbt_get_config())
 
     # settings
-    verbose && @printf(
-        "Settings: tol=%g grid_size=%d precompile=%s\n\n",
-        tol,
-        grid_size,
-        precompile
-    )
+    verbose &&
+        @printf("Settings: tol=%g grid_size=%d precompile=%s\n\n", tol, grid_size, precompile)
 
     # load problems for benchmark
     names_list = ["beam", "bioreactor_1day", "fuller", "goddard", "jackson", "vanderpol"]
@@ -72,6 +72,7 @@ function bench(;
                 linear_solver = linear_solver,
                 max_iter = 0,
                 display = display,
+                disc_method = disc_method
             )
             t_precomp += t
         end
@@ -90,6 +91,7 @@ function bench(;
             linear_solver = linear_solver,
             grid_size = grid_size,
             tol = tol,
+            disc_method = disc_method
         )
         if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
             error(
@@ -118,35 +120,32 @@ function bench(;
 
     # return also full text ouptut ?
     return total_time
-
 end
 
 # +++ put repeat directly in bench()
-function bench_average(; repeat = 2, verbose = false, kwargs...)
+function bench_average(; repeat = 4, verbose = false, kwargs...)
 
     # execute series of benchmark runs
     t_list = []
     for i = 1:repeat
         t = bench(; verbose = verbose, kwargs...)
         append!(t_list, t)
-        @printf("Run %d / %d: time (s) = %6.2f\n", i, repeat, t)
+        verbose && @printf("Run %d / %d: time (s) = %6.2f\n", i, repeat, t)
     end
 
     # print / return average total time
     avg_time = sum(t_list) / length(t_list)
-    @printf("Average time (s): %6.2f\n", avg_time)
+    verbose && @printf("Average time (s): %6.2f\n", avg_time)
     return avg_time
-
 end
 
-
-function bench_series(; grid_size_list = [250, 500, 1000, 2500, 5000, 10000], kwargs...)
+function bench_series(; grid_size_list = [250, 500, 1000, 2500, 5000], kwargs...)
     println(grid_size_list)
     t_list = []
     for grid_size in grid_size_list
         t = bench_average(; grid_size = grid_size, kwargs...)
         append!(t_list, t)
-        @printf("Grid size %d: time (s) = %6.2f\n\n", grid_size, t)
+        @printf("Grid size %d: time (s) = %6.1f\n", grid_size, t)
     end
-    return t_list
+    #return t_list
 end

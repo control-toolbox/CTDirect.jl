@@ -22,18 +22,10 @@ check_mixed_constraints = false
 check_state_box = false
 check_control_box = false
 
-
 # solve problem
 println("Solving test problem...")
 init = [1.01, 0.05, 0.8, 0.1]
-sol = solve(
-    ocp,
-    grid_size = 50,
-    print_level = 0,
-    tol = 1e-8,
-    mu_strategy = "adaptive",
-    init = init,
-)
+sol = solve(ocp, grid_size = 50, print_level = 0, tol = 1e-8, mu_strategy = "adaptive", init = init)
 t0 = sol.times[1]
 tf = last(sol.times)
 t = sol.times
@@ -45,7 +37,7 @@ end
 if plot_state_constraints
     ncx = sol.infos[:dim_state_constraints]
     if ncx > 0
-        PCX = Array{Plots.Plot,1}(undef, ncx)
+        PCX = Array{Plots.Plot, 1}(undef, ncx)
         for i = 1:ncx
             PCX[i] = plot(
                 t -> sol.infos[:state_constraints](t)[i],
@@ -72,7 +64,7 @@ end
 if plot_control_constraints
     ncu = sol.infos[:dim_control_constraints]
     if ncu > 0
-        PCU = Array{Plots.Plot,1}(undef, ncu)
+        PCU = Array{Plots.Plot, 1}(undef, ncu)
         for i = 1:ncu
             PCU[i] = plot(
                 t -> sol.infos[:control_constraints](t)[i],
@@ -99,7 +91,7 @@ end
 if plot_mixed_constraints
     ncxu = sol.infos[:dim_mixed_constraints]
     if ncxu > 0
-        PCXU = Array{Plots.Plot,1}(undef, ncxu)
+        PCXU = Array{Plots.Plot, 1}(undef, ncxu)
         for i = 1:ncxu
             PCXU[i] = plot(
                 t -> sol.infos[:mixed_constraints](t)[i],
@@ -124,7 +116,7 @@ end
 
 # state box  +++ not generic !
 if plot_state_box
-    PX = Array{Plots.Plot,1}(undef, 2) # only boxes on r, v
+    PX = Array{Plots.Plot, 1}(undef, 2) # only boxes on r, v
     for i = 1:2
         PX[i] = plot(
             t -> sol.state(t)[i],

@@ -3,7 +3,7 @@ name: Blank issue
 about: Blank template for general issue
 title: "[General] title"
 labels: ''
-assignees: PierreMartinon, joseph-gergaud
+assignees: joseph-gergaud, PierreMartinon
 
 ---
 

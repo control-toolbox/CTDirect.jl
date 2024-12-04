@@ -3,6 +3,14 @@
 """
 $(TYPEDSIGNATURES)
 
+Used to set the default discretization method.
+The default value is `trapeze`.
+"""
+__disc_method() = "trapeze"
+
+"""
+$(TYPEDSIGNATURES)
+
 Used to set the default grid size.
 The default value is `250`.
 """
@@ -32,7 +40,6 @@ The default value is `1000`.
 """
 __max_iterations() = 1000
 
-
 # IPOPT
 
 """
@@ -58,7 +65,6 @@ Used to set the default value of the linear solver of Ipopt for the direct metho
 The default value is `mumps`.
 """
 __ipopt_linear_solver() = "mumps"
-
 
 # MadNLP
 

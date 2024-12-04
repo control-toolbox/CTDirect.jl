@@ -3,7 +3,7 @@ name: Bug report
 about: Create a bug report to help us improve
 title: "[Bug] title"
 labels: bug
-assignees: PierreMartinon, joseph-gergaud
+assignees: joseph-gergaud, PierreMartinon
 
 ---
 

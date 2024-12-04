@@ -2,7 +2,7 @@
 name: CompatHelper
 on:
   schedule:
-    - cron: 0 0 * * *
+    - cron: 0 0 1 * *
   workflow_dispatch:
 permissions:
   contents: write
@@ -38,7 +38,7 @@ jobs:
       - name: "Run CompatHelper"
         run: |
           import CompatHelper
-          CompatHelper.main()
+          CompatHelper.main(; subdirs=["", "docs", "test"], entry_type=CompatHelper.DropEntry())
         shell: julia --color=yes {0}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

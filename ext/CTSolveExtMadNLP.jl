@@ -13,7 +13,7 @@ $(TYPEDSIGNATURES)
 Solve a discretized optimal control problem DOCP
 """
 function CTDirect.solve_docp(
-    tag::CTDirect.MadNLPTag,
+    solver_backend::CTDirect.MadNLPBackend,
     docp::CTDirect.DOCP,
     nlp;
     display::Bool = CTBase.__display(),
@@ -37,7 +37,7 @@ function CTDirect.solve_docp(
 end
 
 
-function CTBase.OptimalControlSolution(docp, docp_solution::MadNLP.MadNLPExecutionStats)
+function CTBase.OptimalControlSolution(docp::CTDirect.DOCP, docp_solution::MadNLP.MadNLPExecutionStats)
 
     # adjust objective sign for maximization problems
     if is_min(docp.ocp)
@@ -58,8 +58,6 @@ function CTBase.OptimalControlSolution(docp, docp_solution::MadNLP.MadNLPExecuti
         mult_LB = docp_solution.multipliers_L,
         mult_UB = docp_solution.multipliers_U,
     )
-
 end
-
 
 end

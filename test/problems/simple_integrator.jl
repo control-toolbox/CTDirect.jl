@@ -2,16 +2,16 @@
 
 # min enery, dual control
 function simple_integrator()
+    @def ocp begin
+        t ∈ [0, 1], time
+        x ∈ R, state
+        u ∈ R², control
+        [0, 0] ≤ u(t) ≤ [Inf, Inf]
+        x(0) == -1
+        x(1) == 0
+        ẋ(t) == -x(t) -u[1](t) + u[2](t)
+        ∫((u[1](t)+u[2](t))^2) → min
+    end
 
-    ocp = Model()
-    state!(ocp, 1)
-    control!(ocp, 2)
-    time!(ocp, t0 = 0, tf = 1)
-    constraint!(ocp, :initial, val = -1)
-    constraint!(ocp, :final, val = 0)
-    constraint!(ocp, :control, lb = [0, 0], ub = [Inf, Inf])
-    dynamics!(ocp, (x, u) -> -x - u[1] + u[2])
-    objective!(ocp, :lagrange, (x, u) -> (u[1] + u[2])^2)
-
-    return ((ocp = ocp, obj = nothing, name = "simple_integrator", init = nothing))
+    return ((ocp = ocp, obj = 3.13e-1, name = "simple_integrator", init = nothing))
 end

@@ -3,23 +3,26 @@ name: Formatter
 # Modified from https://github.com/julia-actions/julia-format
 on:
     schedule:
-      - cron: '0 0 * * *'
+      - cron: '0 0 1 * *'
+    workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@latest
       - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@latest
       - name: Install JuliaFormatter and format
         run: |
           julia  -e 'import Pkg; Pkg.add("JuliaFormatter")'
-          julia  -e 'using JuliaFormatter; format(".")'
+          julia  -e 'using JuliaFormatter; format(".", MinimalStyle())'
       # https://github.com/marketplace/actions/create-pull-request
       # https://github.com/peter-evans/create-pull-request#reference-example
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: ":robot: Format .jl files"

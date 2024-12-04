@@ -25,7 +25,7 @@ jobs:
         with:
           version: 1
           arch: x64
-      - uses: actions/cache@v1
+      - uses: actions/cache@v4
         env:
           cache-name: cache-artifacts
         with:
@@ -46,6 +46,10 @@ jobs:
           set -v
           mkdir -p ./pr
           echo "${{ github.event.number }}" > ./pr/NR
+          #
+          PKG_SRC_PATH=`pwd`
+          PKG_SRC_NAME=`basename -s ".jl" $PKG_SRC_PATH`
+          #
           git clone https://github.com/$URL
           export PKG=$(echo $URL | cut -f2 -d/)
           cd $PKG
@@ -60,26 +64,31 @@ jobs:
             TAG=$VERSION
           fi
           export TAG
+          #
+          PKG_SRC_VERSION=$(julia --project=@. -e 'using Pkg, Logging; with_logger(NullLogger()) do; Pkg.instantiate(); Pkg.installed()["'$PKG_SRC_NAME'"] |> println; end')
+          export PKG_SRC_VERSION
+          #
           julia -e 'using Pkg;
-            PKG, TAG, VERSION = ENV["PKG"], ENV["TAG"], ENV["VERSION"]
+            PKG, TAG, VERSION, PKG_SRC_VERSION = ENV["PKG"], ENV["TAG"], ENV["VERSION"], ENV["PKG_SRC_VERSION"]
             joburl = joinpath(ENV["GITHUB_SERVER_URL"], ENV["GITHUB_REPOSITORY"], "actions/runs", ENV["GITHUB_RUN_ID"])
             open("../pr/$PKG-$VERSION", "w") do io
               try
                 TAG == "no_tag" && error("Not tag for $VERSION")
                 pkg"activate .";
                 pkg"instantiate";
+                pkg"status";
                 pkg"dev ../";
                 pkg"build";
                 pkg"test";
 
-                print(io, "[![](https://img.shields.io/badge/$TAG-Pass-green)]($joburl)");
+                print(io, "[![](https://img.shields.io/badge/$TAG-Pass-green)]($joburl) compat: v", PKG_SRC_VERSION);
               catch e
                 @error e;
-                print(io, "[![](https://img.shields.io/badge/$TAG-Fail-red)]($joburl)");
+                print(io, "[![](https://img.shields.io/badge/$TAG-Fail-red)]($joburl) compat: v", PKG_SRC_VERSION);
               end;
             end'
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: pr
           path: pr/
@@ -88,9 +97,9 @@ jobs:
     needs: break
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: pr
           path: pr/
@@ -98,7 +107,9 @@ jobs:
       - run: ls
       - run: |
           cd pr
-          echo "| Package name | latest | stable |" > MSG
+          echo "Breakage test results" > MSG
+          echo "Date: $(TZ=UTC-2 date '+%Y-%m-%d %H:%M:%S')" >> MSG
+          echo "| Package name | latest | stable |" >> MSG
           echo "|--|--|--|" >> MSG
           count=0
           for file in *
@@ -121,7 +132,7 @@ jobs:
             fi
           done >> MSG
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: pr
           path: pr/

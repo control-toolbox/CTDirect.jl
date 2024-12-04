@@ -13,7 +13,6 @@ function available_methods()
     return algorithms
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -25,10 +24,11 @@ function direct_transcription(
     init = CTBase.__ocp_init(),
     grid_size = __grid_size(),
     time_grid = __time_grid(),
+    disc_method = __disc_method()
 )
 
     # build DOCP
-    docp = DOCP(ocp, grid_size, time_grid)
+    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=string(disc_method))
 
     # set bounds in DOCP
     variables_bounds!(docp)
@@ -58,9 +58,7 @@ function direct_transcription(
     )
 
     return docp, nlp
-
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -68,7 +66,6 @@ $(TYPEDSIGNATURES)
 Set initial guess in the DOCP
 """
 function set_initial_guess(docp::DOCP, nlp, init)
-
     ocp = docp.ocp
     nlp.meta.x0 .= DOCP_initial_guess(
         docp,
@@ -79,7 +76,6 @@ function set_initial_guess(docp::DOCP, nlp, init)
             variable_dim = ocp.variable_dimension,
         ),
     )
-
 end
 
 """
@@ -93,11 +89,10 @@ function direct_solve(
     init = CTBase.__ocp_init(),
     grid_size::Int = CTDirect.__grid_size(),
     time_grid = CTDirect.__time_grid(),
+    disc_method = __disc_method(),
     kwargs...,
 )
-
     method = getFullDescription(description, available_methods())
-    #println(method)
 
     # build discretized OCP, including initial guess
     docp, nlp = direct_transcription(
@@ -106,35 +101,30 @@ function direct_solve(
         init = init,
         grid_size = grid_size,
         time_grid = time_grid,
+        disc_method = disc_method
     )
 
     # solve DOCP
     if :ipopt ∈ method
-        tag = CTDirect.IpoptTag()
+        solver_backend = CTDirect.IpoptBackend()
     elseif :madnlp ∈ method
-        tag = CTDirect.MadNLPTag()
+        solver_backend = CTDirect.MadNLPBackend()
     else
         error("no known solver in method", method)
     end
-    docp_solution = CTDirect.solve_docp(tag, docp, nlp; kwargs...)
+    docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp; kwargs...)
 
     # build and return OCP solution
     return OptimalControlSolution(docp, docp_solution)
-
 end
 
-
 # placeholders (see CTSolveExt*** extensions)
-abstract type SolverTag end
-struct IpoptTag <: SolverTag end
-struct MadNLPTag <: SolverTag end
+abstract type AbstractSolverBackend end
+struct IpoptBackend <: AbstractSolverBackend end
+struct MadNLPBackend <: AbstractSolverBackend end
 
-function solve_docp(solver_tag, args...; kwargs...)
-    if typeof(solver_tag) == IpoptTag
-        throw(ExtensionError(:NLPModelsIpopt))
-    elseif typeof(solver_tag) == MadNLPTag
-        throw(ExtensionError(:MadNLP))
-    else
-        error("Unknown solver type", typeof(solver_tag))
-    end
+weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP)
+
+function solve_docp(solver_backend::T, args...; kwargs...) where {T <: AbstractSolverBackend}
+    throw(ExtensionError(weakdeps[T]))
 end

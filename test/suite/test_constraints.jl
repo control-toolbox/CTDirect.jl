@@ -1,4 +1,4 @@
-println("Test: constraint types")
+println("testing: constraint types")
 
 if !isdefined(Main, :goddard)
     include("../problems/goddard.jl")
@@ -64,14 +64,8 @@ if check_constraint_mult
     p4_b = plot(T, [u_box_lb u_box_ub], label = ["LB" "UB"])
     p4 = plot(p4_a, p4_b, layout = (2, 1))
 
-    p_box = plot(
-        p1,
-        p2,
-        p3,
-        p4,
-        layout = (2, 2),
-        title = ["r box" "" "v box" "" "m box" "" "u box" ""],
-    )
+    p_box =
+        plot(p1, p2, p3, p4, layout = (2, 2), title = ["r box" "" "v box" "" "m box" "" "u box" ""])
     display(p_box)
     readline() #ffs julia, fix your damn plots
 
@@ -114,18 +108,10 @@ else
         @test sol.objective ≈ ocp.obj rtol = 1e-2
     end
 
-    # functional constraints
-    @testset verbose = true showtiming = true ":goddard :functional_constraints" begin
-        ocp = goddard(functional_constraints = true)
-        sol = direct_solve(ocp.ocp, display = false, init = ocp.init)
-        @test sol.objective ≈ ocp.obj rtol = 1e-2
-    end
-
     # all constraints
     @testset verbose = true showtiming = true ":goddard :all_constraints" begin
         ocp = goddard_all()
         sol = direct_solve(ocp.ocp, display = false, init = ocp.init)
         @test sol.objective ≈ ocp.obj rtol = 1e-2
     end
-
 end
