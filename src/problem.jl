@@ -374,6 +374,8 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         setStepConstraints!(docp, c, xu, v, time_grid, i, work)
     end
 
+    # +++ split path constraints from above, call inside main loop and once at tf
+
     # point constraints (NB. view on c block could be used with offset here)
     setPointConstraints!(docp, c, xu, v)
 

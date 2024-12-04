@@ -141,11 +141,17 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{ <: GenericIRK, <: ScalVect
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
-function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK}, i, cj)
-    # linear interpolation on step +++ check allocs
+function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, ScalVariable, <: ScalVect}, i, cj)
+    # linear interpolation on step
     ui = get_OCP_control_at_time_step(xu, docp, i)
     uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
     return (1 - cj) * ui + cj * uip1
+end
+function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, VectVariable, <: ScalVect}, i, cj)
+    # linear interpolation on step
+    ui = get_OCP_control_at_time_step(xu, docp, i)
+    uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
+    return @views @. (1 - cj) * ui + cj * uip1
 end
 
 
@@ -216,7 +222,7 @@ function setWorkArray(docp::DOCP{ <: GenericIRK}, xu, time_grid, v)
             # time at stage: t_i^j = t_i + c[j] h_i
             cj = docp.discretization.butcher_c[j]
             tij = ti + cj * hi
-            # control at stage: interpolation between u_i and u_i+1
+            # control at stage: interpolation between u_i and u_i+1 +++ use work
             uij = get_OCP_control_at_time_stage(xu, docp, i, cj)
             # state at stage: x_i^j = x_i + h_i sum a_jl k_i^l
             @. work[offset_xij+1:offset_xij+docp.dim_OCP_x] = xi
