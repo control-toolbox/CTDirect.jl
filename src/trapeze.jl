@@ -6,26 +6,24 @@ Internal layout for NLP variables:
 # NB. could be defined as a generic IRK
 struct Trapeze <: Discretization
 
-    final_control::Bool
-    stage::Int # 0 but value used for some index computations in problem.jl
-    _step_pathcons_block::Int
-    control_disc::Symbol
     info::String
+    _step_pathcons_block::Int
+    _state_stage_eqs_block::Int
 
     # constructor
     function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
 
-
         # NLP variables size ([state, control]_1..N+1, variable)
         dim_NLP_variables = (dim_NLP_steps + 1) * (dim_NLP_x + dim_NLP_u) + dim_NLP_v
 
-        # Path constraints (control, state, mixed) 
+        # Path constraints (control, state, mixed)
+        state_stage_eqs_block = dim_NLP_x
         step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
 
-        # NLP constraints size ([dynamics, stage, path]_1..N, boundary, variable)
-        dim_NLP_constraints = dim_NLP_steps * (dim_NLP_x + step_pathcons_block) + dim_boundary_cons + dim_v_cons
+        # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
+        dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
 
-        disc = new(true, 0, step_pathcons_block, :step, "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable")
+        disc = new("Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", step_pathcons_block, state_stage_eqs_block)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -137,7 +135,7 @@ end
 $(TYPEDSIGNATURES)
 
 Set the constraints corresponding to the state equation
-Convention: 1 <= i <= dim_NLP_steps
+Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 
@@ -150,20 +148,22 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     ui = get_OCP_control_at_time_step(xu, docp, i)
 
     # 1. state equation
-    # more variables
-    tip1 = time_grid[i+1]
-    xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
-    half_hi = 0.5 * (tip1 - ti)
-    offset_dyn_i = (i-1)*docp.dim_NLP_x
-    offset_dyn_ip1 = i*docp.dim_NLP_x
+    if i <= docp.dim_NLP_steps
+        # more variables
+        tip1 = time_grid[i+1]
+        xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
+        half_hi = 0.5 * (tip1 - ti)
+        offset_dyn_i = (i-1)*docp.dim_NLP_x
+        offset_dyn_ip1 = i*docp.dim_NLP_x
 
-    # trapeze rule (no allocations ^^)
-    @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + half_hi * (work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x] + work[offset_dyn_ip1+1:offset_dyn_ip1+docp.dim_OCP_x]))
+        # trapeze rule (no allocations ^^)
+        @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + half_hi * (work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x] + work[offset_dyn_ip1+1:offset_dyn_ip1+docp.dim_OCP_x]))
 
-    if docp.is_lagrange
-        c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + half_hi * (work[offset_dyn_i+docp.dim_NLP_x] + work[offset_dyn_ip1+docp.dim_NLP_x]))
+        if docp.is_lagrange
+            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + half_hi * (work[offset_dyn_i+docp.dim_NLP_x] + work[offset_dyn_ip1+docp.dim_NLP_x]))
+        end
+        offset += docp.dim_NLP_x
     end
-    offset += docp.dim_NLP_x
 
     # 2. path constraints (control, state, mixed)
     if docp.dim_u_cons > 0

@@ -22,7 +22,7 @@ function CTBase.OptimalControlSolution(docp::DOCP, docp_solution)
         objective = objective,
         iterations = docp_solution.iter,
         constraints_violation = docp_solution.primal_feas,
-        message = String(docp_solution.solver_specific[:internal_msg]),
+        message = String(docp_solution.solver_specific[:internal_msg][1]),
         mult_LB = docp_solution.multipliers_L,
         mult_UB = docp_solution.multipliers_U,
     )
@@ -47,11 +47,6 @@ function CTBase.OptimalControlSolution(
 
     # time grid
     T = get_time_grid(primal, docp)
-    if docp.discretization.control_disc == :step
-        T_u = T 
-    else
-        T_u = get_stage_grid(docp, T)
-    end
 
     # recover primal variables
     X, U, v, box_multipliers =
@@ -89,8 +84,7 @@ function CTBase.OptimalControlSolution(
         message = message,
         constraints_types = constraints_types,
         constraints_mult = constraints_mult,
-        box_multipliers = box_multipliers,
-        T_u = T_u
+        box_multipliers = box_multipliers
     )
 end
 
@@ -104,12 +98,7 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     # state and control variables
     N = docp.dim_NLP_steps
     X = zeros(N + 1, docp.dim_OCP_x)
-    s = docp.discretization.stage
-    if docp.discretization.control_disc == :step
-        U = zeros(N + 1, docp.dim_NLP_u)
-    else
-        U = zeros(N*s, docp.dim_NLP_u)
-    end
+    U = zeros(N + 1, docp.dim_NLP_u)
     v = Float64[]
 
     # multipliers for box constraints
@@ -140,23 +129,10 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
         mult_state_box_upper[i, :] .= get_OCP_state_at_time_step(mult_UB, docp, i)
     end
     # control variables and box multipliers
-    for i = 1:N
-        if docp.discretization.control_disc == :step
-            U[i,:] .= get_OCP_control_at_time_step(solution, docp, i)
-            mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(mult_LB, docp, i)
-            mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(mult_UB, docp, i)
-        else
-            for j=1:s
-                U[(i-1)*s+j,:] .= get_OCP_control_at_time_stage(solution, docp, i, j)
-                mult_control_box_lower[(i-1)*s+j, :] .= get_OCP_control_at_time_stage(mult_LB, docp, i, j)
-                mult_control_box_upper[(i-1)*s+j, :] .= get_OCP_control_at_time_stage(mult_UB, docp, i, j)
-            end
-        end
-    end
-    if docp.discretization.final_control
-        U[N+1,:] .= get_OCP_control_at_time_step(solution, docp, N+1)
-        mult_control_box_lower[N+1, :] .= get_OCP_control_at_time_step(mult_LB, docp, N+1)
-        mult_control_box_upper[N+1, :] .= get_OCP_control_at_time_step(mult_UB, docp, N+1)
+    for i = 1:N+1
+        U[i,:] .= get_OCP_control_at_time_step(solution, docp, i)
+        mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(mult_LB, docp, i)
+        mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(mult_UB, docp, i)
     end
 
     box_multipliers = (
@@ -183,7 +159,6 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
     # constraints tuple: (state, control, mixed, variable, boundary)
     N = docp.dim_NLP_steps
     P = zeros(N, docp.dim_NLP_x)
-    s = docp.discretization.stage
 
     ocp = docp.ocp
     dcc = dim_control_constraints(ocp)
@@ -196,13 +171,8 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
     sol_state_constraints = zeros(N + 1, dsc)
     sol_boundary_constraints = zeros(dbc)
     sol_variable_constraints = zeros(dvc)
-    if docp.discretization.control_disc == :step
-        sol_control_constraints = zeros(N + 1, dcc)
-        sol_mixed_constraints = zeros(N + 1, dmc)
-    else
-        sol_control_constraints = zeros((N + 1)*s, dcc)
-        sol_mixed_constraints = zeros((N + 1)*s, dmc)
-    end
+    sol_control_constraints = zeros(N + 1, dcc)
+    sol_mixed_constraints = zeros(N + 1, dmc)
 
     # constraints multipliers
     mul_control_constraints = zeros(size(sol_control_constraints))
@@ -214,33 +184,23 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
     # loop over time steps
     i_c = 1
     i_m = 1
-    for i = 1:N
+    for i = 1:N+1
 
         # state equation multiplier for costate
-        P[i, :] = multipliers[i_m:(i_m + docp.dim_NLP_x - 1)]
-        # skip dynamics constraints
-        i_c += docp.dim_NLP_x
-        i_m += docp.dim_NLP_x
-        # skip stage constraints
-        i_c += docp.dim_NLP_x * s
-        i_m += docp.dim_NLP_x * s
+        if i <= N
+            P[i, :] = multipliers[i_m:(i_m + docp.dim_NLP_x - 1)]
+            # skip state / stage constraints
+            i_c += docp.discretization._state_stage_eqs_block
+            i_m += docp.discretization._state_stage_eqs_block
+        end
 
         # path constraints and multipliers
         # pure control constraints
         if dcc > 0
-            if docp.discretization.control_disc == :step
-                sol_control_constraints[i, :] = constraints[i_c:(i_c + dcc - 1)]
-                mul_control_constraints[i, :] = multipliers[i_m:(i_m + dcc - 1)]
-                i_c += dcc
-                i_m += dcc
-            else
-                for j=1:s
-                    sol_control_constraints[(i-1)*s+j, :] = constraints[i_c:(i_c + dcc - 1)]
-                    mul_control_constraints[(i-1)*s+j, :] = multipliers[i_m:(i_m + dcc - 1)]
-                    i_c += dcc
-                    i_m += dcc
-                end
-            end
+            sol_control_constraints[i, :] = constraints[i_c:(i_c + dcc - 1)]
+            mul_control_constraints[i, :] = multipliers[i_m:(i_m + dcc - 1)]
+            i_c += dcc
+            i_m += dcc
         end
         # pure state constraints
         if dsc > 0
@@ -251,19 +211,10 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
         end
         # mixed constraints
         if dmc > 0
-            if docp.discretization.control_disc == :step
-                sol_mixed_constraints[i, :] = constraints[i_c:(i_c + dmc - 1)]
-                mul_mixed_constraints[i, :] = multipliers[i_m:(i_m + dmc - 1)]
-                i_c += dmc
-                i_m += dmc
-            else
-                for j=1:s
-                    sol_mixed_constraints[(i-1)*s+j, :] = constraints[i_c:(i_c + dmc - 1)]
-                    mul_mixed_constraints[(i-1)*s+j, :] = multipliers[i_m:(i_m + dmc - 1)]
-                    i_c += dmc
-                    i_m += dmc
-                end
-            end
+            sol_mixed_constraints[i, :] = constraints[i_c:(i_c + dmc - 1)]
+            mul_mixed_constraints[i, :] = multipliers[i_m:(i_m + dmc - 1)]
+            i_c += dmc
+            i_m += dmc
         end
     end
 
@@ -323,7 +274,6 @@ function CTBase.OptimalControlSolution(
     constraints_types = (nothing, nothing, nothing, nothing, nothing),
     constraints_mult = (nothing, nothing, nothing, nothing, nothing),
     box_multipliers = (nothing, nothing, nothing, nothing, nothing, nothing),
-    T_u = T
 )
     dim_x = state_dimension(ocp)
     dim_u = control_dimension(ocp)
@@ -343,7 +293,7 @@ function CTBase.OptimalControlSolution(
     # variables: remove additional state for lagrange cost
     x = ctinterpolate(T, matrix2vec(X[:, 1:dim_x], 1))
     p = ctinterpolate(T[1:(end - 1)], matrix2vec(P[:, 1:dim_x], 1))
-    u = ctinterpolate(T_u, matrix2vec(U[:, 1:dim_u], 1))
+    u = ctinterpolate(T, matrix2vec(U[:, 1:dim_u], 1))
 
     # force scalar output when dimension is 1
     fx = (dim_x == 1) ? deepcopy(t -> x(t)[1]) : deepcopy(t -> x(t))
@@ -356,12 +306,12 @@ function CTBase.OptimalControlSolution(
     infos[:constraints_violation] = constraints_violation
 
     # nonlinear constraints and multipliers
-    control_constraints = t -> ctinterpolate(T_u, matrix2vec(constraints_types[1], 1))(t)
-    mult_control_constraints = t -> ctinterpolate(T_u, matrix2vec(constraints_mult[1], 1))(t)
+    control_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[1], 1))(t)
+    mult_control_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[1], 1))(t)
     state_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[2], 1))(t)
     mult_state_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[2], 1))(t)
-    mixed_constraints = t -> ctinterpolate(T_u, matrix2vec(constraints_types[3], 1))(t)
-    mult_mixed_constraints = t -> ctinterpolate(T_u, matrix2vec(constraints_mult[3], 1))(t)
+    mixed_constraints = t -> ctinterpolate(T, matrix2vec(constraints_types[3], 1))(t)
+    mult_mixed_constraints = t -> ctinterpolate(T, matrix2vec(constraints_mult[3], 1))(t)
 
     # boundary and variable constraints
     boundary_constraints = constraints_types[4]
@@ -372,8 +322,8 @@ function CTBase.OptimalControlSolution(
     # box constraints multipliers
     mult_state_box_lower = t -> ctinterpolate(T, matrix2vec(box_multipliers[1][:, 1:dim_x], 1))(t)
     mult_state_box_upper = t -> ctinterpolate(T, matrix2vec(box_multipliers[2][:, 1:dim_x], 1))
-    mult_control_box_lower = t -> ctinterpolate(T_u, matrix2vec(box_multipliers[3][:, 1:dim_u], 1))(t)
-    mult_control_box_upper = t -> ctinterpolate(T_u, matrix2vec(box_multipliers[4][:, 1:dim_u], 1))
+    mult_control_box_lower = t -> ctinterpolate(T, matrix2vec(box_multipliers[3][:, 1:dim_u], 1))(t)
+    mult_control_box_upper = t -> ctinterpolate(T, matrix2vec(box_multipliers[4][:, 1:dim_u], 1))
     mult_variable_box_lower, mult_variable_box_upper = box_multipliers[5], box_multipliers[6]
 
     # build and return solution

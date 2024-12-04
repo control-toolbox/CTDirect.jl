@@ -268,11 +268,11 @@ function constraints_bounds!(docp::DOCP)
     ub = docp.con_u
 
     index = 1 # counter for the constraints
-    for i = 1:docp.dim_NLP_steps
-        # skip (ie leave 0) for equality dynamics constraint
-        index = index + docp.dim_NLP_x
-        # skip (ie leave 0) for equality stage constraint (ki)
-        index = index + docp.dim_NLP_x * docp.discretization.stage
+    for i = 1:docp.dim_NLP_steps+1
+        if i <= docp.dim_NLP_steps
+            # skip (ie leave 0) for state / stage equations 
+            index = index + docp.discretization._state_stage_eqs_block
+        end
         # path constraints
         index = setPathBounds!(docp, index, lb, ub)
     end
@@ -370,7 +370,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     work = setWorkArray(docp, xu, time_grid, v)
 
     # main loop on time steps (NB. view on c block could be used with offset here) 
-    for i = 1:docp.dim_NLP_steps
+    for i = 1:docp.dim_NLP_steps + 1
         setStepConstraints!(docp, c, xu, v, time_grid, i, work)
     end
 
@@ -420,8 +420,8 @@ Set the boundary and variable constraints
 """
 function setPointConstraints!(docp::DOCP, c, xu, v)
 
-    # offset
-    offset = docp.dim_NLP_steps * (docp.dim_NLP_x * (1+docp.discretization.stage) + docp.discretization._step_pathcons_block)
+    # offset: [state eq, stage eq, path constraints]_1..N and final path constraints
+    offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
 
     # variables
     x0 = get_OCP_state_at_time_step(xu, docp, 1)
