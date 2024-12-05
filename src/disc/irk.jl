@@ -217,9 +217,9 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
     # work array layout: [x_ij ; sum_bk ; u_ij] ?
     work_xij = @view work[1:docp.dim_OCP_x]
     work_sumbk = @view work[docp.dim_OCP_x+1:docp.dim_OCP_x+docp.dim_NLP_x]
-    #work_sumbk .= zero(eltype(xu)) AD bug
+    #work_sumbk .= zero(eltype(xu)) AD bug when affecting constant values...
     work_sumbk .= xu[1:docp.dim_NLP_x] * 0.
-    #work_uij
+    #work_uij ?
 
     # offset for previous steps
     offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
@@ -261,7 +261,8 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
                 xij = work_xij
             end
 
-            # control at stage: interpolation between u_i and u_i+1 +++ use work
+            # control at stage: interpolation between u_i and u_i+1 
+            # +++ use work aray to reduce allocs ? scal/vect problem, use work only for vect
             uij = get_OCP_control_at_time_stage(xu, docp, i, cj)
 
             # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f

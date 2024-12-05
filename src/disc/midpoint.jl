@@ -120,7 +120,7 @@ Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
     
-    # NB. compare with version Midpoint2 with everything in setStepcontraints
+    # NB. not better to put the computations in setStepConstraints...
 
     # use work array to store all dynamics + lagrange costs
     work = similar(xu, docp.dim_NLP_x * (docp.dim_NLP_steps))
@@ -140,7 +140,7 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
         if docp.dim_OCP_x == 1
             xs = 0.5 * (xi + xip1)
         else
-            @. xs = 0.5 * (xi + xip1) # not ok for dim 1...
+            @. xs = 0.5 * (xi + xip1) # error for dim 1 -_-
         end
         # OCP dynamics
         docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), ts, xs, ui, v)
