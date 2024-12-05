@@ -218,7 +218,7 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
     work_xij = @view work[1:docp.dim_OCP_x]
     work_sumbk = @view work[docp.dim_OCP_x+1:docp.dim_OCP_x+docp.dim_NLP_x]
     #work_sumbk .= zero(eltype(xu)) AD bug when affecting constant values...
-    work_sumbk .= xu[1:docp.dim_NLP_x] * 0.
+    @views @. work_sumbk[1:docp.dim_NLP_x] = xu[1:docp.dim_NLP_x] * 0.
     #work_uij ?
 
     # offset for previous steps
