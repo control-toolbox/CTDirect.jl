@@ -163,93 +163,40 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
-
+   
     # offset for previous steps
-    offset = (i-1)*(docp.dim_NLP_x * 2 + docp.discretization._step_pathcons_block)
+   offset = (i-1)*(docp.dim_NLP_x * 2 + docp.discretization._step_pathcons_block)
 
-    # 0. variables
-    ti = time_grid[i]
-    xi = get_OCP_state_at_time_step(xu, docp, i)
-    ui = get_OCP_control_at_time_step(xu, docp, i)
+   # 0. variables
+   ti = time_grid[i]
+   xi = get_OCP_state_at_time_step(xu, docp, i)
+   ui = get_OCP_control_at_time_step(xu, docp, i)
 
-    # 1. state equation
-    if i <= docp.dim_NLP_steps
-        # more variables
-        tip1 = time_grid[i+1]
-        xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
-        hi = tip1 - ti
-        ki = get_stagevars_at_time_step(xu, docp, i)
-        offset_dyn_i = (i-1)*docp.dim_NLP_x
+   # 1. state equation
+   if i <= docp.dim_NLP_steps
+       # more variables
+       tip1 = time_grid[i+1]
+       xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
+       hi = tip1 - ti
+       ki = get_stagevars_at_time_step(xu, docp, i)
+       offset_dyn_i = (i-1)*docp.dim_NLP_x
 
-        # midpoint rule
-        @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * ki[1:docp.dim_OCP_x])
-        if docp.is_lagrange
-            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * ki[docp.dim_NLP_x])
-        end
-        offset += docp.dim_NLP_x
+       # midpoint rule
+       @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * ki[1:docp.dim_OCP_x])
+       if docp.is_lagrange
+           c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * ki[docp.dim_NLP_x])
+       end
+       offset += docp.dim_NLP_x
 
-        # stage equation at mid-step
-        @views @. c[offset+1:offset+docp.dim_OCP_x] = ki[1:docp.dim_OCP_x] - work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x]
-        if docp.is_lagrange
-            c[offset+docp.dim_NLP_x] = ki[docp.dim_NLP_x] - work[offset_dyn_i+docp.dim_NLP_x]
-        end
-        offset += docp.dim_NLP_x
-    end
+       # stage equation at mid-step
+       @views @. c[offset+1:offset+docp.dim_OCP_x] = ki[1:docp.dim_OCP_x] - work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x]
+       if docp.is_lagrange
+           c[offset+docp.dim_NLP_x] = ki[docp.dim_NLP_x] - work[offset_dyn_i+docp.dim_NLP_x]
+       end
+       offset += docp.dim_NLP_x
+   end
+   
+   # 2. path constraints (control, state, mixed)
+   setPathConstraints!(docp, c, ti, xi, ui, v, offset)
     
-    # 2. path constraints (control, state, mixed)
-    if docp.dim_u_cons > 0
-        docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
-    end
-    if docp.dim_x_cons > 0 
-        docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, xi, v)
-    end
-    if docp.dim_xu_cons > 0 
-        docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_xu_cons]), ti, xi, ui, v)
-    end
-
-end
-
-
-
-
-
-
-#######
-# +++ ditch work array and put everything in setconstraintblock.
-# compare bench vs previous midpoint
-
-struct Midpoint2 <: Discretization
-
-    stage::Int
-    _step_pathcons_block::Int
-    control_disc::Symbol
-    info::String
-
-    # constructor
-    function Midpoint2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
-
-        stage = 1
-
-        # NLP variables size (state, control, variable, stage)
-        dim_NLP_variables = (dim_NLP_steps + 1) * dim_NLP_x + dim_NLP_steps * dim_NLP_u + dim_NLP_v + dim_NLP_steps * dim_NLP_x * stage
-        
-        # Path constraints (control, state, mixed) 
-        step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
-
-        # NLP constraints size (dynamics, stage, path, boundary, variable)
-        dim_NLP_constraints = dim_NLP_steps * (dim_NLP_x + (dim_NLP_x * stage) + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
-
-        disc = new(stage, step_pathcons_block, :step, "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic")
-
-        return disc, dim_NLP_variables, dim_NLP_constraints
-    end
-end
-
-
-function setWorkArray(docp::DOCP{Midpoint2}, xu, time_grid, v)
-  
-end
-
-function setStepConstraints!(docp::DOCP{Midpoint2}, c, xu, v, time_grid, i, work)
-
 end

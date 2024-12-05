@@ -6,7 +6,7 @@ Internal layout for NLP variables:
  X_N-1, U_N-1, K_N-1^1..K_N-1^s,
  X_N, U_N, V]
 with s the stage number and U given by linear interpolation in [t_i, t_i+1]
-NB. could use constant interpolation for 1-stage methods (but U_N might end up unused)
+NB. +++ could use constant interpolation for 1-stage methods (but U_N might end up unused)
 Path constraints are all evaluated at time steps
 =#
 

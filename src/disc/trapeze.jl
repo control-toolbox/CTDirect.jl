@@ -166,14 +166,6 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     end
 
     # 2. path constraints (control, state, mixed)
-    if docp.dim_u_cons > 0
-        docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
-    end
-    if docp.dim_x_cons > 0 
-        docp.state_constraints[2]((@view c[offset+docp.dim_u_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons]),ti, xi, v)
-    end
-    if docp.dim_xu_cons > 0 
-        docp.mixed_constraints[2]((@view c[offset+docp.dim_u_cons+docp.dim_x_cons+1:offset+docp.dim_u_cons+docp.dim_x_cons+docp.dim_xu_cons]), ti, xi, ui, v)
-    end
+    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
 
 end
