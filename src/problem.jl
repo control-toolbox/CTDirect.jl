@@ -374,7 +374,8 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         setStepConstraints!(docp, c, xu, v, time_grid, i, work)
     end
 
-    # +++ split path constraints from above, call inside main loop and once at tf
+    # +++ split path constraints from above, call inside main loop and once at tf ?
+    # but then we'd have to call the getters for ti, xi, ui here...
 
     # point constraints (NB. view on c block could be used with offset here)
     setPointConstraints!(docp, c, xu, v)
@@ -383,6 +384,35 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     return c
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Set path constraints at given time step
+"""
+function setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+
+    #NB. offset could be recomputed locally and i passed instead
+    #offset = (i-1)*(docp.dim_NLP_x * (1+docp.discretization.stage) + docp.discretization._step_pathcons_block) + docp.dim_NLP_x * (1 + docp.discretization.stage)
+
+    # control constraints
+    if docp.dim_u_cons > 0
+        docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
+        offset += docp.dim_u_cons
+    end
+
+    # state constraints
+    if docp.dim_x_cons > 0 
+        docp.state_constraints[2]((@view c[offset+1:offset+docp.dim_x_cons]),ti, xi, v)
+        offset += docp.dim_x_cons
+    end
+
+    # mixed constraints
+    if docp.dim_xu_cons > 0
+        docp.mixed_constraints[2]((@view c[offset+1:offset+docp.dim_xu_cons]), ti, xi, ui, v)
+        offset += docp.dim_xu_cons
+    end
+end
 
 """
 $(TYPEDSIGNATURES)

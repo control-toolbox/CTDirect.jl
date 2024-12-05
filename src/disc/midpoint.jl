@@ -1,7 +1,8 @@
 #= Functions for implicit midpoint discretization scheme
 Internal layout for NLP variables: 
 [X_1,U_1,K_1 .., X_N,U_N,K_N, X_N+1, V]
-with the convention u([t_i,t_i+1[) = U_i and u(tf) is NOT defined
+with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N
+NB. stage equations use the simplification x_s = (x_i + x_i+1) / 2
 =#
 
 struct Midpoint <: Discretization
@@ -14,7 +15,7 @@ struct Midpoint <: Discretization
     function Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
 
         # NLP variables size ([state, control, stage]_1..N, final state and control, variable)
-        dim_NLP_variables = dim_NLP_steps * (dim_NLP_x + dim_NLP_u + dim_NLP_x) + dim_NLP_x + dim_NLP_u + dim_NLP_v
+        dim_NLP_variables = dim_NLP_steps * (dim_NLP_x + dim_NLP_u + dim_NLP_x) + dim_NLP_x + dim_NLP_v
         
         # Path constraints (control, state, mixed)
         state_stage_eqs_block = dim_NLP_x * 2
@@ -62,14 +63,18 @@ end
 $(TYPEDSIGNATURES)
 
 Retrieve control variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps
+Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
 Scalar / Vector output
 """
 function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint, <: ScalVect, ScalVariable, <: ScalVect}, i)
+    # final time case
+    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
     offset = (i-1) * (docp.dim_NLP_x*2 + docp.dim_NLP_u) + docp.dim_NLP_x
     return xu[offset+1]
 end
 function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint, <: ScalVect, VectVariable, <: ScalVect}, i)
+    # final time case
+    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
     offset = (i-1) * (docp.dim_NLP_x*2 + docp.dim_NLP_u) + docp.dim_NLP_x
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
@@ -102,10 +107,10 @@ end
 $(TYPEDSIGNATURES)
 
 Set initial guess for control variables at given time step
-Convention: 1 <= i <= dim_NLP_steps+1
+Convention: 1 <= i <= dim_NLP_steps
 """
 function set_control_at_time_step!(xu, u_init, docp::DOCP{Midpoint}, i)
-    if !isnothing(u_init)
+    if i <= docp.dim_NLP_steps && !isnothing(u_init)
         offset = (i-1) * (docp.dim_NLP_x*2 + docp.dim_NLP_u) + docp.dim_NLP_x
         xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
     end
@@ -118,7 +123,7 @@ Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
     
-    # NB. compare with version with everything in setStepcontraints
+    # NB. compare with version Midpoint2 with everything in setStepcontraints
 
     # use work array to store all dynamics + lagrange costs
     work = similar(xu, docp.dim_NLP_x * (docp.dim_NLP_steps))
@@ -135,7 +140,6 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
         tip1 = time_grid[i+1]
         xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
         ts = 0.5 * (ti + tip1)
-        # add a new getter ?
         if docp.dim_OCP_x == 1
             xs = 0.5 * (xi + xip1)
         else
