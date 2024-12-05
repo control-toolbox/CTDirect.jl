@@ -250,7 +250,8 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
             @views @. work_sumbk[1:docp.dim_NLP_x] = work_sumbk[1:docp.dim_NLP_x] + docp.discretization.butcher_b[j] * kij[1:docp.dim_NLP_x]
 
             # state at stage: x_i^j = x_i + h_i sum a_jl k_i^l
-            @. work_xij[1:docp.dim_OCP_x] = xi
+            # +++ still some allocations here
+            @views @. work_xij[1:docp.dim_OCP_x] = xi
             for l = 1:docp.discretization.stage
                 kil = get_stagevars_at_time_step(xu, docp, i, l)
                 @views @. work_xij[1:docp.dim_OCP_x] = work_xij[1:docp.dim_OCP_x] + hi * docp.discretization.butcher_a[j,l] * kil[1:docp.dim_OCP_x]
@@ -262,7 +263,7 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
             end
 
             # control at stage: interpolation between u_i and u_i+1 
-            # +++ use work aray to reduce allocs ? scal/vect problem, use work only for vect
+            # +++ use work aray to reduce allocs ?
             uij = get_OCP_control_at_time_stage(xu, docp, i, cj)
 
             # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f
