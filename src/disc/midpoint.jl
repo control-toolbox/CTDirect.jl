@@ -30,9 +30,6 @@ struct Midpoint <: Discretization
     end
 end
 
-# NB. some of these are actually the same as for IRK
-# later compare performance of this one vs the irk midpoint
-# and remove this one if no noticeable gain
 
 """
 $(TYPEDSIGNATURES)
@@ -165,12 +162,11 @@ Convention: 1 <= i <= dim_NLP_steps+1
 function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
    
     # offset for previous steps
-   offset = (i-1)*(docp.dim_NLP_x * 2 + docp.discretization._step_pathcons_block)
+   offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
 
    # 0. variables
    ti = time_grid[i]
    xi = get_OCP_state_at_time_step(xu, docp, i)
-   ui = get_OCP_control_at_time_step(xu, docp, i)
 
    # 1. state equation
    if i <= docp.dim_NLP_steps
@@ -196,7 +192,8 @@ function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
        offset += docp.dim_NLP_x
    end
    
-   # 2. path constraints (control, state, mixed)
+   # 2. path constraints
+   ui = get_OCP_control_at_time_step(xu, docp, i)
    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
     
 end

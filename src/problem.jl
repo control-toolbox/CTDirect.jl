@@ -371,13 +371,10 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     v = get_OCP_variable(xu, docp)
     work = setWorkArray(docp, xu, time_grid, v)
 
-    # main loop on time steps (NB. view on c block could be used with offset here) 
+    # main loop on time steps
     for i = 1:docp.dim_NLP_steps + 1
         setStepConstraints!(docp, c, xu, v, time_grid, i, work)
     end
-
-    # +++ split path constraints from above, call inside main loop and once at tf ?
-    # but then we'd have to call the getters for ti, xi, ui here...
 
     # point constraints (NB. view on c block could be used with offset here)
     setPointConstraints!(docp, c, xu, v)
@@ -393,9 +390,6 @@ $(TYPEDSIGNATURES)
 Set path constraints at given time step
 """
 function setPathConstraints!(docp, c, ti, xi, ui, v, offset)
-
-    #NB. offset could be recomputed locally and i passed instead
-    #offset = (i-1)*(docp.dim_NLP_x * (1+docp.discretization.stage) + docp.discretization._step_pathcons_block) + docp.dim_NLP_x * (1 + docp.discretization.stage)
 
     # control constraints
     if docp.dim_u_cons > 0

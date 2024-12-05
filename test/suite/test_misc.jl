@@ -21,18 +21,3 @@ if !isdefined(Main, :simple_integrator)
 end
 ocp = simple_integrator().ocp
 sol0 = direct_solve(ocp, display = false)
-
-# +++ remove those once functions are migrated to CTBase
-# test save / load solution in JLD2 format
-@testset verbose = true showtiming = true ":save_load :JLD2" begin
-    export_ocp_solution(sol0; filename_prefix = "solution_test")
-    sol_reloaded = import_ocp_solution(ocp; filename_prefix = "solution_test")
-    @test sol0.objective == sol_reloaded.objective
-end
-
-# test export / read solution in JSON format
-@testset verbose = true showtiming = true ":export_read :JSON" begin
-    export_ocp_solution(sol0; filename_prefix = "solution_test", format = :JSON)
-    sol_reloaded = import_ocp_solution(ocp; filename_prefix = "solution_test", format = :JSON)
-    @test sol0.objective == sol_reloaded.objective
-end
