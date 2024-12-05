@@ -62,7 +62,3 @@ function build_bounds(dim_var, dim_box, box_triplet)
     return x_lb, x_ub
 end
 
-
-# placeholders (see CTDirectExt) +++ can be removed if functions moved to ctbase
-function export_ocp_solution end
-function import_ocp_solution end

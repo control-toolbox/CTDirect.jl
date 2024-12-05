@@ -1,4 +1,4 @@
-println("Test: misc")
+println("testing: misc")
 
 @testset verbose = true ":default_direct" begin
     @test CTDirect.__grid_size() isa Integer
@@ -15,9 +15,3 @@ end
     @test CTDirect.__ipopt_linear_solver() isa String
 end
 
-# simple integrator min energy dual control
-if !isdefined(Main, :simple_integrator)
-    include("../problems/simple_integrator.jl")
-end
-ocp = simple_integrator().ocp
-sol0 = direct_solve(ocp, display = false)
