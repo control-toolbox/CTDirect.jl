@@ -3,7 +3,8 @@ println("testing: nlp options")
 if !isdefined(Main, :simple_integrator)
     include("../problems/simple_integrator.jl")
 end
-ocp = simple_integrator().ocp
+prob = simple_integrator()
+ocp = prob.ocp
 
 @testset verbose = true showtiming = true ":control_dim_2" begin
     @test is_solvable(ocp)
@@ -16,11 +17,11 @@ end
     solver_backend = CTDirect.IpoptBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = OptimalControlSolution(docp, dsol)
-    @test sol.objective ≈ 0.313 rtol = 1e-2
+    @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution)
-    @test sol.objective ≈ 0.313 rtol = 1e-2
+    @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    @test sol.objective ≈ 0.313 rtol = 1e-2
+    @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
 @testset verbose = true showtiming = true ":solve_docp :midpoint" begin
@@ -28,11 +29,11 @@ end
     solver_backend = CTDirect.IpoptBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = OptimalControlSolution(docp, dsol)
-    @test sol.objective ≈ 0.313 rtol = 1e-2
+    @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution)
-    @test sol.objective ≈ 0.313 rtol = 1e-2
+    @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    @test sol.objective ≈ 0.313 rtol = 1e-2
+    @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
 @testset verbose = true showtiming = true ":solve_docp :madnlp" begin
@@ -40,11 +41,11 @@ end
     solver_backend = CTDirect.MadNLPBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = OptimalControlSolution(docp, dsol)
-    @test sol.objective ≈ 0.313 rtol = 1e-2
+    @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution)
-    @test sol.objective ≈ 0.313 rtol = 1e-2
+    @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = OptimalControlSolution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    @test sol.objective ≈ 0.313 rtol = 1e-2
+    @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
 # check solution building

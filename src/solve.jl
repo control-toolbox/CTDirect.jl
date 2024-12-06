@@ -28,7 +28,7 @@ function direct_transcription(
 )
 
     # build DOCP
-    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=string(disc_method))
+    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
 
     # set bounds in DOCP
     variables_bounds!(docp)

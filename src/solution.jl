@@ -22,7 +22,7 @@ function CTBase.OptimalControlSolution(docp::DOCP, docp_solution)
         objective = objective,
         iterations = docp_solution.iter,
         constraints_violation = docp_solution.primal_feas,
-        message = String(docp_solution.solver_specific[:internal_msg][1]),
+        message = string(docp_solution.solver_specific[:internal_msg][1]),
         mult_LB = docp_solution.multipliers_L,
         mult_UB = docp_solution.multipliers_U,
     )
@@ -47,7 +47,7 @@ function CTBase.OptimalControlSolution(
 
     # time grid
     T = get_time_grid(primal, docp)
-    
+
     # recover primal variables
     X, U, v, box_multipliers =
         parse_DOCP_solution_primal(docp, primal, mult_LB = mult_LB, mult_UB = mult_UB)
@@ -84,7 +84,7 @@ function CTBase.OptimalControlSolution(
         message = message,
         constraints_types = constraints_types,
         constraints_mult = constraints_mult,
-        box_multipliers = box_multipliers,
+        box_multipliers = box_multipliers
     )
 end
 
@@ -108,12 +108,12 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     if isnothing(mult_UB) || length(mult_UB) == 0
         mult_UB = zeros(docp.dim_NLP_variables)
     end
-    mult_state_box_lower = zeros(N + 1, docp.dim_OCP_x)
-    mult_state_box_upper = zeros(N + 1, docp.dim_OCP_x)
-    mult_control_box_lower = zeros(N + 1, docp.dim_NLP_u)
-    mult_control_box_upper = zeros(N + 1, docp.dim_NLP_u)
-    mult_variable_box_lower = zeros(N + 1, docp.dim_NLP_v)
-    mult_variable_box_upper = zeros(N + 1, docp.dim_NLP_v)
+    mult_state_box_lower = zeros(size(X))
+    mult_state_box_upper = zeros(size(X))
+    mult_control_box_lower = zeros(size(U))
+    mult_control_box_upper = zeros(size(U))
+    mult_variable_box_lower = zeros(size(v))
+    mult_variable_box_upper = zeros(size(v))
 
     # retrieve optimization variables
     if docp.is_variable
@@ -122,19 +122,17 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
         mult_variable_box_upper = get_OCP_variable(mult_UB, docp)
     end
 
-    # loop over time steps
-    disc = docp.discretization
-    for i = 1:(N + 1)
-        # state and control variables at current step
+    # state variables and box multipliers
+    for i = 1:N+1
         X[i,:] .= get_OCP_state_at_time_step(solution, docp, i)
-        U[i,:] .= get_OCP_control_at_time_step(solution, docp, i)
-
-        # box multipliers
         mult_state_box_lower[i, :] .= get_OCP_state_at_time_step(mult_LB, docp, i)
         mult_state_box_upper[i, :] .= get_OCP_state_at_time_step(mult_UB, docp, i)
+    end
+    # control variables and box multipliers
+    for i = 1:N+1
+        U[i,:] .= get_OCP_control_at_time_step(solution, docp, i)
         mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(mult_LB, docp, i)
         mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(mult_UB, docp, i)
-
     end
 
     box_multipliers = (
@@ -153,6 +151,11 @@ Recover OCP costate and constraints multipliers from DOCP multipliers
 """
 function parse_DOCP_solution_dual(docp, multipliers, constraints)
 
+    # if called with multipliers = nothing, fill with zeros
+    if isnothing(multipliers)
+        multipliers = zeros(docp.dim_NLP_constraints)
+    end
+
     # constraints tuple: (state, control, mixed, variable, boundary)
     N = docp.dim_NLP_steps
     P = zeros(N, docp.dim_NLP_x)
@@ -164,37 +167,31 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
     dbc = dim_boundary_constraints(ocp)
     dvc = dim_variable_constraints(ocp)
 
-    sol_control_constraints = zeros(N + 1, dcc)
+    # constraints
     sol_state_constraints = zeros(N + 1, dsc)
-    sol_mixed_constraints = zeros(N + 1, dmc)
     sol_boundary_constraints = zeros(dbc)
     sol_variable_constraints = zeros(dvc)
+    sol_control_constraints = zeros(N + 1, dcc)
+    sol_mixed_constraints = zeros(N + 1, dmc)
 
-    mul_control_constraints = zeros(N + 1, dcc)
-    mul_state_constraints = zeros(N + 1, dsc)
-    mul_mixed_constraints = zeros(N + 1, dmc)
-    mul_boundary_constraints = zeros(dbc)
-    mul_variable_constraints = zeros(dvc)
-
-    # if called with multipliers = nothing, fill with zeros
-    if isnothing(multipliers)
-        multipliers = zeros(docp.dim_NLP_constraints)
-    end
+    # constraints multipliers
+    mul_control_constraints = zeros(size(sol_control_constraints))
+    mul_state_constraints = zeros(size(sol_state_constraints))
+    mul_mixed_constraints = zeros(size(sol_mixed_constraints))
+    mul_boundary_constraints = zeros(size(sol_boundary_constraints))
+    mul_variable_constraints = zeros(size(sol_variable_constraints))
 
     # loop over time steps
     i_c = 1
     i_m = 1
-    for i = 1:(N + 1)
+    for i = 1:N+1
 
-        # state equation multiplier for costate (except last step)
-        if i < N + 1
+        # state equation multiplier for costate
+        if i <= N
             P[i, :] = multipliers[i_m:(i_m + docp.dim_NLP_x - 1)]
-            # skip dynamics constraints
-            i_c += docp.dim_NLP_x
-            i_m += docp.dim_NLP_x
-            # skip stage constraints
-            i_c += docp.dim_NLP_x * docp.discretization.stage
-            i_m += docp.dim_NLP_x * docp.discretization.stage
+            # skip state / stage constraints
+            i_c += docp.discretization._state_stage_eqs_block
+            i_m += docp.discretization._state_stage_eqs_block
         end
 
         # path constraints and multipliers
