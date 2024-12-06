@@ -46,7 +46,7 @@ function bench(problem_list; verbose=2, nlp_solver, linear_solver, kwargs...)
 end
 
 
-function bench_series(;names_list = ["algal_bacterial", "beam", "fuller", "goddard", "jackson", "vanderpol"], grid_size_list = [100, 250, 500, 1000, 2000], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, kwargs...)
+function bench_series(;names_list = ["algal_bacterial", "beam", "fuller", "goddard", "jackson", "vanderpol"], grid_size_list = [100, 250, 500, 1000], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, kwargs...)
 
     #######################################################
     # set (non) linear solvers and backends
