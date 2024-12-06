@@ -1,0 +1,6 @@
+API description for Discretization methods
+
+- from docp.jl
+
+
+- from solution.jl

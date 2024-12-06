@@ -75,7 +75,7 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-#=@testset verbose = true showtiming = true ":double_integrator :trapeze :midpoint :gl2" begin
+@testset verbose = true showtiming = true ":double_integrator :trapeze :midpoint :gl2" begin
     prob = double_integrator_freet0tf()
     sol = direct_solve(prob.ocp, display = false, disc_method = :trapeze)
     @test sol.objective ≈ prob.obj rtol = 1e-2
@@ -85,7 +85,7 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
     @test sol.objective ≈ prob.obj rtol = 1e-2   
-end=#
+end
 
 @testset verbose = true showtiming = true ":goddard :trapeze :midpoint :gl2" begin
     prob = goddard_all()
