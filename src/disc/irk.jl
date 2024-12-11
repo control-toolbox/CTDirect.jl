@@ -8,6 +8,16 @@ Internal layout for NLP variables:
 with s the stage number and U given by linear interpolation in [t_i, t_i+1]
 NB. +++ could use constant interpolation for 1-stage methods (but U_N might end up unused)
 Path constraints are all evaluated at time steps
+
++++LATER: full stage version with both state and control discretized at stage times !
+path constraints are evaluated at stage times; add x0 and xf for boundary conditions
+[X0, X01..X0s, U01..U0s, K01..K0s, ..., XN-11..XN-1s, UN-11..UN-1s, KN-11..KN-1s, XN, V]
+add stage_grid to time_grid since all interpolations will now use the stages instead of steps
+notes: 
+- Kij are just f(Xij) and may be omitted (smaller problem but maybe more nonlinear) ?
+- however we have to enforce the equations on the Xij in which the Kij appear.
+- avoid recomputing f(Xij) multiple times, use work array if needed
+Start with Midpoint_fullstage in midpoint.jl ?
 =#
 
 
@@ -16,10 +26,10 @@ abstract type GenericIRK <: Discretization end
 """
 $(TYPEDSIGNATURES)
 
-Implicit Midpoint discretization, formulated as a generic IRK
+Implicit Midpoint discretization, formulated as a generic IRK (ie Gauss Legendre 1)
 NB. does not use the simplification xs = 0.5 * (xi + xip1) as in midpoint.jl
 """
-struct Midpoint_IRK <: GenericIRK
+struct Gauss_Legendre_1 <: GenericIRK
 
     info::String
     stage::Int
@@ -30,13 +40,13 @@ struct Midpoint_IRK <: GenericIRK
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
 
-    function Midpoint_IRK(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+    function Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         
         stage = 1
 
         step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
 
-        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", stage, hcat(0.5), [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block)
+        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable", stage, hcat(0.5), [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -64,7 +74,7 @@ struct Gauss_Legendre_2 <: GenericIRK
 
         step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints =  IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
 
-        disc = new("Implicit Gauss-Legendre collocation for s=2, 4th order, symplectic",stage,
+        disc = new("Implicit Gauss-Legendre collocation for s=2, 4th order, symplectic, A-stable",stage,
         [0.25 (0.25-sqrt(3) / 6); (0.25+sqrt(3) / 6) 0.25],
         [0.5, 0.5],
         [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
@@ -74,6 +84,43 @@ struct Gauss_Legendre_2 <: GenericIRK
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
 end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Gauss Legendre 3 discretization, formulated as a generic IRK
+"""
+struct Gauss_Legendre_3 <: GenericIRK
+
+    info::String
+    stage::Int
+    butcher_a::Matrix{Float64}
+    butcher_b::Vector{Float64}
+    butcher_c::Vector{Float64}
+    _step_variables_block::Int
+    _state_stage_eqs_block::Int
+    _step_pathcons_block::Int
+
+    function Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+        
+        stage = 3
+
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints =  IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
+
+        disc = new("Implicit Gauss-Legendre collocation for s=3, 6th order, symplectic, A-stable",stage,
+        [(5.0/36.0) (2/9 - sqrt(15) / 15) (5/36 - sqrt(15) / 30); 
+        (5.0/36.0 + sqrt(15) / 24) (2.0/9.0) (5.0/36.0 - sqrt(15) / 24); 
+        (5/36 + sqrt(15) / 30) (2/9 + sqrt(15) / 15) (5.0/36.0)],
+        [5.0/18.0, 4.0/9.0, 5.0/18.0],
+        [0.5 - 0.1*sqrt(15), 0.5, 0.5 + 0.1*sqrt(15)],
+        step_variables_block, state_stage_eqs_block, step_pathcons_block
+        )
+
+        return disc, dim_NLP_variables, dim_NLP_constraints
+    end
+end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -143,16 +190,26 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{ <: GenericIRK, <: ScalVect
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, ScalVariable, <: ScalVect}, i, cj)
-    # linear interpolation on step
-    ui = get_OCP_control_at_time_step(xu, docp, i)
-    uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
-    return (1 - cj) * ui + cj * uip1
+    if docp.discretization.stage == 1
+        # constant interpolation on step
+        return get_OCP_control_at_time_step(xu, docp, i)
+    else
+        # linear interpolation on step
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
+        return (1 - cj) * ui + cj * uip1
+    end
 end
 function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, VectVariable, <: ScalVect}, i, cj)
-    # linear interpolation on step
-    ui = get_OCP_control_at_time_step(xu, docp, i)
-    uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
-    return @views @. (1 - cj) * ui + cj * uip1
+    if docp.discretization.stage == 1
+        # constant interpolation on step
+        return get_OCP_control_at_time_step(xu, docp, i)
+    else
+        # linear interpolation on step
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
+        return @views @. (1 - cj) * ui + cj * uip1
+    end
 end
 
 

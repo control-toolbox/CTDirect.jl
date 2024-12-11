@@ -8,14 +8,16 @@ NB. stage variables are removed via the simplification x_s = (x_i + x_i+1) / 2
 struct Midpoint <: Discretization
 
     info::String
-    _step_pathcons_block::Int
+    _step_variables_block::Int
     _state_stage_eqs_block::Int
+    _step_pathcons_block::Int
 
     # constructor
     function Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
 
         # NLP variables size ([state, control]_1..N, final state, variable)
-        dim_NLP_variables = dim_NLP_steps * (dim_NLP_x + dim_NLP_u) + dim_NLP_x + dim_NLP_v
+        step_variables_block = dim_NLP_x + dim_NLP_u
+        dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
         
         # State equation
         state_stage_eqs_block = dim_NLP_x
@@ -26,7 +28,7 @@ struct Midpoint <: Discretization
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
 
-        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", step_pathcons_block, state_stage_eqs_block)
+        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", step_variables_block, state_stage_eqs_block, step_pathcons_block)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
