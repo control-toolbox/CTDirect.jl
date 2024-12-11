@@ -22,7 +22,7 @@ end
 
 
 
-function bench(problem_list; verbose=2, nlp_solver, linear_solver, kwargs...)
+function bench_list(problem_list; verbose=2, nlp_solver, linear_solver, kwargs...)
 
     #######################################################
     # solve examples with timer and objective check
@@ -46,7 +46,7 @@ function bench(problem_list; verbose=2, nlp_solver, linear_solver, kwargs...)
 end
 
 
-function bench_series(;names_list = ["algal_bacterial", "beam", "fuller", "goddard", "jackson", "vanderpol"], grid_size_list = [100, 250, 500, 1000], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, kwargs...)
+function bench(;grid_size_list = [100, 250, 500, 1000], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, series = :default, kwargs...)
 
     #######################################################
     # set (non) linear solvers and backends
@@ -62,20 +62,23 @@ function bench_series(;names_list = ["algal_bacterial", "beam", "fuller", "godda
     # blas backend (cf using MKL above, should be option...)
     verbose > 1 && @printf("Blas config: %s\n", LinearAlgebra.BLAS.lbt_get_config())
 
-
     # load problems for benchmark
+    if series == :default
+        names_list = ["algal_bacterial", "beam", "fuller", "goddard", "jackson", "vanderpol"]
+    end
+    println("Problem list: ", names_list)
     problem_list = []
     for problem_name in names_list
         ocp_data = getfield(Main, Symbol(problem_name))()
         push!(problem_list, ocp_data)
     end
 
-    println(grid_size_list)
+    println("Grid size list: ", grid_size_list)
     t_list = []
     for grid_size in grid_size_list
-        t = bench(problem_list; grid_size=grid_size, verbose=verbose, nlp_solver=nlp_solver, linear_solver=linear_solver, kwargs...)
+        t = bench_list(problem_list; grid_size=grid_size, verbose=verbose, nlp_solver=nlp_solver, linear_solver=linear_solver, kwargs...)
         append!(t_list, t)
         @printf("Grid size %d: time (s) = %6.1f\n", grid_size, t)
     end
-    #return t_list
+
 end

@@ -326,11 +326,10 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
             # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f
             # NB. we skip the state equation here, which will be set below
             docp.ocp.dynamics((@view c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_OCP_x]), tij, xij, uij, v)
-            @views @. c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_OCP_x] = kij[1:docp.dim_OCP_x] - c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_OCP_x]
             if docp.is_lagrange
                 docp.ocp.lagrange((@view c[offset+offset_stage_eqs+docp.dim_NLP_x:offset+offset_stage_eqs+docp.dim_NLP_x]), tij, xij, uij, v)
-                c[offset+offset_stage_eqs+docp.dim_NLP_x] = kij[docp.dim_NLP_x] - c[offset+offset_stage_eqs+docp.dim_NLP_x]
             end
+            @views @. c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_NLP_x] = kij - c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_NLP_x]
             offset_stage_eqs += docp.dim_NLP_x
 
         end
