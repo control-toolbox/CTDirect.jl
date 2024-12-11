@@ -4,13 +4,29 @@ if !isdefined(Main, :goddard)
     include("../problems/goddard.jl")
 end
 
-# constraints / multipliers check
+# ad hoc constraints / multipliers check
 check_constraint_mult = false
 
-# ad hoc check on goddard problem
-# NB. sign mismatch between p(tf) and multiplier for final constraints 
-# +++if possible fix ordering in OCP: initial THEN final constraints !
-if check_constraint_mult
+if !check_constraint_mult
+
+    # box constraints
+    @testset verbose = true showtiming = true ":goddard :box_constraints" begin
+        prob = goddard()
+        sol = direct_solve(prob.ocp, display = false)
+        @test sol.objective ≈ prob.obj rtol = 1e-2
+    end
+
+    # all constraints
+    @testset verbose = true showtiming = true ":goddard :all_constraints" begin
+        prob = goddard_all()
+        sol = direct_solve(prob.ocp, display = false, init = prob.init)
+        @test sol.objective ≈ prob.obj rtol = 1e-2
+    end
+
+else
+    # ad hoc check on goddard problem
+    # NB. sign mismatch between p(tf) and multiplier for final constraints 
+    # +++if possible fix ordering in OCP: initial THEN final constraints !
     using SplitApplyCombine
     pyplot()
 
@@ -99,19 +115,4 @@ if check_constraint_mult
         title = ["control cons" "" "state cons" "" "mixed cons" ""],
     )
 
-else
-
-    # box constraints
-    @testset verbose = true showtiming = true ":goddard :box_constraints" begin
-        ocp = goddard()
-        sol = direct_solve(ocp.ocp, display = false)
-        @test sol.objective ≈ ocp.obj rtol = 1e-2
-    end
-
-    # all constraints
-    @testset verbose = true showtiming = true ":goddard :all_constraints" begin
-        ocp = goddard_all()
-        sol = direct_solve(ocp.ocp, display = false, init = ocp.init)
-        @test sol.objective ≈ ocp.obj rtol = 1e-2
-    end
 end

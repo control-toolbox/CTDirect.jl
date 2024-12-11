@@ -59,16 +59,49 @@ end
 end
 
 # implicit midpoint scheme
-@testset verbose = true showtiming = true ":implicit_midpoint" begin
-    ocp = simple_integrator().ocp
-    sol_t = direct_solve(ocp, display = false)
-    sol_m = direct_solve(ocp, display = false, disc_method = "midpoint")
-    @test sol_m.objective ≈ sol_t.objective rtol = 1e-2 
+if !isdefined(Main, :goddard_all)
+    include("../problems/goddard.jl")
 end
 
-@testset verbose = true showtiming = true ":implicit_midpoint" begin
-    ocp = double_integrator_freet0tf().ocp
-    sol_t = direct_solve(ocp, display = false)
-    sol_m = direct_solve(ocp, display = false, disc_method = :midpoint)
-    @test sol_m.objective ≈ sol_t.objective rtol = 1e-2 
+@testset verbose = true showtiming = true ":simple_integrator :trapeze :midpoint :gl2" begin
+    prob = simple_integrator()
+    sol = direct_solve(prob.ocp, display = false, disc_method = :trapeze)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_1)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_3)
+    @test sol.objective ≈ prob.obj rtol = 1e-2 
 end
+
+@testset verbose = true showtiming = true ":double_integrator :trapeze :midpoint :gl2" begin
+    prob = double_integrator_freet0tf()
+    sol = direct_solve(prob.ocp, display = false, disc_method = :trapeze)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_1)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_3)
+    @test sol.objective ≈ prob.obj rtol = 1e-2  
+end
+
+@testset verbose = true showtiming = true ":goddard :trapeze :midpoint :gl2" begin
+    prob = goddard_all()
+    sol = direct_solve(prob.ocp, display = false, disc_method = :trapeze)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :midpoint)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_1)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method = :gauss_legendre_3)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end
+
