@@ -1,8 +1,9 @@
 #= Functions for implicit midpoint discretization scheme
 Internal layout for NLP variables: 
-[X_1,U_1, .., X_N,U_N, X_N+1, V]
+[X_1,U_1,K_1 .., X_N,U_N,K_N, X_N+1, V]
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N
-NB. stage variables are removed via the simplification x_s = (x_i + x_i+1) / 2
+NB. stage variables K_i can be removed via the simplification x_s = (x_i + x_i+1) / 2
+however this seems to give worse performance...
 =#
 
 struct Midpoint <: Discretization
@@ -11,19 +12,13 @@ struct Midpoint <: Discretization
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
-    _kvars::Bool
 
     # constructor
-    function Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons; kvars=false)
+    function Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
 
         # aux variables
-        if kvars
-            step_variables_block = dim_NLP_x * 2 + dim_NLP_u
-            state_stage_eqs_block = dim_NLP_x * 2
-        else
-            step_variables_block = dim_NLP_x + dim_NLP_u
-            state_stage_eqs_block = dim_NLP_x
-        end
+        step_variables_block = dim_NLP_x * 2 + dim_NLP_u
+        state_stage_eqs_block = dim_NLP_x * 2
 
         # NLP variables size ([state, control]_1..N, final state, variable)
         dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
@@ -34,7 +29,7 @@ struct Midpoint <: Discretization
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
 
-        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", step_variables_block, state_stage_eqs_block, step_pathcons_block, kvars)
+        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", step_variables_block, state_stage_eqs_block, step_pathcons_block)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -169,39 +164,21 @@ function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
             xs = work
         end
        
-        if docp.discretization._kvars
-            # state equation: midpoint rule
-            ki = get_stagevars_at_time_step(xu, docp, i, 1)
-            @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * ki[1:docp.dim_OCP_x])
-            if docp.is_lagrange
-            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * ki[docp.dim_NLP_x])
-            end
-            offset += docp.dim_NLP_x
-
-            # stage equation at mid step k_i = f(x_s)
-            docp.ocp.dynamics((@view c[offset+1:offset+docp.dim_OCP_x]), ts, xs, ui, v)
-            if docp.is_lagrange
-                docp.ocp.lagrange((@view c[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ts, xs, ui, v)
-            end            
-            @views @. c[offset+1:offset+docp.dim_NLP_x] = ki - c[offset+1:offset+docp.dim_NLP_x]
-            offset += docp.dim_NLP_x
-
-        else
-            # No stage variables, compute dynamics directly for state equation
-            # OCP dynamics
-            docp.ocp.dynamics((@view c[offset+1:offset+docp.dim_OCP_x]), ts, xs, ui, v)
-            # lagrange cost
-            if docp.is_lagrange
-                docp.ocp.lagrange((@view c[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ts, xs, ui, v)
-            end
-
-            # midpoint rule
-            @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * c[offset+1:offset+docp.dim_OCP_x])
-            if docp.is_lagrange
-            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * c[offset+docp.dim_NLP_x])
-            end
-            offset += docp.dim_NLP_x
+        # state equation: midpoint rule
+        ki = get_stagevars_at_time_step(xu, docp, i, 1)
+        @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * ki[1:docp.dim_OCP_x])
+        if docp.is_lagrange
+        c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * ki[docp.dim_NLP_x])
         end
+        offset += docp.dim_NLP_x
+
+        # stage equation at mid step k_i = f(x_s)
+        docp.ocp.dynamics((@view c[offset+1:offset+docp.dim_OCP_x]), ts, xs, ui, v)
+        if docp.is_lagrange
+            docp.ocp.lagrange((@view c[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ts, xs, ui, v)
+        end            
+        @views @. c[offset+1:offset+docp.dim_NLP_x] = ki - c[offset+1:offset+docp.dim_NLP_x]
+        offset += docp.dim_NLP_x
 
     end
    

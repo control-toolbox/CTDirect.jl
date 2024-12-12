@@ -33,7 +33,7 @@ if !isdefined(Main, :bolza_freetf)
 end
 prob = bolza_freetf()
 @testset verbose = true showtiming = true ":bolza :tf_in_dyn_and_cost" begin
-    sol = direct_solve(prob.ocp, display = false, grid_size=100)
+    sol = direct_solve(prob.ocp, display = false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
