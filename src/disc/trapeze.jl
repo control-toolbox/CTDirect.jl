@@ -11,14 +11,14 @@ struct Trapeze <: Discretization
     _state_stage_eqs_block::Int
 
     # constructor
-    function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+    function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
 
         # NLP variables size ([state, control]_1..N+1, variable)
         dim_NLP_variables = (dim_NLP_steps + 1) * (dim_NLP_x + dim_NLP_u) + dim_NLP_v
 
         # Path constraints (control, state, mixed)
         state_stage_eqs_block = dim_NLP_x
-        step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
+        step_pathcons_block = dim_path_cons
 
         # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons

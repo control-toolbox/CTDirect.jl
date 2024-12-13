@@ -32,17 +32,14 @@ struct DOCP{T <: Discretization}
     is_free_final_time::Bool
     is_lagrange::Bool
     is_mayer::Bool
-    is_variable::Bool
     is_maximization::Bool
 
     # dimensions
     dim_x_box::Int
     dim_u_box::Int
     dim_v_box::Int
-    dim_x_cons::Int
-    dim_u_cons::Int
-    dim_v_cons::Int
-    dim_xu_cons::Int
+    dim_path_cons::Int
+    dim_variable_cons::Int
     dim_boundary_cons::Int
 
     ## NLP  
@@ -91,58 +88,53 @@ struct DOCP{T <: Discretization}
         end
 
         # additional flags
-        is_free_initial_time = has_free_initial_time(ocp)
-        is_free_final_time = has_free_final_time(ocp)
-        is_lagrange = has_lagrange_cost(ocp)
-        is_mayer = has_mayer_cost(ocp)
-        is_variable = is_variable_dependent(ocp)
-        is_maximization = is_max(ocp)
+        is_free_initial_time = CTModels.has_free_initial_time(ocp)
+        is_free_final_time = CTModels.has_free_final_time(ocp)
+        is_lagrange = CTModels.has_lagrange_cost(ocp)
+        is_mayer = CTModels.has_mayer_cost(ocp)
+        is_maximization = CTModels.criterion(ocp) == :max
 
         # dimensions
         if is_lagrange
-            dim_NLP_x = ocp.state_dimension + 1
+            dim_NLP_x = CTModels.state_dimension(ocp) + 1
         else
-            dim_NLP_x = ocp.state_dimension
+            dim_NLP_x = CTModels.state_dimension(ocp)
         end
-        dim_NLP_u = ocp.control_dimension
-        if is_variable
-            dim_NLP_v = ocp.variable_dimension
-        else
-            dim_NLP_v = 0 # dim in ocp would be Nothing
-        end
-        dim_OCP_x = ocp.state_dimension
+        dim_NLP_u = CTModels.control_dimension(ocp)
+        dim_NLP_v = CTModels.variable_dimension(ocp)
+        dim_OCP_x = CTModels.state_dimension(ocp)
 
         # times
         if is_free_initial_time || is_free_final_time
             # time grid will be recomputed at each NLP iteration
             NLP_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
         else
-            # compute time grid once for all 
-            NLP_time_grid = @. fixed_initial_time + (NLP_normalized_time_grid * (fixed_final_time - fixed_initial_time))
+            # compute time grid once for all
+            t0 = CTModels.initial_time(ocp)
+            tf = CTModels.final_time(ocp)
+            NLP_time_grid = @. t0 + (NLP_normalized_time_grid * (tf - t0))
         end
 
-        # NLP constraints 
+        # NLP constraints +++ could be done in Model ?
         # parse NLP constraints (and initialize dimensions)
         path_constraints,
-        boundary_constraints,
         variable_constraints,
-        control_box,
+        boundary_constraints,
         state_box,
-        variable_box = CTModels.constraints!(ocp)
+        control_box,
+        variable_box = CTModels.constraints(ocp)
 
         # get dimensions
-        dim_x_box = dim_state_range(ocp)
-        dim_u_box = dim_control_range(ocp)
-        dim_v_box = dim_variable_range(ocp)
-        dim_x_cons = dim_state_constraints(ocp)
-        dim_u_cons = dim_control_constraints(ocp)
-        dim_v_cons = dim_variable_constraints(ocp)
-        dim_xu_cons = dim_mixed_constraints(ocp)
-        dim_boundary_cons = dim_boundary_constraints(ocp)
+        dim_x_box = CTModels.dim_state_cons_box(ocp)
+        dim_u_box = CTModels.dim_control_cons_box(ocp)
+        dim_v_box = CTModels.dim_variable_cons_box(ocp)
+        dim_path_cons = CTModels.dim_path_cons_nl(ocp)
+        dim_boundary_cons = CTModels.dim_boundary_cons_nl(ocp)
+        dim_variable_cons = CTModels.dim_variable_cons_nl(ocp)
 
         # parameter: discretization method
         if disc_method == :trapeze
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_variable_cons)
         #=elseif disc_method == :midpoint
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_1
@@ -163,9 +155,7 @@ struct DOCP{T <: Discretization}
         # call constructor with const fields
         docp = new{typeof(discretization)}(
             ocp,
-            control_constraints,
-            state_constraints,
-            mixed_constraints,
+            path_constraints,
             boundary_constraints,
             variable_constraints,
             control_box,
@@ -175,15 +165,12 @@ struct DOCP{T <: Discretization}
             is_free_final_time,
             is_lagrange,
             is_mayer,
-            is_variable,
             is_maximization,
             dim_x_box,
             dim_u_box,
             dim_v_box,
-            dim_x_cons,
-            dim_u_cons,
-            dim_v_cons,
-            dim_xu_cons,
+            dim_path_cons,
+            dim_variable_cons,
             dim_boundary_cons,
             dim_NLP_x,
             dim_NLP_u,
