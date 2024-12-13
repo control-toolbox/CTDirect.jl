@@ -6,18 +6,8 @@ Internal layout for NLP variables:
  X_N-1, U_N-1, K_N-1^1..K_N-1^s,
  X_N, U_N, V]
 with s the stage number and U given by linear interpolation in [t_i, t_i+1]
-NB. +++ could use constant interpolation for 1-stage methods (but U_N might end up unused)
+NB. 1-stage methods use constant interpolation instead (but U_N might end up unused)
 Path constraints are all evaluated at time steps
-
-+++LATER: full stage version with both state and control discretized at stage times !
-path constraints are evaluated at stage times; add x0 and xf for boundary conditions
-[X0, X01..X0s, U01..U0s, K01..K0s, ..., XN-11..XN-1s, UN-11..UN-1s, KN-11..KN-1s, XN, V]
-add stage_grid to time_grid since all interpolations will now use the stages instead of steps
-notes: 
-- Kij are just f(Xij) and may be omitted (smaller problem but maybe more nonlinear) ?
-- however we have to enforce the equations on the Xij in which the Kij appear.
-- avoid recomputing f(Xij) multiple times, use work array if needed
-Start with Midpoint_fullstage in midpoint.jl ?
 =#
 
 

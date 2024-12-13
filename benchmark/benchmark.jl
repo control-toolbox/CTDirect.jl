@@ -34,19 +34,20 @@ function bench_list(problem_list; verbose=2, nlp_solver, linear_solver, kwargs..
         if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
             error("Objective mismatch for ",problem[:name],": ",sol.objective," instead of ",problem[:obj])
         else
-            verbose > 1 && @printf("%-30s completed after %4d iterations\n", problem[:name], sol.iterations)
+            verbose > 1 && @printf("%-30s: %4d iter ", problem[:name], sol.iterations)
         end
 
         # time
         t = @belapsed direct_solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, $kwargs...)
         append!(t_list, t)
+        verbose > 1 && @printf("%7.2f s\n", t)
     end
 
     return sum(t_list)
 end
 
 
-function bench(;grid_size_list = [100, 250, 500, 1000], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, series = :default, kwargs...)
+function bench(;grid_size_list = [250, 500, 1000, 2500], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, names_list = :default, kwargs...)
 
     #######################################################
     # set (non) linear solvers and backends
@@ -63,8 +64,12 @@ function bench(;grid_size_list = [100, 250, 500, 1000], verbose = 1, nlp_solver=
     verbose > 1 && @printf("Blas config: %s\n", LinearAlgebra.BLAS.lbt_get_config())
 
     # load problems for benchmark
-    if series == :default
-        names_list = ["algal_bacterial", "beam", "fuller", "goddard", "jackson", "vanderpol"]
+    if names_list == :default
+        names_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "jackson", "robbins", "simple_integrator", "vanderpol"]
+    elseif names_list == :all 
+        names_list = ["algal_bacterial", "beam", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "insurance", "jackson", "robbins", "simple_integrator", "swimmer", "vanderpol"]
+    elseif names_list == :hard
+        names_list = ["algal_bacterial", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "goddard_all", "insurance", "swimmer"]
     end
     println("Problem list: ", names_list)
     problem_list = []

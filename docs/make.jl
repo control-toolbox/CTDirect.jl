@@ -5,7 +5,6 @@ using CTBase
 
 using NLPModelsIpopt
 using HSL
-using Plots
 
 # to add docstrings from external packages
 DocMeta.setdocmeta!(CTBase, :DocTestSetup, :(using CTBase); recursive = true)

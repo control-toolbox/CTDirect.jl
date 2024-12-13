@@ -6,6 +6,8 @@ function bolza_freetf()
         t ∈ [0, tf], time
         x ∈ R, state
         u ∈ R, control
+        tf >= 0.1
+        x(t) >= 0
         ẋ(t) == tf * u(t)
         x(0) == 0
         x(tf) == 1

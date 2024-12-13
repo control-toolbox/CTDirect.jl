@@ -20,7 +20,7 @@ end
 
 
 # min energy with fixed tf
-function double_integrator_minenergy(T)
+function double_integrator_minenergy(T=2)
     @def ocp begin
         t ∈ [0, T], time
         x ∈ R², state

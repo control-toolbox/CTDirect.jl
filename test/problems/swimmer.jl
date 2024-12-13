@@ -2,9 +2,8 @@
 
 # +++ make 2 versions: 1 stroke periodic and free N strokes
 
-function swimmer()
+function swimmer(tf = 25)
     @def swimmer begin
-        tf = 25
         t ∈ [0, tf], time
         x ∈ R^5, state
         u ∈ R^2, control
@@ -31,8 +30,8 @@ function swimmer()
         th = x[3](t)
         b1 = x[4](t)
         b3 = x[5](t)
-        u1 = u[1](t)
-        u2 = u[2](t)
+        a1 = u[1](t)
+        a2 = u[2](t)
 
         aux =
             543 +
@@ -126,9 +125,9 @@ function swimmer()
                 2 * cos(2 * b3) - 6 * cos(b1 + b3) - 6 * cos(2 * b1 + b3)
             ) / (2 * aux)
 
-        ẋ(t) == [g11 * u1 + g21 * u2, g12 * u1 + g22 * u2, g13 * u1 + g23 * u2, u1, u2]
+        ẋ(t) == [g11 * a1 + g21 * a2, g12 * a1 + g22 * a2, g13 * a1 + g23 * a2, a1, a2]
         x[1](tf) → max
-        #∫(u1^2 + u2^2) → min
+        #∫(a1^2 + a2^2) → min
     end
 
     return ((ocp = swimmer, obj = 0.984273, name = "swimmer", init = nothing))
