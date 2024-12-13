@@ -30,10 +30,13 @@ struct Trapeze <: Discretization
 end
 
 # not only for Trapeze, but may be redefined if needed
-function get_OCP_variable(xu, docp::DOCP{<: Discretization, <: ScalVect, <: ScalVect, ScalVariable})
-    return xu[docp.dim_NLP_variables]
-end
-function get_OCP_variable(xu, docp::DOCP{<: Discretization, <: ScalVect, <: ScalVect, VectVariable})
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve scalar optimization variables from the NLP variables.
+Vector output
+"""
+function get_OCP_variable(xu, docp::DOCP{<: Discretization})
     return @view xu[(docp.dim_NLP_variables - docp.dim_NLP_v + 1):docp.dim_NLP_variables]
 end
 
@@ -43,13 +46,9 @@ $(TYPEDSIGNATURES)
 
 Retrieve state variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
-Scalar / Vector output
+Vector output
 """
-function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze, ScalVariable, <: ScalVect, <: ScalVect}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    return xu[offset+1]
-end
-function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze, VectVariable, <: ScalVect, <: ScalVect}, i)
+function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
     return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
 end
@@ -68,13 +67,9 @@ $(TYPEDSIGNATURES)
 
 Retrieve control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
-Scalar / Vector output
+Vector output
 """
-function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, ScalVariable, <: ScalVect}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
-    return xu[offset+1]
-end
-function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, VectVariable, <: ScalVect}, i)
+function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
     offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end

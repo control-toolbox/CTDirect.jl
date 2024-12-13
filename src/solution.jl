@@ -252,14 +252,14 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
 end
 
 
-# +++ move this one to CTBase ? (aqua flags a type piracy since we don't have arguments DOCP specific types)
+# +++ see new constructor in CTModels !
 """
 $(TYPEDSIGNATURES)
     
 Build OCP functional solution from DOCP vector solution (given as raw variables and multipliers plus some optional infos)
 """
 function CTBase.OptimalControlSolution(
-    ocp::OptimalControlModel,
+    ocp::CTModels.Model,
     T,
     X,
     U,

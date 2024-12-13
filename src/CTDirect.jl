@@ -1,12 +1,12 @@
 module CTDirect
 
-using CTBase # later import CTBase and import CTModels
+import CTBase
+import CTModels
+
 using DocStringExtensions
 using ADNLPModels               # docp model with AD
 using LinearAlgebra             # norm and misc
 using HSL
-
-import CTBase: OptimalControlSolution, CTBase   # extended
 
 # other declarations
 const matrix2vec = CTBase.matrix2vec
@@ -15,9 +15,9 @@ const matrix2vec = CTBase.matrix2vec
 include("utils.jl")
 include("default.jl")
 include("docp.jl")
-include("disc/midpoint.jl")
+#include("disc/midpoint.jl")
 include("disc/trapeze.jl")
-include("disc/irk.jl")
+#include("disc/irk.jl")
 include("solution.jl")
 include("solve.jl")
 

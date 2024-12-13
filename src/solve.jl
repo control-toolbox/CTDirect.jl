@@ -19,7 +19,7 @@ $(TYPEDSIGNATURES)
 Discretize an optimal control problem into a nonlinear optimization problem (ie direct transcription)
 """
 function direct_transcription(
-    ocp::OptimalControlModel,
+    ocp::CTModels.Model,
     description...;
     init = CTBase.__ocp_init(),
     grid_size = __grid_size(),
@@ -84,7 +84,7 @@ $(TYPEDSIGNATURES)
 Solve an OCP with a direct method
 """
 function direct_solve(
-    ocp::OptimalControlModel,
+    ocp::CTModels.Model,
     description::Symbol...;
     init = CTBase.__ocp_init(),
     grid_size::Int = CTDirect.__grid_size(),

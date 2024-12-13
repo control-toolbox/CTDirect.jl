@@ -2,10 +2,6 @@
 
 # generic discretization
 abstract type Discretization end
-abstract type ArgsAtStep end
-abstract type ScalVect end
-struct ScalVariable <: ScalVect end
-struct VectVariable <: ScalVect end
 
 """
 $(TYPEDSIGNATURES)
@@ -16,10 +12,10 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
+struct DOCP{T <: Discretization}
 
     ## OCP
-    ocp::OptimalControlModel # remove at some point ?
+    ocp::CTModels.Model
 
     # constraints and their bounds
     control_constraints::Any
@@ -38,12 +34,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     is_mayer::Bool
     is_variable::Bool
     is_maximization::Bool
-
-    # initial / final time
-    fixed_initial_time::Float64
-    fixed_final_time::Float64
-    index_initial_time::Index
-    index_final_time::Index
 
     # dimensions
     dim_x_box::Int
@@ -75,13 +65,8 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     # discretization scheme
     discretization::T
 
-    # scalar / vector aux function
-    _type_x::X
-    _type_u::U  
-    _type_v::V
-
     # constructor
-    function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method())
+    function DOCP(ocp::CTModels.Model; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method())
 
         # time grid
         if time_grid == nothing
@@ -128,22 +113,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         dim_OCP_x = ocp.state_dimension
 
         # times
-        # use 2 different variables for value / index (type stability)
-        if is_free_initial_time
-            index_initial_time = ocp.initial_time
-            fixed_initial_time = 0. # unused
-        else
-            fixed_initial_time = ocp.initial_time
-            index_initial_time = Index(1) # unused
-        end
-        if is_free_final_time
-            index_final_time = ocp.final_time
-            fixed_final_time = 0. # unused
-        else
-            fixed_final_time = ocp.final_time
-            index_final_time = Index(1) # unused
-        end
-
         if is_free_initial_time || is_free_final_time
             # time grid will be recomputed at each NLP iteration
             NLP_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
@@ -154,14 +123,12 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
 
         # NLP constraints 
         # parse NLP constraints (and initialize dimensions)
-        control_constraints,
-        state_constraints,
-        mixed_constraints,
+        path_constraints,
         boundary_constraints,
         variable_constraints,
         control_box,
         state_box,
-        variable_box = CTBase.nlp_constraints!(ocp)
+        variable_box = CTModels.constraints!(ocp)
 
         # get dimensions
         dim_x_box = dim_state_range(ocp)
@@ -176,14 +143,14 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         # parameter: discretization method
         if disc_method == :trapeze
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
-        elseif disc_method == :midpoint
+        #=elseif disc_method == :midpoint
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_1
                 discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_2
                 discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_3
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)                                 
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)=#                                 
         else           
             error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :gauss_legendre_1, :gauss_legendre_2, :gauss_legendre_3}\n", typeof(disc_method))
         end
@@ -193,13 +160,8 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             dim_NLP_constraints += 1
         end
 
-        # parameters: scalar / vector for state, control, variable 
-        dim_OCP_x == 1 ? _type_x = ScalVariable() : _type_x = VectVariable()
-        dim_NLP_u == 1 ? _type_u = ScalVariable() : _type_u = VectVariable()
-        dim_NLP_v == 1 ? _type_v = ScalVariable() : _type_v = VectVariable()
-
         # call constructor with const fields
-        docp = new{typeof(discretization), typeof(_type_x), typeof(_type_u), typeof(_type_v)}(
+        docp = new{typeof(discretization)}(
             ocp,
             control_constraints,
             state_constraints,
@@ -215,10 +177,6 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             is_mayer,
             is_variable,
             is_maximization,
-            fixed_initial_time,
-            fixed_final_time,
-            index_initial_time,
-            index_final_time,
             dim_x_box,
             dim_u_box,
             dim_v_box,
@@ -240,10 +198,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             Inf * ones(dim_NLP_variables),
             zeros(dim_NLP_constraints),
             zeros(dim_NLP_constraints),
-            discretization,
-            _type_x,
-            _type_u,
-            _type_v
+            discretization
         )
 
         return docp
@@ -509,7 +464,7 @@ $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalControlInit())
+function DOCP_initial_guess(docp::DOCP, init::CTBase.OptimalControlInit = OptimalControlInit())
 
     # default initialization (internal variables such as lagrange cost, k_i for RK schemes) will keep these default values 
     NLP_X = 0.1 * ones(docp.dim_NLP_variables)
