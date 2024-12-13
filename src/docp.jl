@@ -12,15 +12,13 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T <: Discretization}
+struct DOCP{T <: Discretization, O <: CTModels.Model}
 
     ## OCP
-    ocp::CTModels.Model
+    ocp::O
 
     # constraints and their bounds
-    control_constraints::Any
-    state_constraints::Any
-    mixed_constraints::Any
+    path_constraints::Any
     boundary_constraints::Any
     variable_constraints::Any
     control_box::Any
@@ -136,13 +134,13 @@ struct DOCP{T <: Discretization}
         if disc_method == :trapeze
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_variable_cons)
         #=elseif disc_method == :midpoint
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_variable_cons)
         elseif disc_method == :gauss_legendre_1
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_variable_cons)
         elseif disc_method == :gauss_legendre_2
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_variable_cons)
         elseif disc_method == :gauss_legendre_3
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)=#                                 
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_variable_cons)=#                                 
         else           
             error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :gauss_legendre_1, :gauss_legendre_2, :gauss_legendre_3}\n", typeof(disc_method))
         end
@@ -153,7 +151,7 @@ struct DOCP{T <: Discretization}
         end
 
         # call constructor with const fields
-        docp = new{typeof(discretization)}(
+        docp = new{typeof(discretization), typeof(ocp)}(
             ocp,
             path_constraints,
             boundary_constraints,
@@ -250,7 +248,7 @@ function variables_bounds!(docp::DOCP)
     end
 
     # variable box
-    if docp.is_variable
+    if docp.dim_NLP_v > 0
         v_lb, v_ub = build_bounds(docp.dim_NLP_v, docp.dim_v_box, docp.variable_box)
         set_optim_variable!(var_l, v_lb, docp)
         set_optim_variable!(var_u, v_ub, docp)
@@ -333,23 +331,11 @@ Set path constraints at given time step
 """
 function setPathConstraints!(docp, c, ti, xi, ui, v, offset)
 
-    # control constraints
-    if docp.dim_u_cons > 0
-        docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
-        offset += docp.dim_u_cons
+    if docp.dim_path_cons > 0
+        docp.path_constraints[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
+        offset += docp.dim_path_cons
     end
 
-    # state constraints
-    if docp.dim_x_cons > 0 
-        docp.state_constraints[2]((@view c[offset+1:offset+docp.dim_x_cons]),ti, xi, v)
-        offset += docp.dim_x_cons
-    end
-
-    # mixed constraints
-    if docp.dim_xu_cons > 0
-        docp.mixed_constraints[2]((@view c[offset+1:offset+docp.dim_xu_cons]), ti, xi, ui, v)
-        offset += docp.dim_xu_cons
-    end
 end
 
 """
@@ -359,28 +345,13 @@ Set bounds for the path constraints at given time step
 """
 function setPathBounds!(docp::DOCP, index::Int, lb, ub)
 
-    # pure control constraints
-    if docp.dim_u_cons > 0
-        lb[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[1]
-        ub[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[3]
-        index = index + docp.dim_u_cons
+    if docp.dim_path_cons > 0
+        lb[index:(index + docp.dim_path_cons - 1)] = docp.path_constraints[1]
+        ub[index:(index + docp.dim_path_cons - 1)] = docp.path_constraints[3]
+        index = index + docp.dim_path_cons
     end
-
-    # pure state constraints
-    if docp.dim_x_cons > 0
-        lb[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[1]
-        ub[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[3]
-        index = index + docp.dim_x_cons
-    end
-
-    # mixed state / control constraints
-    if docp.dim_xu_cons > 0
-        lb[index:(index + docp.dim_xu_cons - 1)] = docp.mixed_constraints[1]
-        ub[index:(index + docp.dim_xu_cons - 1)] = docp.mixed_constraints[3]
-        index = index + docp.dim_xu_cons
-    end
-
     return index
+
 end
 
 """
@@ -403,13 +374,13 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     end
 
     # variable constraints
-    if docp.dim_v_cons > 0
-        docp.variable_constraints[2]((@view c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons]), v)
+    if docp.dim_variable_cons > 0
+        docp.variable_constraints[2]((@view c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_variable_cons]), v)
     end
 
     # null initial condition for lagrangian cost state
     if docp.is_lagrange
-        c[offset+docp.dim_boundary_cons+docp.dim_v_cons+1] = get_lagrange_state_at_time_step(xu, docp, 1)
+        c[offset+docp.dim_boundary_cons+docp.dim_variable_cons+1] = get_lagrange_state_at_time_step(xu, docp, 1)
     end
 end
 
@@ -430,10 +401,10 @@ function setPointBounds!(docp::DOCP, index::Int, lb, ub)
     end
 
     # variable constraints
-    if docp.dim_v_cons > 0
-        lb[index:(index + docp.dim_v_cons - 1)] = docp.variable_constraints[1]
-        ub[index:(index + docp.dim_v_cons - 1)] = docp.variable_constraints[3]
-        index = index + docp.dim_v_cons
+    if docp.dim_variable_cons > 0
+        lb[index:(index + docp.dim_variable_cons - 1)] = docp.variable_constraints[1]
+        ub[index:(index + docp.dim_variable_cons - 1)] = docp.variable_constraints[3]
+        index = index + docp.dim_variable_cons
     end
 
     # null initial condition for lagrangian cost state
@@ -451,7 +422,7 @@ $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function DOCP_initial_guess(docp::DOCP, init::CTBase.OptimalControlInit = OptimalControlInit())
+function DOCP_initial_guess(docp::DOCP, init::CTBase.OptimalControlInit = CTBase.OptimalControlInit())
 
     # default initialization (internal variables such as lagrange cost, k_i for RK schemes) will keep these default values 
     NLP_X = 0.1 * ones(docp.dim_NLP_variables)

@@ -116,10 +116,10 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
         xi = get_OCP_state_at_time_step(xu, docp, i)
         ui = get_OCP_control_at_time_step(xu, docp, i)
         # OCP dynamics
-        docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), ti, xi, ui, v)
+        CTModels.dynamics(docp.ocp)((@view work[offset+1:offset+docp.dim_OCP_x]), ti, xi, ui, v)
         # lagrange cost
         if docp.is_lagrange
-            docp.ocp.lagrange((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ti, xi, ui, v)
+            CTModels.lagrange(docp.ocp)((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ti, xi, ui, v)
         end
     end
     return work

@@ -8,8 +8,8 @@ Return the list of available methods to solve the optimal control problem.
 function available_methods()
     # available methods by order of preference
     algorithms = ()
-    algorithms = add(algorithms, (:adnlp, :ipopt))
-    algorithms = add(algorithms, (:adnlp, :madnlp))
+    algorithms = CTBase.add(algorithms, (:adnlp, :ipopt))
+    algorithms = CTBase.add(algorithms, (:adnlp, :madnlp))
     return algorithms
 end
 
@@ -37,11 +37,11 @@ function direct_transcription(
     # set initial guess
     x0 = DOCP_initial_guess(
         docp,
-        OptimalControlInit(
+        CTBase.OptimalControlInit(
             init,
-            state_dim = ocp.state_dimension,
-            control_dim = ocp.control_dimension,
-            variable_dim = ocp.variable_dimension,
+            state_dim = CTModels.state_dimension(ocp),
+            control_dim = CTModels.control_dimension(ocp),
+            variable_dim = CTModels.variable_dimension(ocp),
         ),
     )
 
@@ -71,9 +71,9 @@ function set_initial_guess(docp::DOCP, nlp, init)
         docp,
         OptimalControlInit(
             init,
-            state_dim = ocp.state_dimension,
-            control_dim = ocp.control_dimension,
-            variable_dim = ocp.variable_dimension,
+            state_dim = CTModels.state_dimension(ocp),
+            control_dim = CTModels.control_dimension(ocp),
+            variable_dim = CTModels.variable_dimension(ocp),
         ),
     )
 end
@@ -92,7 +92,7 @@ function direct_solve(
     disc_method = __disc_method(),
     kwargs...,
 )
-    method = getFullDescription(description, available_methods())
+    method = CTBase.getFullDescription(description, available_methods())
 
     # build discretized OCP, including initial guess
     docp, nlp = direct_transcription(
@@ -115,7 +115,7 @@ function direct_solve(
     docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp; kwargs...)
 
     # build and return OCP solution
-    return OptimalControlSolution(docp, docp_solution)
+    #return OptimalControlSolution(docp, docp_solution)
 end
 
 # placeholders (see CTSolveExt*** extensions)
@@ -126,5 +126,5 @@ struct MadNLPBackend <: AbstractSolverBackend end
 weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP)
 
 function solve_docp(solver_backend::T, args...; kwargs...) where {T <: AbstractSolverBackend}
-    throw(ExtensionError(weakdeps[T]))
+    throw(CTBase.ExtensionError(weakdeps[T]))
 end
