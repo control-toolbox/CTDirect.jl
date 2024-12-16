@@ -7,6 +7,13 @@ using JET
 using Profile
 using PProf
 
+# beam
+
+# jackson
+
+# robbins
+
+# vanderpol
 
 # define problem with new model: simple integrator
 function simple_integrator_model()

@@ -447,6 +447,7 @@ end
 # time grid
 # +++ forcing variable type even for fixed tf reduces allocations for constraints
 # but is worse for AD and solving overall...
+# we still have lots of runtime dispatch here even in fixed times case -_-
 function get_time_grid(xu, docp)
 
     #time_grid = similar(xu, docp.dim_NLP_steps+1)
