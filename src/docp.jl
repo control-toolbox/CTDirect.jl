@@ -15,21 +15,21 @@ Contains:
 struct DOCP{T <: Discretization, O <: CTModels.Model}
 
     ## OCP
-    ocp::O
+    ocp::O # parametric instead of just typing reduces allocations (but not time). Specialization ?
 
     # constraints and their bounds
-    path_constraints::Any
-    boundary_constraints::Any
-    variable_constraints::Any
+    path_constraints
+    boundary_constraints
+    variable_constraints #+++ redundant with v box and / or bc ?
     control_box::Any
     state_box::Any
     variable_box::Any
 
     # flags
-    is_free_initial_time::Bool
-    is_free_final_time::Bool
-    is_lagrange::Bool
-    is_mayer::Bool
+    has_free_initial_time::Bool
+    has_free_final_time::Bool
+    has_lagrange::Bool
+    has_mayer::Bool
     is_maximization::Bool
 
     # dimensions
@@ -86,14 +86,14 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
         end
 
         # additional flags
-        is_free_initial_time = CTModels.has_free_initial_time(ocp)
-        is_free_final_time = CTModels.has_free_final_time(ocp)
-        is_lagrange = CTModels.has_lagrange_cost(ocp)
-        is_mayer = CTModels.has_mayer_cost(ocp)
+        has_free_initial_time = CTModels.has_free_initial_time(ocp)
+        has_free_final_time = CTModels.has_free_final_time(ocp)
+        has_lagrange = CTModels.has_lagrange_cost(ocp)
+        has_mayer = CTModels.has_mayer_cost(ocp)
         is_maximization = CTModels.criterion(ocp) == :max
 
         # dimensions
-        if is_lagrange
+        if has_lagrange
             dim_NLP_x = CTModels.state_dimension(ocp) + 1
         else
             dim_NLP_x = CTModels.state_dimension(ocp)
@@ -103,14 +103,14 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
         dim_OCP_x = CTModels.state_dimension(ocp)
 
         # times
-        if is_free_initial_time || is_free_final_time
-            # time grid will be recomputed at each NLP iteration
-            NLP_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
-        else
+        if !has_free_initial_time && !has_free_final_time
             # compute time grid once for all
             t0 = CTModels.initial_time(ocp)
             tf = CTModels.final_time(ocp)
             NLP_time_grid = @. t0 + (NLP_normalized_time_grid * (tf - t0))
+        else
+            # time grid will be recomputed at each NLP iteration
+            NLP_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
         end
 
         # NLP constraints +++ could be done in Model ?
@@ -146,12 +146,13 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
         end
 
         # add initial condition for lagrange state
-        if is_lagrange
+        if has_lagrange
             dim_NLP_constraints += 1
         end
 
         # call constructor with const fields
-        docp = new{typeof(discretization), typeof(ocp)}(
+        #docp = new{typeof(discretization), typeof(ocp), typeof(path_constraints), typeof(boundary_constraints), typeof(variable_constraints)}(
+        docp = new{typeof(discretization), typeof(ocp)}(          
             ocp,
             path_constraints,
             boundary_constraints,
@@ -159,10 +160,10 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
             control_box,
             state_box,
             variable_box,
-            is_free_initial_time,
-            is_free_final_time,
-            is_lagrange,
-            is_mayer,
+            has_free_initial_time,
+            has_free_final_time,
+            has_lagrange,
+            has_mayer,
             is_maximization,
             dim_x_box,
             dim_u_box,
@@ -276,14 +277,14 @@ function DOCP_objective(xu, docp::DOCP)
     xf = get_OCP_state_at_time_step(xu, docp, N+1)
 
     # mayer cost
-    if docp.is_mayer
+    if docp.has_mayer
         x0 = get_OCP_state_at_time_step(xu, docp, 1)
-        docp.ocp.mayer(obj, x0, xf, v)
+        CTModels.mayer(docp.ocp)(obj, x0, xf, v)
     end
 
     # lagrange cost
-    if docp.is_lagrange
-        if docp.is_mayer # NB can this actually happen in OCP (cf bolza) ?
+    if docp.has_lagrange
+        if docp.has_mayer # NB can this actually happen in OCP (cf bolza) ?
             obj[1] = obj[1] + get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
         else
             obj[1] = get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
@@ -379,7 +380,7 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     end
 
     # null initial condition for lagrangian cost state
-    if docp.is_lagrange
+    if docp.has_lagrange
         c[offset+docp.dim_boundary_cons+docp.dim_variable_cons+1] = get_lagrange_state_at_time_step(xu, docp, 1)
     end
 end
@@ -408,7 +409,7 @@ function setPointBounds!(docp::DOCP, index::Int, lb, ub)
     end
 
     # null initial condition for lagrangian cost state
-    if docp.is_lagrange
+    if docp.has_lagrange
         lb[index] = 0.0
         ub[index] = 0.0
         index = index + 1
@@ -441,4 +442,54 @@ function DOCP_initial_guess(docp::DOCP, init::CTBase.OptimalControlInit = CTBase
     end
 
     return NLP_X
+end
+
+# time grid +++ allocs even for fixed times if using a if here
+function get_time_grid(xu, docp)
+
+    time_grid = similar(xu, docp.dim_NLP_steps+1)
+    
+    if !docp.has_free_initial_time && !docp.has_free_final_time
+        @. time_grid = docp.NLP_time_grid
+    else
+        if docp.has_free_initial_time
+            t0 = CTModels.initial_time(docp.ocp, get_OCP_variable(xu, docp))
+        else
+            t0 = CTModels.initial_time(docp.ocp)
+        end
+        if docp.has_free_final_time
+            tf = CTModels.final_time(docp.ocp, get_OCP_variable(xu, docp))
+        else
+            tf = CTModels.final_time(docp.ocp)
+        end
+        @. time_grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
+    end
+
+    return time_grid
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Set optimization variables in the NLP variables (for initial guess)
+"""
+function set_optim_variable!(xu, v_init, docp)
+    xu[(end - docp.dim_NLP_v + 1):end] .= v_init
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Build full, ordered sets of bounds for state, control or optimization variables
+"""
+function build_bounds(dim_var, dim_box, box_triplet)
+    x_lb = -Inf * ones(dim_var)
+    x_ub = Inf * ones(dim_var)
+    for j = 1:(dim_box)
+        indice = box_triplet[2][j]
+        x_lb[indice] = box_triplet[1][j]
+        x_ub[indice] = box_triplet[3][j]
+    end
+
+    return x_lb, x_ub
 end

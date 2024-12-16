@@ -12,7 +12,6 @@ using HSL
 const matrix2vec = CTBase.matrix2vec
 
 # includes
-include("utils.jl")
 include("default.jl")
 include("docp.jl")
 #include("disc/midpoint.jl")

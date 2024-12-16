@@ -118,7 +118,7 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
         # OCP dynamics
         CTModels.dynamics(docp.ocp)((@view work[offset+1:offset+docp.dim_OCP_x]), ti, xi, ui, v)
         # lagrange cost
-        if docp.is_lagrange
+        if docp.has_lagrange
             CTModels.lagrange(docp.ocp)((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ti, xi, ui, v)
         end
     end
@@ -153,7 +153,7 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         # trapeze rule (no allocations ^^)
         @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + half_hi * (work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x] + work[offset_dyn_ip1+1:offset_dyn_ip1+docp.dim_OCP_x]))
 
-        if docp.is_lagrange
+        if docp.has_lagrange
             c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + half_hi * (work[offset_dyn_i+docp.dim_NLP_x] + work[offset_dyn_ip1+docp.dim_NLP_x]))
         end
         offset += docp.dim_NLP_x

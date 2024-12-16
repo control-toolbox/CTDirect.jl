@@ -11,15 +11,17 @@ using PProf
 # define problem with new model: simple integrator
 function simple_integrator_model()
     pre_ocp = CTModels.PreModel()
-    CTModels.time!(pre_ocp, t0=0.0, tf=1.0)
     CTModels.state!(pre_ocp, 1)
     CTModels.control!(pre_ocp, 2)
-    CTModels.variable!(pre_ocp, 0)
+    CTModels.time!(pre_ocp, t0=0.0, tf=1.0)
     f!(r, t, x, u, v) = r .=  .- x[1] .- u[1] .+ u[2] 
     CTModels.dynamics!(pre_ocp, f!)
     l!(r, t, x, u, v) = r .= (u[1] .+ u[2]).^2
     CTModels.objective!(pre_ocp, :min, lagrange=l!)
-    bc!(r, x0, xf, v) = r .= [x0[1], xf[1]]
+    function bc!(r, x0, xf, v)
+        r[1] = x0[1]
+        r[2] = xf[1]
+    end
     CTModels.constraint!(pre_ocp, :boundary, f=bc!, lb=[-1, 0], ub=[-1, 0], label=:boundary)
     CTModels.constraint!(pre_ocp, :control, rg=1:2, lb=[0, 0], ub=[Inf, Inf], label=:control_rg)
     CTModels.definition!(pre_ocp, Expr(:simple_integrator_min_energy))
@@ -27,17 +29,58 @@ function simple_integrator_model()
     return ocp
 end
 
-function fuller_model()
+# define problem with new model: double integrator
+function double_integrator_mintf_model()
     pre_ocp = CTModels.PreModel()
-    CTModels.time!(pre_ocp, t0=0.0, tf=3.5)
     CTModels.state!(pre_ocp, 2)
     CTModels.control!(pre_ocp, 1)
-    CTModels.variable!(pre_ocp, 0)
-    f!(r, t, x, u, v) = r .= [x[2], u[1]] 
+    CTModels.variable!(pre_ocp, 1)
+    CTModels.time!(pre_ocp, t0=0.0, indf=1)
+    function f!(r, t, x, u, v)
+        r[1] = x[2]
+        r[2] = u[1]
+    end 
     CTModels.dynamics!(pre_ocp, f!)
-    l!(r, t, x, u, v) = r .= x[1].^2
+    function mayer!(r, x0, xf, v)
+        r[1] = v[1]
+    end 
+    CTModels.objective!(pre_ocp, :min, mayer=mayer!)
+    function bc!(r, x0, xf, v)
+        r[1] = x0[1]
+        r[2] = x0[2]
+        r[3] = xf[1]
+        r[4] = xf[2]
+    end
+    CTModels.constraint!(pre_ocp, :boundary, f=bc!, lb=[0, 0, 1, 0], ub=[0, 0, 1, 0], label=:boundary)
+    CTModels.constraint!(pre_ocp, :control, rg=1:1, lb=[-1], ub=[1], label=:control_rg)
+    CTModels.constraint!(pre_ocp, :variable, rg=1:1, lb=[0.05], ub=[Inf], label=:variable_rg)
+    CTModels.definition!(pre_ocp, Expr(:double_integrator_min_tf))
+    ocp = CTModels.build_model(pre_ocp)
+    return ocp
+end
+
+
+# define problem with new model: fuller
+function fuller_model()
+    pre_ocp = CTModels.PreModel()
+    CTModels.state!(pre_ocp, 2)
+    CTModels.control!(pre_ocp, 1)
+    CTModels.time!(pre_ocp, t0=0.0, tf=3.5)
+    function f!(r, t, x, u, v)
+        r[1] = x[2]
+        r[2] = u[1]
+    end 
+    CTModels.dynamics!(pre_ocp, f!)
+    function l!(r, t, x, u, v)
+        r[1] = x[1]^2
+    end
     CTModels.objective!(pre_ocp, :min, lagrange=l!)
-    bc!(r, x0, xf, v) = r .= [x0[1], x0[2], xf[1], xf[2]]
+    function bc!(r, x0, xf, v)
+        r[1] = x0[1]
+        r[2] = x0[2]
+        r[3] = xf[1]
+        r[4] = xf[2]
+    end
     CTModels.constraint!(pre_ocp, :boundary, f=bc!, lb=[0, 1, 0, 0], ub=[0, 1, 0, 0], label=:boundary)
     CTModels.constraint!(pre_ocp, :control, rg=1:1, lb=[-1], ub=[1], label=:control_rg)
     CTModels.definition!(pre_ocp, Expr(:fuller_min_energy))
