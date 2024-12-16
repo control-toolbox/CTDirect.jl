@@ -444,13 +444,17 @@ function DOCP_initial_guess(docp::DOCP, init::CTBase.OptimalControlInit = CTBase
     return NLP_X
 end
 
-# time grid +++ allocs even for fixed times if using a if here
+# time grid
+# +++ forcing variable type even for fixed tf reduces allocations for constraints
+# but is worse for AD and solving overall...
 function get_time_grid(xu, docp)
 
-    time_grid = similar(xu, docp.dim_NLP_steps+1)
+    #time_grid = similar(xu, docp.dim_NLP_steps+1)
     
     if !docp.has_free_initial_time && !docp.has_free_final_time
-        @. time_grid = docp.NLP_time_grid
+        # NB. AD bug for constant affectations with optimized backend
+        #@. time_grid = docp.NLP_time_grid  + 0. * xu[1]
+        return docp.NLP_time_grid
     else
         if docp.has_free_initial_time
             t0 = CTModels.initial_time(docp.ocp, get_OCP_variable(xu, docp))
@@ -462,10 +466,11 @@ function get_time_grid(xu, docp)
         else
             tf = CTModels.final_time(docp.ocp)
         end
-        @. time_grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
+        #@. time_grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
+        return @. t0 + docp.NLP_normalized_time_grid * (tf - t0)
     end
 
-    return time_grid
+    #return time_grid
 end
 
 """
