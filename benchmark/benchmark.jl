@@ -66,6 +66,8 @@ function bench(;grid_size_list = [250, 500, 1000, 2500], verbose = 1, nlp_solver
     # load problems for benchmark
     if names_list == :default
         names_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "jackson", "robbins", "simple_integrator", "vanderpol"]
+    elseif names_list == :quick
+        names_list = ["beam", "double_integrator_mintf", "fuller", "jackson", "robbins", "simple_integrator", "vanderpol"]
     elseif names_list == :all 
         names_list = ["algal_bacterial", "beam", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "insurance", "jackson", "robbins", "simple_integrator", "swimmer", "vanderpol"]
     elseif names_list == :hard

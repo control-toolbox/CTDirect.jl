@@ -18,10 +18,7 @@ function local_mayer(obj, x0, xf, v)
     return
 end
 
-function init(;grid_size, disc_method)
-    prob = goddard_all()
-    #prob = goddard()
-    #prob = simple_integrator()
+function init(prob ;grid_size, disc_method)
     ocp = prob[:ocp]
     docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=disc_method)
     xu = CTDirect.DOCP_initial_guess(docp)
@@ -29,14 +26,14 @@ function init(;grid_size, disc_method)
 end
 
 
-function test_unit(;test_get=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
+function test_unit(prob ;test_get=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
 
     if profile
         Profile.Allocs.clear()
     end
 
     # define problem and variables
-    prob, docp, xu = init(grid_size=grid_size, disc_method=disc_method)
+    prob, docp, xu = init(prob; grid_size=grid_size, disc_method=disc_method)
     disc = docp.discretization
     #= OK, same as calling the functions with docp
     NLP_objective = (xu) -> CTDirect.DOCP_objective(xu, docp)
