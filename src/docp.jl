@@ -465,14 +465,7 @@ function DOCP_initial_guess(docp::DOCP, init::CTBase.OptimalControlInit = CTBase
 end
 
 # time grid
-# +++  we still have runtime dispatch here even in fixed times case
-# if we use the getters from ctmodels CTModels.final_time / time / index :(
-
-# encapsulate getter with type qualification ?
-#function get_final_time(ocp::Model{TimesModel{<:AbstractTimeModel, FreeTimeModel}}, v)
-#    return CTModels.final_time(ocp, v)
-#end
-# or qualify the 2 calls to CTModels getters ? 
+# +++ runtime dispatch here even in fixed times case # if we use the getters from ctmodels CTModels.final_time / time / index :( even when qualifying the TimesModel ...
 function get_time_grid(xu, docp)
 
     if !docp.has_free_initial_time && !docp.has_free_final_time
