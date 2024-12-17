@@ -11,7 +11,7 @@ struct Trapeze <: Discretization
     _state_stage_eqs_block::Int
 
     # constructor
-    function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_v_cons)
+    function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
 
         # NLP variables size ([state, control]_1..N+1, variable)
         dim_NLP_variables = (dim_NLP_steps + 1) * (dim_NLP_x + dim_NLP_u) + dim_NLP_v
@@ -21,7 +21,7 @@ struct Trapeze <: Discretization
         step_pathcons_block = dim_path_cons
 
         # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
-        dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
+        dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons
 
         disc = new("Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", step_pathcons_block, state_stage_eqs_block)
 
@@ -119,7 +119,6 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
         CTModels.dynamics(docp.ocp)((@view work[offset+1:offset+docp.dim_OCP_x]), ti, xi, ui, v)
         # lagrange cost
         if docp.has_lagrange
-            #CTModels.lagrange(docp.ocp)((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ti, xi, ui, v)
             work[offset+docp.dim_NLP_x] = CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
         end
     end
@@ -163,7 +162,7 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # 2. path constraints
     if docp.dim_path_cons > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        docp.path_constraints[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
+        #CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
         offset += docp.dim_path_cons
     end
 

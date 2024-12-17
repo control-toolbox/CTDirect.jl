@@ -12,18 +12,12 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function, F2 <: Function, F3 <: Function}
+struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function}
 
     ## OCP
     ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
 
-    # constraints and their bounds: +++ build in model if possible !
-    path_constraints::Tuple{Vector{Float64}, F1, Vector{Float64}}
-    boundary_constraints::Tuple{Vector{Float64}, F2, Vector{Float64}}
-    variable_constraints::Tuple{Vector{Float64}, F3, Vector{Float64}} #+++ redundant with v box and / or bc ?
-    control_box
-    state_box
-    variable_box
+    bc::F1
 
     # flags
     has_free_initial_time::Bool
@@ -37,7 +31,6 @@ struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function, F2 <: Func
     dim_u_box::Int
     dim_v_box::Int
     dim_path_cons::Int
-    dim_variable_cons::Int
     dim_boundary_cons::Int
 
     ## NLP  
@@ -129,26 +122,16 @@ struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function, F2 <: Func
             NLP_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
         end
 
-        # NLP constraints +++ could be done in Model ?
-        # parse NLP constraints (and initialize dimensions)
-        path_constraints,
-        variable_constraints,
-        boundary_constraints,
-        state_box,
-        control_box,
-        variable_box = CTModels.constraints(ocp)
-
-        # get dimensions
-        dim_x_box = CTModels.dim_state_cons_box(ocp)
-        dim_u_box = CTModels.dim_control_cons_box(ocp)
-        dim_v_box = CTModels.dim_variable_cons_box(ocp)
-        dim_path_cons = CTModels.dim_path_cons_nl(ocp)
-        dim_boundary_cons = CTModels.dim_boundary_cons_nl(ocp)
-        dim_variable_cons = CTModels.dim_variable_cons_nl(ocp)
+        # NLP constraints dimensions
+        dim_x_box = CTModels.dim_state_constraints_box(ocp)
+        dim_u_box = CTModels.dim_control_constraints_box(ocp)
+        dim_v_box = CTModels.dim_variable_constraints_box(ocp)
+        dim_path_cons = CTModels.dim_path_constraints_nl(ocp)
+        dim_boundary_cons = CTModels.dim_boundary_constraints_nl(ocp)
 
         # parameter: discretization method
         if disc_method == :trapeze
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, dim_variable_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
         #=elseif disc_method == :midpoint
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_variable_cons)
         elseif disc_method == :gauss_legendre_1
@@ -166,16 +149,12 @@ struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function, F2 <: Func
             dim_NLP_constraints += 1
         end
 
+        bc = CTModels.boundary_constraints_nl(ocp)[2]
+
         # call constructor with const fields
-        docp = new{typeof(discretization), typeof(ocp), typeof(path_constraints[2]), typeof(boundary_constraints[2]), typeof(variable_constraints[2])}(
-        #docp = new{typeof(discretization), typeof(ocp)}(          
+        docp = new{typeof(discretization), typeof(ocp), typeof(bc)}(          
             ocp,
-            path_constraints,
-            boundary_constraints,
-            variable_constraints,
-            control_box,
-            state_box,
-            variable_box,
+            bc,
             has_free_initial_time,
             has_free_final_time,
             has_lagrange,
@@ -185,7 +164,6 @@ struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function, F2 <: Func
             dim_u_box,
             dim_v_box,
             dim_path_cons,
-            dim_variable_cons,
             dim_boundary_cons,
             dim_NLP_x,
             dim_NLP_u,
@@ -238,24 +216,17 @@ function constraints_bounds!(docp::DOCP)
         end
         # path constraints
         if docp.dim_path_cons > 0
-            lb[index:(index + docp.dim_path_cons - 1)] = docp.path_constraints[1]
-            ub[index:(index + docp.dim_path_cons - 1)] = docp.path_constraints[3]
+            lb[index:(index + docp.dim_path_cons - 1)] = CTModels.path_constraints_nl(docp.ocp)[1]
+            ub[index:(index + docp.dim_path_cons - 1)] = CTModels.path_constraints_nl(docp.ocp)[3]
             index = index + docp.dim_path_cons
         end
     end
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        lb[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[1]
-        ub[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[3]
+        lb[index:(index + docp.dim_boundary_cons - 1)] = CTModels.boundary_constraints_nl(docp.ocp)[1]
+        ub[index:(index + docp.dim_boundary_cons - 1)] = CTModels.boundary_constraints_nl(docp.ocp)[3]
         index = index + docp.dim_boundary_cons
-    end
-
-    # variable constraints
-    if docp.dim_variable_cons > 0
-        lb[index:(index + docp.dim_variable_cons - 1)] = docp.variable_constraints[1]
-        ub[index:(index + docp.dim_variable_cons - 1)] = docp.variable_constraints[3]
-        index = index + docp.dim_variable_cons
     end
 
     # null initial condition for lagrangian cost state
@@ -281,8 +252,8 @@ function variables_bounds!(docp::DOCP)
 
     # first we build full ordered sets of bounds, then set them in NLP
     # state / control box
-    x_lb, x_ub = build_bounds(docp.dim_OCP_x, docp.dim_x_box, docp.state_box)
-    u_lb, u_ub = build_bounds(docp.dim_NLP_u, docp.dim_u_box, docp.control_box)
+    x_lb, x_ub = build_bounds(docp.dim_OCP_x, docp.dim_x_box, CTModels.state_constraints_box(docp.ocp))
+    u_lb, u_ub = build_bounds(docp.dim_NLP_u, docp.dim_u_box, CTModels.control_constraints_box(docp.ocp))
     for i = 1:N+1
         set_state_at_time_step!(var_l, x_lb, docp, i)
         set_state_at_time_step!(var_u, x_ub, docp, i)
@@ -292,7 +263,7 @@ function variables_bounds!(docp::DOCP)
 
     # variable box
     if docp.dim_NLP_v > 0
-        v_lb, v_ub = build_bounds(docp.dim_NLP_v, docp.dim_v_box, docp.variable_box)
+        v_lb, v_ub = build_bounds(docp.dim_NLP_v, docp.dim_v_box, CTModels.variable_constraints_box(docp.ocp))
         set_optim_variable!(var_l, v_lb, docp)
         set_optim_variable!(var_u, v_ub, docp)
     end
@@ -378,17 +349,13 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
-    end
-
-    # variable constraints
-    if docp.dim_variable_cons > 0
-        docp.variable_constraints[2]((@view c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_variable_cons]), v)
+        #CTModels.boundary_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
+        docp.bc((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
     end
 
     # null initial condition for lagrangian cost state
     if docp.has_lagrange
-        c[offset+docp.dim_boundary_cons+docp.dim_variable_cons+1] = get_lagrange_state_at_time_step(xu, docp, 1)
+        c[offset+docp.dim_boundary_cons+1] = get_lagrange_state_at_time_step(xu, docp, 1)
     end
 end
 
