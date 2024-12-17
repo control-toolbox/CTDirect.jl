@@ -122,9 +122,9 @@ function test_model(ocp; warntype=false, jet=false, profile=false)
         PProf.Allocs.pprof()
     end
 
-    print("Transcription"); @btime direct_transcription($ocp)
+    #print("Transcription"); @btime direct_transcription($ocp)
     # more allocs here, try to type the nlp constraints functions in docp, check problem size vs main ?
 
-    print("Solve"); @btime direct_solve($ocp, display=false)
+    #print("Solve"); @btime direct_solve($ocp, display=false)
 
 end
