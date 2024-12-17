@@ -160,7 +160,10 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     end
 
     # 2. path constraints
-    ui = get_OCP_control_at_time_step(xu, docp, i)
-    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    if docp.dim_path_cons > 0
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        docp.path_constraints[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
+        offset += docp.dim_path_cons
+    end
 
 end

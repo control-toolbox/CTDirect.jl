@@ -12,15 +12,15 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T <: Discretization, O <: CTModels.Model}
+struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function, F2 <: Function, F3 <: Function}
 
     ## OCP
-    ocp::O # parametric instead of just typing reduces allocations (but not time). Specialization ?
+    ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
 
-    # constraints and their bounds: +++ build in model if possible
-    path_constraints
-    boundary_constraints
-    variable_constraints #+++ redundant with v box and / or bc ?
+    # constraints and their bounds: +++ build in model if possible !
+    path_constraints::Tuple{Vector{Float64}, F1, Vector{Float64}}
+    boundary_constraints::Tuple{Vector{Float64}, F2, Vector{Float64}}
+    variable_constraints::Tuple{Vector{Float64}, F3, Vector{Float64}} #+++ redundant with v box and / or bc ?
     control_box
     state_box
     variable_box
@@ -167,8 +167,8 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
         end
 
         # call constructor with const fields
-        #docp = new{typeof(discretization), typeof(ocp), typeof(path_constraints), typeof(boundary_constraints), typeof(variable_constraints)}(
-        docp = new{typeof(discretization), typeof(ocp)}(          
+        docp = new{typeof(discretization), typeof(ocp), typeof(path_constraints[2]), typeof(boundary_constraints[2]), typeof(variable_constraints[2])}(
+        #docp = new{typeof(discretization), typeof(ocp)}(          
             ocp,
             path_constraints,
             boundary_constraints,
@@ -237,11 +237,33 @@ function constraints_bounds!(docp::DOCP)
             index = index + docp.discretization._state_stage_eqs_block
         end
         # path constraints
-        index = setPathBounds!(docp, index, lb, ub)
+        if docp.dim_path_cons > 0
+            lb[index:(index + docp.dim_path_cons - 1)] = docp.path_constraints[1]
+            ub[index:(index + docp.dim_path_cons - 1)] = docp.path_constraints[3]
+            index = index + docp.dim_path_cons
+        end
     end
 
-    # boundary and variable constraints
-    index = setPointBounds!(docp, index, lb, ub)
+    # boundary constraints
+    if docp.dim_boundary_cons > 0
+        lb[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[1]
+        ub[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[3]
+        index = index + docp.dim_boundary_cons
+    end
+
+    # variable constraints
+    if docp.dim_variable_cons > 0
+        lb[index:(index + docp.dim_variable_cons - 1)] = docp.variable_constraints[1]
+        ub[index:(index + docp.dim_variable_cons - 1)] = docp.variable_constraints[3]
+        index = index + docp.dim_variable_cons
+    end
+
+    # null initial condition for lagrangian cost state
+    if docp.has_lagrange
+        lb[index] = 0.0
+        ub[index] = 0.0
+        index = index + 1
+    end
 
     return lb, ub
 end
@@ -348,36 +370,6 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Set path constraints at given time step
-"""
-function setPathConstraints!(docp, c, ti, xi, ui, v, offset)
-
-    if docp.dim_path_cons > 0
-        docp.path_constraints[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
-        offset += docp.dim_path_cons
-    end
-
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Set bounds for the path constraints at given time step
-"""
-function setPathBounds!(docp::DOCP, index::Int, lb, ub)
-
-    if docp.dim_path_cons > 0
-        lb[index:(index + docp.dim_path_cons - 1)] = docp.path_constraints[1]
-        ub[index:(index + docp.dim_path_cons - 1)] = docp.path_constraints[3]
-        index = index + docp.dim_path_cons
-    end
-    return index
-
-end
-
-"""
-$(TYPEDSIGNATURES)
-
 Set the boundary and variable constraints
 """
 function setPointConstraints!(docp::DOCP, c, xu, v)
@@ -405,38 +397,6 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     end
 end
 
-
-"""
-$(TYPEDSIGNATURES)
-
-Set bounds for the boundary and variable constraints
-"""
-function setPointBounds!(docp::DOCP, index::Int, lb, ub)
-    ocp = docp.ocp
-
-    # boundary constraints
-    if docp.dim_boundary_cons > 0
-        lb[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[1]
-        ub[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[3]
-        index = index + docp.dim_boundary_cons
-    end
-
-    # variable constraints
-    if docp.dim_variable_cons > 0
-        lb[index:(index + docp.dim_variable_cons - 1)] = docp.variable_constraints[1]
-        ub[index:(index + docp.dim_variable_cons - 1)] = docp.variable_constraints[3]
-        index = index + docp.dim_variable_cons
-    end
-
-    # null initial condition for lagrangian cost state
-    if docp.has_lagrange
-        lb[index] = 0.0
-        ub[index] = 0.0
-        index = index + 1
-    end
-
-    return index
-end
 
 """
 $(TYPEDSIGNATURES)
