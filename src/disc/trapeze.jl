@@ -119,7 +119,8 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
         CTModels.dynamics(docp.ocp)((@view work[offset+1:offset+docp.dim_OCP_x]), ti, xi, ui, v)
         # lagrange cost
         if docp.has_lagrange
-            CTModels.lagrange(docp.ocp)((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ti, xi, ui, v)
+            #CTModels.lagrange(docp.ocp)((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ti, xi, ui, v)
+            work[offset+docp.dim_NLP_x] = CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
         end
     end
     return work

@@ -23,8 +23,8 @@ function simple_integrator_model()
     CTModels.time!(pre_ocp, t0=0.0, tf=1.0)
     f!(r, t, x, u, v) = r .=  .- x[1] .- u[1] .+ u[2] 
     CTModels.dynamics!(pre_ocp, f!)
-    l!(r, t, x, u, v) = r .= (u[1] .+ u[2]).^2
-    CTModels.objective!(pre_ocp, :min, lagrange=l!)
+    l(t, x, u, v) = (u[1] .+ u[2]).^2
+    CTModels.objective!(pre_ocp, :min, lagrange=l)
     function bc!(r, x0, xf, v)
         r[1] = x0[1]
         r[2] = xf[1]
@@ -48,10 +48,8 @@ function double_integrator_mintf_model()
         r[2] = u[1]
     end 
     CTModels.dynamics!(pre_ocp, f!)
-    function mayer!(r, x0, xf, v)
-        r[1] = v[1]
-    end 
-    CTModels.objective!(pre_ocp, :min, mayer=mayer!)
+    mayer(x0, xf, v) = v[1]
+    CTModels.objective!(pre_ocp, :min, mayer=mayer)
     function bc!(r, x0, xf, v)
         r[1] = x0[1]
         r[2] = x0[2]
@@ -78,10 +76,8 @@ function fuller_model()
         r[2] = u[1]
     end 
     CTModels.dynamics!(pre_ocp, f!)
-    function l!(r, t, x, u, v)
-        r[1] = x[1]^2
-    end
-    CTModels.objective!(pre_ocp, :min, lagrange=l!)
+    l(t, x, u, v) = x[1]^2
+    CTModels.objective!(pre_ocp, :min, lagrange=l)
     function bc!(r, x0, xf, v)
         r[1] = x0[1]
         r[2] = x0[2]

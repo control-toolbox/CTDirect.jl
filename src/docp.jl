@@ -309,36 +309,31 @@ Compute the objective for the DOCP problem.
 """
 function DOCP_objective(xu, docp::DOCP)
 
-    obj = similar(xu, 1)
-    N = docp.dim_NLP_steps
+    obj::eltype(xu) = 0. * xu[1] # usual AD bug with constants
 
     # optimization variables
     v = get_OCP_variable(xu, docp)
 
     # final state is always needed since lagrange cost is there
-    xf = get_OCP_state_at_time_step(xu, docp, N+1)
+    xf = get_OCP_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
 
     # mayer cost
     if docp.has_mayer
         x0 = get_OCP_state_at_time_step(xu, docp, 1)
-        CTModels.mayer(docp.ocp)(obj, x0, xf, v)
+        obj += CTModels.mayer(docp.ocp)(x0, xf, v)
     end
 
     # lagrange cost
     if docp.has_lagrange
-        if docp.has_mayer # NB can this actually happen in OCP (cf bolza) ?
-            obj[1] = obj[1] + get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
-        else
-            obj[1] = get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
-        end
+        obj += get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
     end
 
     # maximization problem
     if docp.is_maximization
-        obj[1] = -obj[1]
+        obj = -obj
     end
     
-    return obj[1]
+    return obj
 end
 
 
