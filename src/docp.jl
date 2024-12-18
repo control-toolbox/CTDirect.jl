@@ -508,6 +508,8 @@ function DOCP_Jac_pattern(docp::DOCP)
 
     J = zeros(docp.dim_NLP_constraints, docp.dim_NLP_variables)
 
+    #+++ split state eq and path cond since pathcond only depends on x_ocp and u !
+
     # main loop over steps
     for i = 1:docp.dim_NLP_steps
         c_offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
@@ -531,9 +533,13 @@ function DOCP_Jac_pattern(docp::DOCP)
     # point constraints (x0, xf, v)
     c_offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
     c_block = docp.dim_boundary_cons + docp.dim_v_cons
-    J[c_offset+1:c_offset+c_block, 1:docp.dim_NLP_x] .= 1.0
-    J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+docp.dim_NLP_x] .= 1.0
+    J[c_offset+1:c_offset+c_block, 1:docp.dim_OCP_x] .= 1.0
+    J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+docp.dim_OCP_x] .= 1.0
     J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= 1.0
+    # null initial condition for lagrangian cost state
+    if docp.is_lagrange
+        J[docp.dim_NLP_constraints, docp.dim_NLP_x] = 1.0
+    end
 
     return SparseMatrixCSC{Bool, Int}(J)
 end
