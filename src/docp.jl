@@ -376,7 +376,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         setStepConstraints!(docp, c, xu, v, time_grid, i, work)
     end
 
-    # point constraints (NB. view on c block could be used with offset here)
+    # point constraints
     setPointConstraints!(docp, c, xu, v)
 
     # NB. the function *needs* to return c for AD...
@@ -503,6 +503,41 @@ function setPointBounds!(docp::DOCP, index::Int, lb, ub)
 
     return index
 end
+
+function DOCP_Jac_pattern(docp::DOCP)
+
+    J = zeros(docp.dim_NLP_constraints, docp.dim_NLP_variables)
+
+    # main loop over steps
+    for i = 1:docp.dim_NLP_steps
+        c_offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
+        c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
+        var_offset = (i-1)*docp.discretization._step_variables_block
+        var_block = docp.discretization._step_variables_block + docp.dim_NLP_x
+        # dependence wrt step variable block x_i, u_i, x_i+1
+        J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+var_block] .= 1.0
+        # dependence wrt v
+        J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= 1.0
+    end
+
+    # final path constraints (xf, uf, v)
+    c_offset = docp.dim_NLP_steps*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
+    c_block = docp.discretization._step_pathcons_block
+    var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
+    var_block = docp.discretization._step_variables_block
+    J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+var_block] .= 1.0
+    J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= 1.0
+
+    # point constraints (x0, xf, v)
+    c_offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
+    c_block = docp.dim_boundary_cons + docp.dim_v_cons
+    J[c_offset+1:c_offset+c_block, 1:docp.dim_NLP_x] .= 1.0
+    J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+docp.dim_NLP_x] .= 1.0
+    J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= 1.0
+
+    return SparseMatrixCSC{Bool, Int}(J)
+end
+
 
 """
 $(TYPEDSIGNATURES)

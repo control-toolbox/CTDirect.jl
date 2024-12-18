@@ -26,7 +26,7 @@ function init(prob ;grid_size, disc_method)
 end
 
 
-function test_unit(prob ;test_get=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
+function test_unit(prob ;test_get=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=250, disc_method=:trapeze)
 
     if profile
         Profile.Allocs.clear()
