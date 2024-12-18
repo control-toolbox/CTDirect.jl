@@ -171,3 +171,46 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     setPathConstraints!(docp, c, ti, xi, ui, v, offset)
 
 end
+
+
+function DOCP_Jac_pattern(docp::DOCP{Trapeze})
+
+    J = zeros(docp.dim_NLP_constraints, docp.dim_NLP_variables)
+
+    #+++ split state eq and path cond since pathcond only depends on x_ocp and u !
+    #+++ also split state eq between ocp x and lagrange cost ?
+    #+++ NB we still have the computations in setWorkArray, maybe try on midpoint ?
+
+    # main loop over steps
+    for i = 1:docp.dim_NLP_steps
+        c_offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
+        c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
+        var_offset = (i-1)*docp.discretization._step_variables_block
+        var_block = docp.discretization._step_variables_block * 2
+        # dependence state eq wrt step variable block x_i, u_i, x_i+1, u_i+1 (trapeze)
+        J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+var_block] .= 1.0
+        # dependence wrt v
+        J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= 1.0
+    end
+
+    # final path constraints (xf, uf, v)
+    c_offset = docp.dim_NLP_steps*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
+    c_block = docp.discretization._step_pathcons_block
+    var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
+    var_block = docp.discretization._step_variables_block
+    J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+var_block] .= 1.0
+    J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= 1.0
+
+    # point constraints (x0, xf, v)
+    c_offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
+    c_block = docp.dim_boundary_cons + docp.dim_v_cons
+    J[c_offset+1:c_offset+c_block, 1:docp.dim_OCP_x] .= 1.0
+    J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+docp.dim_OCP_x] .= 1.0
+    J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= 1.0
+    # null initial condition for lagrangian cost state
+    if docp.is_lagrange
+        J[docp.dim_NLP_constraints, docp.dim_NLP_x] = 1.0
+    end
+
+    return SparseMatrixCSC{Bool, Int}(J)
+end
