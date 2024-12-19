@@ -28,9 +28,9 @@ __time_grid() = nothing
 $(TYPEDSIGNATURES)
 
 Used to set the default tolerance.
-The default value is `1e-8`.
+The default value is `1e-6`.
 """
-__tolerance() = 1e-8
+__tolerance() = 1e-6
 
 """
 $(TYPEDSIGNATURES)
