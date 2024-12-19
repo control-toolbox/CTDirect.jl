@@ -50,7 +50,7 @@ function direct_transcription(
     c! = (c, x) -> DOCP_constraints!(c, x, docp)
 
     # sparsity pattern
-    J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jac_pattern(docp))
+    J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
 
     # call NLP problem constructor
     nlp = ADNLPModel!(
@@ -61,7 +61,7 @@ function direct_transcription(
         c!,
         docp.con_l,
         docp.con_u,
-        backend = :optimized,
+        backend = :optimized, # much slower without
         jacobian_backend = J_backend
     )
 

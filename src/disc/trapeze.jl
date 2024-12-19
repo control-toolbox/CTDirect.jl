@@ -173,13 +173,9 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 end
 
 
-function DOCP_Jac_pattern(docp::DOCP{Trapeze})
+function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
     J = zeros(docp.dim_NLP_constraints, docp.dim_NLP_variables)
-
-    #+++ split state eq and path cond since pathcond only depends on x_ocp and u !
-    #+++ also split state eq between ocp x and lagrange cost ?
-    #+++ NB we still have the computations in setWorkArray, maybe try on midpoint ?
 
     # main loop over steps
     for i = 1:docp.dim_NLP_steps
@@ -223,4 +219,13 @@ function DOCP_Jac_pattern(docp::DOCP{Trapeze})
     end
 
     return SparseMatrixCSC{Bool, Int}(J)
+end
+
+
+function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
+
+    # symmetry ?
+    H = zeros(docp.dim_NLP_variables, docp.dim_NLP_variables)
+    return SparseMatrixCSC{Bool, Int}(H)
+
 end
