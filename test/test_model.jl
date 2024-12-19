@@ -133,6 +133,10 @@ end
 
 function test_model(ocp; warntype=false, jet=false, profile=false)
 
+    if profile
+        Profile.Allocs.clear()
+    end
+
     # test objective and constraints
     docp,_ = direct_transcription(ocp)
     xu = CTDirect.DOCP_initial_guess(docp)
@@ -157,9 +161,8 @@ function test_model(ocp; warntype=false, jet=false, profile=false)
         PProf.Allocs.pprof()
     end
 
-    #print("Transcription"); @btime direct_transcription($ocp)
-    # more allocs here, try to type the nlp constraints functions in docp, check problem size vs main ?
+    print("Transcription"); @btime direct_transcription($ocp)
 
-    #print("Solve"); @btime direct_solve($ocp, display=false)
+    print("Solve"); @btime direct_solve($ocp, display=false)
 
 end

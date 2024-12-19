@@ -109,6 +109,8 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
     # use work array to store all dynamics + lagrange costs
     work = similar(xu, docp.dim_NLP_x * (docp.dim_NLP_steps+1))
 
+    # +++ remove work and store (f_i + f_i+1) directly in c, using c[...i+1] = c[...i] ??
+
     # loop over time steps
     for i = 1:docp.dim_NLP_steps+1
         offset = (i-1) * docp.dim_NLP_x
@@ -162,8 +164,7 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # 2. path constraints
     if docp.dim_path_cons > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        #CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
+        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
         offset += docp.dim_path_cons
     end
-
 end
