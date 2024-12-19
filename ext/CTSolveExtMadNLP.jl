@@ -19,7 +19,7 @@ function CTDirect.solve_docp(
     display::Bool = CTBase.__display(),
     max_iter::Integer = CTDirect.__max_iterations(),
     tol::Real = CTDirect.__tolerance(),
-    linear_solver::String = CTDirect.__madnlp_linear_solver(),
+    linear_solver::String = CTDirect.__madnlp_linear_solver(), # ?
     kwargs...,
 )
 
