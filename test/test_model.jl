@@ -161,8 +161,9 @@ function test_model(ocp; warntype=false, jet=false, profile=false)
         PProf.Allocs.pprof()
     end
 
-    print("Transcription"); @btime direct_transcription($ocp)
+    #print("Transcription"); @btime direct_transcription($ocp)
+    #warntype && @code_warntype direct_transcription(ocp)
 
-    print("Solve"); @btime direct_solve($ocp, display=false)
+    #print("Solve"); @btime direct_solve($ocp, display=false)
 
 end
