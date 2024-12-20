@@ -61,8 +61,9 @@ function direct_transcription(
         c!,
         docp.con_l,
         docp.con_u,
-        backend = :optimized, # much slower without
-        jacobian_backend = J_backend
+        #backend = :optimized, # much slower without
+        jacobian_backend = J_backend,
+        hessian_backend = ADNLPModels.EmptyADbackend # to focus on jacobian tests
     )
 
     return docp, nlp
