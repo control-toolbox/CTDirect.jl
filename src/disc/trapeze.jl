@@ -175,9 +175,13 @@ end
 
 function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
-    #+++ work directly with sparse matrix ?
     J = zeros(Bool, docp.dim_NLP_constraints, docp.dim_NLP_variables)
-    #J = spzeros(Bool, docp.dim_NLP_constraints, docp.dim_NLP_variables)
+    #+++ build Is, Js, Vs sets then call sparse constructor ?
+    #nnzj = 
+    #Is = Vector{Int}(undef, nnzj)
+    #Js = Vector{Int}(undef, nnzj)
+    #Vs = ones(Bool, nnzj)
+    # use offset to fill Is, Js, Vs
 
     # main loop over steps
     for i = 1:docp.dim_NLP_steps
