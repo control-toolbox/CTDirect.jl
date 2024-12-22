@@ -13,6 +13,9 @@ Contains:
 - data required to link the OCP with the discretized DOCP
 """
 struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function}
+    
+    # discretization scheme
+    discretization::T
 
     ## OCP
     ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
@@ -53,9 +56,6 @@ struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function}
     var_u::Vector{Float64}
     con_l::Vector{Float64}
     con_u::Vector{Float64}
-
-    # discretization scheme
-    discretization::T
 
     # constructor
     function DOCP(ocp::CTModels.Model; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method())
@@ -152,7 +152,8 @@ struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function}
         bc = CTModels.boundary_constraints_nl(ocp)[2]
 
         # call constructor with const fields
-        docp = new{typeof(discretization), typeof(ocp), typeof(bc)}(          
+        docp = new{typeof(discretization), typeof(ocp), typeof(bc)}(
+            discretization,        
             ocp,
             bc,
             has_free_initial_time,
@@ -181,8 +182,7 @@ struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function}
             -Inf * ones(dim_NLP_variables),
             Inf * ones(dim_NLP_variables),
             zeros(dim_NLP_constraints),
-            zeros(dim_NLP_constraints),
-            discretization
+            zeros(dim_NLP_constraints)
         )
 
         return docp
