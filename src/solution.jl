@@ -17,14 +17,14 @@ function CTBase.OptimalControlSolution(docp::DOCP, docp_solution)
     # call lower level constructor
     return OptimalControlSolution(
         docp,
-        primal = docp_solution.solution,
-        dual = docp_solution.multipliers,
-        objective = objective,
-        iterations = docp_solution.iter,
-        constraints_violation = docp_solution.primal_feas,
-        message = string(docp_solution.solver_specific[:internal_msg][1]),
-        mult_LB = docp_solution.multipliers_L,
-        mult_UB = docp_solution.multipliers_U,
+        primal=docp_solution.solution,
+        dual=docp_solution.multipliers,
+        objective=objective,
+        iterations=docp_solution.iter,
+        constraints_violation=docp_solution.primal_feas,
+        message=string(docp_solution.solver_specific[:internal_msg][1]),
+        mult_LB=docp_solution.multipliers_L,
+        mult_UB=docp_solution.multipliers_U,
     )
 end
 
@@ -35,14 +35,14 @@ Build OCP functional solution from the DOCP discrete solution, given as a vector
 """
 function CTBase.OptimalControlSolution(
     docp::DOCP;
-    primal = Vector(),
-    dual = nothing,
-    objective = nothing,
-    iterations = nothing,
-    constraints_violation = nothing,
-    message = nothing,
-    mult_LB = nothing,
-    mult_UB = nothing,
+    primal=Vector(),
+    dual=nothing,
+    objective=nothing,
+    iterations=nothing,
+    constraints_violation=nothing,
+    message=nothing,
+    mult_LB=nothing,
+    mult_UB=nothing,
 )
 
     # time grid
@@ -50,7 +50,7 @@ function CTBase.OptimalControlSolution(
 
     # recover primal variables
     X, U, v, box_multipliers =
-        parse_DOCP_solution_primal(docp, primal, mult_LB = mult_LB, mult_UB = mult_UB)
+        parse_DOCP_solution_primal(docp, primal, mult_LB=mult_LB, mult_UB=mult_UB)
 
     # recompute / check objective
     objective_r = DOCP_objective(primal, docp)
@@ -78,13 +78,13 @@ function CTBase.OptimalControlSolution(
         U,
         v,
         P,
-        objective = objective,
-        iterations = iterations,
-        constraints_violation = constraints_violation,
-        message = message,
-        constraints_types = constraints_types,
-        constraints_mult = constraints_mult,
-        box_multipliers = box_multipliers
+        objective=objective,
+        iterations=iterations,
+        constraints_violation=constraints_violation,
+        message=message,
+        constraints_types=constraints_types,
+        constraints_mult=constraints_mult,
+        box_multipliers=box_multipliers
     )
 end
 
@@ -93,7 +93,7 @@ $(TYPEDSIGNATURES)
 
 Recover OCP primal variables from DOCP solution
 """
-function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB = nothing)
+function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=nothing)
 
     # state and control variables
     N = docp.dim_NLP_steps
@@ -124,13 +124,13 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
 
     # state variables and box multipliers
     for i = 1:N+1
-        X[i,:] .= get_OCP_state_at_time_step(solution, docp, i)
+        X[i, :] .= get_OCP_state_at_time_step(solution, docp, i)
         mult_state_box_lower[i, :] .= get_OCP_state_at_time_step(mult_LB, docp, i)
         mult_state_box_upper[i, :] .= get_OCP_state_at_time_step(mult_UB, docp, i)
     end
     # control variables and box multipliers
     for i = 1:N+1
-        U[i,:] .= get_OCP_control_at_time_step(solution, docp, i)
+        U[i, :] .= get_OCP_control_at_time_step(solution, docp, i)
         mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(mult_LB, docp, i)
         mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(mult_UB, docp, i)
     end
@@ -188,7 +188,7 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
 
         # state equation multiplier for costate
         if i <= N
-            P[i, :] = multipliers[i_m:(i_m + docp.dim_NLP_x - 1)]
+            P[i, :] = multipliers[i_m:(i_m+docp.dim_NLP_x-1)]
             # skip state / stage constraints
             i_c += docp.discretization._state_stage_eqs_block
             i_m += docp.discretization._state_stage_eqs_block
@@ -197,22 +197,22 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
         # path constraints and multipliers
         # pure control constraints
         if dcc > 0
-            sol_control_constraints[i, :] = constraints[i_c:(i_c + dcc - 1)]
-            mul_control_constraints[i, :] = multipliers[i_m:(i_m + dcc - 1)]
+            sol_control_constraints[i, :] = constraints[i_c:(i_c+dcc-1)]
+            mul_control_constraints[i, :] = multipliers[i_m:(i_m+dcc-1)]
             i_c += dcc
             i_m += dcc
         end
         # pure state constraints
         if dsc > 0
-            sol_state_constraints[i, :] = constraints[i_c:(i_c + dsc - 1)]
-            mul_state_constraints[i, :] = multipliers[i_m:(i_m + dsc - 1)]
+            sol_state_constraints[i, :] = constraints[i_c:(i_c+dsc-1)]
+            mul_state_constraints[i, :] = multipliers[i_m:(i_m+dsc-1)]
             i_c += dsc
             i_m += dsc
         end
         # mixed constraints
         if dmc > 0
-            sol_mixed_constraints[i, :] = constraints[i_c:(i_c + dmc - 1)]
-            mul_mixed_constraints[i, :] = multipliers[i_m:(i_m + dmc - 1)]
+            sol_mixed_constraints[i, :] = constraints[i_c:(i_c+dmc-1)]
+            mul_mixed_constraints[i, :] = multipliers[i_m:(i_m+dmc-1)]
             i_c += dmc
             i_m += dmc
         end
@@ -220,14 +220,14 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
 
     # pointwise constraints: boundary then variables
     if dbc > 0
-        sol_boundary_constraints[:] = constraints[i_c:(i_c + dbc - 1)]
-        mul_boundary_constraints[:] = multipliers[i_m:(i_m + dbc - 1)]
+        sol_boundary_constraints[:] = constraints[i_c:(i_c+dbc-1)]
+        mul_boundary_constraints[:] = multipliers[i_m:(i_m+dbc-1)]
         i_c += dbc
         i_m += dbc
     end
     if dvc > 0
-        sol_variable_constraints[:] = constraints[i_c:(i_c + dvc - 1)]
-        mul_variable_constraints[:] = multipliers[i_m:(i_m + dvc - 1)]
+        sol_variable_constraints[:] = constraints[i_c:(i_c+dvc-1)]
+        mul_variable_constraints[:] = multipliers[i_m:(i_m+dvc-1)]
         i_c += dvc
         i_m += dvc
     end
@@ -265,15 +265,15 @@ function CTBase.OptimalControlSolution(
     U,
     v,
     P;
-    objective = 0,
-    iterations = 0,
-    constraints_violation = 0,
-    message = "No msg",
-    stopping = nothing,
-    success = nothing,
-    constraints_types = (nothing, nothing, nothing, nothing, nothing),
-    constraints_mult = (nothing, nothing, nothing, nothing, nothing),
-    box_multipliers = (nothing, nothing, nothing, nothing, nothing, nothing),
+    objective=0,
+    iterations=0,
+    constraints_violation=0,
+    message="No msg",
+    stopping=nothing,
+    success=nothing,
+    constraints_types=(nothing, nothing, nothing, nothing, nothing),
+    constraints_mult=(nothing, nothing, nothing, nothing, nothing),
+    box_multipliers=(nothing, nothing, nothing, nothing, nothing, nothing),
 )
     dim_x = state_dimension(ocp)
     dim_u = control_dimension(ocp)
@@ -281,7 +281,7 @@ function CTBase.OptimalControlSolution(
 
     # check that time grid is strictly increasing
     # if not proceed with list of indexes as time grid
-    if !issorted(T, lt = <=)
+    if !issorted(T, lt=<=)
         println(
             "WARNING: time grid at solution is not strictly increasing, replacing with list of indices...",
         )
@@ -292,7 +292,7 @@ function CTBase.OptimalControlSolution(
 
     # variables: remove additional state for lagrange cost
     x = ctinterpolate(T, matrix2vec(X[:, 1:dim_x], 1))
-    p = ctinterpolate(T[1:(end - 1)], matrix2vec(P[:, 1:dim_x], 1))
+    p = ctinterpolate(T[1:(end-1)], matrix2vec(P[:, 1:dim_x], 1))
     u = ctinterpolate(T, matrix2vec(U[:, 1:dim_u], 1))
 
     # force scalar output when dimension is 1
@@ -302,7 +302,7 @@ function CTBase.OptimalControlSolution(
     var = (dim_v == 1) ? v[1] : v
 
     # misc infos
-    infos = Dict{Symbol, Any}()
+    infos = Dict{Symbol,Any}()
     infos[:constraints_violation] = constraints_violation
 
     # nonlinear constraints and multipliers
@@ -330,59 +330,59 @@ function CTBase.OptimalControlSolution(
     if is_variable_dependent(ocp)
         return OptimalControlSolution(
             ocp;
-            state = fx,
-            control = fu,
-            objective = objective,
-            costate = fp,
-            time_grid = T,
-            variable = var,
-            iterations = iterations,
-            stopping = stopping,
-            message = message,
-            success = success,
-            infos = infos,
-            control_constraints = control_constraints,
-            state_constraints = state_constraints,
-            mixed_constraints = mixed_constraints,
-            boundary_constraints = boundary_constraints,
-            variable_constraints = variable_constraints,
-            mult_control_constraints = mult_control_constraints,
-            mult_state_constraints = mult_state_constraints,
-            mult_mixed_constraints = mult_mixed_constraints,
-            mult_boundary_constraints = mult_boundary_constraints,
-            mult_variable_constraints = mult_variable_constraints,
-            mult_state_box_lower = mult_state_box_lower,
-            mult_state_box_upper = mult_state_box_upper,
-            mult_control_box_lower = mult_control_box_lower,
-            mult_control_box_upper = mult_control_box_upper,
-            mult_variable_box_lower = mult_variable_box_lower,
-            mult_variable_box_upper = mult_variable_box_upper,
+            state=fx,
+            control=fu,
+            objective=objective,
+            costate=fp,
+            time_grid=T,
+            variable=var,
+            iterations=iterations,
+            stopping=stopping,
+            message=message,
+            success=success,
+            infos=infos,
+            control_constraints=control_constraints,
+            state_constraints=state_constraints,
+            mixed_constraints=mixed_constraints,
+            boundary_constraints=boundary_constraints,
+            variable_constraints=variable_constraints,
+            mult_control_constraints=mult_control_constraints,
+            mult_state_constraints=mult_state_constraints,
+            mult_mixed_constraints=mult_mixed_constraints,
+            mult_boundary_constraints=mult_boundary_constraints,
+            mult_variable_constraints=mult_variable_constraints,
+            mult_state_box_lower=mult_state_box_lower,
+            mult_state_box_upper=mult_state_box_upper,
+            mult_control_box_lower=mult_control_box_lower,
+            mult_control_box_upper=mult_control_box_upper,
+            mult_variable_box_lower=mult_variable_box_lower,
+            mult_variable_box_upper=mult_variable_box_upper,
         )
     else
         return OptimalControlSolution(
             ocp;
-            state = fx,
-            control = fu,
-            objective = objective,
-            costate = fp,
-            time_grid = T,
-            iterations = iterations,
-            stopping = stopping,
-            message = message,
-            success = success,
-            infos = infos,
-            control_constraints = control_constraints,
-            state_constraints = state_constraints,
-            mixed_constraints = mixed_constraints,
-            boundary_constraints = boundary_constraints,
-            mult_control_constraints = mult_control_constraints,
-            mult_state_constraints = mult_state_constraints,
-            mult_mixed_constraints = mult_mixed_constraints,
-            mult_boundary_constraints = mult_boundary_constraints,
-            mult_state_box_lower = mult_state_box_lower,
-            mult_state_box_upper = mult_state_box_upper,
-            mult_control_box_lower = mult_control_box_lower,
-            mult_control_box_upper = mult_control_box_upper,
+            state=fx,
+            control=fu,
+            objective=objective,
+            costate=fp,
+            time_grid=T,
+            iterations=iterations,
+            stopping=stopping,
+            message=message,
+            success=success,
+            infos=infos,
+            control_constraints=control_constraints,
+            state_constraints=state_constraints,
+            mixed_constraints=mixed_constraints,
+            boundary_constraints=boundary_constraints,
+            mult_control_constraints=mult_control_constraints,
+            mult_state_constraints=mult_state_constraints,
+            mult_mixed_constraints=mult_mixed_constraints,
+            mult_boundary_constraints=mult_boundary_constraints,
+            mult_state_box_lower=mult_state_box_lower,
+            mult_state_box_upper=mult_state_box_upper,
+            mult_control_box_lower=mult_control_box_lower,
+            mult_control_box_upper=mult_control_box_upper,
         )
     end
 end

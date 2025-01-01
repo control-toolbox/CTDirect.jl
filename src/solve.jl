@@ -21,10 +21,10 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 function direct_transcription(
     ocp::OptimalControlModel,
     description...;
-    init = CTBase.__ocp_init(),
-    grid_size = __grid_size(),
-    time_grid = __time_grid(),
-    disc_method = __disc_method()
+    init=CTBase.__ocp_init(),
+    grid_size=__grid_size(),
+    time_grid=__time_grid(),
+    disc_method=__disc_method()
 )
 
     # build DOCP
@@ -39,9 +39,9 @@ function direct_transcription(
         docp,
         OptimalControlInit(
             init,
-            state_dim = ocp.state_dimension,
-            control_dim = ocp.control_dimension,
-            variable_dim = ocp.variable_dimension,
+            state_dim=ocp.state_dimension,
+            control_dim=ocp.control_dimension,
+            variable_dim=ocp.variable_dimension,
         ),
     )
 
@@ -54,7 +54,7 @@ function direct_transcription(
         (c, x) -> DOCP_constraints!(c, x, docp),
         docp.con_l,
         docp.con_u,
-        backend = :optimized,
+        backend=:optimized,
     )
 
     return docp, nlp
@@ -71,9 +71,9 @@ function set_initial_guess(docp::DOCP, nlp, init)
         docp,
         OptimalControlInit(
             init,
-            state_dim = ocp.state_dimension,
-            control_dim = ocp.control_dimension,
-            variable_dim = ocp.variable_dimension,
+            state_dim=ocp.state_dimension,
+            control_dim=ocp.control_dimension,
+            variable_dim=ocp.variable_dimension,
         ),
     )
 end
@@ -86,10 +86,10 @@ Solve an OCP with a direct method
 function direct_solve(
     ocp::OptimalControlModel,
     description::Symbol...;
-    init = CTBase.__ocp_init(),
-    grid_size::Int = CTDirect.__grid_size(),
-    time_grid = CTDirect.__time_grid(),
-    disc_method = __disc_method(),
+    init=CTBase.__ocp_init(),
+    grid_size::Int=CTDirect.__grid_size(),
+    time_grid=CTDirect.__time_grid(),
+    disc_method=__disc_method(),
     kwargs...,
 )
     method = getFullDescription(description, available_methods())
@@ -98,10 +98,10 @@ function direct_solve(
     docp, nlp = direct_transcription(
         ocp,
         description,
-        init = init,
-        grid_size = grid_size,
-        time_grid = time_grid,
-        disc_method = disc_method
+        init=init,
+        grid_size=grid_size,
+        time_grid=time_grid,
+        disc_method=disc_method
     )
 
     # solve DOCP
@@ -125,6 +125,6 @@ struct MadNLPBackend <: AbstractSolverBackend end
 
 weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP)
 
-function solve_docp(solver_backend::T, args...; kwargs...) where {T <: AbstractSolverBackend}
+function solve_docp(solver_backend::T, args...; kwargs...) where {T<:AbstractSolverBackend}
     throw(ExtensionError(weakdeps[T]))
 end

@@ -16,7 +16,7 @@ using Printf
 #######################################################
 # load examples library
 problem_path = pwd() * "/test/problems"
-for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true))
+for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
@@ -31,8 +31,8 @@ function bench_list(problem_list; verbose=2, nlp_solver, linear_solver, kwargs..
 
         # check
         sol = direct_solve(problem[:ocp], nlp_solver; init=problem[:init], display=false, kwargs...)
-        if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
-            error("Objective mismatch for ",problem[:name],": ",sol.objective," instead of ",problem[:obj])
+        if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol=5e-2)
+            error("Objective mismatch for ", problem[:name], ": ", sol.objective, " instead of ", problem[:obj])
         else
             verbose > 1 && @printf("%-30s: %4d iter ", problem[:name], sol.iterations)
         end
@@ -47,7 +47,7 @@ function bench_list(problem_list; verbose=2, nlp_solver, linear_solver, kwargs..
 end
 
 
-function bench(;grid_size_list = [250, 500, 1000, 2500], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, names_list = :default, kwargs...)
+function bench(; grid_size_list=[250, 500, 1000, 2500], verbose=1, nlp_solver=:ipopt, linear_solver=nothing, names_list=:default, kwargs...)
 
     #######################################################
     # set (non) linear solvers and backends
@@ -66,7 +66,7 @@ function bench(;grid_size_list = [250, 500, 1000, 2500], verbose = 1, nlp_solver
     # load problems for benchmark
     if names_list == :default
         names_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "jackson", "robbins", "simple_integrator", "vanderpol"]
-    elseif names_list == :all 
+    elseif names_list == :all
         names_list = ["algal_bacterial", "beam", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "insurance", "jackson", "robbins", "simple_integrator", "swimmer", "vanderpol"]
     elseif names_list == :hard
         names_list = ["algal_bacterial", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "goddard_all", "insurance", "swimmer"]

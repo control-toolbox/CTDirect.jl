@@ -2,7 +2,7 @@
 
 # +++ make 2 versions: 1 stroke periodic and free N strokes
 
-function swimmer(tf = 25)
+function swimmer(tf=25)
     @def swimmer begin
         t ∈ [0, tf], time
         x ∈ R^5, state
@@ -130,5 +130,5 @@ function swimmer(tf = 25)
         #∫(a1^2 + a2^2) → min
     end
 
-    return ((ocp = swimmer, obj = 0.984273, name = "swimmer", init = nothing))
+    return ((ocp=swimmer, obj=0.984273, name="swimmer", init=nothing))
 end

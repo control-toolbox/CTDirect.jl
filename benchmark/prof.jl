@@ -18,7 +18,7 @@ function local_mayer(obj, x0, xf, v)
     return
 end
 
-function init(;grid_size, disc_method)
+function init(; grid_size, disc_method)
     prob = goddard_all()
     #prob = goddard()
     #prob = simple_integrator()
@@ -29,7 +29,7 @@ function init(;grid_size, disc_method)
 end
 
 
-function test_unit(;test_get=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
+function test_unit(; test_get=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
 
     if profile
         Profile.Allocs.clear()
@@ -47,10 +47,14 @@ function test_unit(;test_get=false, test_obj=true, test_cons=true, test_trans=tr
     # getters
     if test_get
         println("Getters")
-        print("t"); @btime CTDirect.get_final_time($xu, $docp)
-        print("x"); @btime CTDirect.get_OCP_state_at_time_step($xu, $docp, 1)
-        print("u"); @btime CTDirect.get_OCP_control_at_time_step($xu, $docp, 1)
-        print("v"); @btime CTDirect.get_OCP_variable($xu, $docp)
+        print("t")
+        @btime CTDirect.get_final_time($xu, $docp)
+        print("x")
+        @btime CTDirect.get_OCP_state_at_time_step($xu, $docp, 1)
+        print("u")
+        @btime CTDirect.get_OCP_control_at_time_step($xu, $docp, 1)
+        print("v")
+        @btime CTDirect.get_OCP_variable($xu, $docp)
         if warntype
             @code_warntype CTDirect.get_final_time(xu, docp)
             @code_warntype CTDirect.get_time_grid(xu, docp)
@@ -62,11 +66,12 @@ function test_unit(;test_get=false, test_obj=true, test_cons=true, test_trans=tr
 
     # DOCP_objective
     if test_obj
-        print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
+        print("Objective")
+        @btime CTDirect.DOCP_objective($xu, $docp)
         warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
         jet && display(@report_opt CTDirect.DOCP_objective(xu, docp))
         if profile
-            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
+            Profile.Allocs.@profile sample_rate = 1.0 CTDirect.DOCP_objective(xu, docp)
             results = Profile.Allocs.fetch()
             PProf.Allocs.pprof()
         end
@@ -74,12 +79,13 @@ function test_unit(;test_get=false, test_obj=true, test_cons=true, test_trans=tr
 
     # DOCP_constraints
     if test_cons
-        print("Constraints"); @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
-        any(c.==666.666) && error("undefined values in constraints ",c)
+        print("Constraints")
+        @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
+        any(c .== 666.666) && error("undefined values in constraints ", c)
         warntype && @code_warntype CTDirect.DOCP_constraints!(c, xu, docp)
         jet && display(@report_opt CTDirect.DOCP_constraints!(c, xu, docp))
         if profile
-            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints!(c, xu, docp)
+            Profile.Allocs.@profile sample_rate = 1.0 CTDirect.DOCP_constraints!(c, xu, docp)
             results = Profile.Allocs.fetch()
             PProf.Allocs.pprof()
         end
@@ -87,7 +93,8 @@ function test_unit(;test_get=false, test_obj=true, test_cons=true, test_trans=tr
 
     # transcription
     if test_trans
-        print("Transcription"); @btime direct_transcription($prob.ocp, grid_size=$grid_size, disc_method=$disc_method)
+        print("Transcription")
+        @btime direct_transcription($prob.ocp, grid_size=$grid_size, disc_method=$disc_method)
     end
 
     # solve
@@ -96,8 +103,8 @@ function test_unit(;test_get=false, test_obj=true, test_cons=true, test_trans=tr
         if !isapprox(sol.objective, prob.obj, rtol=1e-2)
             error("objective mismatch: ", sol.objective, " vs ", prob.obj)
         end
-        print("Solve"); @btime direct_solve($prob.ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
+        print("Solve")
+        @btime direct_solve($prob.ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
     end
 
 end
-
