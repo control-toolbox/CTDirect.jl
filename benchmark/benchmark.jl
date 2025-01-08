@@ -1,6 +1,7 @@
 # Benchmark
 using CTDirect
-using CTBase
+using NLPModelsIpopt
+import CTModels
 
 using LinearAlgebra
 using NLPModelsIpopt
@@ -74,7 +75,7 @@ function bench(;grid_size_list = [250, 500, 1000, 2500], verbose = 1, nlp_solver
     println("Problem list: ", names_list)
     problem_list = []
     for problem_name in names_list
-        ocp_data = getfield(Main, Symbol(problem_name))()
+        ocp_data = getfield(Main, Symbol(problem_name*"_model"))()
         push!(problem_list, ocp_data)
     end
 
