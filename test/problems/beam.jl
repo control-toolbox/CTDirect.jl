@@ -23,7 +23,8 @@ function beam_model()
     CTModels.constraint!(pre_ocp, :state, rg=1:2, lb=[0, -Inf], ub=[0.1, Inf], label=:state_rg)
     CTModels.definition!(pre_ocp, Expr(:beam))
     ocp = CTModels.build_model(pre_ocp)
-    return ocp
+
+    return ((ocp = ocp, obj = nothing, name = "beam", init = nothing))
 end
 
 #=

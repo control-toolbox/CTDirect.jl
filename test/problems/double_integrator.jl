@@ -25,7 +25,8 @@ function double_integrator_mintf_model()
     CTModels.constraint!(pre_ocp, :variable, rg=1:1, lb=[0.05], ub=[Inf], label=:variable_rg)
     CTModels.definition!(pre_ocp, Expr(:double_integrator_min_tf))
     ocp = CTModels.build_model(pre_ocp)
-    return ocp
+    
+    return ((ocp = ocp, obj = nothing, name = "double_integrator_mintf", init = nothing))
 end
 
 
@@ -70,7 +71,8 @@ function double_integrator_minenergy_model(T=2)
     CTModels.constraint!(pre_ocp, :boundary, f=bc!, lb=[0, 0, 1, 0], ub=[0, 0, 1, 0], label=:boundary)
     CTModels.definition!(pre_ocp, Expr(:double_integrator_minenergy))
     ocp = CTModels.build_model(pre_ocp)
-    return ocp
+
+    return ((ocp = ocp, obj = nothing, name = "double_integrator_minenergy", init = nothing))
 end
 
 #=
@@ -118,7 +120,8 @@ function double_integrator_freet0tf_model()
     CTModels.constraint!(pre_ocp, :variable, rg=1:2, lb=[0.05,0.05], ub=[10,10], label=:variable_rg)
     CTModels.definition!(pre_ocp, Expr(:double_integrator_freet0tf))
     ocp = CTModels.build_model(pre_ocp)
-    return ocp
+
+    return ((ocp = ocp, obj = nothing, name = "double_integrator_freet0tf", init = nothing))
 end
 
 #=

@@ -23,7 +23,8 @@ function fuller_model()
     CTModels.constraint!(pre_ocp, :control, rg=1:1, lb=[-1], ub=[1], label=:control_rg)
     CTModels.definition!(pre_ocp, Expr(:fuller_min_energy))
     ocp = CTModels.build_model(pre_ocp)
-    return ocp
+
+    return ((ocp = ocp, obj = nothing, name = "fuller", init = nothing))
 end
 
 #=function fuller()

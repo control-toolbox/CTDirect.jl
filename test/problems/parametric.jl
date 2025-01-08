@@ -1,5 +1,5 @@
 # Parametric problem (name ??)
-function parametric(ρ)
+#=function parametric(ρ)
     relu(x) = max(0, x)
     μ = 10
     p_relu(x) = log(abs(1 + exp(μ * x))) / μ
@@ -23,4 +23,4 @@ function parametric(ρ)
     end
 
     return ((ocp = param, obj = nothing, name = "parametric", init = nothing))
-end
+end=#

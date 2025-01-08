@@ -1,6 +1,6 @@
 # Optimal control of an algal-bacterial consortium system. Original code from Rand Asswad.
 
-#=function algal_bacterial_model()
+function algal_bacterial_model()
 
     s_in = 0.5
     β = 23e-3
@@ -38,9 +38,9 @@
     CTModels.definition!(pre_ocp, Expr(:algal_bacterial))
     ocp = CTModels.build_model(pre_ocp)
     return ocp
-end=#
+end
 
-function algal_bacterial()
+#=function algal_bacterial()
 
     # parameters
     s_in = 0.5
@@ -78,4 +78,4 @@ function algal_bacterial()
     end
 
 return ((ocp = algal_bacterial, obj = 5.45, name = "algal_bacterial", init = nothing))
-end
+end=#

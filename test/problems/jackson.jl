@@ -25,7 +25,8 @@ function jackson_model()
     CTModels.objective!(pre_ocp, :max, mayer=mayer)
     CTModels.definition!(pre_ocp, Expr(:jackson))
     ocp = CTModels.build_model(pre_ocp)
-    return ocp
+
+    return ((ocp = ocp, obj = nothing, name = "jackson", init = nothing))
 end
 
 #=function jackson()

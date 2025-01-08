@@ -1,6 +1,6 @@
 # some test problems with free times
 
-function bolza_freetf()
+#=function bolza_freetf()
     @def ocp begin
         tf ∈ R, variable
         t ∈ [0, tf], time
@@ -15,4 +15,4 @@ function bolza_freetf()
     end
 
     return ((ocp = ocp, obj = 1.476, name = "bolza_freetf", init = nothing))
-end
+end=#

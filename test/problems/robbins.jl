@@ -24,7 +24,8 @@ function robbins_model()
     CTModels.objective!(pre_ocp, :min, lagrange=l)
     CTModels.definition!(pre_ocp, Expr(:robbins))
     ocp = CTModels.build_model(pre_ocp)
-    return ocp
+
+    return ((ocp = ocp, obj = nothing, name = "robbins", init = nothing))
 end
 
 #=function robbins()

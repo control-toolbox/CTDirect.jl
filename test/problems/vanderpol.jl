@@ -21,7 +21,8 @@ function vanderpol_model()
     CTModels.constraint!(pre_ocp, :boundary, f=bc!, lb=[1, 0], ub=[1, 0], label=:boundary)
     CTModels.definition!(pre_ocp, Expr(:vanderpol))
     ocp = CTModels.build_model(pre_ocp)
-    return ocp
+
+    return ((ocp = ocp, obj = nothing, name = "vanderpol", init = nothing))
 end
 
 #=function vanderpol()
