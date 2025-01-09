@@ -14,7 +14,7 @@ const matrix2vec = CTBase.matrix2vec
 # includes
 include("default.jl")
 include("docp.jl")
-#include("disc/midpoint.jl")
+include("disc/midpoint.jl")
 include("disc/trapeze.jl")
 #include("disc/irk.jl")
 include("solution.jl")
