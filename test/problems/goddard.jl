@@ -52,10 +52,7 @@ function goddard_model(; vmax = 0.1, Tmax = 3.5)
     ocp = CTModels.build_model(pre_ocp)
 
     return ((
-        ocp = ocp,
-        obj = nothing,
-        name = "goddard",
-        init = (state = [1.01, 0.05, 0.8],),
+        ocp = ocp, obj = 1.01257, name = "goddard", init = (state = [1.01, 0.05, 0.8],),
     ))
 end
 
@@ -152,10 +149,7 @@ function goddard_all_model()
     ocp = CTModels.build_model(pre_ocp)
 
     return ((
-        ocp = ocp,
-        obj = nothing,
-        name = "goddard_all_constraints",
-        init = (state = [1.01, 0.05, 0.8],),
+        ocp = ocp, obj = 1.01257, name = "goddard_all_constraints", init = (state = [1.01, 0.05, 0.8],),
     ))
 end
 

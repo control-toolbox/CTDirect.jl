@@ -26,7 +26,7 @@ function double_integrator_mintf_model()
     CTModels.definition!(pre_ocp, Expr(:double_integrator_min_tf))
     ocp = CTModels.build_model(pre_ocp)
     
-    return ((ocp = ocp, obj = nothing, name = "double_integrator_mintf", init = nothing))
+    return ((ocp = ocp, obj = 2.0, name = "double_integrator_mintf", init = nothing))
 end
 
 
@@ -121,7 +121,7 @@ function double_integrator_freet0tf_model()
     CTModels.definition!(pre_ocp, Expr(:double_integrator_freet0tf))
     ocp = CTModels.build_model(pre_ocp)
 
-    return ((ocp = ocp, obj = nothing, name = "double_integrator_freet0tf", init = nothing))
+    return ((ocp = ocp, obj = 8.0, name = "double_integrator_freet0tf", init = nothing))
 end
 
 #=

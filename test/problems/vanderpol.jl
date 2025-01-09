@@ -22,7 +22,7 @@ function vanderpol_model()
     CTModels.definition!(pre_ocp, Expr(:vanderpol))
     ocp = CTModels.build_model(pre_ocp)
 
-    return ((ocp = ocp, obj = nothing, name = "vanderpol", init = nothing))
+    return ((ocp = ocp, obj = 1.047921, name = "vanderpol", init = nothing))
 end
 
 #=function vanderpol()

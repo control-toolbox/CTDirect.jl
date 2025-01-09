@@ -24,7 +24,7 @@ function beam_model()
     CTModels.definition!(pre_ocp, Expr(:beam))
     ocp = CTModels.build_model(pre_ocp)
 
-    return ((ocp = ocp, obj = nothing, name = "beam", init = nothing))
+    return ((ocp = ocp, obj = 8.898598, name = "beam", init = nothing))
 end
 
 #=

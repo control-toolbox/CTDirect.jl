@@ -19,7 +19,7 @@ function simple_integrator_model()
     CTModels.definition!(pre_ocp, Expr(:simple_integrator_min_energy))
     ocp = CTModels.build_model(pre_ocp)
 
-    return ((ocp = ocp, obj = nothing, name = "simple_integrator", init = nothing))
+    return ((ocp = ocp, obj = 3.13e-1, name = "simple_integrator", init = nothing))
 end
 
 

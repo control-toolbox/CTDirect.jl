@@ -26,7 +26,7 @@ function jackson_model()
     CTModels.definition!(pre_ocp, Expr(:jackson))
     ocp = CTModels.build_model(pre_ocp)
 
-    return ((ocp = ocp, obj = nothing, name = "jackson", init = nothing))
+    return ((ocp = ocp, obj = 1.92011e-1, name = "jackson", init = nothing))
 end
 
 #=function jackson()

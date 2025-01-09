@@ -24,7 +24,7 @@ function fuller_model()
     CTModels.definition!(pre_ocp, Expr(:fuller_min_energy))
     ocp = CTModels.build_model(pre_ocp)
 
-    return ((ocp = ocp, obj = nothing, name = "fuller", init = nothing))
+    return ((ocp = ocp, obj = 2.683944e-1, name = "fuller", init = nothing))
 end
 
 #=function fuller()
