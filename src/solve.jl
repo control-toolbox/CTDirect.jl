@@ -55,6 +55,7 @@ function direct_transcription(
         docp.con_l,
         docp.con_u,
         backend = :optimized,
+        #hessian_backend = ADNLPModels.EmptyADbackend
     )
 
     return docp, nlp
