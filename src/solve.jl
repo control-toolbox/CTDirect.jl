@@ -104,7 +104,7 @@ function direct_solve(
         init = init,
         grid_size = grid_size,
         time_grid = time_grid,
-        disc_method = disc_method
+        disc_method = disc_method,
         adnlp_backend = adnlp_backend
     )
 
