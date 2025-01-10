@@ -349,8 +349,8 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        #CTModels.boundary_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
-        docp.bc((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v) # same runtime dispatch and allocs
+        CTModels.boundary_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
+        #docp.bc((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v) # same runtime dispatch and allocs
     end
 
     # null initial condition for lagrangian cost state
