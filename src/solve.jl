@@ -24,7 +24,8 @@ function direct_transcription(
     init = CTBase.__ocp_init(),
     grid_size = __grid_size(),
     time_grid = __time_grid(),
-    disc_method = __disc_method()
+    disc_method = __disc_method(),
+    adnlp_backend = __adnlp_backend()
 )
 
     # build DOCP
@@ -54,7 +55,7 @@ function direct_transcription(
         (c, x) -> DOCP_constraints!(c, x, docp),
         docp.con_l,
         docp.con_u,
-        backend = :optimized,
+        backend = adnlp_backend,
         #hessian_backend = ADNLPModels.EmptyADbackend
     )
 
@@ -91,6 +92,7 @@ function direct_solve(
     grid_size::Int = CTDirect.__grid_size(),
     time_grid = CTDirect.__time_grid(),
     disc_method = __disc_method(),
+    adnlp_backend = __adnlp_backend(),
     kwargs...,
 )
     method = getFullDescription(description, available_methods())
@@ -98,11 +100,12 @@ function direct_solve(
     # build discretized OCP, including initial guess
     docp, nlp = direct_transcription(
         ocp,
-        description,
+        description;
         init = init,
         grid_size = grid_size,
         time_grid = time_grid,
-        disc_method = disc_method
+        disc_method = disc_method,
+        adnlp_backend = adnlp_backend
     )
 
     # solve DOCP
