@@ -24,7 +24,8 @@ function direct_transcription(
     init = CTBase.__ocp_init(),
     grid_size = __grid_size(),
     time_grid = __time_grid(),
-    disc_method = __disc_method()
+    disc_method = __disc_method(),
+    adnlp_backend = __adnlp_backend()
 )
 
     # build DOCP
@@ -54,7 +55,7 @@ function direct_transcription(
         (c, x) -> DOCP_constraints!(c, x, docp),
         docp.con_l,
         docp.con_u,
-        backend = :optimized,
+        backend = adnlp_backend,
         #hessian_backend = ADNLPModels.EmptyADbackend
     )
 
