@@ -1,7 +1,4 @@
 # Jump version
-
-import Pkg
-Pkg.add.(["JuMP", "Ipopt"])
 using JuMP, Ipopt
 
 function algal_bacterial_jump(;N=5000, disc_method=:trapeze)
