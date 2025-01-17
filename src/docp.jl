@@ -7,6 +7,11 @@ abstract type ScalVect end
 struct ScalVariable <: ScalVect end
 struct VectVariable <: ScalVect end
 
+# use OCP model subtype later ?
+abstract type TimeGrid end
+struct FixedTimeGrid <: TimeGrid end
+struct FreeTimeGrid <: TimeGrid end
+
 """
 $(TYPEDSIGNATURES)
 
@@ -16,7 +21,7 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
+struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect, G <: TimeGrid}
 
     ## OCP
     ocp::OptimalControlModel # remove at some point ?
@@ -32,6 +37,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     variable_box::Any
 
     # flags
+    time_grid_type:: G
     is_free_initial_time::Bool
     is_free_final_time::Bool
     is_lagrange::Bool
@@ -62,7 +68,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
     dim_OCP_x::Int  # original OCP state
     dim_NLP_steps::Int
     NLP_normalized_time_grid::Vector{Float64}
-    NLP_time_grid::Vector{Float64}
+    NLP_fixed_time_grid::Vector{Float64}
     dim_NLP_variables::Int
     dim_NLP_constraints::Int
 
@@ -144,12 +150,14 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             index_final_time = Index(1) # unused
         end
 
-        if is_free_initial_time || is_free_final_time
-            # time grid will be recomputed at each NLP iteration
-            NLP_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
+        if !is_free_initial_time && !is_free_final_time
+            # compute time grid once for all
+            NLP_fixed_time_grid = @. fixed_initial_time + (NLP_normalized_time_grid * (fixed_final_time - fixed_initial_time))
+            time_grid_type = FixedTimeGrid()
         else
-            # compute time grid once for all 
-            NLP_time_grid = @. fixed_initial_time + (NLP_normalized_time_grid * (fixed_final_time - fixed_initial_time))
+            # unused
+            NLP_fixed_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
+            time_grid_type = FreeTimeGrid()
         end
 
         # NLP constraints 
@@ -199,7 +207,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         dim_NLP_v == 1 ? _type_v = ScalVariable() : _type_v = VectVariable()
 
         # call constructor with const fields
-        docp = new{typeof(discretization), typeof(_type_x), typeof(_type_u), typeof(_type_v)}(
+        docp = new{typeof(discretization), typeof(_type_x), typeof(_type_u), typeof(_type_v), typeof(time_grid_type)}(
             ocp,
             control_constraints,
             state_constraints,
@@ -209,6 +217,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             control_box,
             state_box,
             variable_box,
+            time_grid_type,
             is_free_initial_time,
             is_free_final_time,
             is_lagrange,
@@ -528,4 +537,28 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
     end
 
     return NLP_X
+end
+
+function get_time_grid(xu, docp::DOCP{<:Discretization, <: CTModels.Model, <: Function, FixedTimeGrid})
+    return docp.NLP_fixed_time_grid
+end
+function get_time_grid(xu, docp::DOCP{<:Discretization, <: CTModels.Model, <: Function,FreeTimeGrid})
+
+    if docp.has_free_initial_time
+        v = get_OCP_variable(xu, docp)
+        t0 = v[docp.NLP_free_initial_time_index]
+    else
+        t0 = docp.NLP_fixed_initial_time
+    end
+
+    if docp.has_free_final_time
+        v = get_OCP_variable(xu, docp)
+        tf = v[docp.NLP_free_final_time_index]
+    else
+        tf = docp.NLP_fixed_final_time
+    end
+
+    grid = similar(xu, docp.dim_NLP_steps+1)
+    @. grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
+    return grid
 end

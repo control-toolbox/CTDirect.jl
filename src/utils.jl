@@ -24,7 +24,7 @@ function get_final_time(xu, docp)
     end
 end
 
-# time grid
+#= time grid
 function get_time_grid(xu, docp)
     if docp.is_free_initial_time || docp.is_free_final_time
         t0 = get_initial_time(xu, docp)
@@ -34,7 +34,7 @@ function get_time_grid(xu, docp)
         return docp.NLP_time_grid
     end
 end
-
+=#
 
 """
 $(TYPEDSIGNATURES)
