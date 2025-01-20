@@ -5,7 +5,7 @@ function algal_bacterial_jump(;N=5000, disc_method=:trapeze)
 
     #initialize JuMP model with Ipopt solver backend
     sys = JuMP.Model(Ipopt.Optimizer)
-    set_optimizer_attribute(sys, "print_level", 4)
+    set_optimizer_attribute(sys, "print_level", 5)
     set_optimizer_attribute(sys, "tol", 1e-8)
     set_optimizer_attribute(sys, "max_iter", 1500)
     set_optimizer_attribute(sys, "mu_strategy", "adaptive")
