@@ -16,7 +16,7 @@ include("default.jl")
 include("docp.jl")
 include("disc/midpoint.jl")
 include("disc/trapeze.jl")
-#include("disc/irk.jl")
+include("disc/irk.jl")
 include("solution.jl")
 include("solve.jl")
 
