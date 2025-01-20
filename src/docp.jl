@@ -242,7 +242,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect, G 
             dim_OCP_x,
             dim_NLP_steps,
             NLP_normalized_time_grid,
-            NLP_time_grid,
+            NLP_fixed_time_grid,
             dim_NLP_variables,
             dim_NLP_constraints,
             -Inf * ones(dim_NLP_variables),
@@ -539,10 +539,32 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
     return NLP_X
 end
 
-function get_time_grid(xu, docp::DOCP{<:Discretization, <: CTModels.Model, <: Function, FixedTimeGrid})
+#= using time_grid does not allocate more and avoids recomputing steps twice for step length
+function get_time_step(xu, docp::DOCP{<:Discretization, <: ScalVect, <: ScalVect, <: ScalVect, FixedTimeGrid}, i)
+    return docp.NLP_fixed_time_grid[i]
+end
+function get_time_step(xu, docp::DOCP{<:Discretization, <: ScalVect, <: ScalVect, <: ScalVect, FreeTimeGrid}, i)
+    if docp.has_free_initial_time
+        v = get_OCP_variable(xu, docp)
+        t0 = v[docp.NLP_free_initial_time_index]
+    else
+        t0 = docp.NLP_fixed_initial_time
+    end
+
+    if docp.has_free_final_time
+        v = get_OCP_variable(xu, docp)
+        tf = v[docp.NLP_free_final_time_index]
+    else
+        tf = docp.NLP_fixed_final_time
+    end
+
+    return t0 + docp.NLP_normalized_time_grid[i] * (tf - t0)
+end=#
+
+function get_time_grid(xu, docp::DOCP{<:Discretization, <: ScalVect, <: ScalVect, <: ScalVect, FixedTimeGrid})
     return docp.NLP_fixed_time_grid
 end
-function get_time_grid(xu, docp::DOCP{<:Discretization, <: CTModels.Model, <: Function,FreeTimeGrid})
+function get_time_grid(xu, docp::DOCP{<:Discretization, <: ScalVect, <: ScalVect, <: ScalVect, FreeTimeGrid})
 
     if docp.has_free_initial_time
         v = get_OCP_variable(xu, docp)
