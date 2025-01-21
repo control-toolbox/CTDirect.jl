@@ -566,18 +566,18 @@ function get_time_grid(xu, docp::DOCP{<:Discretization, <: ScalVect, <: ScalVect
 end
 function get_time_grid(xu, docp::DOCP{<:Discretization, <: ScalVect, <: ScalVect, <: ScalVect, FreeTimeGrid})
 
-    if docp.has_free_initial_time
+    if docp.is_free_initial_time
         v = get_OCP_variable(xu, docp)
-        t0 = v[docp.NLP_free_initial_time_index]
+        t0 = v[docp.index_initial_time]
     else
-        t0 = docp.NLP_fixed_initial_time
+        t0 = docp.fixed_initial_time
     end
 
-    if docp.has_free_final_time
+    if docp.is_free_final_time
         v = get_OCP_variable(xu, docp)
-        tf = v[docp.NLP_free_final_time_index]
+        tf = v[docp.index_final_time]
     else
-        tf = docp.NLP_fixed_final_time
+        tf = docp.fixed_final_time
     end
 
     grid = similar(xu, docp.dim_NLP_steps+1)
