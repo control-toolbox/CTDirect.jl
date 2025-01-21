@@ -26,24 +26,24 @@ Note: update test CT with split time grid also, cf AD_backend branch
 |iterations       | 323    | 365    | 365    | 509      | 420      | 420      |
 |objective        | 5.4522 | 5.4522 | 5.4522 | 5.4522   | 5.4522   | 5.4522   |
 |structure        |        | noise  |        |          | noise    |          |
-|allocations      | 336MB  | 6.0GB  | 4.7GB  | 3.0GB    | 58GB     | 50GB     |
-|time (ipopt)     | 16(15) | 23(20) | 22(19) | 155(152) | 145(111) | 128(108) |
+|allocations      | 336MB  | 4.5GB  | 4.7GB  | 3.0GB    | 49GB     | 50GB     |
+|time (ipopt)     | 16(15) | 20(19) | 22(19) | 155(152) | 133(111) | 128(108) |
 
 
 |                 | Gauss Legendre 2 (1000)  || Gauss Legendre 2 (5000)      ||
 |                 | Jump   | CT     | New    | Jump     | CT       | New      |
 |-----------------|--------|--------|--------|----------|----------|----------|
-|nnz jacobian     |        | 138000 | 138000 |          |   690000 | 690000   |
-|nnz hessian      |        | 81000  | 81000  |          |   405000 | 405000   |
-|variables        |        | 20008  | 20008  |          |   100008 | 100008   |
-|lowerbound       |        | 6006   | 6006   |          |   30006  | 30006    |
-|lower/upper      |        | 2002   | 2002   |          |   10002  | 10002    |
-|equality         |        | 18006  | 18006  |          |   90006  | 90006    |
+|nnz jacobian     |        | 138000 | 138000 |          | 690000   | 690000   |
+|nnz hessian      |        | 81000  | 81000  |          | 405000   | 405000   |
+|variables        |        | 20008  | 20008  |          | 100008   | 100008   |
+|lowerbound       |        | 6006   | 6006   |          | 30006    | 30006    |
+|lower/upper      |        | 2002   | 2002   |          | 10002    | 10002    |
+|equality         |        | 18006  | 18006  |          | 90006    | 90006    |
 |-----------------|--------|--------|--------|----------|----------|----------|
-|iterations       |         100    | 100     |          | 111      | 111      |
-|objective        |         5.4522 | 5.4522  |          | 5.4522   | 5.4522   |
-|structure        |         clean  |         |          | cleanc   |          |
-|allocations      |         15.5GB | 14.5GB  |          | 314GB    | 308GB    |
-|time (ipopt)     |         38(34) | 39(31)  |          | 382(163) | 371(140) |
+|iterations       |        | 100    | 100    |          | 111      | 111      |
+|objective        |        | 5.4522 | 5.4522 |          | 5.4522   | 5.4522   |
+|structure        |        | clean  |        |          | clean    |          |
+|allocations      |        | 14.9GB | 14.5GB |          | 311GB    | 308GB    |
+|time (ipopt)     |        | 41(29) | 39(31) |          | 393(143) | 371(140) |
 
 
