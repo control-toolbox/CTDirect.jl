@@ -1,10 +1,9 @@
-## Jump / CTDirect comparison - algal bacterial problem
-Ipopt version 3.14.17, running with linear solver MUMPS 5.7.3
-Ipopt settings: tol=1e-8, mu_strategy=adaptive
-Note that the problem is redefined for each method: jump, ctdirect and ctdirect new model.
-Also, the Gauss Legendre 2 implementations for Jump and CTDirect here use a piecewise constant control (default for CTDirect would have been piecewise linear)
+# Jump / CTDirect comparison - algal bacterial problem
 
-# Takeaways
+Note that the problem is redefined for each method: jump, ctdirect and ctdirect new model.
+Also, the Gauss Legendre 2 implementations for Jump and CTDirect here use a piecewise constant control (default for CTDirect would have been piecewise linear).
+
+## Takeaways
 - CTDirect still allocates at least x10 more memory, worsening for higher problem sizes
 For the biggest allocations, a significant time is passed during the AD phase, before Ipopt. The runs marked with * spend half the time before optimization, likely some swap issue.
 We note that Jump memory appears linear wrt steps for GL2 (but not for Trapeze), while CTDirect memory always increases superlinearly.
@@ -14,11 +13,15 @@ Maybe a less sparse but faster and less memory intensive method is used ?
 Total computation times are similar for Trapeze and x2 to x5 slower for CTDirect for GL2, probably due to the memory effect. 
 - for GL2, Jump and CTDirect have slightly different nonzero counts for the Jacobian
 
-# Todo
+## Todo
 - check why Jump memory allocations are linear wrt steps for GL2 but not Trapeze 
-- disable Hessian (use ipopt finite differences) and compare memory allocations and convergence
+- disable Hessian (in AD model then use ipopt limited memory option ?) and compare memory allocations and convergence
 
-# Results: Jump vs CTDirect  (see test/jump_comparison.jl)
+## Results: Jump vs CTDirect
+See `test/jump_comparison.jl`
+Ipopt details: `Ipopt version 3.14.17, running with linear solver MUMPS 5.7.3`
+Settings: tol=1e-8, mu_strategy=adaptive
+
 ```
 Jump trapeze 1000:  18.177 s (6779482 allocations: 340.27 MiB)
 Jump trapeze 2000:  56.061 s (18798587 allocations: 917.26 MiB)
@@ -46,7 +49,7 @@ CTDirect gauss_legendre_2 2000:  112.687 s (104950745 allocations: 45.37 GiB)
 CTDirect gauss_legendre_2 5000:  363.224 s (211848763 allocations: 313.02 GiB)
 ```
 
-# Details: Trapeze (1000 and 5000 steps)
+## Details: Trapeze (1000 and 5000 steps)
 
 |                 | Jump   | CT     | New    | Jump     | CT       | New      |
 |-----------------|--------|--------|--------|----------|----------|----------|
@@ -63,7 +66,7 @@ CTDirect gauss_legendre_2 5000:  363.224 s (211848763 allocations: 313.02 GiB)
 |time             | 18     | 20     |        | 149      | 136      |          |
 
 
-# Details: Gauss Legendre 2 (1000 and 5000 steps)
+## Details: Gauss Legendre 2 (1000 and 5000 steps)
 
 |                 | Jump   | CT     | New    | Jump     | CT       | New      |
 |-----------------|--------|--------|--------|----------|----------|----------|
