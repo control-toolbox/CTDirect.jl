@@ -166,7 +166,7 @@ end
 
 # save plots
 #mkpath("plots/")
-fname(s) = "docs/jump_" * string(N) * "_" * s * ".pdf"
+fname(s) = "test/docs/jump_trapeze_" * string(N) * "_" * s * ".pdf"
 function save_plots(sol)
     savefig(plot_state(sol), fname("state"))
     savefig(plot_costate(sol), fname("costate"))
