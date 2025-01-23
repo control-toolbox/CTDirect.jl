@@ -15,7 +15,7 @@ Total computation times are close.
 
 Todo:
 - disable Hessian (use ipopt finite differences) and compare memory allocations and convergence
-- GL2 for jump
+- piecewise constant control for GL2 in CTDirect
 
 
 
@@ -67,6 +67,9 @@ Jump gauss_legendre_2 5000:  75.047 s (56269715 allocations: 3.57 GiB)
 CTDirect trapeze 1000:  20.110 s (46501059 allocations: 4.54 GiB)
 CTDirect trapeze 2000:  41.097 s (89302125 allocations: 12.26 GiB)
 CTDirect trapeze 5000:  133.268 s (267989400 allocations: 49.33 GiB)
+piecewise constant control
+
+piecewise linear control
 CTDirect gauss_legendre_2 1000:  37.220 s (39259673 allocations: 15.12 GiB)
 CTDirect gauss_legendre_2 2000:  112.687 s (104950745 allocations: 45.37 GiB)
 CTDirect gauss_legendre_2 5000:  363.224 s (211848763 allocations: 313.02 GiB)

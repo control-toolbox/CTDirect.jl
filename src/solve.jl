@@ -25,11 +25,12 @@ function direct_transcription(
     grid_size = __grid_size(),
     time_grid = __time_grid(),
     disc_method = __disc_method(),
+    constant_control = false,
     adnlp_backend = __adnlp_backend()
 )
 
     # build DOCP
-    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
+    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, constant_control = constant_control)
 
     # set bounds in DOCP
     variables_bounds!(docp)
@@ -89,6 +90,7 @@ function direct_solve(
     grid_size::Int = CTDirect.__grid_size(),
     time_grid = CTDirect.__time_grid(),
     disc_method = __disc_method(),
+    constant_control = false,
     adnlp_backend = __adnlp_backend(),
     kwargs...,
 )
@@ -102,6 +104,7 @@ function direct_solve(
         grid_size = grid_size,
         time_grid = time_grid,
         disc_method = disc_method,
+        constant_control = constant_control,
         adnlp_backend = adnlp_backend
     )
 
