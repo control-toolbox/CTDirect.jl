@@ -21,7 +21,7 @@ To work around this issue, either:
 - zygote gives incorrect (huge) nonzero counts then also fails with an error message. 
 
 
-| Trapeze | default | optimized |      enzyme |      zygote |
+| Trapeze | default | optimized |
 |---------|---------|-----------|
 | 250     | 43.3    | 1.0       |
 | 500     | 176.2   | 2.4       |
