@@ -9,13 +9,13 @@ For the biggest allocations, a significant time is passed during the AD phase, b
 We note that Jump memory appears linear wrt steps for GL2 (but not for Trapeze), while CTDirect memory always increases superlinearly.
 - Hessian seems to be handled differently by Jump, see the higher nonzero values.
 Maybe a less sparse but faster and less memory intensive method is used ? 
-- convergence: iterations are different, maybe due to the different hessian handling.
-Total computation times are similar for Trapeze and x2 to x5 slower for CTDirect for GL2, probably due to the memory effect. 
+- convergence: objective and trajectory are similar, iterations differ, maybe due to the different hessian handling. Total computation times are similar for Trapeze and x2 to x5 slower for CTDirect for GL2, probably due to the memory effect. 
 - for GL2, Jump and CTDirect have slightly different nonzero counts for the Jacobian
+- in terms of control structures, GL2 solutions are clean, Jump Trapeze solutions shows a bit of noise, while CTDirect Trapeze solutions are very noisy.
 
 ## Todo
-- check why Jump memory allocations are linear wrt steps for GL2 but not Trapeze 
-- disable Hessian (in AD model then use ipopt limited memory option ?) and compare memory allocations and convergence
+- check why Jump memory allocations are linear wrt steps for GL2 but not Trapeze
+- disable Hessian (in AD model then use ipopt limited memory option ?) and compare memory allocations and convergence. Find more details on the Hessian in Jump.
 
 ## Results: Jump vs CTDirect
 See `test/jump_comparison.jl`
