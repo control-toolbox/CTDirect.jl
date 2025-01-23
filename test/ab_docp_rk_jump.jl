@@ -33,7 +33,7 @@ set_optimizer_attribute(docp, "max_iter", 1500)
 set_optimizer_attribute(docp, "mu_strategy", "adaptive")
 
 # Discretization parameters
-N = 1000    # time steps
+N = 5000    # time steps
 t0 = 0; tf = 20
 Δt = (tf - t0) / N
 
@@ -150,7 +150,7 @@ function plot_objective(sol::OCSolution)
 end
 
 # save plots
-fname(s) = "test/docs/plots/jump_gl2_" * string(N) * "_" * s * ".pdf"
+fname(s) = "test/docs/jump_gl2_" * string(N) * "_" * s * ".pdf"
 function save_plots(sol)
     savefig(plot_state(sol), fname("state"))
     savefig(plot_costate(sol), fname("costate"))

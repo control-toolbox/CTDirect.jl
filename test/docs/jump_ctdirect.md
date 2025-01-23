@@ -29,9 +29,9 @@ Todo:
 |lowerbound       | 6006   | 6006   | 6006   | 30006    | 30006    | 30006    |
 |lower/upper      | 2002   | 2002   | 2002   | 10002    | 10002    | 10002    |
 |equality         | 6006   | 6006   | 6006   | 30006    | 30006    | 30006    |
-|iterations       | 323    | 365    | 365    | 509      | 420      | 420      |
+|iterations       | 310    | 365    | 365    | 492      | 420      | 420      |
 |objective        | 5.4522 | 5.4522 | 5.4522 | 5.4522   | 5.4522   | 5.4522   |
-|structure        |        | noisy  |        |          | noisy    |          |
+|structure        | ok     | noisy  |        | ok       | noisy    |          |
 |-----------------|--------|--------|--------|----------|----------|----------|
 |allocations      | 340MB  | 4.5GB  | 4.7GB  | 3.0GB    | 49GB     | 50GB     |
 |time             | 19     | 20     | 22     | 155      | 133      | 128      |
@@ -40,15 +40,15 @@ Todo:
 |                 | Gauss Legendre 2 (1000)  || Gauss Legendre 2 (5000)      ||
 |                 | Jump   | CT     | New    | Jump     | CT       | New      |
 |-----------------|--------|--------|--------|----------|----------|----------|
-|nnz jacobian     | 118006 | 138000** | 138000** |          | 690000**   | 690000**   |
-|nnz hessian      | 322000 | 81000  | 81000  |          | 405000   | 405000   |
+|nnz jacobian     | 118006 |   |             | 590006   |   |    |
+|nnz hessian      | 322000 |   |             | 1610000  |   |    |
 |variables        | 20006  | 20008  | 20008  |          | 100008   | 100008   |
 |lowerbound       | 6006   | 6006   | 6006   |          | 30006    | 30006    |
 |lower/upper      | 2000   | 2002   | 2002   |          | 10002    | 10002    |
 |equality         | 18006  | 18006  | 18006  |          | 90006    | 90006    |
-|iterations       |        | 100    | 100    |          | 111      | 111      |
-|objective        |        | 5.4522 | 5.4522 |          | 5.4522   | 5.4522   |
-|structure        |        | clean  |        |          | clean    |          |
+|iterations       | 117    | 100    | 100    | 146      | 111      | 111      |
+|objective        | 5.4522 | 5.4522 | 5.4522 | 5.4522   | 5.4522   | 5.4522   |
+|structure        | clean  | clean  |        | clean    | clean    |          |
 |-----------------|--------|--------|--------|----------|----------|----------|
 |allocations      |        | 14.9GB | 14.5GB |          | 313GB    | 308GB    |
 |time             |        | 35     | 39     |          | 382*     | 371*     |
@@ -58,12 +58,13 @@ Todo:
 ** slightly different implementation for the stage controls
 
 
-Jump trapeze 1000:  17.840 s (6779482 allocations: 340.27 MiB)
-Jump trapeze 2000:  58.605 s (18798587 allocations: 917.26 MiB)
+Jump trapeze 1000:  17.840 s (6779482 allocations: 340.27 MiB) ok
+Jump trapeze 2000:  58.605 s (18798587 allocations: 917.26 MiB) ok
 Jump trapeze 5000:  149.540 s (47597571 allocations: 3.00 GiB)
 Jump gauss_legendre_2 1000:  15.528 s (10988856 allocations: 726.32 MiB)
 Jump gauss_legendre_2 2000:  26.995 s (21345532 allocations: 1.40 GiB)
 Jump gauss_legendre_2 5000:  75.047 s (56269715 allocations: 3.57 GiB)
+
 CTDirect trapeze 1000:  20.110 s (46501059 allocations: 4.54 GiB)
 CTDirect trapeze 2000:  41.097 s (89302125 allocations: 12.26 GiB)
 CTDirect trapeze 5000:  133.268 s (267989400 allocations: 49.33 GiB)

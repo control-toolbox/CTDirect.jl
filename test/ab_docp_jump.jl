@@ -16,7 +16,7 @@ set_optimizer_attribute(sys, "max_iter", 1500)
 set_optimizer_attribute(sys, "mu_strategy", "adaptive")
 
 # Discretization parameters
-N = 1000
+N = 5000
 t0 = 0; tf = 20
 Δt = (tf - t0) / N
 
