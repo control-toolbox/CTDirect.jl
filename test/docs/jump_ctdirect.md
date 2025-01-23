@@ -56,3 +56,17 @@ Todo:
 
 * swap effect due to huge allocations ?
 ** slightly different implementation for the stage controls
+
+
+Jump trapeze 1000:  17.840 s (6779482 allocations: 340.27 MiB)
+Jump trapeze 2000:  58.605 s (18798587 allocations: 917.26 MiB)
+Jump trapeze 5000:  149.540 s (47597571 allocations: 3.00 GiB)
+Jump gauss_legendre_2 1000:  15.528 s (10988856 allocations: 726.32 MiB)
+Jump gauss_legendre_2 2000:  26.995 s (21345532 allocations: 1.40 GiB)
+Jump gauss_legendre_2 5000:  75.047 s (56269715 allocations: 3.57 GiB)
+CTDirect trapeze 1000:  20.110 s (46501059 allocations: 4.54 GiB)
+CTDirect trapeze 2000:  41.097 s (89302125 allocations: 12.26 GiB)
+CTDirect trapeze 5000:  133.268 s (267989400 allocations: 49.33 GiB)
+CTDirect gauss_legendre_2 1000:  37.220 s (39259673 allocations: 15.12 GiB)
+CTDirect gauss_legendre_2 2000:  112.687 s (104950745 allocations: 45.37 GiB)
+CTDirect gauss_legendre_2 5000:  363.224 s (211848763 allocations: 313.02 GiB)
