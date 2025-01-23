@@ -10,13 +10,13 @@ using JuMP, Ipopt, Plots, LaTeXStrings
 
 #initialize JuMP model with Ipopt solver backend
 sys = JuMP.Model(Ipopt.Optimizer)
-set_optimizer_attribute(sys, "print_level", 4)
-set_optimizer_attribute(sys, "tol", 1e-12)
+set_optimizer_attribute(sys, "print_level", 5)
+set_optimizer_attribute(sys, "tol", 1e-8)
 set_optimizer_attribute(sys, "max_iter", 1500)
 set_optimizer_attribute(sys, "mu_strategy", "adaptive")
 
 # Discretization parameters
-N = 5000
+N = 1000
 t0 = 0; tf = 20
 Δt = (tf - t0) / N
 
@@ -165,8 +165,8 @@ function plot_objective(sol::OCSolution)
 end
 
 # save plots
-mkpath("plots/")
-fname(s) = "plots/jump_" * string(N) * "_" * s * ".pdf"
+#mkpath("plots/")
+fname(s) = "docs/jump_" * string(N) * "_" * s * ".pdf"
 function save_plots(sol)
     savefig(plot_state(sol), fname("state"))
     savefig(plot_costate(sol), fname("costate"))

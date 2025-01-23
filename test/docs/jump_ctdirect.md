@@ -1,7 +1,9 @@
 Jump / CTDirect comparison - algal bacterial problem (see test/jump_comparison.jl)
 Ipopt version 3.14.17, running with linear solver MUMPS 5.7.3
 Ipopt settings: tol=1e-8, mu_strategy=adaptive
-Note that the problem is redefined for each method: jump, ctdirect and ctdirect new model
+Note that the problem is redefined for each method: jump, ctdirect and ctdirect new model.
+
+Also, the Gauss Legendre 2 implementations for Jump and CTDirect handle the control slightly differently: jump version uses a piecewise constant control while CTDirect uses a piecewise linear control. So the discretization is not exactly identical, and the number of nonzero elements in derivatives will change, see **. This also means that the CTDirect version has mN+1 controls instead of N for the Jump version. Neither versions use the formulation where stage controls are directly treated as variables, however for a 2-stage method the number of control variables will be similar.
 
 Takeaways:
 - CTDirect still allocates way more memory (roughly x15, better than before).
@@ -38,12 +40,12 @@ Todo:
 |                 | Gauss Legendre 2 (1000)  || Gauss Legendre 2 (5000)      ||
 |                 | Jump   | CT     | New    | Jump     | CT       | New      |
 |-----------------|--------|--------|--------|----------|----------|----------|
-|nnz jacobian     |        | 138000 | 138000 |          | 690000   | 690000   |
-|nnz hessian      |        | 81000  | 81000  |          | 405000   | 405000   |
-|variables        |        | 20008  | 20008  |          | 100008   | 100008   |
-|lowerbound       |        | 6006   | 6006   |          | 30006    | 30006    |
-|lower/upper      |        | 2002   | 2002   |          | 10002    | 10002    |
-|equality         |        | 18006  | 18006  |          | 90006    | 90006    |
+|nnz jacobian     | 118006 | 138000** | 138000** |          | 690000**   | 690000**   |
+|nnz hessian      | 322000 | 81000  | 81000  |          | 405000   | 405000   |
+|variables        | 20006  | 20008  | 20008  |          | 100008   | 100008   |
+|lowerbound       | 6006   | 6006   | 6006   |          | 30006    | 30006    |
+|lower/upper      | 2000   | 2002   | 2002   |          | 10002    | 10002    |
+|equality         | 18006  | 18006  | 18006  |          | 90006    | 90006    |
 |iterations       |        | 100    | 100    |          | 111      | 111      |
 |objective        |        | 5.4522 | 5.4522 |          | 5.4522   | 5.4522   |
 |structure        |        | clean  |        |          | clean    |          |
@@ -52,3 +54,5 @@ Todo:
 |time             |        | 35     | 39     |          | 382*     | 371*     |
 
 
+* swap effect due to huge allocations ?
+** slightly different implementation for the stage controls
