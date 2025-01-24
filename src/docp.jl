@@ -12,15 +12,13 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function}
+struct DOCP{T <: Discretization, O <: CTModels.Model}
     
     # discretization scheme
     discretization::T
 
     ## OCP
     ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
-
-    bc::F1
 
     # flags
     has_free_initial_time::Bool
@@ -149,13 +147,10 @@ struct DOCP{T <: Discretization, O <: CTModels.Model, F1 <: Function}
             dim_NLP_constraints += 1
         end
 
-        bc = CTModels.boundary_constraints_nl(ocp)[2]
-
         # call constructor with const fields
-        docp = new{typeof(discretization), typeof(ocp), typeof(bc)}(
+        docp = new{typeof(discretization), typeof(ocp)}(
             discretization,        
             ocp,
-            bc,
             has_free_initial_time,
             has_free_final_time,
             has_lagrange,
@@ -350,7 +345,6 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     # boundary constraints
     if docp.dim_boundary_cons > 0
         CTModels.boundary_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
-        #docp.bc((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v) # same runtime dispatch and allocs
     end
 
     # null initial condition for lagrangian cost state

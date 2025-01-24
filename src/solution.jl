@@ -44,7 +44,7 @@ function build_OCP_solution(docp, docp_solution)
     # costate and constraints multipliers
     P, path_constraints, boundary_constraints, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers, constraints)
 
-    println("v ", v, " ", typeof(v))
+    #println("v ", v, " ", typeof(v))
 
     return CTModels.build_solution(
         ocp,
