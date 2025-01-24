@@ -49,6 +49,18 @@ function algal_bacterial_jump(;grid_size=1000, disc_method=:trapeze, print_level
     ρ(v) = ρmax * v / (kv + v)
     μ(q) = μmax * (1 - qmin / q)
 
+    # Autonomous dynamics function
+    function f(x, α, d)
+        return [
+            d*(s_in - x[1]) - ϕ(x[1])*x[2]/γ,           # s
+            ((1-α)*ϕ(x[1]) - d)*x[2],                   # e
+            α*β*ϕ(x[1])*x[2] - ρ(x[3])*x[5] - d*x[3],   # v
+            ρ(x[3]) - μ(x[4])*x[4],                     # q
+            (μ(x[4]) - d)*x[5],                         # c
+            d * x[5]                                    # obj = d*c
+        ]
+    end
+
     x_lower = [0, 0, 0, qmin, 0, 0]     # lower bound for x
     x0 = [0.1629, 0.0487, 0.0003, 0.0177, 0.035, 0.]
 
@@ -57,85 +69,28 @@ function algal_bacterial_jump(;grid_size=1000, disc_method=:trapeze, print_level
 
         # Variables
         @variables(sys, begin
-            s[1:N+1] ≥ x_lower[1]       
-            e[1:N+1] ≥ x_lower[2]   
-            v[1:N+1] ≥ x_lower[3]      
-            q[1:N+1] ≥ x_lower[4]     
-            c[1:N+1] ≥ x_lower[5]       
-            g[1:N+1] ≥ x_lower[6]
+            x[1:N+1, i=1:6] ≥ x_lower[i]    # x
             0.0 ≤ α[1:N+1] ≤ 1.0 
             0.0 ≤ d[1:N+1] ≤ dmax  
         end)
 
-        # Objective
-        @objective(sys, Max, g[N+1])
-
-        # Boundary constraints: initial condition
-        @constraints(sys, begin
-            con_s0, s[1] == x0[1]
-            con_e0, e[1] == x0[2]
-            con_v0, v[1] == x0[3]
-            con_q0, q[1] == x0[4]
-            con_c0, c[1] == x0[5]
-            con_obj, g[1] == x0[6]
-        end)
-
         # Dynamics
-        @NLexpressions(sys, begin
-            # rate functions
-            ϕ_se[i = 1:N+1], ϕmax * s[i] * e[i] / (ks + s[i])
-            ρ_v[i = 1:N+1], ρmax * v[i] / (kv + v[i])
-            μ_q[i = 1:N+1], μmax * (1 - qmin / q[i])
-            # dynamics
-            ds[i = 1:N+1], d[i]*(s_in - s[i]) - ϕ_se[i]/γ
-            de[i = 1:N+1], (1-α[i])*ϕ_se[i] - d[i]*e[i]
-            dv[i = 1:N+1], α[i]*β*ϕ_se[i] - ρ_v[i]*c[i] - d[i]*v[i]
-            dq[i = 1:N+1], ρ_v[i] - μ_q[i]*q[i]
-            dc[i = 1:N+1], (μ_q[i] - d[i])*c[i]
-            # objective dynamics
-            dg[i = 1:N+1], d[i] * c[i]
-        end)
-
-        @NLconstraints(sys, begin
-            con_ds[i = 1:N], s[i+1] == s[i] + Δt * (ds[i] + ds[i+1])/2.0
-            con_de[i = 1:N], e[i+1] == e[i] + Δt * (de[i] + de[i+1])/2.0
-            con_dv[i = 1:N], v[i+1] == v[i] + Δt * (dv[i] + dv[i+1])/2.0
-            con_dq[i = 1:N], q[i+1] == q[i] + Δt * (dq[i] + dq[i+1])/2.0
-            con_dc[i = 1:N], c[i+1] == c[i] + Δt * (dc[i] + dc[i+1])/2.0
-            con_dg[i = 1:N], g[i+1] == g[i] + Δt * (dg[i] + dg[i+1])/2.0
+        @constraints(sys, begin
+            con_dx[i = 1:N], x[i+1,:] == x[i,:] + Δt * (f(x[i,:], α[i], d[i]) + f(x[i+1,:], α[i+1], d[i+1]))/2.0
         end)
 
     elseif disc_method == :gauss_legendre_2
         # Gauss Legendre 2
 
         # Variables
-        n = 5
         @variables(sys, begin
-            x[1:N, i=1:n+1] ≥ x_lower[i]    # x
-            0 ≤ α[1:N] ≤ 1                  # α
-            0 ≤ d[1:N] ≤ dmax               # d
-            k[1:rk.s, 1:N, 1:n+1]           # k (for Runge-Kutta)
+            x[1:N, i=1:6] ≥ x_lower[i]    # x
+            0 ≤ α[1:N] ≤ 1                # α
+            0 ≤ d[1:N] ≤ dmax             # d
+            k[1:rk.s, 1:N, 1:6]           # k (for Runge-Kutta)
         end)
 
-        # Objective function
-        @objective(sys, Max, x[end, end])
-
-        # Initial condition
-        @constraint(sys, initial, x[1,:] == x0[:])
-
-        # Autonomous dynamics function
-        function f(x, α, d)
-            return [
-                d*(s_in - x[1]) - ϕ(x[1])*x[2]/γ,           # s
-                ((1-α)*ϕ(x[1]) - d)*x[2],                   # e
-                α*β*ϕ(x[1])*x[2] - ρ(x[3])*x[5] - d*x[3],   # v
-                ρ(x[3]) - μ(x[4])*x[4],                     # q
-                (μ(x[4]) - d)*x[5],                         # c
-                d * x[5]                                    # obj = d*c
-            ]
-        end
-
-        # Runge-Kutta methods for autonomous systems (as a nonlinear constraint)
+        # Dynamics
         # x[i+1] = x[i] + Δt Σ_j b[j]k[j,i]
         # k[j,i] = f( x[i] + Δt Σ_s A[j,s]k[s,i] )
         @constraints(sys, begin
@@ -146,6 +101,12 @@ function algal_bacterial_jump(;grid_size=1000, disc_method=:trapeze, print_level
     else
         error("unknown disc method: ", disc_method)
     end
+
+    # Objective function
+    @objective(sys, Max, x[end, end])
+
+    # Initial condition
+    @constraint(sys, initial, x[1,:] == x0[:])
 
     # Optimization 
     print_level > 0 && println("Solving...")
