@@ -49,7 +49,7 @@ function build_OCP_solution(docp, docp_solution)
     return CTModels.build_solution(
         ocp,
         T, X, U, v, P;
-        cost=objective, iterations=iterations, constraints_violation=constraints_violation,
+        objective=objective, iterations=iterations, constraints_violation=constraints_violation,
         message=message, stopping=stopping, success=success,
         path_constraints=path_constraints, 
         path_constraints_dual=path_constraints_dual,

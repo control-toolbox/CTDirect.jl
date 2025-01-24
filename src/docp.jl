@@ -41,7 +41,7 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
     dim_OCP_x::Int  # original OCP state
     dim_NLP_steps::Int
     NLP_normalized_time_grid::Vector{Float64}
-    NLP_time_grid::Vector{Float64}
+    NLP_fixed_time_grid::Vector{Float64}
     NLP_fixed_initial_time::Float64 # otherwise runtime dispatch on times
     NLP_fixed_final_time::Float64
     NLP_free_initial_time_index::Int
@@ -56,7 +56,7 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
     con_u::Vector{Float64}
 
     # constructor
-    function DOCP(ocp::CTModels.Model; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method())
+    function DOCP(ocp::CTModels.Model; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method(), constant_control=false)
 
         # time grid
         if time_grid == nothing
@@ -114,10 +114,10 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
         end
         if !has_free_initial_time && !has_free_final_time
             # compute time grid once for all
-            NLP_time_grid = @. NLP_fixed_initial_time + (NLP_normalized_time_grid * (NLP_fixed_final_time - NLP_fixed_initial_time))
+            NLP_fixed_time_grid = @. NLP_fixed_initial_time + (NLP_normalized_time_grid * (NLP_fixed_final_time - NLP_fixed_initial_time))
         else
             # time grid will be recomputed at each NLP iteration
-            NLP_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
+            NLP_fixed_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
         end
 
         # NLP constraints dimensions
@@ -135,9 +135,9 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
         elseif disc_method == :gauss_legendre_1
                 discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
         elseif disc_method == :gauss_legendre_2
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, constant_control)
         elseif disc_method == :gauss_legendre_3
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_con)
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, constant_control)
         else           
             error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :gauss_legendre_1, :gauss_legendre_2, :gauss_legendre_3}\n", typeof(disc_method))
         end
@@ -167,7 +167,7 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
             dim_OCP_x,
             dim_NLP_steps,
             NLP_normalized_time_grid,
-            NLP_time_grid,
+            NLP_fixed_time_grid,
             NLP_fixed_initial_time,
             NLP_fixed_final_time,
             NLP_free_initial_time_index,
@@ -381,28 +381,51 @@ function DOCP_initial_guess(docp::DOCP, init::CTBase.OptimalControlInit = CTBase
 end
 
 # time grid
-# +++ runtime dispatch here even in fixed times case # if we use the getters from ctmodels CTModels.final_time / time / index :( even when qualifying the TimesModel ...
-function get_time_grid(xu, docp)
-
-    if !docp.has_free_initial_time && !docp.has_free_final_time
-        # NB. AD bug for constant affectations with optimized backend
-        return docp.NLP_time_grid
-    else
-        if docp.has_free_initial_time
-            v = get_OCP_variable(xu, docp)
-            t0 = v[docp.NLP_free_initial_time_index]
-        else
-            t0 = docp.NLP_fixed_initial_time
-        end
-        if docp.has_free_final_time
-            v = get_OCP_variable(xu, docp)
-            tf = v[docp.NLP_free_final_time_index]
-        else
-            tf = docp.NLP_fixed_final_time
-        end
-        return @. t0 + docp.NLP_normalized_time_grid * (tf - t0)
-    end
+function get_time_grid(xu, docp::DOCP{<:Discretization, <:CTModels.Model{CTModels.TimesModel{CTModels.FixedTimeModel,CTModels.FixedTimeModel}}})
+    return docp.NLP_fixed_time_grid
 end
+#=function get_time_grid(xu, docp::DOCP{<:Discretization, <:CTModels.Model{CTModels.TimesModel{CTModels.FixedTimeModel,CTModels.FreeTimeModel}}})
+    t0 = CTModels.initial_time(docp.ocp)
+    tf = CTModels.final_time(docp.ocp, xu)    
+    grid = similar(xu, docp.dim_NLP_steps+1)
+    @. grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
+    return grid
+end
+function get_time_grid(xu, docp::DOCP{<:Discretization, <:CTModels.Model{CTModels.TimesModel{CTModels.FreeTimeModel,CTModels.FixedTimeModel}}})
+    t0 = CTModels.initial_time(docp.ocp, xu)
+    tf = CTModels.final_time(docp.ocp)    
+    grid = similar(xu, docp.dim_NLP_steps+1)
+    @. grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
+    return grid
+end
+function get_time_grid(xu, docp::DOCP{<:Discretization, <:CTModels.Model{CTModels.TimesModel{CTModels.FreeTimeModel,CTModels.FreeTimeModel}}})
+    t0 = CTModels.initial_time(docp.ocp, xu)
+    tf = CTModels.final_time(docp.ocp, xu)    
+    grid = similar(xu, docp.dim_NLP_steps+1)
+    @. grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
+    return grid
+end=#
+function get_time_grid(xu, docp::DOCP)
+
+    if docp.has_free_initial_time
+        v = get_OCP_variable(xu, docp)
+        t0 = v[docp.NLP_free_initial_time_index]
+    else
+        t0 = docp.NLP_fixed_initial_time
+    end
+    if docp.has_free_final_time
+        v = get_OCP_variable(xu, docp)
+        tf = v[docp.NLP_free_final_time_index]
+    else
+        tf = docp.NLP_fixed_final_time
+    end
+
+    grid = similar(xu, docp.dim_NLP_steps+1)
+    @. grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
+    return grid
+
+end
+
 
 """
 $(TYPEDSIGNATURES)
