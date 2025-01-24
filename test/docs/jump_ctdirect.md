@@ -30,18 +30,32 @@ Jump gauss_legendre_2 1000:  15.398 s (10988856 allocations: 726.32 MiB)
 Jump gauss_legendre_2 2000:  27.401 s (21345532 allocations: 1.40 GiB)
 Jump gauss_legendre_2 5000:  76.593 s (56269715 allocations: 3.57 GiB)
 ```
-
+Trapeze
 ```
 CTDirect trapeze 1000:  20.110 s (46501059 allocations: 4.54 GiB)
 CTDirect trapeze 2000:  41.097 s (89302125 allocations: 12.26 GiB)
 CTDirect trapeze 5000:  133.268 s (267989400 allocations: 49.33 GiB)
 ```
+new model
+```
+CTDirect trapeze 1000:  18.833 s (3227130 allocations: 2.27 GiB)
+CTDirect trapeze 2000:  38.233 s (6469103 allocations: 7.90 GiB)
+CTDirect trapeze 5000:  119.554 s (16850293 allocations: 36.15 GiB)
+```
+
 GL2 piecewise constant control
 ```
 CTDirect gauss_legendre_2 1000:  33.181 s (37843213 allocations: 14.79 GiB)
 CTDirect gauss_legendre_2 2000:  82.605 s (82766476 allocations: 43.19 GiB)
 CTDirect gauss_legendre_2 5000:  356.338 s (221161426 allocations: 312.28 GiB)
 ```
+new model
+```
+CTDirect gauss_legendre_2 1000:  34.719 s (13521528 allocations: 13.47 GiB)
+CTDirect gauss_legendre_2 2000:  81.367 s (28519019 allocations: 40.26 GiB)
+CTDirect gauss_legendre_2 5000:  367.255 s (72472563 allocations: 304.25 GiB)
+```
+
 GL2 piecewise linear control
 ```
 CTDirect gauss_legendre_2 1000:  37.220 s (39259673 allocations: 15.12 GiB)

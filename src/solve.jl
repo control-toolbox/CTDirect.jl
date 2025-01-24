@@ -99,7 +99,7 @@ function direct_solve(
     # build discretized OCP, including initial guess
     docp, nlp = direct_transcription(
         ocp,
-        description,
+        description;
         init = init,
         grid_size = grid_size,
         time_grid = time_grid,

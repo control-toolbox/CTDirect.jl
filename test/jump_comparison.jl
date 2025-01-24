@@ -1,5 +1,7 @@
 using CTDirect
-using CTBase
+import CTBase
+import CTModels
+
 using LinearAlgebra
 using NLPModelsIpopt
 using MKL
@@ -9,8 +11,8 @@ using Printf
 
 jump = false
 ctdirect = true
-#disc_method_list = [:gauss_legendre_2]
-disc_method_list = [:trapeze]
+disc_method_list = [:gauss_legendre_2]
+#disc_method_list = [:trapeze]
 #disc_method_list = [:trapeze, :gauss_legendre_2]
 grid_size_list = [1000, 2000, 5000] 
 
