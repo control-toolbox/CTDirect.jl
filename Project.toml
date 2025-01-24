@@ -23,7 +23,6 @@ CTSolveExtMadNLP = ["MadNLP"]
 [compat]
 ADNLPModels = "0.8"
 CTBase = "0.14"
-CTModels = "0.1.0"
 DocStringExtensions = "0.9"
 HSL = "0.5"
 MadNLP = "0.8"
@@ -31,5 +30,5 @@ NLPModels = "0.21"
 NLPModelsIpopt = "0.10"
 julia = "1.10"
 
-[sources]
-CTModels = {url="https://github.com/control-toolbox/CTModels.jl"}
+[sources.CTModels]
+url = "https://github.com/control-toolbox/CTModels.jl"
