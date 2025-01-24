@@ -4,7 +4,6 @@
 # https://gist.github.com/rand-asswad/7120f1ab39bf28fffd414e780b4c0196
 using JuMP, Ipopt
 
-
 struct rk_method
     name::Symbol
     s::Integer

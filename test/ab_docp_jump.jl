@@ -4,8 +4,6 @@
 # This script is based on the article: https://doi.org/10.48550/arXiv.2212.03157
 # Caillau et al. (2022) - An An algorithmic guide for finite-dimensional optimal control problems
 
-import Pkg
-Pkg.add.(["JuMP", "Ipopt", "Plots", "LaTeXStrings"])
 using JuMP, Ipopt, Plots, LaTeXStrings
 
 #initialize JuMP model with Ipopt solver backend
