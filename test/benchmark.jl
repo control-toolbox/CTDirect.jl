@@ -48,7 +48,7 @@ function bench_list(problem_list; verbose=2, nlp_solver, linear_solver, kwargs..
 end
 
 
-function bench(;grid_size_list = [250, 500, 1000, 2500], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, names_list = :default, kwargs...)
+function bench(;grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, names_list = :default, kwargs...)
 
     #######################################################
     # set (non) linear solvers and backends

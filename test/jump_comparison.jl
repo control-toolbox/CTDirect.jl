@@ -7,8 +7,8 @@ using BenchmarkTools
 using Printf
 
 
-jump = true
-ctdirect = false
+jump = false
+ctdirect = true
 #disc_method_list = [:gauss_legendre_2]
 disc_method_list = [:trapeze]
 #disc_method_list = [:trapeze, :gauss_legendre_2]
