@@ -5,20 +5,6 @@ $(TYPEDSIGNATURES)
    
 Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
 """
-#=struct OptimalControlSolution
-    objective::Float64
-    
-    function OptimalControlSolution(docp::DOCP, docp_solution)
-        if docp.is_maximization
-            objective = -docp_solution.objective
-        else
-            objective = docp_solution.objective
-        end
-        return new(objective)
-    end
-end=#
-
-
 function build_OCP_solution(docp, docp_solution)
 
     ocp = docp.ocp
@@ -58,6 +44,8 @@ function build_OCP_solution(docp, docp_solution)
     # costate and constraints multipliers
     P, path_constraints, boundary_constraints, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers, constraints)
 
+    println("v ", v, " ", typeof(v))
+
     return CTModels.build_solution(
         ocp,
         T, X, U, v, P;
@@ -88,7 +76,7 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     N = docp.dim_NLP_steps
     X = zeros(N + 1, docp.dim_OCP_x)
     U = zeros(N + 1, docp.dim_NLP_u)
-    v = Float64[]
+    v = zeros(docp.dim_NLP_v)
 
     # multipliers for box constraints
     if isnothing(mult_LB) || length(mult_LB) == 0
@@ -106,9 +94,9 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
 
     # retrieve optimization variables
     if docp.dim_NLP_v > 0
-        v = get_OCP_variable(solution, docp)
-        mult_variable_box_lower = get_OCP_variable(mult_LB, docp)
-        mult_variable_box_upper = get_OCP_variable(mult_UB, docp)
+        v .= get_OCP_variable(solution, docp)
+        mult_variable_box_lower .= get_OCP_variable(mult_LB, docp)
+        mult_variable_box_upper .= get_OCP_variable(mult_UB, docp)
     end
 
     # state variables and box multipliers

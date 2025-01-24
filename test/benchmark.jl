@@ -32,7 +32,7 @@ function bench_list(problem_list; verbose=2, nlp_solver, linear_solver, kwargs..
 
         # check
         sol = direct_solve(problem[:ocp], nlp_solver; init=problem[:init], display=false, kwargs...)
-        if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
+        if !isnothing(problem[:obj]) && !isapprox(sol.cost, problem[:obj], rtol = 5e-2)
             error("Objective mismatch for ",problem[:name],": ",sol.objective," instead of ",problem[:obj])
         else
             verbose > 1 && @printf("%-30s: %4d iter ", problem[:name], sol.iterations)
