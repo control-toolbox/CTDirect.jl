@@ -1,5 +1,5 @@
 # Van der Pol example from Bocop
-function vanderpol_model()
+function vanderpol()
     # constants
     omega = 1
     epsilon = 1

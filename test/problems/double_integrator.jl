@@ -1,7 +1,7 @@
 # double integrator
 
 # define problem with new model: double integrator
-function double_integrator_mintf_model()
+function double_integrator_mintf()
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 2)
     CTModels.control!(pre_ocp, 1)
@@ -50,7 +50,7 @@ end
 =#
 
 # min energy with fixed tf
-function double_integrator_minenergy_model(T=2)
+function double_integrator_minenergy(T=2)
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 2)
     CTModels.control!(pre_ocp, 1)
@@ -95,7 +95,7 @@ function double_integrator_minenergy(T=2)
 end=#
 
 # max t0 with free t0,tf
-function double_integrator_freet0tf_model()
+function double_integrator_freet0tf()
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 2)
     CTModels.control!(pre_ocp, 1)

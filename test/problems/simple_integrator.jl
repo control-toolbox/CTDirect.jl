@@ -1,7 +1,7 @@
 # simple intergator
 
 # define problem with new model: simple integrator
-function simple_integrator_model()
+function simple_integrator()
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 1)
     CTModels.control!(pre_ocp, 2)

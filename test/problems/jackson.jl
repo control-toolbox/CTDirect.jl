@@ -1,5 +1,5 @@
 # Jackson example from Bocop
-function jackson_model()
+function jackson()
     # constants
     k1 = 1
     k2 = 10

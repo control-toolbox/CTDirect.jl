@@ -1,7 +1,7 @@
 # Fuller example
 
 # define problem with new model: fuller
-function fuller_model()
+function fuller()
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 2)
     CTModels.control!(pre_ocp, 1)

@@ -1,5 +1,5 @@
 # Robbins example from Bocop
-function robbins_model()
+function robbins()
     # constants
     alpha = 3
     beta = 0

@@ -14,7 +14,7 @@ function F1(x, Tmax, b)
     return [0, Tmax / m, -b * Tmax]
 end
 
-function goddard_model(; vmax = 0.1, Tmax = 3.5)
+function goddard(; vmax = 0.1, Tmax = 3.5)
     # constants
     Cd = 310
     beta = 500
@@ -97,7 +97,7 @@ end=#
 
 
 # all constraints, inplace functional version
-function goddard_all_model()
+function goddard_all()
     # constants
     Cd = 310
     beta = 500

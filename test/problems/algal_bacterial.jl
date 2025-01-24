@@ -1,6 +1,6 @@
 # Optimal control of an algal-bacterial consortium system. Original code from Rand Asswad.
 
-function algal_bacterial_model()
+function algal_bacterial()
 
     s_in = 0.5
     β = 23e-3

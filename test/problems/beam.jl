@@ -1,6 +1,6 @@
 # Beam example from bocop
 
-function beam_model()
+function beam()
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 2)
     CTModels.control!(pre_ocp, 1)
