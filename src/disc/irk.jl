@@ -5,8 +5,8 @@ Internal layout for NLP variables:
  .., 
  X_N-1, U_N-1, K_N-1^1..K_N-1^s,
  X_N, U_N, V]
-with s the stage number and U given by linear interpolation in [t_i, t_i+1]
-NB. 1-stage methods use constant interpolation instead (but U_N might end up unused)
+with s the stage number and U given by either linear interpolation in [t_i, t_i+1]
+or constant interpolation for 1-stage methods or if specfied (U_N might end up unused)
 Path constraints are all evaluated at time steps
 =#
 
@@ -57,8 +57,9 @@ struct Gauss_Legendre_2 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
+    _constant_control::Bool
 
-    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, constant_control)
         
         stage = 2
 
@@ -68,7 +69,8 @@ struct Gauss_Legendre_2 <: GenericIRK
         [0.25 (0.25-sqrt(3) / 6); (0.25+sqrt(3) / 6) 0.25],
         [0.5, 0.5],
         [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block
+        step_variables_block, state_stage_eqs_block, step_pathcons_block,
+        constant_control
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -91,8 +93,9 @@ struct Gauss_Legendre_3 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
+    _constant_control::Bool
 
-    function Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+    function Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, constant_control)
         
         stage = 3
 
@@ -104,7 +107,7 @@ struct Gauss_Legendre_3 <: GenericIRK
         (5/36 + sqrt(15) / 30) (2/9 + sqrt(15) / 15) (5.0/36.0)],
         [5.0/18.0, 4.0/9.0, 5.0/18.0],
         [0.5 - 0.1*sqrt(15), 0.5, 0.5 + 0.1*sqrt(15)],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, constant_control
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -180,7 +183,7 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{ <: GenericIRK, <: ScalVect
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, ScalVariable, <: ScalVect}, i, cj)
-    if docp.discretization.stage == 1
+    if (docp.discretization.stage == 1) || (docp.discretization._constant_control)
         # constant interpolation on step
         return get_OCP_control_at_time_step(xu, docp, i)
     else
@@ -191,7 +194,7 @@ function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVec
     end
 end
 function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, VectVariable, <: ScalVect}, i, cj)
-    if docp.discretization.stage == 1
+    if (docp.discretization.stage == 1) || (docp.discretization._constant_control)
         # constant interpolation on step
         return get_OCP_control_at_time_step(xu, docp, i)
     else
