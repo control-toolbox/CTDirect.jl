@@ -4,13 +4,11 @@
 # This script is based on the article: https://doi.org/10.48550/arXiv.2212.03157
 # Caillau et al. (2022) - An An algorithmic guide for finite-dimensional optimal control problems
 
-import Pkg
-Pkg.add.(["JuMP", "Ipopt", "Plots", "LaTeXStrings"])
 using JuMP, Ipopt, Plots, LaTeXStrings
 
 #initialize JuMP model with Ipopt solver backend
 sys = JuMP.Model(Ipopt.Optimizer)
-set_optimizer_attribute(sys, "print_level", 4)
+set_optimizer_attribute(sys, "print_level", 5)
 set_optimizer_attribute(sys, "tol", 1e-8)
 set_optimizer_attribute(sys, "max_iter", 1500)
 set_optimizer_attribute(sys, "mu_strategy", "adaptive")
@@ -165,8 +163,8 @@ function plot_objective(sol::OCSolution)
 end
 
 # save plots
-mkpath("plots/")
-fname(s) = "plots/jump_" * string(N) * "_" * s * ".pdf"
+#mkpath("plots/")
+fname(s) = "test/docs/jump_trapeze_" * string(N) * "_" * s * ".pdf"
 function save_plots(sol)
     savefig(plot_state(sol), fname("state"))
     savefig(plot_costate(sol), fname("costate"))

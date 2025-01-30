@@ -141,6 +141,8 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 
     # offset for previous steps
     offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
+    # c block version 
+    # offset = 0
 
     # 0. variables
     ti = time_grid[i]
