@@ -352,7 +352,7 @@ function DOCP_objective(xu, docp::DOCP)
 
     # lagrange cost
     if docp.is_lagrange
-        if docp.is_mayer # NB can this actually happen in OCP (cf bolza) ?
+        if docp.is_mayer # bolza case
             obj[1] = obj[1] + get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
         else
             obj[1] = get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
@@ -380,9 +380,11 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     v = get_OCP_variable(xu, docp)
     work = setWorkArray(docp, xu, time_grid, v)
 
-    # main loop on time steps
+    # main loop on time steps (using c block view seems similar)
     for i = 1:docp.dim_NLP_steps + 1
         setStepConstraints!(docp, c, xu, v, time_grid, i, work)
+        #offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
+        #setStepConstraints!(docp, (@view c[offset+1:offset+docp.dim_NLP_x+docp.discretization._step_pathcons_block]), xu, v, time_grid, i, work)
     end
 
     # point constraints (NB. view on c block could be used with offset here)
