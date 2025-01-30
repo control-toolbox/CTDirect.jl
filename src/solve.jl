@@ -47,6 +47,7 @@ function direct_transcription(
 
     # sparsity pattern
     J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
+    H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
 
     # call NLP problem constructor
     if adnlp_backend == :manual
@@ -54,7 +55,7 @@ function direct_transcription(
         f, x0, docp.var_l, docp.var_u,
         c!, docp.con_l, docp.con_u,
         jacobian_backend = J_backend,
-        hessian_backend = ADNLPModels.EmptyADbackend
+        hessian_backend = H_backend
     )
     elseif adnlp_backend == :no_hessian
         nlp = ADNLPModel!(
