@@ -21,7 +21,7 @@ To work around this issue, either:
 - zygote gives incorrect (huge) nonzero counts then also fails with an error message. 
 
 ## Tests:
-```manpage
+```
 julia> include("test/benchmark.jl")
 test_unit (generic function with 1 method)
 
@@ -37,11 +37,11 @@ Takeaways:
 |---------|---------|-----------|---------|
 | 250     | 49.7    | 0.9       | 1.5     |
 | 500     |         | 2.4       | 3.5     |
-| 1000    |         | 6.2       | 6.4     |
-| 2500    |         | 24.7      | 23.9    |
-| 5000    |         |           | 50.0    |
-| 7500    |         |           | 61.2    |
-| 10000   |         |           |         |
+| 1000    |         | 5.6       | 6.4     |
+| 2500    |         | 23.9      | 23.9    |
+| 5000    |         | 89.6      | 56.3    |
+| 7500    |         | 225.4     | 85.9    |
+| 10000   |         |           | 102.4   |
 
 
 Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
@@ -58,6 +58,9 @@ Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
 | time          | 750ms     | 85ms    | 64.7s**   | 3.8s   |
 
 ** hessian accounts for 59 out of total 65s
+```
++++ log info
+```
 
 | solve         | optimized | manual  | optimized | manual |
 |---------------|-----------|---------|-----------|--------|
@@ -65,7 +68,7 @@ Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
 | allocs        | 2.0GB     | 1.2GB   | 87.5GB    | 16.9GB |
 | time          | 2.5s      | 2.5s    | 151.0s*** | 42.4s  |
 
-*** building the hessian is one third of the total solve time !
+*** building the hessian is one third of the total solve time...
 
 ## Todo:
 - add pattern structure for midpoint and IRK schemes
