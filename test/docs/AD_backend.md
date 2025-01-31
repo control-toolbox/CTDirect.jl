@@ -1,26 +1,28 @@
 # Benchmark for different AD backends
-The backend for ADNLPModels can be set in transcription / solve calls with the option `adnlp_backend = ...`. Possible values are, including the predefined backups for ADNLPModels (*) :
-- :optimized* (default for CTDirect) : Forward for Jacobian, Reverse for Gradient and Hessian
-- :default* : Forward for everything (much slower)
-- :manual : give to ADNLPModels the sparse pattern for Jacobian and Hessian (use same Forward / Reverse settings as the :optimized predefined backend)  
-- :enzyme* : Enzyme (not working)
-- :zygote* : Zygote (not working)
+The backend for ADNLPModels can be set in transcription / solve calls with the option `adnlp_backend=`. Possible values include the predefined(*) backends for ADNLPModels:
+- `:optimized`* Default for CTDirect. Forward mode for Jacobian, reverse for Gradient and Hessian.
+- `:default`* Forward mode for everything. Significantly slower.
+- `:manual` Explicitely give to ADNLPModels the sparse pattern for Jacobian and Hessian. Uses the same forward / reverse settings as the `:optimized` predefined backend.  
+- `:enzyme`* Enzyme (not working).
+- `:zygote`* Zygote (not working).
 
-## Errors:
+## Errors for Enzyme and Zygote:
 - enzyme gives correct nonzero counts for Jacobian and Hessian, but fails with
-```ERROR: Constant memory is stored (or returned) to a differentiable variable.
+```
+ERROR: Constant memory is stored (or returned) to a differentiable variable.
 As a result, Enzyme cannot provably ensure correctness and throws this error.
 This might be due to the use of a constant variable as temporary storage for active memory (https://enzyme.mit.edu/julia/stable/faq/#Runtime-Activity).
 If Enzyme should be able to prove this use non-differentable, open an issue!
 To work around this issue, either:
  a) rewrite this variable to not be conditionally active (fastest, but requires a code change), or
  b) set the Enzyme mode to turn on runtime activity (e.g. autodiff(set_runtime_activity(Reverse), ...) ). This will maintain correctness, but may slightly reduce performance.```
- Error apparently occurs when calling the boundary conditions.```
+ Error apparently occurs when calling the boundary conditions.
+ ```
 - zygote gives incorrect (huge) nonzero counts then also fails with an error message. 
 
 ## Tests:
-Using CTDirect benchmark function bench()
-Problem list: ["beam", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "jackson", "robbins", "simple_integrator", "vanderpol"]
+Using CTDirect benchmark function `bench()`
+Problem list: ["beam", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
 
 Takeaways:
 - the optimized backend (with ReverseDiff for Hessian) is much better than full ForwardDiff.
