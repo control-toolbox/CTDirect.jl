@@ -51,7 +51,6 @@ function direct_transcription(
     H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
 
     # call NLP problem constructor
-    # +++ try to disable unused backends such as hvprod ?? bench !
     if adnlp_backend == :manual
         nlp = ADNLPModel!(
         f, x0, docp.var_l, docp.var_u,
@@ -63,13 +62,6 @@ function direct_transcription(
         hessian_backend = H_backend,
         show_time = show_time
     )
-    elseif adnlp_backend == :no_hessian
-        nlp = ADNLPModel!(
-            x -> DOCP_objective(x, docp), x0, docp.var_l, docp.var_u,
-            (c, x) -> DOCP_constraints!(c, x, docp), docp.con_l, docp.con_u,
-            backend = __adnlp_backend(), show_time = show_time
-            )
-        set_adbackend!(nlp, hessian_backend = ADNLPModels.EmptyADbackend, hvprod_backend = ADNLPModels.EmptyADbackend) # directionalsecondderivative)
     else
         nlp = ADNLPModel!(
             x -> DOCP_objective(x, docp), x0, docp.var_l, docp.var_u,

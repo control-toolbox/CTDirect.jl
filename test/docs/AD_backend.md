@@ -33,6 +33,7 @@ Takeaways:
 - the `:optimized` backend (with reverse mode for Hessian) is much better than full forward mode.
 - manual sparse pattern seems to give even better performance for larger problems. This is likely due to the increasing cost of computing the Hessian sparsity in terms of allocations and time. This observation is consistent with the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian.
 
+Standard benchmark:
 | Trapeze | default | optimized | manual  |
 |---------|---------|-----------|---------|
 | 250     | 49.7    | 0.9       | 1.5     |
@@ -41,11 +42,9 @@ Takeaways:
 | 2500    |         | 23.9      | 23.9    |
 | 5000    |         | 89.6      | 56.3    |
 | 7500    |         | 225.4     | 85.9    |
-| 10000   |         |           | 102.4   |
-
+| 10000   |         | 526.3     | 102.4   |
 
 Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
-
 | transcription | optimized | manual  | optimized | manual |
 |---------------|-----------|---------|-----------|--------|
 | NLP vars      | 4005      | 4005    | 40005     | 40005  |
@@ -59,7 +58,14 @@ Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
 
 ** hessian accounts for 59 out of total 65s
 ```
-+++ log info
+julia> direct_transcription(goddard_all().ocp, grid_size=10000, show_time=true);
+gradient backend ADNLPModels.ReverseDiffADGradient: 0.000137972 seconds;
+hprod    backend ADNLPModels.ReverseDiffADHvprod: 0.314931491 seconds;
+jprod    backend ADNLPModels.ForwardDiffADJprod: 2.2412e-5 seconds;
+jtprod   backend ADNLPModels.ReverseDiffADJtprod: 0.612174104 seconds;
+jacobian backend ADNLPModels.SparseADJacobian: 0.425535048 seconds;
+hessian  backend ADNLPModels.SparseReverseADHessian: 58.450146911 seconds;
+ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 ```
 
 | solve         | optimized | manual  | optimized | manual |
