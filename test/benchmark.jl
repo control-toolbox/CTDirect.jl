@@ -24,7 +24,7 @@ end
 
 
 
-function bench_list(problem_list; verbose=2, nlp_solver, linear_solver, kwargs...)
+function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs...)
 
     #######################################################
     # solve examples with timer and objective check
@@ -36,13 +36,13 @@ function bench_list(problem_list; verbose=2, nlp_solver, linear_solver, kwargs..
         if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
             error("Objective mismatch for ",problem[:name],": ",sol.objective," instead of ",problem[:obj])
         else
-            verbose > 1 && @printf("%-30s: %4d iter ", problem[:name], sol.iterations)
+            verbose > 0 && @printf("%-30s: %4d iter ", problem[:name], sol.iterations)
         end
 
         # time
         t = @belapsed direct_solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, $kwargs...)
         append!(t_list, t)
-        verbose > 1 && @printf("%7.2f s\n", t)
+        verbose > 0 && @printf("%7.2f s\n", t)
     end
 
     return sum(t_list)
@@ -66,6 +66,7 @@ function bench(;grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp_
     verbose > 1 && @printf("Blas config: %s\n", LinearAlgebra.BLAS.lbt_get_config())
 
     # load problems for benchmark
+    # Note that problems may vary significantly in convergence times...  
     if names_list == :default
         names_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "jackson", "robbins", "simple_integrator", "vanderpol"]
     elseif names_list == :quick
@@ -89,7 +90,7 @@ function bench(;grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp_
         append!(t_list, t)
         @printf("Grid size %d: time (s) = %6.1f\n", grid_size, t)
     end
-
+    return t_list
 end
 
 
