@@ -21,7 +21,7 @@ To work around this issue, either:
 - zygote gives incorrect (huge) nonzero counts then also fails with an error message. 
 
 ## Tests:
-```
+```manpage
 julia> include("test/benchmark.jl")
 test_unit (generic function with 1 method)
 
