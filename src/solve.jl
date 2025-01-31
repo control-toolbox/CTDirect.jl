@@ -50,15 +50,14 @@ function direct_transcription(
     J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
     H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
 
-    # call NLP problem constructor (+++ use show_time=true for info ?)
-    # +++ check other backends (...prod) and set them as in :optimized
+    # call NLP problem constructor
     # +++ try to disable unused backends such as hvprod ?? bench !
     if adnlp_backend == :manual
         nlp = ADNLPModel!(
         f, x0, docp.var_l, docp.var_u,
         c!, docp.con_l, docp.con_u,
         gradient_backend = ADNLPModels.ReverseDiffADGradient,
-        hvprod_backend = ADNLPModels.ReverseDiffADHvprod,
+        hprod_backend = ADNLPModels.ReverseDiffADHvprod,
         jtprod_backend = ADNLPModels.ReverseDiffADJtprod,
         jacobian_backend = J_backend,
         hessian_backend = H_backend,
