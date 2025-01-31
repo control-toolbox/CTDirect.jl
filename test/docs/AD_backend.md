@@ -21,22 +21,27 @@ To work around this issue, either:
 - zygote gives incorrect (huge) nonzero counts then also fails with an error message. 
 
 ## Tests:
-Using CTDirect benchmark function `bench()`
+```
+julia> include("test/benchmark.jl")
+test_unit (generic function with 1 method)
+
+julia> bench(grid_size_list=[250,500,1000,2500,5000,7500,10000], adnlp_backend=:manual)
 Problem list: ["beam", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
+```
 
 Takeaways:
-- the optimized backend (with ReverseDiff for Hessian) is much better than full ForwardDiff.
-- manual sparse pattern seems to give better performance for larger problems, likely because of the hugely increasing cost of computing the Hessian sparsity in terms of allocations and time (cf also comparison with Jump that uses a different, less sparse but faster Hessian).
+- the `:optimized` backend (with reverse mode for Hessian) is much better than full forward mode.
+- manual sparse pattern seems to give even better performance for larger problems. This is likely due to the increasing cost of computing the Hessian sparsity in terms of allocations and time. This observation is consistent with the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian.
 
 | Trapeze | default | optimized | manual  |
 |---------|---------|-----------|---------|
 | 250     | 49.7    | 0.9       | 1.5     |
-| 500     |         | 2.4       | 3.4     |
+| 500     |         | 2.4       | 3.5     |
 | 1000    |         | 6.2       | 6.4     |
-| 2500    |         | 24.7      | 20.6    |
+| 2500    |         | 24.7      | 23.9    |
 | 5000    |         |           | 50.0    |
 | 7500    |         |           | 61.2    |
-| 10000   |         |           |    |
+| 10000   |         |           |         |
 
 
 Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
@@ -51,19 +56,21 @@ Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
 | J sparsity    | 99.88%    | 99.83%  | 99.99%    | 99.98% |
 | allocs        | 1.16GB    | 106MB   | 71.56GB   | 4.55GB |
 | time          | 750ms     | 85ms    | 64.7s**   | 3.8s   |
-|---------------|-----------|---------|-----------|--------|
+
+** hessian accounts for 59 out of total 65s
+
 | solve         | optimized | manual  | optimized | manual |
+|---------------|-----------|---------|-----------|--------|
 | iterations    | 42        | 28      | 51        | 29     |
 | allocs        | 2.0GB     | 1.2GB   | 87.5GB    | 16.9GB |
 | time          | 2.5s      | 2.5s    | 151.0s*** | 42.4s  |
 
-** hessian accounts for 59 out of total 65s
 *** building the hessian is one third of the total solve time !
 
 ## Todo:
-- try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
 - add pattern structure for midpoint and IRK schemes
 - redo tests on algal_bacterial problem, including Jump
 - add some tests for different backends in test_misc
+- try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
 - reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?
 
