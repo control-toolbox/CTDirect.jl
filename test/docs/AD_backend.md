@@ -79,7 +79,6 @@ ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 ## Todo:
 - add pattern structure for midpoint and IRK schemes
 - redo tests on algal_bacterial problem, including Jump
-- add some tests for different backends in test_misc
 - try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
 - reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?
 

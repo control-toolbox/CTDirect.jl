@@ -179,7 +179,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
     J = zeros(Bool, docp.dim_NLP_constraints, docp.dim_NLP_variables)
     #+++ build Is, Js, Vs sets then call sparse constructor ?
-    #nnzj = 
+    #nnzj = ...
     #Is = Vector{Int}(undef, nnzj)
     #Js = Vector{Int}(undef, nnzj)
     #Vs = ones(Bool, nnzj)
@@ -226,6 +226,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
         J[docp.dim_NLP_constraints, docp.dim_NLP_x] = true
     end
 
+    # replace J with sparse matrix
     return sparse(J)
 end
 
@@ -278,6 +279,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
         H[docp.dim_NLP_x, docp.dim_NLP_x] = true
     end
 
+    # replace H with sparse matrix
     return sparse(H)
 
 end

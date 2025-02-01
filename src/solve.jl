@@ -37,24 +37,24 @@ function direct_transcription(
     variables_bounds!(docp)
     constraints_bounds!(docp)
 
-    # set initial guess
-    x0 = DOCP_initial_guess(docp,
-        OptimalControlInit(init, state_dim = ocp.state_dimension, control_dim = ocp.control_dimension, variable_dim = ocp.variable_dimension)
-    )
+    # build and set initial guess in DOCP
+    docp_init = OptimalControlInit(init, state_dim = ocp.state_dimension, control_dim = ocp.control_dimension, variable_dim = ocp.variable_dimension)
+    x0 = DOCP_initial_guess(docp, docp_init)
 
-    # objective and constraints functions
+    # redeclare objective and constraints functions
     f = x -> DOCP_objective(x, docp)
     c! = (c, x) -> DOCP_constraints!(c, x, docp)
 
-    # sparsity pattern
-    J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
-    H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
-
     # call NLP problem constructor
     if adnlp_backend == :manual
+        
+        # build sparsity pattern
+        J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
+        H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
+        
+        # build NLP with given patterns
         nlp = ADNLPModel!(
-        f, x0, docp.var_l, docp.var_u,
-        c!, docp.con_l, docp.con_u,
+        f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
         gradient_backend = ADNLPModels.ReverseDiffADGradient,
         hprod_backend = ADNLPModels.ReverseDiffADHvprod,
         jtprod_backend = ADNLPModels.ReverseDiffADJtprod,
@@ -63,9 +63,9 @@ function direct_transcription(
         show_time = show_time
     )
     else
+        # build NLP
         nlp = ADNLPModel!(
-            x -> DOCP_objective(x, docp), x0, docp.var_l, docp.var_u,
-            (c, x) -> DOCP_constraints!(c, x, docp), docp.con_l, docp.con_u,
+            f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
             backend = adnlp_backend, show_time = show_time
             )
     end
