@@ -5,6 +5,7 @@ using DocStringExtensions
 using ADNLPModels               # docp model with AD
 using LinearAlgebra             # norm and misc
 using HSL
+using SparseArrays
 
 import CTBase: OptimalControlSolution, CTBase   # extended
 

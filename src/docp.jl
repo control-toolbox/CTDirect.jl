@@ -387,7 +387,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         #setStepConstraints!(docp, (@view c[offset+1:offset+docp.dim_NLP_x+docp.discretization._step_pathcons_block]), xu, v, time_grid, i, work)
     end
 
-    # point constraints (NB. view on c block could be used with offset here)
+    # point constraints
     setPointConstraints!(docp, c, xu, v)
 
     # NB. the function *needs* to return c for AD...
@@ -514,6 +514,12 @@ function setPointBounds!(docp::DOCP, index::Int, lb, ub)
 
     return index
 end
+
+
+function DOCP_Jac_pattern(docp::DOCP)
+    error("DOCP_Jac_pattern not implemented for discretization ", typeof(docp.discretization))
+end
+
 
 """
 $(TYPEDSIGNATURES)

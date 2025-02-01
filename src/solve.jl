@@ -26,7 +26,8 @@ function direct_transcription(
     time_grid = __time_grid(),
     disc_method = __disc_method(),
     constant_control = false,
-    adnlp_backend = __adnlp_backend()
+    adnlp_backend = __adnlp_backend(),
+    show_time = false
 )
 
     # build DOCP
@@ -36,24 +37,36 @@ function direct_transcription(
     variables_bounds!(docp)
     constraints_bounds!(docp)
 
-    # set initial guess
-    x0 = DOCP_initial_guess(docp,
-        OptimalControlInit(init, state_dim = ocp.state_dimension, control_dim = ocp.control_dimension, variable_dim = ocp.variable_dimension)
-    )
+    # build and set initial guess in DOCP
+    docp_init = OptimalControlInit(init, state_dim = ocp.state_dimension, control_dim = ocp.control_dimension, variable_dim = ocp.variable_dimension)
+    x0 = DOCP_initial_guess(docp, docp_init)
+
+    # redeclare objective and constraints functions
+    f = x -> DOCP_objective(x, docp)
+    c! = (c, x) -> DOCP_constraints!(c, x, docp)
 
     # call NLP problem constructor
-    if adnlp_backend == :no_hessian
+    if adnlp_backend == :manual
+        
+        # build sparsity pattern
+        J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
+        H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
+        
+        # build NLP with given patterns
         nlp = ADNLPModel!(
-            x -> DOCP_objective(x, docp), x0, docp.var_l, docp.var_u,
-            (c, x) -> DOCP_constraints!(c, x, docp), docp.con_l, docp.con_u,
-            backend = __adnlp_backend()
-            )
-        set_adbackend!(nlp, hessian_backend = ADNLPModels.EmptyADbackend, hvprod_backend = ADNLPModels.EmptyADbackend) # directionalsecondderivative)
+        f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+        gradient_backend = ADNLPModels.ReverseDiffADGradient,
+        hprod_backend = ADNLPModels.ReverseDiffADHvprod,
+        jtprod_backend = ADNLPModels.ReverseDiffADJtprod,
+        jacobian_backend = J_backend,
+        hessian_backend = H_backend,
+        show_time = show_time
+    )
     else
+        # build NLP
         nlp = ADNLPModel!(
-            x -> DOCP_objective(x, docp), x0, docp.var_l, docp.var_u,
-            (c, x) -> DOCP_constraints!(c, x, docp), docp.con_l, docp.con_u,
-            backend = adnlp_backend
+            f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+            backend = adnlp_backend, show_time = show_time
             )
     end
 
