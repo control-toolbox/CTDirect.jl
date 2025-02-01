@@ -18,7 +18,7 @@ using JET
 #######################################################
 # load examples library
 problem_path = pwd() * "/test/problems"
-for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true))
+for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
@@ -33,8 +33,8 @@ function bench_list(problem_list; verbose=2, nlp_solver, linear_solver, kwargs..
 
         # check
         sol = direct_solve(problem[:ocp], nlp_solver; init=problem[:init], display=false, kwargs...)
-        if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
-            error("Objective mismatch for ",problem[:name],": ",sol.objective," instead of ",problem[:obj])
+        if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol=5e-2)
+            error("Objective mismatch for ", problem[:name], ": ", sol.objective, " instead of ", problem[:obj])
         else
             verbose > 1 && @printf("%-30s: %4d iter ", problem[:name], sol.iterations)
         end
@@ -49,7 +49,7 @@ function bench_list(problem_list; verbose=2, nlp_solver, linear_solver, kwargs..
 end
 
 
-function bench(;grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, names_list = :default, kwargs...)
+function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_solver=:ipopt, linear_solver=nothing, names_list=:default, kwargs...)
 
     #######################################################
     # set (non) linear solvers and backends
@@ -70,7 +70,7 @@ function bench(;grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp_
         names_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "jackson", "robbins", "simple_integrator", "vanderpol"]
     elseif names_list == :quick
         names_list = ["beam", "double_integrator_mintf", "fuller", "jackson", "robbins", "simple_integrator", "vanderpol"]
-    elseif names_list == :all 
+    elseif names_list == :all
         names_list = ["algal_bacterial", "beam", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "insurance", "jackson", "robbins", "simple_integrator", "swimmer", "vanderpol"]
     elseif names_list == :hard
         names_list = ["algal_bacterial", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "goddard_all", "insurance", "swimmer"]
@@ -95,7 +95,7 @@ end
 
 
 # tests to check allocations in particular
-function init(prob ;grid_size, disc_method)
+function init(prob; grid_size, disc_method)
     ocp = prob[:ocp]
     docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=disc_method)
     xu = CTDirect.DOCP_initial_guess(docp)
@@ -103,7 +103,7 @@ function init(prob ;grid_size, disc_method)
 end
 
 
-function test_unit(;prob=goddard_all(), test_get=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
+function test_unit(; prob=goddard_all(), test_get=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
 
     if profile
         Profile.Allocs.clear()
@@ -121,10 +121,14 @@ function test_unit(;prob=goddard_all(), test_get=false, test_obj=true, test_cons
     # getters
     if test_get
         println("Getters")
-        print("t"); @btime CTDirect.get_final_time($xu, $docp)
-        print("x"); @btime CTDirect.get_OCP_state_at_time_step($xu, $docp, 1)
-        print("u"); @btime CTDirect.get_OCP_control_at_time_step($xu, $docp, 1)
-        print("v"); @btime CTDirect.get_OCP_variable($xu, $docp)
+        print("t")
+        @btime CTDirect.get_final_time($xu, $docp)
+        print("x")
+        @btime CTDirect.get_OCP_state_at_time_step($xu, $docp, 1)
+        print("u")
+        @btime CTDirect.get_OCP_control_at_time_step($xu, $docp, 1)
+        print("v")
+        @btime CTDirect.get_OCP_variable($xu, $docp)
         if warntype
             @code_warntype CTDirect.get_final_time(xu, docp)
             @code_warntype CTDirect.get_time_grid(xu, docp)
@@ -136,11 +140,12 @@ function test_unit(;prob=goddard_all(), test_get=false, test_obj=true, test_cons
 
     # DOCP_objective
     if test_obj
-        print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
+        print("Objective")
+        @btime CTDirect.DOCP_objective($xu, $docp)
         warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
         jet && display(@report_opt CTDirect.DOCP_objective(xu, docp))
         if profile
-            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
+            Profile.Allocs.@profile sample_rate = 1.0 CTDirect.DOCP_objective(xu, docp)
             results = Profile.Allocs.fetch()
             PProf.Allocs.pprof()
         end
@@ -148,12 +153,13 @@ function test_unit(;prob=goddard_all(), test_get=false, test_obj=true, test_cons
 
     # DOCP_constraints
     if test_cons
-        print("Constraints"); @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
-        any(c.==666.666) && error("undefined values in constraints ",c)
+        print("Constraints")
+        @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
+        any(c .== 666.666) && error("undefined values in constraints ", c)
         warntype && @code_warntype CTDirect.DOCP_constraints!(c, xu, docp)
         jet && display(@report_opt CTDirect.DOCP_constraints!(c, xu, docp))
         if profile
-            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints!(c, xu, docp)
+            Profile.Allocs.@profile sample_rate = 1.0 CTDirect.DOCP_constraints!(c, xu, docp)
             results = Profile.Allocs.fetch()
             PProf.Allocs.pprof()
         end
@@ -161,7 +167,8 @@ function test_unit(;prob=goddard_all(), test_get=false, test_obj=true, test_cons
 
     # transcription
     if test_trans
-        print("Transcription"); @btime direct_transcription($prob.ocp, grid_size=$grid_size, disc_method=$disc_method)
+        print("Transcription")
+        @btime direct_transcription($prob.ocp, grid_size=$grid_size, disc_method=$disc_method)
     end
 
     # solve
@@ -170,8 +177,8 @@ function test_unit(;prob=goddard_all(), test_get=false, test_obj=true, test_cons
         if !isapprox(sol.objective, prob.obj, rtol=1e-2)
             error("objective mismatch: ", sol.objective, " vs ", prob.obj)
         end
-        print("Solve"); @btime direct_solve($prob.ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
+        print("Solve")
+        @btime direct_solve($prob.ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
     end
 
 end
-
