@@ -46,12 +46,12 @@ N = 10
 
 # dummy run then 2 runs
 @time sol =
-    solve(ocp, grid_size = N, print_level = 0, tol = 1e-12, mu_strategy = "adaptive", init = init)
+    solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
 println("N=", N, " Obj ", sol.objective, " Iter ", sol.iterations)
 @time sol =
-    solve(ocp, grid_size = N, print_level = 0, tol = 1e-12, mu_strategy = "adaptive", init = init)
+    solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
 @time sol =
-    solve(ocp, grid_size = N, print_level = 0, tol = 1e-12, mu_strategy = "adaptive", init = init)
+    solve(ocp, grid_size=N, print_level=0, tol=1e-12, mu_strategy="adaptive", init=init)
 
 # benchmark. Not very practical -_-
 #BenchmarkTools.DEFAULT_PARAMETERS.samples = 2

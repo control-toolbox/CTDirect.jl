@@ -21,16 +21,16 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 function direct_transcription(
     ocp::OptimalControlModel,
     description...;
-    init = CTBase.__ocp_init(),
-    grid_size = __grid_size(),
-    time_grid = __time_grid(),
-    disc_method = __disc_method(),
-    constant_control = false,
-    adnlp_backend = __adnlp_backend()
+    init=CTBase.__ocp_init(),
+    grid_size=__grid_size(),
+    time_grid=__time_grid(),
+    disc_method=__disc_method(),
+    constant_control=false,
+    adnlp_backend=__adnlp_backend()
 )
 
     # build DOCP
-    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, constant_control = constant_control)
+    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, constant_control=constant_control)
 
     # set bounds in DOCP
     variables_bounds!(docp)
@@ -38,7 +38,7 @@ function direct_transcription(
 
     # set initial guess
     x0 = DOCP_initial_guess(docp,
-        OptimalControlInit(init, state_dim = ocp.state_dimension, control_dim = ocp.control_dimension, variable_dim = ocp.variable_dimension)
+        OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension)
     )
 
     # call NLP problem constructor
@@ -46,15 +46,15 @@ function direct_transcription(
         nlp = ADNLPModel!(
             x -> DOCP_objective(x, docp), x0, docp.var_l, docp.var_u,
             (c, x) -> DOCP_constraints!(c, x, docp), docp.con_l, docp.con_u,
-            backend = __adnlp_backend()
-            )
-        set_adbackend!(nlp, hessian_backend = ADNLPModels.EmptyADbackend, hvprod_backend = ADNLPModels.EmptyADbackend) # directionalsecondderivative)
+            backend=__adnlp_backend()
+        )
+        set_adbackend!(nlp, hessian_backend=ADNLPModels.EmptyADbackend, hvprod_backend=ADNLPModels.EmptyADbackend) # directionalsecondderivative)
     else
         nlp = ADNLPModel!(
             x -> DOCP_objective(x, docp), x0, docp.var_l, docp.var_u,
             (c, x) -> DOCP_constraints!(c, x, docp), docp.con_l, docp.con_u,
-            backend = adnlp_backend
-            )
+            backend=adnlp_backend
+        )
     end
 
     return docp, nlp
@@ -71,9 +71,9 @@ function set_initial_guess(docp::DOCP, nlp, init)
         docp,
         OptimalControlInit(
             init,
-            state_dim = ocp.state_dimension,
-            control_dim = ocp.control_dimension,
-            variable_dim = ocp.variable_dimension,
+            state_dim=ocp.state_dimension,
+            control_dim=ocp.control_dimension,
+            variable_dim=ocp.variable_dimension,
         ),
     )
 end
@@ -86,12 +86,12 @@ Solve an OCP with a direct method
 function direct_solve(
     ocp::OptimalControlModel,
     description::Symbol...;
-    init = CTBase.__ocp_init(),
-    grid_size::Int = CTDirect.__grid_size(),
-    time_grid = CTDirect.__time_grid(),
-    disc_method = __disc_method(),
-    constant_control = false,
-    adnlp_backend = __adnlp_backend(),
+    init=CTBase.__ocp_init(),
+    grid_size::Int=CTDirect.__grid_size(),
+    time_grid=CTDirect.__time_grid(),
+    disc_method=__disc_method(),
+    constant_control=false,
+    adnlp_backend=__adnlp_backend(),
     kwargs...,
 )
     method = getFullDescription(description, available_methods())
@@ -100,12 +100,12 @@ function direct_solve(
     docp, nlp = direct_transcription(
         ocp,
         description;
-        init = init,
-        grid_size = grid_size,
-        time_grid = time_grid,
-        disc_method = disc_method,
-        constant_control = constant_control,
-        adnlp_backend = adnlp_backend
+        init=init,
+        grid_size=grid_size,
+        time_grid=time_grid,
+        disc_method=disc_method,
+        constant_control=constant_control,
+        adnlp_backend=adnlp_backend
     )
 
     # solve DOCP
@@ -129,6 +129,6 @@ struct MadNLPBackend <: AbstractSolverBackend end
 
 weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP)
 
-function solve_docp(solver_backend::T, args...; kwargs...) where {T <: AbstractSolverBackend}
+function solve_docp(solver_backend::T, args...; kwargs...) where {T<:AbstractSolverBackend}
     throw(ExtensionError(weakdeps[T]))
 end
