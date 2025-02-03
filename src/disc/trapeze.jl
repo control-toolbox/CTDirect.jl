@@ -175,6 +175,11 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
 end
 
 
+"""
+$(TYPEDSIGNATURES)
+
+Build sparsity pattern for Jacobian of constraints
+"""
 function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
     J = zeros(Bool, docp.dim_NLP_constraints, docp.dim_NLP_variables)
@@ -187,22 +192,32 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
     # 1. main loop over steps
     for i = 1:docp.dim_NLP_steps
-        c_offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
+        
+        # constraints block and offset: state equation, path constraints
         c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
-        var_offset = (i-1)*docp.discretization._step_variables_block
+        c_offset = (i-1)*c_block
+
+        # variables block and offset: x_i (l_i) u_i x_i+1 (l_i+1) u_i+1
         var_block = docp.discretization._step_variables_block * 2
-        # 1.1 state eq wrt x_i, u_i, x_i+1, u_i+1 (skip l_i, l_i+1)
+        var_offset = (i-1)*docp.discretization._step_variables_block
+
+        # state eq wrt x_i, u_i, x_i+1, u_i+1 (skip l_i, l_i+1)
+        # 1.1 state eq wrt x_i
         J[c_offset+1:c_offset+docp.dim_OCP_x, var_offset+1:var_offset+docp.dim_OCP_x] .= true
+        # 1.2 state eq wrt u_i, x_i+1 (skip l_i)
         J[c_offset+1:c_offset+docp.dim_OCP_x, var_offset+docp.dim_NLP_x+1:var_offset+docp.dim_NLP_x+docp.dim_NLP_u+docp.dim_OCP_x] .= true
+        # 1.3 state eq wrt u_i+1 (skip l_i+1)
         J[c_offset+1:c_offset+docp.dim_OCP_x, var_offset+docp.dim_NLP_x*2+docp.dim_NLP_u+1:var_offset+docp.dim_NLP_x*2+docp.dim_NLP_u*2] .= true
-        # 1.2 lagrange part wrt x_i, l_i, u_i, x_i+1, l_i+1, u_i+1
+        # 1.4 lagrange part wrt x_i, l_i, u_i, x_i+1, l_i+1, u_i+1
         if docp.is_lagrange
             J[c_offset+docp.dim_NLP_x, var_offset+1:var_offset+var_block] .= true
         end
-        # 1.3 path constraint wrt x_i, u_i
+
+        # 1.5 path constraint wrt x_i, u_i
         J[c_offset+docp.dim_NLP_x+1:c_offset+c_block, var_offset+1:var_offset+docp.dim_OCP_x] .= true
         J[c_offset+docp.dim_NLP_x+1:c_offset+c_block, var_offset+docp.dim_NLP_x+1:var_offset+docp.dim_NLP_x+docp.dim_NLP_u] .= true
-        # 1.4 whole block wrt v
+
+        # 1.6 whole block wrt v
         J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true
     end
 
@@ -211,17 +226,23 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
     c_block = docp.discretization._step_pathcons_block
     var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
     var_block = docp.discretization._step_variables_block
+    # 2.1 wrt xf
     J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+docp.dim_OCP_x] .= true
+    # 2.1 wrt uf
     J[c_offset+1:c_offset+c_block, var_offset+docp.dim_NLP_x+1:var_offset+docp.dim_NLP_x+docp.dim_NLP_u] .= true
+    # 2.1 wrt v
     J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true
 
     # 3. boundary constraints (x0, xf, v)
     c_offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
     c_block = docp.dim_boundary_cons + docp.dim_v_cons
+    # 3.1 wrt x0
     J[c_offset+1:c_offset+c_block, 1:docp.dim_OCP_x] .= true
+    # 3.2 wrt xf
     J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+docp.dim_OCP_x] .= true
+    # 3.3 wrt v
     J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true
-    # 3.1 null initial condition for lagrangian cost state l0
+    # 3.4 null initial condition for lagrangian cost state l0
     if docp.is_lagrange
         J[docp.dim_NLP_constraints, docp.dim_NLP_x] = true
     end
@@ -231,6 +252,11 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 end
 
 
+"""
+$(TYPEDSIGNATURES)
+
+Build sparsity pattern for Hessian of Lagrangian
+"""
 function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
 
     # NB. need to provide full pattern for coloring, not just upper/lower part
@@ -241,7 +267,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
     # -> see 3. term for boundary conditions !
     # 0.2 lagrange case (lf)
     if docp.is_lagrange
-        lf_index = docp.dim_NLP_steps * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+        lf_index = docp.dim_NLP_steps * docp.discretization._step_variables_block + docp.dim_NLP_x
         H[lf_index, lf_index] = true
     end
    
@@ -255,7 +281,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
         H[var_offset+1:var_offset+var_block, var_offset+1:var_offset+var_block] .= true
         # 1.3 path constraint wrt x_i, u_i
         # -> included in previous term !
-        # 1.4 whole block wrt v (including cross derivatives)
+        # 1.4 whole block wrt v (including cross derivatives: v/v v/var var/v)
         H[docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true
         H[docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables, var_offset+1:var_offset+var_block] .= true
         H[var_offset+1:var_offset+var_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true
