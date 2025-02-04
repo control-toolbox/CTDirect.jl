@@ -77,8 +77,12 @@ ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 *** building the hessian is one third of the total solve time...
 
 ## Todo:
-- add pattern structure for midpoint and IRK schemes
+- add dummy ocp with 'full' derivatives to better check patterns vs full AD
+- check Jacobian / Hessian separately for IRK (beam, fuller and vanderpol fail)
+- improve Hessian for IRK (reduce excess nonzeros)
 - redo tests on algal_bacterial problem, including Jump
+- add pattern structure for midpoint
 - try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
 - reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?
+eg for dynamics and path constraints
 

@@ -373,12 +373,10 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
         J[c_offset+1:c_offset+docp.dim_OCP_x, var_offset+docp.dim_NLP_x+docp.dim_NLP_u+ 1:var_offset+docp.dim_NLP_x+docp.dim_NLP_u+s*docp.dim_NLP_x+docp.dim_OCP_x] .= true
         # 1.3 lagrange part l_i+1 = l_i + h (sum bj k_ij)[n+1]
         if docp.is_lagrange
-            # wrt l_i and l_i+1
-            J[c_offset+docp.dim_NLP_x, var_offset+docp.dim_NLP_x] = true
-            J[c_offset+docp.dim_NLP_x, var_offset+docp.discretization._step_variables_block+docp.dim_NLP_x] = true
-            # wrt k_ij[n+1]
+            J[c_offset+docp.dim_NLP_x, var_offset+docp.dim_NLP_x] = true # l_i
+            J[c_offset+docp.dim_NLP_x, var_offset+docp.discretization._step_variables_block+docp.dim_NLP_x] = true # l_i+1
             for i=1:s
-                J[c_offset+docp.dim_NLP_x, var_offset+(s+1)*docp.dim_NLP_x] = true
+                J[c_offset+docp.dim_NLP_x, var_offset+(s+1)*docp.dim_NLP_x] = true # k_ij[n+1]
             end
         end
         
@@ -416,12 +414,9 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
     # 3. boundary constraints (x0, xf, v)
     c_offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
     c_block = docp.dim_boundary_cons + docp.dim_v_cons
-    # 3.1 wrt x0
-    J[c_offset+1:c_offset+c_block, 1:docp.dim_OCP_x] .= true
-    # 3.2 wrt xf
-    J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+docp.dim_OCP_x] .= true
-    # 3.3 wrt v
-    J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true
+    J[c_offset+1:c_offset+c_block, 1:docp.dim_OCP_x] .= true # x0
+    J[c_offset+1:c_offset+c_block, var_offset+1:var_offset+docp.dim_OCP_x] .= true # xf
+    J[c_offset+1:c_offset+c_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true # v
     # 3.4 null initial condition for lagrangian cost state l0
     if docp.is_lagrange
         J[docp.dim_NLP_constraints, docp.dim_NLP_x] = true
@@ -446,53 +441,69 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
 
     # 0. objective
     # 0.1 mayer cost (x0, xf, v) 
-    # -> see 3. term for boundary conditions !
+    # -> grouped with term 3. for boundary conditions
     # 0.2 lagrange case (lf)
     if docp.is_lagrange
         lf_index = docp.dim_NLP_steps * docp.discretization._step_variables_block + docp.dim_NLP_x
         H[lf_index, lf_index] = true
     end
    
-    # +++1. main loop over steps
+    # 1. main loop over steps
+    # 1.0 v / v term
+    H[docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true
+
     for i = 1:docp.dim_NLP_steps
 
         # variables block and offset: x_i (l_i) u_i k_i x_i+1 (l_i+1)
         var_block = docp.discretization._step_variables_block + docp.dim_NLP_x
         var_offset = (i-1)*docp.discretization._step_variables_block
 
-        # 1.1 state eq wrt x_i, k_i, x_i+1 (skip l_i, u_i)
-        # xi / xi, xi / (k_i x_i+1), (k_i x_i+1) / xi, x_i+1 / x_i+1 
-        # 1.2 lagrange part wrt l_i, k_i[n+1], l_i+1
-        # ... pff
-        # stage eqs wrt x_i, u_i, k_i, and u_i+1 for piecewise linear control
-        # NB. we could skip l_i here...
-        # +++ assume constant_control and combine all in one single block ?
+        # 1.1 state eq x_i+1 = x_i + h sum bj k_ij
+        # wrt x_i, k_i, x_i+1 (skip l_i, u_i)
+        # -> included in 1.3 except x_i+1 terms
+        H[var_offset+1:var_offset+docp.dim_OCP_x, var_offset+docp.discretization._step_variables_block+1:var_offset+docp.discretization._step_variables_block+docp.dim_OCP_x] .= true # x_i / x_i+1
+        H[var_offset+docp.discretization._step_variables_block+1:var_offset+docp.discretization._step_variables_block+docp.dim_OCP_x , var_offset+1:var_offset+docp.dim_OCP_x] .= true # x_i+1 / x_i
+        H[var_offset+docp.dim_NLP_x+1:var_offset+(s+1)*docp.dim_NLP_x, var_offset+docp.discretization._step_variables_block+1:var_offset+docp.discretization._step_variables_block+docp.dim_OCP_x] .= true # k_i / x_i+1
+        H[var_offset+docp.discretization._step_variables_block+1:var_offset+docp.discretization._step_variables_block+docp.dim_OCP_x , var_offset+docp.dim_NLP_x+1:var_offset+(s+1)*docp.dim_NLP_x] .= true # x_i+1 / k_i    
+
+        # 1.2 lagrange part l_i+1 = l_i + h (sum bj k_ij)[n+1]
+        # -> included in 1.3 except l_i+1 terms
+        # +++ could be done fully here and l_i skipped in 1.3
+        H[var_offset+docp.dim_NLP_x , var_offset+docp.discretization._step_variables_block+docp.dim_NLP_x] = true # l_i / l_i+1
+        H[ var_offset+docp.discretization._step_variables_block+docp.dim_NLP_x, var_offset+docp.dim_NLP_x] = true # l_i+1 / l_i
+        for i=1:s
+            H[var_offset+docp.dim_NLP_u+i*docp.dim_NLP_x , var_offset+docp.discretization._step_variables_block+docp.dim_NLP_x] = true # k_i[n+1] / l_i+1
+            H[var_offset+docp.discretization._step_variables_block+docp.dim_NLP_x, var_offset+docp.dim_NLP_u+i*docp.dim_NLP_x] = true # l_i+1 / k_i[n+1]
+        end
+
+        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_ij, v)
+        # wrt x_i, u_i, k_i  (and u_i+1 for piecewise linear control)
+        # NB. l_i terms for 1.2 are included but we have excess nnz eg l_i / x_i,u_i,k_i[1:n]
         if docp.discretization._constant_control
-            H[var_offset+1:var_offset+var_block, var_offset+1:var_offset+var_block] .= true
+            H[var_offset+1:var_offset+docp.discretization._step_variables_block, var_offset+1:var_offset+docp.discretization._step_variables_block] .= true
         else 
             error("Manual Hessian sparsity pattern not supported for IRK scheme with piecewise linear control")
         end
 
-        # 1.3 path constraint wrt x_i, u_i
-        # -> included in previous term !
-        # 1.4 whole block wrt v (including cross derivatives: v/v v/var var/v)
-        H[docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true
-        H[docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables, var_offset+1:var_offset+var_block] .= true
-        H[var_offset+1:var_offset+var_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true
+        # 1.4 path constraint wrt x_i, u_i
+        # -> included in 1.3
+
+        # 1.5 whole block wrt v (NB. term v / v added before the loop)
+        H[docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables, var_offset+1:var_offset+var_block] .= true # v / var block
+        H[var_offset+1:var_offset+var_block, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true # var block / v
     end
 
     # 2. final path constraints (xf, uf, v)
-    # -> included in last iteration from loop !
+    # -> included in last iteration from loop
 
     # 3. boundary constraints (x0, xf, v)
-    # -> (xf, v) part included in last iteration from loop !
+    # -> x0 / x0, x0 / v, xf / xf, xf / v terms included in first/last iterations from loop
     if docp.is_mayer || docp.dim_boundary_cons > 0
         var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
-        H[1:docp.dim_OCP_x, 1:docp.dim_OCP_x] .= true # x0 / x0
         H[1:docp.dim_OCP_x, var_offset+1:var_offset+docp.dim_OCP_x] .= true # x0 / xf
-        H[1:docp.dim_OCP_x, docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables] .= true # x0 / v
         H[var_offset+1:var_offset+docp.dim_OCP_x, 1:docp.dim_OCP_x] .= true # xf / x0
         H[docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables, 1:docp.dim_OCP_x] .= true # v / x0
+        H[docp.dim_NLP_variables-docp.dim_NLP_v+1:docp.dim_NLP_variables, var_offset+1:var_offset+docp.dim_OCP_x] .= true # v / xf
     end
     # 3.1 null initial condition for lagrangian cost state l0
     if docp.is_lagrange

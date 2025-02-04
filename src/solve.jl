@@ -25,7 +25,7 @@ function direct_transcription(
     grid_size = __grid_size(),
     time_grid = __time_grid(),
     disc_method = __disc_method(),
-    constant_control = false,
+    constant_control = true,
     adnlp_backend = __adnlp_backend(),
     show_time = false
 )
@@ -59,7 +59,7 @@ function direct_transcription(
         hprod_backend = ADNLPModels.ReverseDiffADHvprod,
         jtprod_backend = ADNLPModels.ReverseDiffADJtprod,
         jacobian_backend = J_backend,
-        hessian_backend = H_backend,
+        hessian_backend = ADNLPModels.SparseReverseADHessian, #H_backend,
         show_time = show_time
     )
     else
@@ -103,7 +103,7 @@ function direct_solve(
     grid_size::Int = CTDirect.__grid_size(),
     time_grid = CTDirect.__time_grid(),
     disc_method = __disc_method(),
-    constant_control = false,
+    constant_control = true,
     adnlp_backend = __adnlp_backend(),
     kwargs...,
 )

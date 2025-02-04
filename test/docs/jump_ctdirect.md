@@ -14,8 +14,11 @@ Maybe a less sparse but faster and less memory intensive method is used ?
 - in terms of control structures, GL2 solutions are clean, Jump Trapeze solutions shows a bit of noise, while CTDirect Trapeze solutions are very noisy.
 
 ## Todo
+- check on ipopt last iteration that tol is also 1e-8 for Jump
+- test CTDirect with manual sparsity patterns
+- find more details on the Hessian in Jump
+- investigate how jump finds a cleaner solution for trapeze discretization (print settings ?)
 - can we have linear memory wrt steps for Jump / Trapeze ?
-- disable Hessian (in AD model then use ipopt limited memory option ?) and compare memory allocations and convergence. Find more details on the Hessian in Jump.
 
 ## Results: Jump vs CTDirect
 See `test/jump_comparison.jl`
@@ -51,36 +54,36 @@ CTDirect gauss_legendre_2 5000:  363.224 s (211848763 allocations: 313.02 GiB)
 
 ## Details: Trapeze (1000 and 5000 steps)
 
-|                 | Jump   | CT     | New    | Jump     | CT       | New      |
+|                 | Jump   | CT     | Manual | Jump     | CT       | Manual   |
 |-----------------|--------|--------|--------|----------|----------|----------|
-|nnz jacobian     | 42006  | 42006  |        | 210006   | 210006   |          |
-|nnz hessian      | 74000  | 12012  |        | 370000   | 60012    |          |
-|variables        | 8008   | 8008   |        | 40008    | 40008    |     |
-|lowerbound       | 6006   | 6006   |        | 30006    | 30006    |     |
-|lower/upper      | 2002   | 2002   |        | 10002    | 10002    |     |
-|equality         | 6006   | 6006   |        | 30006    | 30006    |     |
-|iterations       | 334    | 365    |        | 517      | 420      |       |
-|objective        | 5.4522 | 5.4522 |        | 5.4522   | 5.4522   |    |
-|structure        | ok     | noisy  |        | ok       | noisy    |          |
-|allocations      | 352MB  | 4.5GB  |        | 2.1GB    | 49GB     |          |
-|time             | 17     | 20     |        | 126      | 136      |          |
+|nnz jacobian     | 42006  | 42006  | 96076  | 210006   | 210006   | 480072   |
+|nnz hessian      | 74000  | 12012  | 100072 | 370000   | 60012    | 500072   |
+|variables        | 8008   | 8008   | 8008   | 40008    | 40008    | 40008    |
+|lowerbound       | 6006   | 6006   | 6006   | 30006    | 30006    | 30006    |
+|lower/upper      | 2002   | 2002   | 2002   | 10002    | 10002    | 10002    |
+|equality         | 6006   | 6006   | 6006   | 30006    | 30006    | 30006    |
+|iterations       | 334    | 365    | 333    | 517      | 420      | 419      |
+|objective        | 5.4522 | 5.4522 | 5.4522 | 5.4522   | 5.4522   | 5.4522   |
+|structure        | ok     | noisy  | noisy  | ok       | noisy    | noisy    |
+|allocations      | 352MB  | 4.5GB  | 5.50GB | 2.1GB    | 49GB     | 37GB     |
+|time             | 17     | 20     | 50     | 126      | 136      | 354      |
 
 
 ## Details: Gauss Legendre 2 (1000 and 5000 steps)
 
-|                 | Jump   | CT     | New    | Jump     | CT       | New      |
+|                 | Jump   | CT     | Manual | Jump     | CT       | Manual   |
 |-----------------|--------|--------|--------|----------|----------|----------|
-|nnz jacobian     | 118006 | 124000 |        | 590006   | 620000   |          |
-|nnz hessian      | 322000 | 63000  |        | 1610000  | 315000   |          |
-|variables        | 20006  | 20008  |   | 100006   | 100008   |    |
-|lowerbound       | 6006   | 6006   |    | 3006     | 30006    |     |
-|lower/upper      | 2000   | 2002   |    | 10000    | 10002    |     |
-|equality         | 18006  | 18006  |   | 90006    | 90006    |     |
-|iterations       | 117    | 96     |        | 146      | 119      |          |
-|objective        | 5.4522 | 5.4522 |  | 5.4522   | 5.4522   |    |
-|structure        | clean  | clean  |        | clean    | clean    |          |
-|allocations      | 726MB  | 14.8GB |        | 3.6GB    | 312GB    |          |
-|time             | 15     | 33     |        | 77       | 356*     |          |
+|nnz jacobian     | 118006 | 124000 | 384072 | 590006   | 620000   |          |
+|nnz hessian      | 322000 | 63000  | 330057 | 1610000  | 315000   |          |
+|variables        | 20006  | 20008  | 20008  | 100006   | 100008   |    |
+|lowerbound       | 6006   | 6006   | 6006   | 3006     | 30006    |     |
+|lower/upper      | 2000   | 2002   | 2002   | 10000    | 10002    |     |
+|equality         | 18006  | 18006  | 18006  | 90006    | 90006    |     |
+|iterations       | 117    | 96     | 91     | 146      | 119      |       |
+|objective        | 5.4522 | 5.4522 | 5.4522 | 5.4522   | 5.4522   |    |
+|structure        | clean  | clean  | clean  | clean    | clean    |     |
+|allocations      | 726MB  | 14.8GB | 5.15GB | 3.6GB    | 312GB    |          |
+|time             | 15     | 33     | 49     | 77       | 356*     |          |
 
 * half the time is before optimization, swap effect due to huge allocations ?
 
