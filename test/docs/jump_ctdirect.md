@@ -70,6 +70,7 @@ CTDirect gauss_legendre_2 5000:  363.224 s (211848763 allocations: 313.02 GiB)
 
 
 ## Details: Gauss Legendre 2 (1000 and 5000 steps)
+redo all 4 ct tests
 
 |                 | Jump   | CT     | Manual | Jump     | CT       | Manual   |
 |-----------------|--------|--------|--------|----------|----------|----------|

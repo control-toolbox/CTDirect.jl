@@ -59,7 +59,7 @@ function direct_transcription(
         hprod_backend = ADNLPModels.ReverseDiffADHvprod,
         jtprod_backend = ADNLPModels.ReverseDiffADJtprod,
         jacobian_backend = J_backend,
-        hessian_backend = ADNLPModels.SparseReverseADHessian, #H_backend,
+        hessian_backend = H_backend,
         show_time = show_time
     )
     else
