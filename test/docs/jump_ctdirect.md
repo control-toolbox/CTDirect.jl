@@ -1,7 +1,7 @@
 # Jump / CTDirect comparison - algal bacterial problem
 
 Note that the problem is redefined for each method: jump, ctdirect and ctdirect new model.
-Also, the Gauss Legendre 2 implementations for Jump and CTDirect here use a piecewise constant control (default for CTDirect would have been piecewise linear).
+Also, the Gauss Legendre 2 implementations for Jump and CTDirect here use a piecewise constant control.
 
 ## Takeaways
 - CTDirect still allocates at least x10 more memory, worsening for higher problem sizes
@@ -10,8 +10,7 @@ We note that Jump memory appears linear wrt steps for GL2, but a bit superlinear
 - Hessian seems to be handled differently by Jump, see the higher nonzero values.
 Maybe a less sparse but faster and less memory intensive method is used ? 
 - convergence: objective and trajectory are similar, iterations differ, maybe due to the different hessian handling. Total computation times are similar for Trapeze and x2 to x5 slower for CTDirect for GL2, probably due to the memory effect.
-- for GL2, Jump and CTDirect have slightly different nonzero counts for the Jacobian
-- in terms of control structures, GL2 solutions are clean, Jump Trapeze solutions shows a bit of noise, while CTDirect Trapeze solutions are very noisy.
+- in terms of control structures, GL2 solutions are clean, Jump Trapeze solutions shows a bit of noise, while CTDirect Trapeze solutions are very noisy. How Jump manages to find a cleaner solution with Trapeze is unclear.
 
 ## Todo
 - check on ipopt last iteration that tol is also 1e-8 for Jump
@@ -25,6 +24,7 @@ See `test/jump_comparison.jl`
 Ipopt details: `Ipopt version 3.14.17, running with linear solver MUMPS 5.7.3`
 Settings: tol=1e-8, mu_strategy=adaptive
 
++++redo
 ```
 Jump trapeze 1000:  17.029 s (7920527 allocations: 351.87 MiB)
 Jump trapeze 2000:  56.928 s (23055273 allocations: 891.64 MiB)
@@ -38,19 +38,11 @@ Jump gauss_legendre_2 5000:  76.593 s (56269715 allocations: 3.57 GiB)
 CTDirect trapeze 1000:  20.110 s (46501059 allocations: 4.54 GiB)
 CTDirect trapeze 2000:  41.097 s (89302125 allocations: 12.26 GiB)
 CTDirect trapeze 5000:  133.268 s (267989400 allocations: 49.33 GiB)
-```
-GL2 piecewise constant control
-```
 CTDirect gauss_legendre_2 1000:  33.181 s (37843213 allocations: 14.79 GiB)
 CTDirect gauss_legendre_2 2000:  82.605 s (82766476 allocations: 43.19 GiB)
 CTDirect gauss_legendre_2 5000:  356.338 s (221161426 allocations: 312.28 GiB)
 ```
-GL2 piecewise linear control
-```
-CTDirect gauss_legendre_2 1000:  37.220 s (39259673 allocations: 15.12 GiB)
-CTDirect gauss_legendre_2 2000:  112.687 s (104950745 allocations: 45.37 GiB)
-CTDirect gauss_legendre_2 5000:  363.224 s (211848763 allocations: 313.02 GiB)
-```
+
 
 ## Details: Trapeze (1000 and 5000 steps)
 
@@ -74,19 +66,16 @@ redo all 4 ct tests
 
 |                 | Jump   | CT     | Manual | Jump     | CT       | Manual   |
 |-----------------|--------|--------|--------|----------|----------|----------|
-|nnz jacobian     | 118006 | 124000 | 384072 | 590006   | 620000   |          |
-|nnz hessian      | 322000 | 63000  | 330057 | 1610000  | 315000   |          |
+|nnz jacobian     | 118006 | 118006 | 384072 | 590006   | 590006   |          |
+|nnz hessian      | 322000 | 63000  | 319036 | 1610000  | 315000   |          |
 |variables        | 20006  | 20008  | 20008  | 100006   | 100008   |    |
 |lowerbound       | 6006   | 6006   | 6006   | 3006     | 30006    |     |
 |lower/upper      | 2000   | 2002   | 2002   | 10000    | 10002    |     |
 |equality         | 18006  | 18006  | 18006  | 90006    | 90006    |     |
-|iterations       | 117    | 96     | 91     | 146      | 119      |       |
+|iterations       | 117    | 95     | 91     | 146      | 78       |       |
 |objective        | 5.4522 | 5.4522 | 5.4522 | 5.4522   | 5.4522   |    |
 |structure        | clean  | clean  | clean  | clean    | clean    |     |
-|allocations      | 726MB  | 14.8GB | 5.15GB | 3.6GB    | 312GB    |          |
-|time             | 15     | 33     | 49     | 77       | 356*     |          |
+|allocations      | 726MB  | 14.6GB | 5.0GB  | 3.6GB    | 305GB    |          |
+|time             | 15     | 28     | 45     | 77       | 291*     |          |
 
 * half the time is before optimization, swap effect due to huge allocations ?
-
-
-
