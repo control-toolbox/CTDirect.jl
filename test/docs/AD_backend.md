@@ -79,6 +79,16 @@ ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 
 *** building the hessian is one third of the total solve time...
 
+Standard benchmark:
+| GL2     | optimized | manual |
+|---------|----------|--------|
+| 250     |        |       |
+| 500     |        |       |
+| 1000    |        |       |
+| 2500    |       |      |
+| 5000    |       |     |
+
+
 ## Remarks:
 - it is better to build the sparse matrices from the index vectors format rather than a dense boolean matrix. For larger problems it may not be possible to even allocate the boolean matrix (eg. algal bacterial with GL2 at 5000 steps).
 
