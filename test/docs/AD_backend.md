@@ -34,18 +34,18 @@ Takeaways:
 - manual sparse pattern seems to give even better performance for larger problems. This is likely due to the increasing cost of computing the Hessian sparsity in terms of allocations and time. This observation is consistent with the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian.
 
 Standard benchmark:
-| Trapeze | default | optimized | manual  |
+| Trapeze | default | optimized | manual  | sparse
 |---------|---------|-----------|---------|
-| 250     | 49.7    | 0.9       | 1.5     |
-| 500     |         | 2.4       | 3.5     |
-| 1000    |         | 5.6       | 6.4     |
-| 2500    |         | 23.9      | 23.9    |
-| 5000    |         | 89.6      | 56.3    |
+| 250     | 49.7    | 0.9       | 1.5     | 
+| 500     |         | 2.4       | 3.5     | 
+| 1000    |         | 5.6       | 6.4     | 
+| 2500    |         | 23.9      | 23.9    | 
+| 5000    |         | 89.6      | 56.3    | 
 | 7500    |         | 225.4     | 85.9    |
 | 10000   |         | 526.3     | 102.4   |
 
 Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
-| transcription | optimized | manual  | optimized | manual |
+| transcription | optimized | manual  | optimized | manual | sparse
 |---------------|-----------|---------|-----------|--------|
 | NLP vars      | 4005      | 4005    | 40005     | 40005  |
 | NLP cons      | 6007      | 6007    | 60007     | 60007  |

@@ -352,7 +352,6 @@ Build sparsity pattern for Jacobian of constraints
 function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
 
     J = zeros(Bool, docp.dim_NLP_constraints, docp.dim_NLP_variables)
-    +++ try a sparse version, add aux function add_nnz_block!(...) that updates the 3 vectors
 
     s = docp.discretization.stage
 
