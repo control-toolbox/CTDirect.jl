@@ -83,10 +83,11 @@ ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 - it is better to build the sparse matrices from the index vectors format rather than a dense boolean matrix. For larger problems it may not be possible to even allocate the boolean matrix (eg. algal bacterial with GL2 at 5000 steps).
 
 ## Todo:
+- vector format for IRK
 - improve Hessian for IRK (reduce excess nonzeros with finer block granularity)
 - redo tests on algal_bacterial problem, including Jump
 - check the relevance of computing the nnz beforehand and allocate the full index vectors directly instead of using push!
-- add pattern structure for midpoint
+- manual pattern structure for midpoint
 - try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
 - reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?
 eg for dynamics and path constraints

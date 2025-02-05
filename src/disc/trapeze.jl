@@ -200,7 +200,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
     # 1. main loop over steps
     for i = 1:docp.dim_NLP_steps
-        
+
         # constraints block and offset: state equation, path constraints
         c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
         c_offset = (i-1)*c_block
@@ -301,8 +301,8 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
     for i = 1:docp.dim_NLP_steps
 
         # variables block and offset: x_i (l_i) u_i x_i+1 (l_i+1) u_i+1
-        var_offset = (i-1)*docp.discretization._step_variables_block
         var_block = docp.discretization._step_variables_block * 2
+        var_offset = (i-1)*docp.discretization._step_variables_block
 
         # 1.1 state eq wrt x_i, u_i, x_i+1, u_i+1 (skip l_i, l_i+1)
         # -> included in 1.2
@@ -354,27 +354,33 @@ $(TYPEDSIGNATURES)
 Add block of nonzeros elements to a sparsity pattern 
 Format: boolean matrix (M) or index vectors (Is, Js) 
 Includes a more compact method for single element case
+Note: independent from discretization scheme
 """
-function add_nonzero_block!(M, i_start, i_end, j_start, j_end)
+function add_nonzero_block!(M, i_start, i_end, j_start, j_end, sym=false)
     M[i_start:i_end, j_start:j_end] .= true
+    sym && M[j_start:j_end, i_start:i_end] .= true
     return
 end
-function add_nonzero_block!(M, i, j)
+function add_nonzero_block!(M, i, j, sym=false)
     M[i,j] = true
+    sym && M[j,i] = true
     return
 end
-function add_nonzero_block!(Is, Js, i_start, i_end, j_start, j_end)
+function add_nonzero_block!(Is, Js, i_start, i_end, j_start, j_end, sym=false)
     for i=i_start:i_end
         for j=j_start:j_end
-            # NB. does order matter here ?
             push!(Is, i)
             push!(Js, j)
+            sym && push!(Is, j)
+            sym && push!(Js, i)
         end
     end
     return
 end
-function add_nonzero_block!(Is, Js, i, j)
+function add_nonzero_block!(Is, Js, i, j, sym=false)
     push!(Is, i)
     push!(Js, j)
+    sym && push!(Is, j)
+    sym && push!(Js, i)
     return
 end
