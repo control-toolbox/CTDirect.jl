@@ -34,29 +34,32 @@ Takeaways:
 - manual sparse pattern seems to give even better performance for larger problems. This is likely due to the increasing cost of computing the Hessian sparsity in terms of allocations and time. This observation is consistent with the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian.
 
 Standard benchmark:
-| Trapeze | default | optimized | manual  | sparse
-|---------|---------|-----------|---------|
-| 250     | 49.7    | 0.9       | 1.5     | 
-| 500     |         | 2.4       | 3.5     | 
-| 1000    |         | 5.6       | 6.4     | 
-| 2500    |         | 23.9      | 23.9    | 
-| 5000    |         | 89.6      | 56.3    | 
-| 7500    |         | 225.4     | 85.9    |
-| 10000   |         | 526.3     | 102.4   |
+| Trapeze | default | optimized | manual* | manual** |
+|---------|---------|-----------|---------|----------|
+| 250     | 49.7    | 0.9       | 1.5     | 1.4      |
+| 500     |         | 2.4       | 3.5     | 3.3      |
+| 1000    |         | 5.6       | 6.4     | 5.9      |
+| 2500    |         | 23.9      | 23.9    | 18.7     |
+| 5000    |         | 89.6      | 56.3    | 41.5     |
+| 7500    |         | 225.4     | 85.9    | 66.3     |
+| 10000   |         | 526.3     | 102.4   | 90.4     |
+
+* build sparse matrices from dense boolean matrices
+** build sparse matrices from (i,j,v) vectors
 
 Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
-| transcription | optimized | manual  | optimized | manual | sparse
-|---------------|-----------|---------|-----------|--------|
-| NLP vars      | 4005      | 4005    | 40005     | 40005  |
-| NLP cons      | 6007      | 6007    | 60007     | 60007  |
-| Hess nnz      | 11011     | 30024   | 110011    | 300024 |
-| H sparsity    | 99.86%    | 99.63%  | 99.99%    | 99.96% |
-| Jac nnz       | 28011     | 42043   | 280011    | 420043 |
-| J sparsity    | 99.88%    | 99.83%  | 99.99%    | 99.98% |
-| allocs        | 1.16GB    | 106MB   | 71.56GB   | 4.55GB |
-| time          | 750ms     | 85ms    | 64.7s**   | 3.8s   |
+| transcription | optimized | manual*/** | optimized | manual*/** |
+|---------------|-----------|------------|-----------|--------|
+| NLP vars      | 4005      | 4005       | 40005     | 40005  |
+| NLP cons      | 6007      | 6007       | 60007     | 60007  |
+| Hess nnz      | 11011     | 30024      | 110011    | 300024 |
+| H sparsity    | 99.86%    | 99.63%     | 99.99%    | 99.96% |
+| Jac nnz       | 28011     | 42043      | 280011    | 420043 |
+| J sparsity    | 99.88%    | 99.83%     | 99.99%    | 99.98% |
+| allocs        | 1.2GB     | 106 / 92MB | 71.6GB    | 4.55 / 0.88 GB |
+| time          | 750ms     | 85 / 95ms  | 64.7s***  | 3.8 / 2.5s  |
 
-** hessian accounts for 59 out of total 65s
+*** hessian accounts for 59 out of total 65s
 ```
 julia> direct_transcription(goddard_all().ocp, grid_size=10000, show_time=true);
 gradient backend ADNLPModels.ReverseDiffADGradient: 0.000137972 seconds;
@@ -68,17 +71,21 @@ hessian  backend ADNLPModels.SparseReverseADHessian: 58.450146911 seconds;
 ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 ```
 
-| solve         | optimized | manual  | optimized | manual |
-|---------------|-----------|---------|-----------|--------|
-| iterations    | 42        | 28      | 51        | 29     |
-| allocs        | 2.0GB     | 1.2GB   | 87.5GB    | 16.9GB |
-| time          | 2.5s      | 2.5s    | 151.0s*** | 42.4s  |
+| solve         | optimized | manual*/**  | optimized | manual*/**  |
+|---------------|-----------|-------------|-----------|-------------|
+| iterations    | 42        | 28          | 51        | 29          |
+| allocs        | 2.0GB     | 1.2/1.2GB   | 87.5GB    | 16.9/13.2GB |
+| time          | 2.5s      | 2.5/2.6s    | 151.0s*** | 42.4/31.6s  |
 
 *** building the hessian is one third of the total solve time...
 
+## Remarks:
+- it is better to build the sparse matrices from the index vectors format rather than a dense boolean matrix. For larger problems it may not be possible to even allocate the boolean matrix (eg. algal bacterial with GL2 at 5000 steps).
+
 ## Todo:
-- improve Hessian for IRK (reduce excess nonzeros)
+- improve Hessian for IRK (reduce excess nonzeros with finer block granularity)
 - redo tests on algal_bacterial problem, including Jump
+- check the relevance of computing the nnz beforehand and allocate the full index vectors directly instead of using push!
 - add pattern structure for midpoint
 - try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
 - reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?

@@ -182,12 +182,17 @@ Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
-    J = zeros(Bool, docp.dim_NLP_constraints, docp.dim_NLP_variables)
+    #J = zeros(Bool, docp.dim_NLP_constraints, docp.dim_NLP_variables)
+
+    # vector format for sparse matrix
+    # +++ better to compute nnzj beforehand and allocate the 3 vectors (no push then) ?
+    # pass to addnnz the current offset too
     #nnzj = ...
     #Is = Vector{Int}(undef, nnzj)
     #Js = Vector{Int}(undef, nnzj)
     #Vs = ones(Bool, nnzj)
-    # use offset to fill Is, Js (Vs is done) then sparse constructor ?
+    Is = Vector{Int}(undef, 0)
+    Js = Vector{Int}(undef, 0)
 
     # index alias for v
     v_start = docp.dim_NLP_variables - docp.dim_NLP_v + 1
@@ -213,22 +218,22 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
         # state eq wrt x_i, u_i, x_i+1, u_i+1 (skip l_i, l_i+1)
         # 1.1 state eq wrt x_i
-        add_nonzero_block!(J, c_offset+1, c_offset+docp.dim_OCP_x, xi_start, xi_end)
+        add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, xi_start, xi_end)
         # 1.2 state eq wrt u_i, x_i+1 (skip l_i)
-        add_nonzero_block!(J, c_offset+1, c_offset+docp.dim_OCP_x, ui_start, xip1_end)
+        add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, ui_start, xip1_end)
         # 1.3 state eq wrt u_i+1 (skip l_i+1)
-        add_nonzero_block!(J, c_offset+1, c_offset+docp.dim_OCP_x, uip1_start, uip1_end)
+        add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, uip1_start, uip1_end)
         # 1.4 lagrange part wrt x_i, l_i, u_i, x_i+1, l_i+1, u_i+1
         if docp.is_lagrange
-            add_nonzero_block!(J, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, var_offset+1, var_offset+var_block)
+            add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, var_offset+1, var_offset+var_block)
         end
 
         # 1.5 path constraint wrt x_i, u_i (skip l_i)
-        add_nonzero_block!(J, c_offset+docp.dim_NLP_x+1, c_offset+c_block, xi_start, xi_end)
-        add_nonzero_block!(J, c_offset+docp.dim_NLP_x+1, c_offset+c_block, ui_start, ui_end)
+        add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+c_block, xi_start, xi_end)
+        add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+c_block, ui_start, ui_end)
 
         # 1.6 whole block wrt v
-        add_nonzero_block!(J, c_offset+1, c_offset+c_block, v_start, v_end)
+        add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
     end
 
     # 2. final path constraints (xf, uf, v)
@@ -239,25 +244,28 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
     xf_end = var_offset + docp.dim_OCP_x
     uf_start = var_offset + docp.dim_NLP_x + 1
     uf_end = var_offset + docp.dim_NLP_x + docp.dim_NLP_u
-    add_nonzero_block!(J, c_offset+1, c_offset+c_block, xf_start, xf_end)
-    add_nonzero_block!(J, c_offset+1,c_offset+c_block, uf_start, uf_end)
-    add_nonzero_block!(J, c_offset+1, c_offset+c_block, v_start, v_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
+    add_nonzero_block!(Is, Js, c_offset+1,c_offset+c_block, uf_start, uf_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
 
     # 3. boundary constraints (x0, xf, v)
     c_offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
     c_block = docp.dim_boundary_cons + docp.dim_v_cons
     x0_start = 1
     x0_end = docp.dim_OCP_x
-    add_nonzero_block!(J, c_offset+1, c_offset+c_block, x0_start, x0_end)
-    add_nonzero_block!(J, c_offset+1, c_offset+c_block, xf_start, xf_end)
-    add_nonzero_block!(J, c_offset+1, c_offset+c_block, v_start, v_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, x0_start, x0_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
     # 3.4 null initial condition for lagrangian cost state l0
     if docp.is_lagrange
-        add_nonzero_block!(J, docp.dim_NLP_constraints, docp.dim_NLP_x)
+        add_nonzero_block!(Is, Js, docp.dim_NLP_constraints, docp.dim_NLP_x)
     end
 
     # build and return sparse matrix
-    return sparse(J)
+    #return sparse(J)
+    nnzj = length(Is)
+    Vs = ones(Bool, nnzj)
+    return sparse(Is, Js, Vs)
 end
 
 
@@ -269,8 +277,10 @@ Build sparsity pattern for Hessian of Lagrangian
 function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
 
     # NB. need to provide full pattern for coloring, not just upper/lower part
-    H = zeros(Bool, docp.dim_NLP_variables, docp.dim_NLP_variables)
-   
+    #H = zeros(Bool, docp.dim_NLP_variables, docp.dim_NLP_variables)
+    Is = Vector{Int}(undef, 0)
+    Js = Vector{Int}(undef, 0)
+
     # index alias for v
     v_start = docp.dim_NLP_variables - docp.dim_NLP_v + 1
     v_end = docp.dim_NLP_variables
@@ -281,12 +291,12 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
     # 0.2 lagrange case (lf)
     if docp.is_lagrange
         lf_index = docp.dim_NLP_steps * docp.discretization._step_variables_block + docp.dim_NLP_x
-        add_nonzero_block!(H, lf_index, lf_index)
+        add_nonzero_block!(Is, Js, lf_index, lf_index)
     end
    
     # 1. main loop over steps
     # 1.0 v / v term
-    add_nonzero_block!(H, v_start, v_end, v_start, v_end)
+    add_nonzero_block!(Is, Js, v_start, v_end, v_start, v_end)
 
     for i = 1:docp.dim_NLP_steps
 
@@ -298,14 +308,14 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
         # -> included in 1.2
         # 1.2 lagrange part wrt x_i, l_i, u_i, x_i+1, l_i+1, u_i+1
         # -> single block for all step variables
-        add_nonzero_block!(H, var_offset+1, var_offset+var_block, var_offset+1, var_offset+var_block)
+        add_nonzero_block!(Is, Js, var_offset+1, var_offset+var_block, var_offset+1, var_offset+var_block)
 
         # 1.3 path constraint wrt x_i, u_i
         # -> included in 1.2
 
         # 1.4 whole block wrt v (NB. term v / v added before the loop)
-        add_nonzero_block!(H, v_start, v_end, var_offset+1, var_offset+var_block)
-        add_nonzero_block!(H, var_offset+1, var_offset+var_block, v_start, v_end)
+        add_nonzero_block!(Is, Js, v_start, v_end, var_offset+1, var_offset+var_block)
+        add_nonzero_block!(Is, Js, var_offset+1, var_offset+var_block, v_start, v_end)
     end
 
     # 2. final path constraints (xf, uf, v)
@@ -319,18 +329,21 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
         x0_end = docp.dim_OCP_x
         xf_start = var_offset + 1
         xf_end = var_offset + docp.dim_OCP_x
-        add_nonzero_block!(H, x0_start, x0_end, xf_start, xf_end)
-        add_nonzero_block!(H, xf_start, xf_end, x0_start, x0_end)
-        add_nonzero_block!(H, v_start, v_end, x0_start, x0_end)
-        add_nonzero_block!(H, v_start, v_end, xf_start, xf_end)
+        add_nonzero_block!(Is, Js, x0_start, x0_end, xf_start, xf_end)
+        add_nonzero_block!(Is, Js, xf_start, xf_end, x0_start, x0_end)
+        add_nonzero_block!(Is, Js, v_start, v_end, x0_start, x0_end)
+        add_nonzero_block!(Is, Js, v_start, v_end, xf_start, xf_end)
     end
     # 3.1 null initial condition for lagrangian cost state l0
     if docp.is_lagrange
-        add_nonzero_block!(H, docp.dim_NLP_x, docp.dim_NLP_x)
+        add_nonzero_block!(Is, Js, docp.dim_NLP_x, docp.dim_NLP_x)
     end
 
-    # replace H with sparse matrix
-    return sparse(H)
+    # build and return sparse matrix
+    #return sparse(H)
+    nnzj = length(Is)
+    Vs = ones(Bool, nnzj)
+    return sparse(Is, Js, Vs)
 
 end
 
@@ -338,8 +351,9 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Add block of nonzeros elements (Boolean matrix version)
-More compact specific method for single element case
+Add block of nonzeros elements to a sparsity pattern 
+Format: boolean matrix (M) or index vectors (Is, Js) 
+Includes a more compact method for single element case
 """
 function add_nonzero_block!(M, i_start, i_end, j_start, j_end)
     M[i_start:i_end, j_start:j_end] .= true
@@ -347,5 +361,20 @@ function add_nonzero_block!(M, i_start, i_end, j_start, j_end)
 end
 function add_nonzero_block!(M, i, j)
     M[i,j] = true
+    return
+end
+function add_nonzero_block!(Is, Js, i_start, i_end, j_start, j_end)
+    for i=i_start:i_end
+        for j=j_start:j_end
+            # NB. does order matter here ?
+            push!(Is, i)
+            push!(Js, j)
+        end
+    end
+    return
+end
+function add_nonzero_block!(Is, Js, i, j)
+    push!(Is, i)
+    push!(Js, j)
     return
 end
