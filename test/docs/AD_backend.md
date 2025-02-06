@@ -6,20 +6,6 @@ The backend for ADNLPModels can be set in transcription / solve calls with the o
 - `:enzyme`* Enzyme (not working).
 - `:zygote`* Zygote (not working).
 
-## Errors for Enzyme and Zygote:
-- enzyme gives correct nonzero counts for Jacobian and Hessian, but fails with
-```
-ERROR: Constant memory is stored (or returned) to a differentiable variable.
-As a result, Enzyme cannot provably ensure correctness and throws this error.
-This might be due to the use of a constant variable as temporary storage for active memory (https://enzyme.mit.edu/julia/stable/faq/#Runtime-Activity).
-If Enzyme should be able to prove this use non-differentable, open an issue!
-To work around this issue, either:
- a) rewrite this variable to not be conditionally active (fastest, but requires a code change), or
- b) set the Enzyme mode to turn on runtime activity (e.g. autodiff(set_runtime_activity(Reverse), ...) ). This will maintain correctness, but may slightly reduce performance.```
- Error apparently occurs when calling the boundary conditions.
- ```
-- zygote gives incorrect (huge) nonzero counts then also fails with an error message. 
-
 ## Tests:
 ```
 julia> include("test/benchmark.jl")
@@ -30,8 +16,9 @@ Problem list: ["beam", "double_integrator_mintf", "double_integrator_minenergy",
 ```
 
 Takeaways:
-- the `:optimized` backend (with reverse mode for Hessian) is much better than full forward mode.
-- manual sparse pattern seems to give even better performance for larger problems. This is likely due to the increasing cost of computing the Hessian sparsity in terms of allocations and time. This observation is consistent with the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian.
+- `:enzyme` and `:zygote` currently fail (see notes below)
+- the `:optimized` backend (with reverse mode for Hessian) is much faster than full forward mode, but does not scale greatly. This is likely due to the increasing cost of computing the Hessian sparsity in terms of allocations and time.
+- manual sparse pattern seems to give better performance for larger problems. See also the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian.
 
 ![benchmark](AD_backend.png)
 
@@ -99,3 +86,18 @@ Standard benchmark for Gauss Legendre 2:
 - reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?
 eg for dynamics and path constraints
 - try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
+- investigate enzyme / zygote
+
+## Errors for Enzyme and Zygote:
+- enzyme gives correct nonzero counts for Jacobian and Hessian, but fails with
+```
+ERROR: Constant memory is stored (or returned) to a differentiable variable.
+As a result, Enzyme cannot provably ensure correctness and throws this error.
+This might be due to the use of a constant variable as temporary storage for active memory (https://enzyme.mit.edu/julia/stable/faq/#Runtime-Activity).
+If Enzyme should be able to prove this use non-differentable, open an issue!
+To work around this issue, either:
+ a) rewrite this variable to not be conditionally active (fastest, but requires a code change), or
+ b) set the Enzyme mode to turn on runtime activity (e.g. autodiff(set_runtime_activity(Reverse), ...) ). This will maintain correctness, but may slightly reduce performance.```
+ Error apparently occurs when calling the boundary conditions.
+ ```
+- zygote gives incorrect (huge) nonzero counts then also fails with an error message. 
