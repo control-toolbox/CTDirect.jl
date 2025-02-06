@@ -15,7 +15,6 @@ Problem list: ["beam", "double_integrator_mintf", "double_integrator_minenergy",
 ```
 
 Takeaways:
-- `:enzyme` and `:zygote` currently fail (see notes below)
 - the `:optimized` backend (with forward over reverse mode for Hessian) is much faster than full forward mode, but does not scale greatly. This is likely due to the increasing cost of computing the Hessian sparsity with SparseConnectivityTracer.jl in terms of allocations and time.
 - manual sparse pattern seems to give better performance for larger problems. See also the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian. The sparsity pattern detection in JuMP relies on the expression tree of the objective and constraints built from its DSL.
 
@@ -94,7 +93,7 @@ ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 - check the relevance of computing the nnz beforehand and allocate the full index vectors directly instead of using push!
 - reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?
 eg for dynamics and path constraints
-- try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
+- try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small). cf new option `excluded_backend=[:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend]`
 
 ## Errors for Enzyme:
 - enzyme gives correct nonzero counts for Jacobian and Hessian, but fails with
