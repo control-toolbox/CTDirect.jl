@@ -1,10 +1,9 @@
 # Benchmark for different AD backends
 The backend for ADNLPModels can be set in transcription / solve calls with the option `adnlp_backend=`. Possible values include the predefined(*) backends for ADNLPModels:
-- `:optimized`* Default for CTDirect. Forward mode for Jacobian, reverse for Gradient and Hessian.
+- `:optimized`* Default for CTDirect. Forward mode for Jacobian, reverse for Gradient and forward over reverse for Hessian.
 - `:default`* Forward mode for everything. Significantly slower.
 - `:manual` Explicitely give to ADNLPModels the sparse pattern for Jacobian and Hessian. Uses the same forward / reverse settings as the `:optimized` predefined backend.  
-- `:enzyme`* Enzyme (not working).
-- `:zygote`* Zygote (not working).
+- `:enzyme`* Enzyme (currently not working).
 
 ## Tests:
 ```
@@ -17,8 +16,8 @@ Problem list: ["beam", "double_integrator_mintf", "double_integrator_minenergy",
 
 Takeaways:
 - `:enzyme` and `:zygote` currently fail (see notes below)
-- the `:optimized` backend (with reverse mode for Hessian) is much faster than full forward mode, but does not scale greatly. This is likely due to the increasing cost of computing the Hessian sparsity in terms of allocations and time.
-- manual sparse pattern seems to give better performance for larger problems. See also the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian.
+- the `:optimized` backend (with forward over reverse mode for Hessian) is much faster than full forward mode, but does not scale greatly. This is likely due to the increasing cost of computing the Hessian sparsity with SparseConnectivityTracer.jl in terms of allocations and time.
+- manual sparse pattern seems to give better performance for larger problems. See also the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian. The sparsity pattern detection in JuMP relies on the expression tree of the objective and constraints built from its DSL.
 
 ![benchmark](AD_backend.png)
 
@@ -68,6 +67,16 @@ ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 
 *** building the hessian is one third of the total solve time...
 
+Standard benchmark for Midpoint:
+| Midpoint| optimized | manual |
+|---------|-----------|--------|
+| 250     | 1.5       | 2.2    |
+| 500     | 3.9       | 4.7    |
+| 1000    | 11.1      | 11.2   |
+| 2500    | 50.5      | 32.7   |
+| 5000    | 160.3     | 87.0   |
+| 7500    | 333.2     | 140.9  |
+
 Standard benchmark for Gauss Legendre 2:
 | GL2     | optimized | manual |
 |---------|-----------|--------|
@@ -81,14 +90,13 @@ Standard benchmark for Gauss Legendre 2:
 - it is better to build the sparse matrices from the index vectors format rather than a dense boolean matrix. For larger problems it may not be possible to even allocate the boolean matrix (eg. algal bacterial with GL2 at 5000 steps).
 
 ## Todo:
-- manual pattern structure for midpoint
 - check the relevance of computing the nnz beforehand and allocate the full index vectors directly instead of using push!
 - reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?
 eg for dynamics and path constraints
 - try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
-- investigate enzyme / zygote
+- investigate enzyme
 
-## Errors for Enzyme and Zygote:
+## Errors for Enzyme:
 - enzyme gives correct nonzero counts for Jacobian and Hessian, but fails with
 ```
 ERROR: Constant memory is stored (or returned) to a differentiable variable.
@@ -100,4 +108,3 @@ To work around this issue, either:
  b) set the Enzyme mode to turn on runtime activity (e.g. autodiff(set_runtime_activity(Reverse), ...) ). This will maintain correctness, but may slightly reduce performance.```
  Error apparently occurs when calling the boundary conditions.
  ```
-- zygote gives incorrect (huge) nonzero counts then also fails with an error message. 

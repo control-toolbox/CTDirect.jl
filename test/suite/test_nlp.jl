@@ -19,7 +19,8 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = direct_solve(prob.ocp, display = false, adnlp_backend = :manual)
     @test sol.objective ≈ prob.obj rtol = 1e-2
-    # +++ midpoint / manual
+    sol = direct_solve(prob.ocp, display = false, disc_method=:midpoint, adnlp_backend = :manual)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
     sol = direct_solve(prob.ocp, display = false, disc_method=:gauss_legendre_2, adnlp_backend = :manual)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
