@@ -210,22 +210,23 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
         uip1_start = var_offset + docp.dim_NLP_x*2 + docp.dim_NLP_u + 1
         uip1_end = var_offset + docp.dim_NLP_x*2 + docp.dim_NLP_u*2
 
-        # state eq 0 = xip1 - (xi + hi/2 (fi + fip1))
-        # wrt x_i, u_i, x_i+1, u_i+1 (skip l_i, l_i+1)
+        # 1.1 state eq 0 = x_i+1 - (x_i + h_i/2 (fi + fip1))
+        # depends on x_i, u_i, x_i+1, u_i+1 (skip l_i, l_i+1)
+        # and v for h_i and fi fip1
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, ui_start, xip1_end)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, uip1_start, uip1_end)
-        # 1.4 lagrange part 0 = lip1 - (li + hi/2 (lcosti + lcostip1))
+        # 1.2 lagrange part 0 = lip1 - (li + hi/2 (lcosti + lcostip1))
         # wrt x_i, l_i, u_i, x_i+1, l_i+1, u_i+1
         if docp.is_lagrange
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, var_offset+1, var_offset+var_block)
         end
 
-        # 1.5 path constraint wrt x_i, u_i (skip l_i)
+        # 1.3 path constraint wrt x_i, u_i (skip l_i)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+c_block, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+c_block, ui_start, ui_end)
 
-        # 1.6 whole block wrt v
+        # 1.6 whole block wrt v (+++ resplit for clarity)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
     end
 
@@ -257,7 +258,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
     # build and return sparse matrix
     nnzj = length(Is)
     Vs = ones(Bool, nnzj)
-    return sparse(Is, Js, Vs)
+    return sparse(Is, Js, Vs, docp.dim_NLP_constraints, docp.dim_NLP_variables)
 end
 
 
@@ -328,7 +329,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
     # build and return sparse matrix
     nnzj = length(Is)
     Vs = ones(Bool, nnzj)
-    return sparse(Is, Js, Vs)
+    return sparse(Is, Js, Vs, docp.dim_NLP_variables, docp.dim_NLP_variables)
 
 end
 

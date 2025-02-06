@@ -33,7 +33,9 @@ Takeaways:
 - the `:optimized` backend (with reverse mode for Hessian) is much better than full forward mode.
 - manual sparse pattern seems to give even better performance for larger problems. This is likely due to the increasing cost of computing the Hessian sparsity in terms of allocations and time. This observation is consistent with the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian.
 
-Standard benchmark:
+![benchmark](AD_backend.png)
+
+Standard benchmark for Trapeze:
 | Trapeze | default | optimized | manual* | manual** |
 |---------|---------|-----------|---------|----------|
 | 250     | 49.7    | 0.9       | 1.5     | 1.4      |
@@ -44,7 +46,7 @@ Standard benchmark:
 | 7500    |         | 225.4     | 85.9    | 66.3     |
 | 10000   |         | 526.3     | 102.4   | 90.4     |
 
-* build sparse matrices from dense boolean matrices
+* (older version) build sparse matrices from dense boolean matrices
 ** build sparse matrices from (i,j,v) vectors
 
 Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
@@ -79,26 +81,21 @@ ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 
 *** building the hessian is one third of the total solve time...
 
-Standard benchmark:
+Standard benchmark for Gauss Legendre 2:
 | GL2     | optimized | manual |
-|---------|----------|--------|
-| 250     |        |       |
-| 500     |        |       |
-| 1000    |        |       |
-| 2500    |       |      |
-| 5000    |       |     |
-
+|---------|-----------|--------|
+| 250     | 3.9       | 5.0    |
+| 500     | 10.5      | 12.9   |
+| 1000    | 121.2     | 26.1   |
+| 2500    | 136.6     | 77.2   |
+| 5000    | 551.9     | 172.2  |
 
 ## Remarks:
 - it is better to build the sparse matrices from the index vectors format rather than a dense boolean matrix. For larger problems it may not be possible to even allocate the boolean matrix (eg. algal bacterial with GL2 at 5000 steps).
 
 ## Todo:
-- vector format for IRK
-- improve Hessian for IRK (reduce excess nonzeros with finer block granularity)
-- redo tests on algal_bacterial problem, including Jump
-- check the relevance of computing the nnz beforehand and allocate the full index vectors directly instead of using push!
 - manual pattern structure for midpoint
-- try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
+- check the relevance of computing the nnz beforehand and allocate the full index vectors directly instead of using push!
 - reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?
 eg for dynamics and path constraints
-
+- try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)

@@ -6,7 +6,7 @@ Internal layout for NLP variables:
  X_N-1, U_N-1, K_N-1^1..K_N-1^s,
  X_N, U_N, V]
 with s the stage number and U piecewise constant equal to U_i in [t_i, t_i+1]
-or, for methods with s>1, piecewise linear if option constant_control set to false
+or, for methods with s>1, piecewise linear if option control_type set to :linear
 NB. U_N may be removed at some point if we disable piecewise linear control
 Path constraints are all evaluated at time steps, including final time.
 =#
@@ -58,9 +58,9 @@ struct Gauss_Legendre_2 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
-    _constant_control::Bool
+    _control_type::Symbol
 
-    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, constant_control)
+    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)
         
         stage = 2
 
@@ -71,7 +71,7 @@ struct Gauss_Legendre_2 <: GenericIRK
         [0.5, 0.5],
         [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
         step_variables_block, state_stage_eqs_block, step_pathcons_block,
-        constant_control
+        control_type
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -94,9 +94,9 @@ struct Gauss_Legendre_3 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
-    _constant_control::Bool
+    _control_type::Symbol
 
-    function Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, constant_control)
+    function Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)
         
         stage = 3
 
@@ -108,7 +108,7 @@ struct Gauss_Legendre_3 <: GenericIRK
         (5/36 + sqrt(15) / 30) (2/9 + sqrt(15) / 15) (5.0/36.0)],
         [5.0/18.0, 4.0/9.0, 5.0/18.0],
         [0.5 - 0.1*sqrt(15), 0.5, 0.5 + 0.1*sqrt(15)],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block, constant_control
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, control_type
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -184,7 +184,7 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{ <: GenericIRK, <: ScalVect
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, ScalVariable, <: ScalVect}, i, cj)
-    if (docp.discretization.stage == 1) || (docp.discretization._constant_control)
+    if (docp.discretization.stage == 1) || (docp.discretization._control_type == :constant)
         # constant interpolation on step
         return get_OCP_control_at_time_step(xu, docp, i)
     else
@@ -195,7 +195,7 @@ function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVec
     end
 end
 function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, VectVariable, <: ScalVect}, i, cj)
-    if (docp.discretization.stage == 1) || (docp.discretization._constant_control)
+    if (docp.discretization.stage == 1) || (docp.discretization._control_type == :constant)
         # constant interpolation on step
         return get_OCP_control_at_time_step(xu, docp, i)
     else
@@ -352,11 +352,9 @@ Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
 
-    if !docp.discretization._constant_control
+    if docp.discretization._control_type != :constant
         error("Manual Jacobian sparsity pattern not supported for IRK scheme with piecewise linear control")
     end
-
-    BUG, recheck indices...
 
     # vector format for sparse matrix
     Is = Vector{Int}(undef, 0)
@@ -371,27 +369,25 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
     # 1. main loop over steps
     for i = 1:docp.dim_NLP_steps
 
-        # constraints block and offset: state equation, path constraints
         c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
         c_offset = (i-1)*c_block
 
         # variables block and offset: x_i (l_i) u_i k_i x_i+1 (l_i+1)
-        var_block = docp.discretization._step_variables_block + docp.dim_NLP_x
         var_offset = (i-1)*docp.discretization._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + docp.dim_OCP_x
         ui_start = var_offset + docp.dim_NLP_x + 1
         ui_end = var_offset + docp.dim_NLP_x + docp.dim_NLP_u
         ki_start = var_offset + docp.dim_NLP_x + docp.dim_NLP_u + 1
-        ki_end = var_offset + (s+1)*docp.dim_NLP_x + docp.dim_NLP_u
+        ki_end = var_offset + docp.discretization._step_variables_block
         xip1_end = var_offset + docp.discretization._step_variables_block + docp.dim_OCP_x
         li = var_offset + docp.dim_NLP_x
-        lip1 = var_offset + var_block
+        lip1 = var_offset + docp.discretization._step_variables_block + docp.dim_NLP_x
 
-        # 1.1 state eq x_i+1 = x_i + h_i sum bj k_ij
-        # depends on x_i, k_ij, x_i+1, and v (h_i in variable times case !)
+        # 1.1 state eq 0 = x_i+1 - (x_i + h_i sum bj k_ij)
+        # depends on x_i, k_ij, x_i+1, and v for h_i in variable times case !
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, xi_start, xi_end)
-        # (skip l_i, u_i) should skip k_i[n+1] also...
+        # skip l_i, u_i (should skip k_i[n+1] also but annoying...)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, ki_start, xip1_end)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, v_start, v_end)
         # 1.2 lagrange part l_i+1 = l_i + h_i (sum bj k_ij)[n+1]
@@ -403,13 +399,13 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
                 add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, kij_l)
             end
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, v_start, v_end)
-        end    
+        end
 
-        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_ij, v)
+        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_ij, v) [and lagrange cost]
         # with x_ij depending on x_i and all k_ij and  u_ij == u_i
         # ie this part depends on x_i, u_i, k_i (skip l_i) and v
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, xi_start, xi_end)
-        add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, ui_start, ki_end)
+        add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, ui_start, ki_end)      
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, v_start, v_end)
 
         # 1.4 path constraint g(t_i, x_i, u_i, v) (skip l_i)
@@ -419,7 +415,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
     end
 
     # 2. final path constraints (xf, uf, v)
-    c_offset = docp.dim_NLP_steps*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
+    c_offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
     c_block = docp.discretization._step_pathcons_block
     var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
     xf_start = var_offset + 1
@@ -446,7 +442,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
     # build and return sparse matrix
     nnzj = length(Is)
     Vs = ones(Bool, nnzj)
-    return sparse(Is, Js, Vs)
+    return sparse(Is, Js, Vs, docp.dim_NLP_constraints, docp.dim_NLP_variables)
 end
 
 
@@ -457,7 +453,7 @@ Build sparsity pattern for Hessian of Lagrangian
 """
 function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
 
-    if !docp.discretization._constant_control
+    if docp.discretization._control_type != :constant
         error("Manual Hessian sparsity pattern not supported for IRK scheme with piecewise linear control")
     end
 
@@ -535,6 +531,6 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
     # build and return sparse matrix
     nnzj = length(Is)
     Vs = ones(Bool, nnzj)
-    return sparse(Is, Js, Vs)
+    return sparse(Is, Js, Vs, docp.dim_NLP_variables, docp.dim_NLP_variables)
 
 end
