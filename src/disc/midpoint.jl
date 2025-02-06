@@ -309,15 +309,13 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
 
     for i = 1:docp.dim_NLP_steps
 
-        # variables block and offset: x_i (l_i) u_i k_i x_i+1 (l_i+1)
+        # contiguous variables blocks will be used when possible
+        # x_i (l_i) u_i k_i x_i+1 (l_i+1)
         var_offset = (i-1)*docp.discretization._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + docp.dim_OCP_x
         xip1_end = var_offset + docp.discretization._step_variables_block + docp.dim_NLP_x
         ui_start = var_offset + docp.dim_NLP_x + 1
-        #ui_end = var_offset + docp.dim_NLP_x + docp.dim_NLP_u
-        #ki_start = var_offset + docp.dim_NLP_x + docp.dim_NLP_u + 1
-        #ki_end = var_offset + 2*docp.dim_NLP_x + docp.dim_NLP_u
 
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i * k_i)
         # -> 2nd order terms are zero
@@ -326,7 +324,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
 
         # 1.3 stage equations 0 = k_i - f(t_s, x_s, u_i, v)
         # with t_s = (t_i + t_i+1)/2    x_s = (x_i + x_i+1)/2
-        # skip l_i    
+        # depends on x_i, u_i, k_i, x_i+1, and v; skip l_i    
         add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
         add_nonzero_block!(Is, Js, ui_start, xip1_end, ui_start, xip1_end)
         add_nonzero_block!(Is, Js, xi_start, xi_end, ui_start, xip1_end; sym=true)
@@ -337,24 +335,17 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
         # -> included in 1.3
     end
 
-    # 2. final path constraints (xf, uf, v) (assume present)
-    var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
-    xf_start = var_offset + 1
-    xf_end = var_offset + docp.dim_OCP_x
-    # NB U_N may be removed at some point if we use only piecewise constant control
-    uf_start = var_offset-docp.discretization._step_variables_block + docp.dim_NLP_x + 1
-    uf_end = var_offset-docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u
-    add_nonzero_block!(Is, Js, xf_start, xf_end, xf_start, xf_end)
-    add_nonzero_block!(Is, Js, uf_start, uf_end, uf_start, uf_end)
-    add_nonzero_block!(Is, Js, xf_start, xf_end, uf_start, uf_end; sym=true) 
-    add_nonzero_block!(Is, Js, xf_start, xf_end, v_start, v_end; sym=true)
-    add_nonzero_block!(Is, Js, uf_start, uf_end, v_start, v_end; sym=true)
+    # 2. final path constraints (xf, uf, v)
+    # -> included in last loop iteration (with x_i+1 as x_j and u_i as u_f)
 
     # 3. boundary constraints (x0, xf, v) or mayer cost g0(x0, xf, v) (assume present)
     # -> x0 / x0, x0 / v terms included in first loop iteration
-    # -> xf / xf, xf / v terms included in 2.
+    # -> xf / xf, xf / v terms included in last loop iteration (with x_i+1 as x_f)
     x0_start = 1
     x0_end = docp.dim_OCP_x
+    var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
+    xf_start = var_offset + 1
+    xf_end = var_offset + docp.dim_OCP_x
     add_nonzero_block!(Is, Js, x0_start, x0_end, xf_start, xf_end; sym=true)
 
     # 3.1 null initial condition for lagrangian cost state l0

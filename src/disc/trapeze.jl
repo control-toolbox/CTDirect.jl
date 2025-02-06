@@ -288,30 +288,29 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
 
     for i = 1:docp.dim_NLP_steps
 
-        # variables block and offset: x_i (l_i) u_i x_i+1 (l_i+1) u_i+1
+        # contiguous variables blocks will be used when possible
+        # x_i (l_i) u_i x_i+1 (l_i+1) u_i+1
         var_block = docp.discretization._step_variables_block * 2
         var_offset = (i-1)*docp.discretization._step_variables_block
 
-        # 1.1 state eq 0 = xip1 - (xi + hi/2 (fi + fip1))
-        # wrt x_i, u_i, x_i+1, u_i+1 (skip l_i, l_i+1)
-        # -> included in 1.2
-        # 1.2 lagrange part 0 = lip1 - (li + hi/2 (lcosti + lcostip1))
-        # wrt x_i, l_i, u_i, x_i+1, l_i+1, u_i+1
-        # -> single block for all step variables
+        # 1.1 state eq 0 = x_i+1 - (x_i + h_i/2 (f(t_i,x_i,u_i,v) + f(t_i+1,x_i+1,u_i+1,v)))
+        # depends on x_i, u_i, x_i+1, u_i+1, and v -> included in 1.2
+        # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i/2 (l(t_i,x_i,u_i,v) + l(t_i+1,x_i+1,u_i+1,v)))
+        # depends on x_i, l_i, u_i, x_i+1, l_i+1, u_i+1, and v
+        # -> use single block for all step variables
         add_nonzero_block!(Is, Js, var_offset+1, var_offset+var_block, var_offset+1, var_offset+var_block)
+        add_nonzero_block!(Is, Js, var_offset+1, var_offset+var_block, v_start, v_end; sym=true)
 
-        # 1.3 path constraint wrt x_i, u_i
+        # 1.3 path constraint g(t_i, x_i, u_i, v)
         # -> included in 1.2
-
-        # 1.4 whole block wrt v (NB. term v / v added before the loop)
-        add_nonzero_block!(Is, Js, v_start, v_end, var_offset+1, var_offset+var_block; sym=true)
     end
 
     # 2. final path constraints (xf, uf, v)
     # -> included in last loop iteration
 
     # 3. boundary constraints (x0, xf, v)
-    # -> x0 / x0, x0 / v, xf / xf, xf / v terms included in first/last loop iterations
+    # -> (x0, v) terms included in first loop iteration
+    # -> (xf, v) terms included in last loop iteration
     if docp.is_mayer || docp.dim_boundary_cons > 0
         var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
         x0_start = 1
@@ -319,8 +318,6 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
         xf_start = var_offset + 1
         xf_end = var_offset + docp.dim_OCP_x
         add_nonzero_block!(Is, Js, x0_start, x0_end, xf_start, xf_end; sym=true)
-        add_nonzero_block!(Is, Js, v_start, v_end, x0_start, x0_end)
-        add_nonzero_block!(Is, Js, v_start, v_end, xf_start, xf_end)
     end
     # 3.1 null initial condition for lagrangian cost state l0
     # -> 2nd order term is zero

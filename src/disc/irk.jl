@@ -406,7 +406,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
 
         # 1.3 stage equations k_ij = f(t_ij, x_ij, u_ij, v) (with lagrange part)
         # with x_ij = x_i + sum_l a_il k_jl and assuming u_ij = u_i
-        # depends on x_i, u_i, k_ij, and v; skip l_i (could skip k_ij[n+1] too...)
+        # depends on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1] too...)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, ui_start, ki_end)      
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, v_start, v_end)
@@ -483,7 +483,8 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
 
     for i = 1:docp.dim_NLP_steps
 
-        # variables block and offset: x_i (l_i) u_i k_i x_i+1 (l_i+1)
+        # contiguous variables blocks will be used when possible
+        # x_i (l_i) u_i k_i x_i+1 (l_i+1)
         var_offset = (i-1)*docp.discretization._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + docp.dim_OCP_x
@@ -492,13 +493,14 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
         ki_start = var_offset + docp.dim_NLP_x + docp.dim_NLP_u + 1
         ki_end = var_offset + (s+1)*docp.dim_NLP_x + docp.dim_NLP_u
 
-        # 1.1 state eq 0 = x_i+1 - (x_i + h sum bj k_ij)
+        # 1.1 state eq 0 = x_i+1 - (x_i + h_i sum_j b_j k_ij)
         # -> 2nd order terms are zero
-        # 1.2 lagrange part l_i+1 = l_i + h (sum bj k_ij)[n+1]
+        # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i (sum_j b_j k_ij[n+1]))
         # -> 2nd order terms are zero
 
-        # 1.3 stage equations 0 = k_ij - f(t_ij, x_ij(x_i, k_i), u_ij, v)
-        # wrt x_i, u_i, k_i (skip l_i)
+        # 1.3 stage equations 0 = k_ij - f(t_ij, x_ij, u_ij, v) (with lagrange part)
+        # with x_ij = x_i + sum_l a_il k_jl and assuming u_ij = u_i
+        # depends on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1] too...)
         add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
         add_nonzero_block!(Is, Js, ui_start, ki_end, ui_start, ki_end)
         add_nonzero_block!(Is, Js, xi_start, xi_end, ui_start, ki_end; sym=true)
@@ -513,7 +515,6 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
     var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
     xf_start = var_offset + 1
     xf_end = var_offset + docp.dim_OCP_x
-    # NB U_N may be removed at some point if we use only piecewise constant control
     uf_start = var_offset + docp.dim_NLP_x + 1
     uf_end = var_offset + docp.dim_NLP_x + docp.dim_NLP_u
     add_nonzero_block!(Is, Js, xf_start, xf_end, xf_start, xf_end)

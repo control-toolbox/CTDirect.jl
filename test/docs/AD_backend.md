@@ -35,6 +35,25 @@ Standard benchmark for Trapeze:
 * (older version) build sparse matrices from dense boolean matrices
 ** build sparse matrices from (i,j,v) vectors
 
+Standard benchmark for Midpoint:
+| Midpoint| optimized | manual |
+|---------|-----------|--------|
+| 250     | 1.5       | 2.2    |
+| 500     | 3.9       | 4.7    |
+| 1000    | 11.1      | 11.2   |
+| 2500    | 50.5      | 32.7   |
+| 5000    | 160.3     | 87.0   |
+| 7500    | 333.2     | 140.9  |
+
+Standard benchmark for Gauss Legendre 2:
+| GL2     | optimized | manual |
+|---------|-----------|--------|
+| 250     | 3.9       | 5.0    |
+| 500     | 10.5      | 12.9   |
+| 1000    | 121.2     | 26.1   |
+| 2500    | 136.6     | 77.2   |
+| 5000    | 551.9     | 172.2  |
+
 Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
 | transcription | optimized | manual*/** | optimized | manual*/** |
 |---------------|-----------|------------|-----------|--------|
@@ -67,24 +86,6 @@ ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 
 *** building the hessian is one third of the total solve time...
 
-Standard benchmark for Midpoint:
-| Midpoint| optimized | manual |
-|---------|-----------|--------|
-| 250     | 1.5       | 2.2    |
-| 500     | 3.9       | 4.7    |
-| 1000    | 11.1      | 11.2   |
-| 2500    | 50.5      | 32.7   |
-| 5000    | 160.3     | 87.0   |
-| 7500    | 333.2     | 140.9  |
-
-Standard benchmark for Gauss Legendre 2:
-| GL2     | optimized | manual |
-|---------|-----------|--------|
-| 250     | 3.9       | 5.0    |
-| 500     | 10.5      | 12.9   |
-| 1000    | 121.2     | 26.1   |
-| 2500    | 136.6     | 77.2   |
-| 5000    | 551.9     | 172.2  |
 
 ## Remarks:
 - it is better to build the sparse matrices from the index vectors format rather than a dense boolean matrix. For larger problems it may not be possible to even allocate the boolean matrix (eg. algal bacterial with GL2 at 5000 steps).
@@ -94,7 +95,6 @@ Standard benchmark for Gauss Legendre 2:
 - reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?
 eg for dynamics and path constraints
 - try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small)
-- investigate enzyme
 
 ## Errors for Enzyme:
 - enzyme gives correct nonzero counts for Jacobian and Hessian, but fails with
