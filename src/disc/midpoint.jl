@@ -204,28 +204,30 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
     # 1. main loop over steps
     for i = 1:docp.dim_NLP_steps
 
+        # constraints block and offset: state equation, stage equation, path constraints
         c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
         c_offset = (i-1)*c_block
 
-        # variables block and offset: x_i (l_i) u_i k_i x_i+1 (l_i+1)
+        # contiguous variables blocks will be used when possible
+        # x_i (l_i) u_i k_i x_i+1 (l_i+1)
         var_offset = (i-1)*docp.discretization._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + docp.dim_OCP_x
         ui_start = var_offset + docp.dim_NLP_x + 1
         ui_end = var_offset + docp.dim_NLP_x + docp.dim_NLP_u
         ki_start = var_offset + docp.dim_NLP_x + docp.dim_NLP_u + 1
-        #ki_end = var_offset + docp.discretization._step_variables_block
         xip1_end = var_offset + docp.discretization._step_variables_block + docp.dim_OCP_x
         li = var_offset + docp.dim_NLP_x
         lip1 = var_offset + docp.discretization._step_variables_block + docp.dim_NLP_x
 
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i * k_i)
         # depends on x_i, k_i, x_i+1, and v for h_i in variable times case !
+        # skip l_i, u_i; should skip k_i[n+1] also but annoying...
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, xi_start, xi_end)
-        # skip l_i, u_i (should skip k_i[n+1] also but annoying...)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, ki_start, xip1_end)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, v_start, v_end)
         # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i * k_i[n+1])
+        # depends on l_i, k_i[n+1], l_i+1, and v for h_i in variable times case !
         if docp.is_lagrange
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, li)
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, lip1)
@@ -236,12 +238,13 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
 
         # 1.3 stage equation 0 = k_i - f(t_s, x_s, u_i, v)
         # with t_s = (t_i + t_i+1)/2    x_s = (x_i + x_i+1)/2
-        # skip l_i
+        # depends on x_i, u_i, x_i+1, k_i, and v; skip l_i
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+2*docp.dim_NLP_x, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+2*docp.dim_NLP_x, ui_start, xip1_end)      
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+2*docp.dim_NLP_x, v_start, v_end)
 
-        # 1.4 path constraint g(t_i, x_i, u_i, v) (skip l_i)
+        # 1.4 path constraint g(t_i, x_i, u_i, v)
+        # depends on x_i, u_i, v; skip l_i
         add_nonzero_block!(Is, Js, c_offset+2*docp.dim_NLP_x+1, c_offset+c_block, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+2*docp.dim_NLP_x+1, c_offset+c_block, ui_start, ui_end)
         add_nonzero_block!(Is, Js, c_offset+2*docp.dim_NLP_x+1, c_offset+c_block, v_start, v_end)

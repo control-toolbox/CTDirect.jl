@@ -369,10 +369,12 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
     # 1. main loop over steps
     for i = 1:docp.dim_NLP_steps
 
+        # constraints block and offset: state equation, stage equations, path constraints
         c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
         c_offset = (i-1)*c_block
 
-        # variables block and offset: x_i (l_i) u_i k_i x_i+1 (l_i+1)
+        # contiguous variables blocks will be used when possible
+        # x_i (l_i) u_i k_i x_i+1 (l_i+1)
         var_offset = (i-1)*docp.discretization._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + docp.dim_OCP_x
@@ -384,13 +386,14 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
         li = var_offset + docp.dim_NLP_x
         lip1 = var_offset + docp.discretization._step_variables_block + docp.dim_NLP_x
 
-        # 1.1 state eq 0 = x_i+1 - (x_i + h_i sum bj k_ij)
+        # 1.1 state eq 0 = x_i+1 - (x_i + h_i sum_j b_j k_ij)
         # depends on x_i, k_ij, x_i+1, and v for h_i in variable times case !
+        # skip l_i, u_i; should skip k_i[n+1] also but annoying...
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, xi_start, xi_end)
-        # skip l_i, u_i (should skip k_i[n+1] also but annoying...)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, ki_start, xip1_end)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, v_start, v_end)
-        # 1.2 lagrange part l_i+1 = l_i + h_i (sum bj k_ij)[n+1]
+        # 1.2 lagrange part l_i+1 = l_i + h_i (sum_j b_j k_ij)[n+1]
+        # depends on l_i, k_ij[n+1], l_i+1, and v for h_i in variable times case !
         if docp.is_lagrange
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, li)
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, lip1)
@@ -401,14 +404,15 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, v_start, v_end)
         end
 
-        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_ij, v) [and lagrange cost]
-        # with x_ij depending on x_i and all k_ij and  u_ij == u_i
-        # ie this part depends on x_i, u_i, k_i (skip l_i) and v
+        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_ij, v) (with lagrange part)
+        # with x_ij = x_i + sum_l a_il k_jl and assuming u_ij = u_i
+        # depends on x_i, u_i, k_ij, and v; skip l_i (could skip k_ij[n+1] too...)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, ui_start, ki_end)      
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, v_start, v_end)
 
-        # 1.4 path constraint g(t_i, x_i, u_i, v) (skip l_i)
+        # 1.4 path constraint g(t_i, x_i, u_i, v)
+        # depends on x_i, u_i, v; skip l_i
         add_nonzero_block!(Is, Js, c_offset+(s+1)*docp.dim_NLP_x+1, c_offset+c_block, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+(s+1)*docp.dim_NLP_x+1, c_offset+c_block, ui_start, ui_end)
         add_nonzero_block!(Is, Js, c_offset+(s+1)*docp.dim_NLP_x+1, c_offset+c_block, v_start, v_end)

@@ -183,8 +183,6 @@ Build sparsity pattern for Jacobian of constraints
 function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
     # vector format for sparse matrix
-    # +++ better to compute nnzj beforehand and allocate the 3 vectors (no push then) ?
-    # pass to addnnz the current offset too
     Is = Vector{Int}(undef, 0)
     Js = Vector{Int}(undef, 0)
 
@@ -199,7 +197,8 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
         c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
         c_offset = (i-1)*c_block
 
-        # variables block and offset: x_i (l_i) u_i x_i+1 (l_i+1) u_i+1
+        # contiguous variables blocks will be used when possible 
+        # x_i (l_i) u_i x_i+1 (l_i+1) u_i+1
         var_block = docp.discretization._step_variables_block * 2
         var_offset = (i-1)*docp.discretization._step_variables_block
         xi_start = var_offset + 1
@@ -210,23 +209,23 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
         uip1_start = var_offset + docp.dim_NLP_x*2 + docp.dim_NLP_u + 1
         uip1_end = var_offset + docp.dim_NLP_x*2 + docp.dim_NLP_u*2
 
-        # 1.1 state eq 0 = x_i+1 - (x_i + h_i/2 (fi + fip1))
-        # depends on x_i, u_i, x_i+1, u_i+1 (skip l_i, l_i+1)
-        # and v for h_i and fi fip1
+        # 1.1 state eq 0 = x_i+1 - (x_i + h_i/2 (f(t_i,x_i,u_i,v) + f(t_i+1,x_i+1,u_i+1,v)))
+        # depends on x_i, u_i, x_i+1, u_i+1; skip l_i, l_i+1; v cf 1.4
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, ui_start, xip1_end)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, uip1_start, uip1_end)
-        # 1.2 lagrange part 0 = lip1 - (li + hi/2 (lcosti + lcostip1))
-        # wrt x_i, l_i, u_i, x_i+1, l_i+1, u_i+1
+        # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i/2 (l(t_i,x_i,u_i,v) + l(t_i+1,x_i+1,u_i+1,v)))
+        # depends on x_i, l_i, u_i, x_i+1, l_i+1, u_i+1 ie whole variable block; v cf 1.4
         if docp.is_lagrange
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, var_offset+1, var_offset+var_block)
         end
 
-        # 1.3 path constraint wrt x_i, u_i (skip l_i)
+        # 1.3 path constraint g(t_i, x_i, u_i, v) 
+        # depends on x_i, u_i; skip l_i; v cf 1.4
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+c_block, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+c_block, ui_start, ui_end)
 
-        # 1.6 whole block wrt v (+++ resplit for clarity)
+        # 1.4 whole constraint block depends on v
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
     end
 
