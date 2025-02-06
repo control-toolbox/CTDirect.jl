@@ -1,7 +1,7 @@
 # Jump / CTDirect comparison - algal bacterial problem
 
-Note that the problem is redefined for each method: jump, ctdirect and ctdirect new model.
-Also, the Gauss Legendre 2 implementations for Jump and CTDirect here use a piecewise constant control.
+Note that the problem is redefined for each method, jump and ctdirect.
+Also, the Gauss Legendre 2 implementations use a piecewise constant control.
 
 ## Takeaways
 - CTDirect still allocates at least x10 more memory, worsening for higher problem sizes
@@ -15,32 +15,37 @@ Maybe a less sparse but faster and less memory intensive method is used ?
 ## Todo
 - check on ipopt last iteration that tol is also 1e-8 for Jump
 - test CTDirect with manual sparsity patterns
-- find more details on the Hessian in Jump
 - investigate how jump finds a cleaner solution for trapeze discretization (print settings ?)
-- can we have linear memory wrt steps for Jump / Trapeze ?
 
 ## Results: Jump vs CTDirect
 See `test/jump_comparison.jl`
-Ipopt details: `Ipopt version 3.14.17, running with linear solver MUMPS 5.7.3`
+Ipopt details: `This is Ipopt version 3.14.14, running with linear solver MUMPS 5.6.2.`
 Settings: tol=1e-8, mu_strategy=adaptive
-
-+++redo
 ```
-Jump trapeze 1000:  17.029 s (7920527 allocations: 351.87 MiB)
-Jump trapeze 2000:  56.928 s (23055273 allocations: 891.64 MiB)
-Jump trapeze 5000:  125.798 s (55226843 allocations: 2.10 GiB)
-Jump gauss_legendre_2 1000:  15.398 s (10988856 allocations: 726.32 MiB)
-Jump gauss_legendre_2 2000:  27.401 s (21345532 allocations: 1.40 GiB)
-Jump gauss_legendre_2 5000:  76.593 s (56269715 allocations: 3.57 GiB)
+Jump trapeze 1000:  15.889 s (7920529 allocations: 351.87 MiB)
+Jump trapeze 2000:  59.236 s (23055275 allocations: 891.64 MiB)
+Jump trapeze 5000:  128.857 s (55226845 allocations: 2.10 GiB)
+Jump gauss_legendre_2 1000:  15.583 s (10998729 allocations: 726.48 MiB)
+Jump gauss_legendre_2 2000:  26.836 s (21371405 allocations: 1.40 GiB)
+Jump gauss_legendre_2 5000:  74.715 s (56343588 allocations: 3.58 GiB)
 ```
 
 ```
-CTDirect trapeze 1000:  20.110 s (46501059 allocations: 4.54 GiB)
-CTDirect trapeze 2000:  41.097 s (89302125 allocations: 12.26 GiB)
-CTDirect trapeze 5000:  133.268 s (267989400 allocations: 49.33 GiB)
-CTDirect gauss_legendre_2 1000:  33.181 s (37843213 allocations: 14.79 GiB)
-CTDirect gauss_legendre_2 2000:  82.605 s (82766476 allocations: 43.19 GiB)
-CTDirect gauss_legendre_2 5000:  356.338 s (221161426 allocations: 312.28 GiB)
+CTDirect (optimized) trapeze 1000:  19.976 s (46501061 allocations: 4.54 GiB)
+CTDirect (optimized) trapeze 2000:  39.350 s (89302127 allocations: 12.26 GiB)
+CTDirect (optimized) trapeze 5000:  127.653 s (267989402 allocations: 49.33 GiB)
+CTDirect (optimized) gauss_legendre_2 1000:  30.309 s (36508333 allocations: 14.56 GiB)
+CTDirect (optimized) gauss_legendre_2 2000:  90.069 s (85715676 allocations: 42.83 GiB)
+CTDirect (optimized) gauss_legendre_2 5000:  293.751 s (159734254 allocations: 304.56 GiB)
+```
+
+```
+CTDirect (manual) trapeze 1000:  49.673 s (66608733 allocations: 5.40 GiB)
+CTDirect (manual) trapeze 2000:  112.605 s (140277493 allocations: 11.40 GiB)
+CTDirect (manual) trapeze 5000:  336.893 s (418023859 allocations: 34.07 GiB)
+CTDirect (manual) gauss_legendre_2 1000:  40.780 s (56179398 allocations: 4.20 GiB)
+CTDirect (manual) gauss_legendre_2 2000:  94.828 s (127623066 allocations: 9.56 GiB)
+CTDirect (manual) gauss_legendre_2 5000:  197.400 s (263619301 allocations: 19.84 GiB)
 ```
 
 
@@ -62,20 +67,20 @@ CTDirect gauss_legendre_2 5000:  356.338 s (221161426 allocations: 312.28 GiB)
 
 
 ## Details: Gauss Legendre 2 (1000 and 5000 steps)
-redo all 4 ct tests
++++redo ct
 
 |                 | Jump   | CT     | Manual | Jump     | CT       | Manual   |
 |-----------------|--------|--------|--------|----------|----------|----------|
-|nnz jacobian     | 118006 | 118006 | 384072 | 590006   | 590006   |          |
-|nnz hessian      | 322000 | 63000  | 319036 | 1610000  | 315000   |          |
-|variables        | 20006  | 20008  | 20008  | 100006   | 100008   |    |
-|lowerbound       | 6006   | 6006   | 6006   | 3006     | 30006    |     |
-|lower/upper      | 2000   | 2002   | 2002   | 10000    | 10002    |     |
-|equality         | 18006  | 18006  | 18006  | 90006    | 90006    |     |
-|iterations       | 117    | 95     | 91     | 146      | 78       |       |
-|objective        | 5.4522 | 5.4522 | 5.4522 | 5.4522   | 5.4522   |    |
-|structure        | clean  | clean  | clean  | clean    | clean    |     |
-|allocations      | 726MB  | 14.6GB | 5.0GB  | 3.6GB    | 305GB    |          |
-|time             | 15     | 28     | 45     | 77       | 291*     |          |
+|nnz jacobian     | 118006 | 118006 | 384072 | 590006   | 590006   | 1920072  |
+|nnz hessian      | 322000 | 63000  | 210072 | 1610000  | 315000   | 1050072  |
+|variables        | 20006  | 20008  | 20008  | 100006   | 100008   | 100008   |
+|lowerbound       | 6006   | 6006   | 6006   | 3006     | 30006    | 30006    |
+|lower/upper      | 2000   | 2002   | 2002   | 10000    | 10002    | 10002    |
+|equality         | 18006  | 18006  | 18006  | 90006    | 90006    | 90006    |
+|iterations       | 117    | 95     | 93     | 146      | 78       | 86       |
+|objective        | 5.4522 | 5.4522 | 5.4522 | 5.4522   | 5.4522   | 5.4522   |
+|structure        | clean  | clean  | clean  | clean    | clean    | clean    |
+|allocations      | 726MB  | 14.6GB | 4.2GB  | 3.6GB    | 305GB    | 19.8GB   |
+|time             | 15     | 28     | 40     | 77       | 291*     | 188      |
 
 * half the time is before optimization, swap effect due to huge allocations ?
