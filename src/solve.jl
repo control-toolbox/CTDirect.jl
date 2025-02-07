@@ -56,17 +56,25 @@ function direct_transcription(
         nlp = ADNLPModel!(
         f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
         gradient_backend = ADNLPModels.ReverseDiffADGradient,
-        hprod_backend = ADNLPModels.ReverseDiffADHvprod,
-        jtprod_backend = ADNLPModels.ReverseDiffADJtprod,
         jacobian_backend = J_backend,
         hessian_backend = H_backend,
-        show_time = show_time
+        hprod_backend = ADNLPModels.EmptyADbackend,
+        jtprod_backend = ADNLPModels.EmptyADbackend,
+        jprod_backend = ADNLPModels.EmptyADbackend,
+        ghjvprod_backend = ADNLPModels.EmptyADbackend,
+        show_time = show_time,
+        #excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend]
     )
     else
         # build NLP
         nlp = ADNLPModel!(
             f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
-            backend = adnlp_backend, show_time = show_time
+            backend = adnlp_backend, 
+            hprod_backend = ADNLPModels.EmptyADbackend,
+            jtprod_backend = ADNLPModels.EmptyADbackend,
+            jprod_backend = ADNLPModels.EmptyADbackend,
+            ghjvprod_backend = ADNLPModels.EmptyADbackend,       
+            show_time = show_time,
             )
     end
 
@@ -118,7 +126,7 @@ function direct_solve(
         time_grid = time_grid,
         disc_method = disc_method,
         control_type = control_type,
-        adnlp_backend = adnlp_backend
+        adnlp_backend = adnlp_backend,
     )
 
     # solve DOCP

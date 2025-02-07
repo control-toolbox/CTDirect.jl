@@ -21,15 +21,15 @@ Takeaways:
 ![benchmark](AD_backend.png)
 
 Standard benchmark for Trapeze:
-| Trapeze | default | optimized | manual* | manual** |
-|---------|---------|-----------|---------|----------|
-| 250     | 49.7    | 0.9       | 1.5     | 1.4      |
-| 500     |         | 2.4       | 3.5     | 3.3      |
-| 1000    |         | 5.6       | 6.4     | 5.9      |
-| 2500    |         | 23.9      | 23.9    | 18.7     |
-| 5000    |         | 89.6      | 56.3    | 41.5     |
-| 7500    |         | 225.4     | 85.9    | 66.3     |
-| 10000   |         | 526.3     | 102.4   | 90.4     |
+| Trapeze | default | optimized | manual   |
+|---------|---------|-----------|----------|
+| 250     | 28.4    | 0.9       | 1.4      |
+| 500     | 155.7   | 2.4       | 3.3      |
+| 1000    | 978.9   | 5.6       | 5.9      |
+| 2500    |         | 23.9      | 18.7     |
+| 5000    |         | 89.6      | 41.5     |
+| 7500    |         | 225.4     | 66.3     |
+| 10000   |         | 526.3     | 90.4     |
 
 * (older version) build sparse matrices from dense boolean matrices
 ** build sparse matrices from (i,j,v) vectors
@@ -54,16 +54,16 @@ Standard benchmark for Gauss Legendre 2:
 | 5000    | 551.9     | 172.2  |
 
 Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
-| transcription | optimized | manual*/** | optimized | manual*/** |
-|---------------|-----------|------------|-----------|--------|
-| NLP vars      | 4005      | 4005       | 40005     | 40005  |
-| NLP cons      | 6007      | 6007       | 60007     | 60007  |
-| Hess nnz      | 11011     | 30024      | 110011    | 300024 |
-| H sparsity    | 99.86%    | 99.63%     | 99.99%    | 99.96% |
-| Jac nnz       | 28011     | 42043      | 280011    | 420043 |
-| J sparsity    | 99.88%    | 99.83%     | 99.99%    | 99.98% |
-| allocs        | 1.2GB     | 106 / 92MB | 71.6GB    | 4.55 / 0.88 GB |
-| time          | 750ms     | 85 / 95ms  | 64.7s***  | 3.8 / 2.5s  |
+| transcription | optimized | manual     | optimized | manual  |
+|---------------|-----------|------------|-----------|---------|
+| NLP vars      | 4005      | 4005       | 40005     | 40005   |
+| NLP cons      | 6007      | 6007       | 60007     | 60007   |
+| Hess nnz      | 11011     | 30024      | 110011    | 300024  |
+| H sparsity    | 99.86%    | 99.63%     | 99.99%    | 99.96%  |
+| Jac nnz       | 28011     | 42043      | 280011    | 420043  |
+| J sparsity    | 99.88%    | 99.83%     | 99.99%    | 99.98%  |
+| allocs        | 1.2GB     | 92MB       | 71.6GB    | 0.88 GB |
+| time          | 750ms     | 95ms       | 64.7s***  | 2.5s    |
 
 *** hessian accounts for 59 out of total 65s
 ```
@@ -77,23 +77,22 @@ hessian  backend ADNLPModels.SparseReverseADHessian: 58.450146911 seconds;
 ghjvprod backend ADNLPModels.ForwardDiffADGHjvprod: 4.339e-6 seconds.
 ```
 
-| solve         | optimized | manual*/**  | optimized | manual*/**  |
-|---------------|-----------|-------------|-----------|-------------|
-| iterations    | 42        | 28          | 51        | 29          |
-| allocs        | 2.0GB     | 1.2/1.2GB   | 87.5GB    | 16.9/13.2GB |
-| time          | 2.5s      | 2.5/2.6s    | 151.0s*** | 42.4/31.6s  |
+| solve         | optimized | manual  | optimized | manual  |
+|---------------|-----------|---------|-----------|---------|
+| iterations    | 42        | 28      | 51        | 29      |
+| allocs        | 2.0GB     | 1.2GB   | 87.5GB    | 13.2GB  |
+| time          | 2.5s      | 2.6s    | 151.0s*** | 31.6s   |
 
 *** building the hessian is one third of the total solve time...
 
 
 ## Remarks:
-- it is better to build the sparse matrices from the index vectors format rather than a dense boolean matrix. For larger problems it may not be possible to even allocate the boolean matrix (eg. algal bacterial with GL2 at 5000 steps).
+- it is better to build the sparse matrices from the index vectors format rather than a dense boolean matrix (10-20% faster). For larger problems it may not be possible to even allocate the boolean matrix (eg. algal bacterial with GL2 at 5000 steps).
+- disabling the unused backends for the various matrix products (jprod_backend, jtprod_backend, hprod_backend, ghjvprod_backend) gives a slight increase in performance.
 
 ## Todo:
-- check the relevance of computing the nnz beforehand and allocate the full index vectors directly instead of using push!
-- reuse ADNLPModels functions to get block sparsity patterns then rebuild full patterns ?
-eg for dynamics and path constraints
-- try to disable some unused (?) parts such as hprod ? (according to show_time info the impact may be small). cf new option `excluded_backend=[:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend]`
+- use automatic differentiation to get the sparsity patterns for first / second derivatives of the OCP functions, and build the Jacobian / Hessian patterns from these instead of assuming full nonzero blocks.
+- some gain may be achieved by preallocating the index vectors
 
 ## Errors for Enzyme:
 - enzyme gives correct nonzero counts for Jacobian and Hessian, but fails with
