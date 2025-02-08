@@ -23,13 +23,13 @@ Takeaways:
 Standard benchmark for Trapeze:
 | Trapeze | default | optimized | manual   |
 |---------|---------|-----------|----------|
-| 250     | 28.4    | 0.9       | 1.4      |
-| 500     | 155.7   | 2.4       | 3.3      |
-| 1000    | 978.9   | 5.6       | 5.9      |
-| 2500    |         | 23.9      | 18.7     |
-| 5000    |         | 89.6      | 41.5     |
-| 7500    |         | 225.4     | 66.3     |
-| 10000   |         | 526.3     | 90.4     |
+| 250     | 51.9    | 0.8       | 1.4      |
+| 500     | 219.0   | 2.0       | 3.1      |
+| 1000    | 858.8   | 5.2       | 5.4      |
+| 2500    | 6932.1  | 20.9      | 17.1     |
+| 5000    |         | 73.0      | 34.1     |
+| 7500    |         | 200.6     | 53.1     |
+| 10000   |         | 415.7     | 70.4     |
 
 * (older version) build sparse matrices from dense boolean matrices
 ** build sparse matrices from (i,j,v) vectors
@@ -37,21 +37,21 @@ Standard benchmark for Trapeze:
 Standard benchmark for Midpoint:
 | Midpoint| optimized | manual |
 |---------|-----------|--------|
-| 250     | 1.5       | 2.2    |
-| 500     | 3.9       | 4.7    |
-| 1000    | 11.1      | 11.2   |
-| 2500    | 50.5      | 32.7   |
-| 5000    | 160.3     | 87.0   |
-| 7500    | 333.2     | 140.9  |
+| 250     | 1.4       | 2.1    |
+| 500     | 3.4       | 4.2    |
+| 1000    | 10.0      | 10.2   |
+| 2500    | 45.0      | 30.0   |
+| 5000    | 150.1     | 79.0   |
+| 7500    | 322.6     | 130.7  |
 
 Standard benchmark for Gauss Legendre 2:
-| GL2     | optimized | manual |
+| GL2     | +optimized | manual |
 |---------|-----------|--------|
-| 250     | 3.9       | 5.0    |
-| 500     | 10.5      | 12.9   |
-| 1000    | 121.2     | 26.1   |
-| 2500    | 136.6     | 77.2   |
-| 5000    | 551.9     | 172.2  |
+| 250     | 3.1       | 4.3    |
+| 500     | 8.8       | 11.5   |
+| 1000    | 113.2     | 22.3   |
+| 2500    | 119.5     | 68.3   |
+| 5000    | 544.2     | 156.8  |
 
 Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
 | transcription | optimized | manual     | optimized | manual  |
