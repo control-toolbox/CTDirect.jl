@@ -6,7 +6,6 @@ using MKL
 using BenchmarkTools
 using Printf
 
-
 jump = true
 ctdirect = true
 adnlp_backend_list = [:manual, :optimized]
