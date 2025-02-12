@@ -1,7 +1,7 @@
 # Benchmark for different AD backends
 The backend for ADNLPModels can be set in transcription / solve calls with the option `adnlp_backend=`. Possible values include the predefined(*) backends for ADNLPModels:
 - `:optimized`* Default for CTDirect. Forward mode for Jacobian, reverse for Gradient and forward over reverse for Hessian.
-- `:default`* Forward mode for everything. Significantly slower.
+- `:default`* Forward mode only. Significantly slower, but more rugged.
 - `:manual` Explicitely give to ADNLPModels the sparse pattern for Jacobian and Hessian. Uses the same forward / reverse settings as the `:optimized` predefined backend.  
 - `:enzyme`* Enzyme (currently not working).
 
@@ -15,7 +15,7 @@ Problem list: ["beam", "double_integrator_mintf", "double_integrator_minenergy",
 ```
 
 Takeaways:
-- the `:optimized` backend (with forward over reverse mode for Hessian) is much faster than full forward mode, but does not scale greatly. This is likely due to the increasing cost of computing the Hessian sparsity with SparseConnectivityTracer.jl in terms of allocations and time.
+- the `:optimized` backend (with forward over reverse mode for Hessian) is much faster than full forward mode, but does not scale greatly. This is likely due to the increasing cost of computing the Hessian sparsity with SparseConnectivityTracer.jl in terms of allocations and time. Note that the `:default` backend that uses forward mode only may still be useful when having AD errors.
 - manual sparse pattern seems to give better performance for larger problems. See also the comparison with Jump that seems to use a different, less sparse but faster method for the Hessian. The sparsity pattern detection in JuMP relies on the expression tree of the objective and constraints built from its DSL.
 
 ![benchmark](AD_backend.png)
@@ -45,13 +45,13 @@ Standard benchmark for Midpoint:
 | 7500    | 322.6     | 130.7  |
 
 Standard benchmark for Gauss Legendre 2:
-| GL2     | +optimized | manual |
+| GL2     | optimized | manual |
 |---------|-----------|--------|
-| 250     | 3.1       | 4.3    |
-| 500     | 8.8       | 11.5   |
-| 1000    | 113.2     | 22.3   |
-| 2500    | 119.5     | 68.3   |
-| 5000    | 544.2     | 156.8  |
+| 250     | 3.5       | 4.3    |
+| 500     | 9.6       | 11.5   |
+| 1000    | 125.5     | 22.3   |
+| 2500    | 135.0     | 68.3   |
+| 5000    | 527.7     | 156.8  |
 
 Sparsity details: goddard_all Trapeze (1000 and 10000 steps)
 | transcription | optimized | manual     | optimized | manual  |
