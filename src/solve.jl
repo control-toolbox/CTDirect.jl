@@ -78,7 +78,6 @@ $(TYPEDSIGNATURES)
 
 Discretize an optimal control problem into a nonlinear optimization problem (ie direct transcription)
 
-
 # Arguments
 * ocp: optimal control problem as defined in `CTBase`
 * [description]: can specifiy for instance the NLP model and / or solver
@@ -95,7 +94,7 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 """
 function direct_transcription(
     ocp::OptimalControlModel,
-    description::Symbol...;
+    description...;
     grid_size = __grid_size(),
     disc_method = __disc_method(),
     time_grid = __time_grid(),
