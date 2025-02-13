@@ -27,6 +27,21 @@ __time_grid() = nothing
 """
 $(TYPEDSIGNATURES)
 
+Used to set the default control type for IRK schemes 
+The default value is `:constant`.
+"""
+__control_type() = :constant
+
+"""
+$(TYPEDSIGNATURES)
+Used to set the default backend for AD in ADNLPModels.
+The default value is `:optimized`.
+"""
+__adnlp_backend() = :optimized
+
+"""
+$(TYPEDSIGNATURES)
+
 Used to set the default tolerance.
 The default value is `1e-6`.
 """
