@@ -87,7 +87,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect, G 
     _type_v::V
 
     # constructor
-    function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method(), constant_control=false)
+    function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method(), control_type=__control_type())
 
         # time grid
         if time_grid == nothing
@@ -189,9 +189,9 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect, G 
         elseif disc_method == :gauss_legendre_1
                 discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_2
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, constant_control)
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)
         elseif disc_method == :gauss_legendre_3
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, constant_control)                                 
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)                                 
         else           
             error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :gauss_legendre_1, :gauss_legendre_2, :gauss_legendre_3}\n", typeof(disc_method))
         end
@@ -387,7 +387,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         #setStepConstraints!(docp, (@view c[offset+1:offset+docp.dim_NLP_x+docp.discretization._step_pathcons_block]), xu, v, time_grid, i, work)
     end
 
-    # point constraints (NB. view on c block could be used with offset here)
+    # point constraints
     setPointConstraints!(docp, c, xu, v)
 
     # NB. the function *needs* to return c for AD...
@@ -514,6 +514,12 @@ function setPointBounds!(docp::DOCP, index::Int, lb, ub)
 
     return index
 end
+
+
+function DOCP_Jac_pattern(docp::DOCP)
+    error("DOCP_Jac_pattern not implemented for discretization ", typeof(docp.discretization))
+end
+
 
 """
 $(TYPEDSIGNATURES)
