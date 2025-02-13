@@ -113,7 +113,10 @@ $(TYPEDSIGNATURES)
 Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
-    # use work array to store all dynamics + lagrange costs
+
+    #= use work array to store all dynamics + lagrange costs
+    NB. using a smaller work array to store a single dynamics between steps
+    appears slower, maybe due to the copy involved ? =# 
     work = similar(xu, docp.dim_NLP_x * (docp.dim_NLP_steps+1))
 
     # loop over time steps

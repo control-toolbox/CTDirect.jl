@@ -19,15 +19,20 @@ function CTDirect.solve_docp(
     display::Bool = CTBase.__display(),
     max_iter::Integer = CTDirect.__max_iterations(),
     tol::Real = CTDirect.__tolerance(),
-    print_level::Integer = CTDirect.__ipopt_print_level(),
+    print_level::Integer = CTDirect.__knitro_print_level(),
     kwargs...,
 )
+    # disable output if needed
+    print_level = display ? print_level : 0
 
-    solver = KnitroSolver(nlp)
-    stats = solve!(solver, nlp)
+    # preallocate solver (cannot seem to pass kwargs to solve! ...)
+    solver = KnitroSolver(nlp; outlev=print_level, maxit=max_iter, feastol_abs=tol, opttol_abs=tol)
+
+    # solve discretized problem with NLP solver
+    docp_solution = solve!(solver, nlp)
 
     # return DOCP solution
-    return stats
+    return docp_solution
 end
 
 end
