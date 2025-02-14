@@ -26,30 +26,35 @@ end
 
 function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs...)
 
-    #######################################################
+    if verbose > 3
+        display = true
+    else
+        display = false
+    end
+
     # solve examples with timer and objective check
     t_list = []
     for problem in problem_list
 
-        # check
-        sol = direct_solve(problem[:ocp], nlp_solver; init=problem[:init], display=false, kwargs...)
+        # check (will also precompile)
+        sol = direct_solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, kwargs...)
         if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
             error("Objective mismatch for ",problem[:name],": ",sol.objective," instead of ",problem[:obj])
         else
-            verbose > 1 && @printf("%-30s: %4d iter ", problem[:name], sol.iterations)
+            verbose > 2 && @printf("%-30s: %4d iter ", problem[:name], sol.iterations)
         end
 
         # time
         t = @belapsed direct_solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, $kwargs...)
         append!(t_list, t)
-        verbose > 1 && @printf("%7.2f s\n", t)
+        verbose > 2 && @printf("%7.2f s\n", t)
     end
 
     return sum(t_list)
 end
 
 
-function bench(;grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, names_list = :default, kwargs...)
+function bench(; grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp_solver=:ipopt, linear_solver=nothing, names_list = :default, kwargs...)
 
     #######################################################
     # set (non) linear solvers and backends
@@ -76,14 +81,14 @@ function bench(;grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp_
     elseif names_list == :hard
         names_list = ["algal_bacterial", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "goddard_all", "insurance", "swimmer"]
     end
-    println("Problem list: ", names_list)
+    verbose > 1 && println("Problem list: ", names_list)
     problem_list = []
     for problem_name in names_list
         ocp_data = getfield(Main, Symbol(problem_name))()
         push!(problem_list, ocp_data)
     end
 
-    println("Grid size list: ", grid_size_list)
+    verbose > 1 && println("Grid size list: ", grid_size_list)
     t_list = []
     for grid_size in grid_size_list
         t = bench_list(problem_list; grid_size=grid_size, verbose=verbose, nlp_solver=nlp_solver, linear_solver=linear_solver, kwargs...)
@@ -92,7 +97,6 @@ function bench(;grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp_
     end
     #return t_list
 end
-
 
 
 # tests to check allocations in particular

@@ -23,14 +23,16 @@ function CTDirect.solve_docp(
     kwargs...,
 )
 
+    # todo: add default print_level, pass kwargs properly
+
     # disable output if needed
     print_level = display ? MadNLP.INFO : MadNLP.ERROR
 
     # preallocate solver (NB. need to pass printlevel here)
-    solver = MadNLPSolver(nlp, print_level = print_level)
+    solver = MadNLPSolver(nlp, print_level=print_level, tol=tol, max_iter=max_iter)
 
     # solve discretized problem with NLP solver
-    docp_solution = solve!(solver, tol = tol, max_iter = max_iter; kwargs...)
+    docp_solution = solve!(solver)
 
     # return DOCP solution
     return docp_solution

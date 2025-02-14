@@ -22,6 +22,9 @@ function CTDirect.solve_docp(
     print_level::Integer = CTDirect.__knitro_print_level(),
     kwargs...,
 )
+
+    # todo: pass kwargs properly
+
     # disable output if needed
     print_level = display ? print_level : 0
 
