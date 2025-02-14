@@ -22,7 +22,7 @@ Solve an OCP with a direct method
 
 # Arguments
 * ocp: optimal control problem as defined in `CTBase`
-* [description]: can specifiy for instance the NLP model and / or solver
+* [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
 
 # Keyword arguments (optional)
 * `grid_size`: number of time steps for the discretized problem ([250])
@@ -83,7 +83,7 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 
 # Arguments
 * ocp: optimal control problem as defined in `CTBase`
-* [description]: can specifiy for instance the NLP model and / or solver
+* [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
 
 # Keyword arguments (optional)
 * `grid_size`: number of time steps for the discretized problem ([250])

@@ -34,7 +34,7 @@ Grid size   2500: time (s) =   16.0
 Grid size   5000: time (s) =   58.2
 ```
 
-Gauss Legendre 2 with manual sparsity patterns
+Gauss Legendre 2 with manual sparsity patterns: here Ipopt seems to be the fastest, followed by MadNLP then Knitro. Note that the comparatively larger size of the problems may benefit from different settings for these two solvers.
 ```
 julia> bench(;disc_method=:gauss_legendre_2, adnlp_backend=:manual, nlp_solver=:ipopt)
 Grid size    250: time (s) =    3.2
