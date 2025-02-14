@@ -44,12 +44,10 @@ Grid size   2500: time (s) =   56.4
 Grid size   5000: time (s) =  130.8
 
 julia> bench(;disc_method=:gauss_legendre_2, adnlp_backend=:manual, nlp_solver=:madnlp)
-Problem list: ["beam", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
-Grid size list: [250, 500, 1000, 2500, 5000]
-Grid size    250: time (s) =   15.9
-Grid size    500: time (s) =   37.5
-Grid size   1000: time (s) =   83.6
-Grid size   2500: time (s) =  759.3
+Grid size    250: time (s) =   14.3
+Grid size    500: time (s) =   36.6
+Grid size   1000: time (s) =   85.9
+Grid size   2500: time (s) =  832.7
 
 julia> bench(;disc_method=:gauss_legendre_2, adnlp_backend=:manual, nlp_solver=:knitro)
 Grid size    250: time (s) =    6.8
