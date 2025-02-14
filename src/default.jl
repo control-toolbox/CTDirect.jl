@@ -43,9 +43,9 @@ __adnlp_backend() = :optimized
 $(TYPEDSIGNATURES)
 
 Used to set the default tolerance.
-The default value is `1e-8`.
+The default value is `1e-6`.
 """
-__tolerance() = 1e-8
+__tolerance() = 1e-6
 
 """
 $(TYPEDSIGNATURES)
@@ -90,3 +90,12 @@ Used to set the default value of the linear solver of MadNLP for the direct meth
 The default value is `umfpack`.
 """
 __madnlp_linear_solver() = "umfpack"
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Used to set the default value of the print level of Knitro for the direct method.
+The default value is `3`.
+"""
+__knitro_print_level() = 3

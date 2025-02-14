@@ -15,9 +15,11 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 [weakdeps]
 MadNLP = "2621e9c9-9eb4-46b1-8089-e8c72242dfb6"
 NLPModelsIpopt = "f4238b75-b362-5c4c-b852-0801c9a21d71"
+NLPModelsKnitro = "bec4dd0d-7755-52d5-9a02-22f0ffc7efcb"
 
 [extensions]
 CTSolveExtIpopt = ["NLPModelsIpopt"]
+CTSolveExtKnitro = ["NLPModelsKnitro"]
 CTSolveExtMadNLP = ["MadNLP"]
 
 [compat]

@@ -10,6 +10,7 @@ function available_methods()
     algorithms = ()
     algorithms = add(algorithms, (:adnlp, :ipopt))
     algorithms = add(algorithms, (:adnlp, :madnlp))
+    algorithms = add(algorithms, (:adnlp, :knitro))
     return algorithms
 end
 
@@ -21,7 +22,7 @@ Solve an OCP with a direct method
 
 # Arguments
 * ocp: optimal control problem as defined in `CTBase`
-* [description]: can specifiy for instance the NLP model and / or solver
+* [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
 
 # Keyword arguments (optional)
 * `grid_size`: number of time steps for the discretized problem ([250])
@@ -63,6 +64,8 @@ function direct_solve(
         solver_backend = CTDirect.IpoptBackend()
     elseif :madnlp ∈ method
         solver_backend = CTDirect.MadNLPBackend()
+    elseif :knitro ∈ method
+        solver_backend = CTDirect.KnitroBackend()
     else
         error("no known solver in method", method)
     end
@@ -80,7 +83,7 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 
 # Arguments
 * ocp: optimal control problem as defined in `CTBase`
-* [description]: can specifiy for instance the NLP model and / or solver
+* [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
 
 # Keyword arguments (optional)
 * `grid_size`: number of time steps for the discretized problem ([250])
@@ -163,15 +166,7 @@ Set initial guess in the DOCP
 """
 function set_initial_guess(docp::DOCP, nlp, init)
     ocp = docp.ocp
-    nlp.meta.x0 .= DOCP_initial_guess(
-        docp,
-        OptimalControlInit(
-            init,
-            state_dim = ocp.state_dimension,
-            control_dim = ocp.control_dimension,
-            variable_dim = ocp.variable_dimension,
-        ),
-    )
+    nlp.meta.x0 .= DOCP_initial_guess(docp, OptimalControlInit(init, state_dim = ocp.state_dimension, control_dim = ocp.control_dimension, variable_dim = ocp.variable_dimension))
 end
 
 
@@ -179,8 +174,9 @@ end
 abstract type AbstractSolverBackend end
 struct IpoptBackend <: AbstractSolverBackend end
 struct MadNLPBackend <: AbstractSolverBackend end
+struct KnitroBackend <: AbstractSolverBackend end
 
-weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP)
+weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP, KnitroBackend => :NLPModelsKnitro)
 
 function solve_docp(solver_backend::T, args...; kwargs...) where {T <: AbstractSolverBackend}
     throw(ExtensionError(weakdeps[T]))
