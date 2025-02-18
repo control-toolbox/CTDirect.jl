@@ -1,7 +1,7 @@
 name = "CTDirect"
 uuid = "790bbbee-bee9-49ee-8912-a9de031322d5"
-authors = ["Olivier Cots <olivier.cots@enseeiht.fr>"]
-version = "0.13.0"
+authors = ["Pierre Martinon <pierre.martinon@inria.fr>", "Joseph Gergaud <joseph.gergaud@enseeiht.fr>", "Olivier Cots <olivier.cots@enseeiht.fr>"]
+version = "0.13.1"
 
 [deps]
 ADNLPModels = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
