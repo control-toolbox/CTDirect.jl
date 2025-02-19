@@ -252,7 +252,7 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
 end
 
 
-# +++ move this one to CTBase ? (aqua flags a type piracy since we don't have arguments DOCP specific types)
+#= +++ move this one to CTBase ? (aqua flags a type piracy since we don't have arguments DOCP specific types)
 """
 $(TYPEDSIGNATURES)
     
@@ -386,3 +386,4 @@ function CTBase.OptimalControlSolution(
         )
     end
 end
+=#
