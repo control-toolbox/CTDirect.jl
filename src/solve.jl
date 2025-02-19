@@ -37,6 +37,7 @@ All further keywords are passed to the inner call of `solve_docp`
 function direct_solve(
     ocp::OptimalControlModel,
     description::Symbol...;
+    display::Bool = CTBase.__display(),
     grid_size::Int = CTDirect.__grid_size(),
     disc_method = __disc_method(),
     time_grid = CTDirect.__time_grid(),
@@ -69,7 +70,7 @@ function direct_solve(
     else
         error("no known solver in method", method)
     end
-    docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp; kwargs...)
+    docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp; display=display, kwargs...)
 
     # build and return OCP solution
     return OptimalControlSolution(docp, docp_solution)
