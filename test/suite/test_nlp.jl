@@ -6,12 +6,27 @@ end
 prob = simple_integrator()
 ocp = prob.ocp
 
-@testset verbose = true showtiming = true ":control_dim_2" begin
+@testset verbose = true showtiming = true ":methods" begin
     @test is_solvable(ocp)
     @test (:adnlp, :ipopt) in available_methods()
     @test (:adnlp, :madnlp) in available_methods()
 end
 
+# AD backends
+@testset verbose = true showtiming = true ":AD_backends" begin
+    sol = direct_solve(prob.ocp, display = false)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, adnlp_backend = :default)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, adnlp_backend = :manual)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method=:midpoint, adnlp_backend = :manual)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = direct_solve(prob.ocp, display = false, disc_method=:gauss_legendre_2, adnlp_backend = :manual)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end
+
+# DOCP solving
 @testset verbose = true showtiming = true ":solve_docp" begin
     docp, nlp = direct_transcription(ocp)
     solver_backend = CTDirect.IpoptBackend()
@@ -48,7 +63,7 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-# check solution building
+# solution building
 if !isdefined(Main, :double_integrator_minenergy)
     include("../problems/double_integrator.jl")
 end

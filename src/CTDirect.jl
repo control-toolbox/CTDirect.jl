@@ -7,6 +7,7 @@ using DocStringExtensions
 using ADNLPModels               # docp model with AD
 using LinearAlgebra             # norm and misc
 using HSL
+using SparseArrays
 
 # other declarations
 const matrix2vec = CTBase.matrix2vec

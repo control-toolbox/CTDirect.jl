@@ -2,6 +2,7 @@
 
 function algal_bacterial()
 
+    # parameters
     s_in = 0.5
     β = 23e-3
     γ = 0.44
@@ -12,6 +13,7 @@ function algal_bacterial()
     ϕ(s) = ϕmax * s / (ks + s)
     ρ(v) = ρmax * v / (kv + v)
     μ(q) = μmax * (1 - qmin / q)
+    t0 = 0; tf = 20
     x0 = [0.1629, 0.0487, 0.0003, 0.0177, 0.035, 0]
 
     pre_ocp = CTModels.PreModel()

@@ -59,6 +59,7 @@ function CTDirect.solve_docp(
         tol = tol,
         max_iter = max_iter,
         sb = "yes",
+        #check_derivatives_for_naninf = "yes",
         linear_solver = linear_solver;
         kwargs...,
     )

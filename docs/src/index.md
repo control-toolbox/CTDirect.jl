@@ -82,15 +82,11 @@ LB \le C(X) \le UB
 \right.
 ```
 
-We use packages from [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) to solve the (NLP) problem.
+Solving the (NLP) problem is done using packages from [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers), with Ipopt as the default solver.
 
-As input of this package we use an [`OptimalControlModel`](@ref) structure from CTBase.
+On the input side of this package, we use an [`OptimalControlModel`](@ref) structure from CTBase to define the (OCP).
 
-!!! note "Current limitations"
-
-    The current implemented is limited to
-    - trapezoidal rule for the ODE discretization
-    - `Ipopt` for the optimization software
+The direct transcription to build the (NLP) can use discretization schemes such as trapeze (default), midpoint, or Gauss-Legendre collocations.
 
 !!! note "Related packages"
 
