@@ -192,5 +192,5 @@ struct KnitroBackend <: AbstractSolverBackend end
 weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP, KnitroBackend => :NLPModelsKnitro)
 
 function solve_docp(solver_backend::T, args...; kwargs...) where {T <: AbstractSolverBackend}
-    throw(ExtensionError(weakdeps[T]))
+    throw(CTBase.ExtensionError(weakdeps[T]))
 end

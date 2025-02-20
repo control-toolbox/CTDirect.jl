@@ -11,7 +11,7 @@ if test1
         include("../problems/double_integrator.jl")
     end
     @testset verbose = true showtiming = true ":continuation :double_integrator" begin
-        init = ()
+        init = nothing
         obj_list = []
         for T = 1:5
             ocp = double_integrator_minenergy(T).ocp

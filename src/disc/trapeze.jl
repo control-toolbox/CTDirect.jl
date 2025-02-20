@@ -243,7 +243,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
     # 3. boundary constraints (x0, xf, v)
     c_offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
-    c_block = docp.dim_boundary_cons + docp.dim_v_cons
+    c_block = docp.dim_boundary_cons
     x0_start = 1
     x0_end = docp.dim_OCP_x
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, x0_start, x0_end)

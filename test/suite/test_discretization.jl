@@ -13,13 +13,13 @@ sol0 = direct_solve(ocp, display = false)
 @testset verbose = true showtiming = true ":explicit_grid" begin
     time_grid = LinRange(0, 1, CTDirect.__grid_size() + 1)
     sol = direct_solve(ocp, time_grid = time_grid, display = false)
-    @test (sol.objective == sol0.objective) && (sol.iterations == sol0.iterations)
+    @test (sol.objective == sol0.objective) && (sol.solver_infos.iterations == sol0.solver_infos.iterations)
 end
 
 @testset verbose = true showtiming = true ":non_uniform_grid" begin
     time_grid = [0, 0.1, 0.3, 0.6, 0.98, 0.99, 1]
     sol = direct_solve(ocp, time_grid = time_grid, display = false)
-    @test sol.time_grid ≈ time_grid
+    @test sol.time_grid.grid ≈ time_grid
 end
 
 # 2. integrator free times
@@ -31,13 +31,13 @@ sol0 = direct_solve(ocp, display = false)
 
 @testset verbose = true showtiming = true ":explicit_grid" begin
     sol = direct_solve(ocp, time_grid = LinRange(0, 1, CTDirect.__grid_size() + 1), display = false)
-    @test (sol.objective == sol0.objective) && (sol.iterations == sol0.iterations)
+    @test (sol.objective == sol0.objective) && (sol.solver_infos.iterations == sol0.solver_infos.iterations)
 end
 
 @testset verbose = true showtiming = true ":max_t0 :non_uniform_grid" begin
     time_grid = [0, 0.1, 0.6, 0.95, 1]
     sol = direct_solve(ocp, time_grid = time_grid, display = false)
-    @test normalize_grid(sol.time_grid) ≈ time_grid
+    @test normalize_grid(sol.time_grid.grid) ≈ time_grid
 end
 
 # 3. parametric ocp (T=2) with explicit / non-uniform grid
@@ -49,13 +49,13 @@ sol0 = direct_solve(ocp, display = false)
 
 @testset verbose = true showtiming = true ":explicit_grid" begin
     sol = direct_solve(ocp, time_grid = LinRange(0, 1, CTDirect.__grid_size() + 1), display = false)
-    @test (sol.objective == sol0.objective) && (sol.iterations == sol0.iterations)
+    @test (sol.objective == sol0.objective) && (sol.solver_infos.iterations == sol0.solver_infos.iterations)
 end
 
 @testset verbose = true showtiming = true ":non_uniform_grid" begin
     time_grid = [0, 0.3, 1, 1.9, 2]
     sol = direct_solve(ocp, time_grid = time_grid, display = false)
-    @test sol.time_grid ≈ time_grid
+    @test sol.time_grid.grid ≈ time_grid
 end
 
 # implicit midpoint scheme

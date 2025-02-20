@@ -176,7 +176,7 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{ <: GenericIRK}, i)
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK}, i, cj)
-    if (docp.discretization.stage == 1) || (docp.discretization._constant_control)
+    if (docp.discretization.stage == 1) || (docp.discretization._control_type == :constant)
         # constant interpolation on step
         return get_OCP_control_at_time_step(xu, docp, i)
     else
@@ -297,7 +297,7 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
             # NB. we skip the state equation here, which will be set below
             CTModels.dynamics(docp.ocp)((@view c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_OCP_x]), tij, work_xij, uij, v)
             if docp.has_lagrange
-                CTModels.lagrange(docp.ocp)((@view c[offset+offset_stage_eqs+docp.dim_NLP_x:offset+offset_stage_eqs+docp.dim_NLP_x]), tij, work_xij, uij, v)
+                c[offset+offset_stage_eqs+docp.dim_NLP_x] = CTModels.lagrange(docp.ocp)(tij, work_xij, uij, v)
             end
             @views @. c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_NLP_x] = kij - c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_NLP_x]
             offset_stage_eqs += docp.dim_NLP_x
@@ -411,7 +411,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
 
     # 3. boundary constraints (x0, xf, v)
     c_offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
-    c_block = docp.dim_boundary_cons + docp.dim_v_cons
+    c_block = docp.dim_boundary_cons
     x0_start = 1
     x0_end = docp.dim_OCP_x
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, x0_start, x0_end)
