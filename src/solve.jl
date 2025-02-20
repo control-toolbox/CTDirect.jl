@@ -25,6 +25,7 @@ Solve an OCP with a direct method
 * [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
 
 # Keyword arguments (optional)
+* `display`: ([true], false) will disable output if set to false
 * `grid_size`: number of time steps for the discretized problem ([250])
 * `disc_method`: discretization method ([`:trapeze`], `:midpoint`, `gauss_legendre_2`)
 * `time_grid`: explicit time grid (can be non uniform)
