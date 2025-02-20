@@ -216,7 +216,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, uip1_start, uip1_end)
         # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i/2 (l(t_i,x_i,u_i,v) + l(t_i+1,x_i+1,u_i+1,v)))
         # depends on x_i, l_i, u_i, x_i+1, l_i+1, u_i+1 ie whole variable block; v cf 1.4
-        if docp.is_lagrange
+        if docp.has_lagrange
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, var_offset+1, var_offset+var_block)
         end
 
@@ -250,7 +250,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
     # 3.4 null initial condition for lagrangian cost state l0
-    if docp.is_lagrange
+    if docp.has_lagrange
         add_nonzero_block!(Is, Js, docp.dim_NLP_constraints, docp.dim_NLP_x)
     end
 
@@ -311,7 +311,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
     # 3. boundary constraints (x0, xf, v)
     # -> (x0, v) terms included in first loop iteration
     # -> (xf, v) terms included in last loop iteration
-    if docp.is_mayer || docp.dim_boundary_cons > 0
+    if docp.has_mayer || docp.dim_boundary_cons > 0
         var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
         x0_start = 1
         x0_end = docp.dim_OCP_x

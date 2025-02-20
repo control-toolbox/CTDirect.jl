@@ -373,7 +373,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, v_start, v_end)
         # 1.2 lagrange part l_i+1 = l_i + h_i (sum_j b_j k_ij)[n+1]
         # depends on l_i, k_ij[n+1], l_i+1, and v for h_i in variable times case !
-        if docp.is_lagrange
+        if docp.has_lagrange
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, li)
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, lip1)
             for i=1:s
@@ -418,7 +418,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
     # 3.4 null initial condition for lagrangian cost state l0
-    if docp.is_lagrange
+    if docp.has_lagrange
         add_nonzero_block!(Is, Js, docp.dim_NLP_constraints, docp.dim_NLP_x)
     end
 

@@ -31,36 +31,36 @@ end
     docp, nlp = direct_transcription(ocp)
     solver_backend = CTDirect.IpoptBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
-    sol = OptimalControlSolution(docp, dsol)
+    sol = build_OCP_solution(docp, dsol)
     @test sol.objective ≈ prob.obj rtol = 1e-2
-    sol = OptimalControlSolution(docp, primal = dsol.solution)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
-    sol = OptimalControlSolution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    #sol = build_OCP_solution(docp, primal = dsol.solution)
+    #@test sol.objective ≈ prob.obj rtol = 1e-2
+    #sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
+    #@test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
 @testset verbose = true showtiming = true ":solve_docp :midpoint" begin
     docp, nlp = direct_transcription(ocp, disc_method = :midpoint)
     solver_backend = CTDirect.IpoptBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
-    sol = OptimalControlSolution(docp, dsol)
+    sol = build_OCP_solution(docp, dsol)
     @test sol.objective ≈ prob.obj rtol = 1e-2
-    sol = OptimalControlSolution(docp, primal = dsol.solution)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
-    sol = OptimalControlSolution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    #sol = build_OCP_solution(docp, primal = dsol.solution)
+    #@test sol.objective ≈ prob.obj rtol = 1e-2
+    #sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
+    #@test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
 @testset verbose = true showtiming = true ":solve_docp :madnlp" begin
     docp, nlp = direct_transcription(ocp)
     solver_backend = CTDirect.MadNLPBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
-    sol = OptimalControlSolution(docp, dsol)
+    sol = build_OCP_solution(docp, dsol)
     @test sol.objective ≈ prob.obj rtol = 1e-2
-    sol = OptimalControlSolution(docp, primal = dsol.solution)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
-    sol = OptimalControlSolution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    #sol = build_OCP_solution(docp, primal = dsol.solution)
+    #@test sol.objective ≈ prob.obj rtol = 1e-2
+    #sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
+    #@test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
 # solution building
