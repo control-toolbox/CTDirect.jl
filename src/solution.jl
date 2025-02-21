@@ -14,11 +14,7 @@ function build_OCP_solution(docp, docp_solution)
     else
         objective = docp_solution.objective
     end
-    iterations = docp_solution.iter
-    constraints_violation = docp_solution.primal_feas
-    message = string(docp_solution.solver_specific[:internal_msg][1])
-    stopping = :undefined
-    success = true
+    iterations, constraints_violation, message, stopping, success = SolverInfos(docp_solution)
 
     # time grid
     T = time_grid = get_time_grid(solution, docp)
@@ -44,8 +40,6 @@ function build_OCP_solution(docp, docp_solution)
     # costate and constraints multipliers
     P, path_constraints, boundary_constraints, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers, constraints)
 
-    #println("v ", v, " ", typeof(v))
-
     return CTModels.build_solution(
         ocp,
         T, X, U, v, P;
@@ -62,6 +56,19 @@ function build_OCP_solution(docp, docp_solution)
         variable_constraints_lb_dual=box_multipliers[5],
         variable_constraints_ub_dual=box_multipliers[6]
     )
+end
+
+
+function SolverInfos(docp_solution)
+
+    iterations = docp_solution.iter
+    constraints_violation = docp_solution.primal_feas
+    message = string(docp_solution.solver_specific[:internal_msg][1]) # for NLPModelsIpopt
+    stopping = :undefined
+    success = true
+
+    return iterations, constraints_violation, message, stopping, success
+
 end
 
 

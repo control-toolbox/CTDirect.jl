@@ -51,7 +51,7 @@ end
     #@test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-#=@testset verbose = true showtiming = true ":solve_docp :madnlp" begin
+@testset verbose = true showtiming = true ":solve_docp :madnlp" begin
     docp, nlp = direct_transcription(ocp)
     solver_backend = CTDirect.MadNLPBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
@@ -61,7 +61,7 @@ end
     #@test sol.objective ≈ prob.obj rtol = 1e-2
     #sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
     #@test sol.objective ≈ prob.obj rtol = 1e-2
-end=#
+end
 
 # solution building
 if !isdefined(Main, :double_integrator_minenergy)
@@ -74,16 +74,16 @@ p_opt = t -> [24, 12 - 24 * t]
 
 @testset verbose = true showtiming = true ":analytic_solution :ipopt" begin
     sol = direct_solve(ocp, display = false)
-    T = sol.time_grid
+    T = sol.time_grid.grid
     @test isapprox(x_opt.(T), sol.state.(T), rtol = 1e-2)
     @test isapprox(u_opt.(T), sol.control.(T), rtol = 1e-2)
     @test isapprox(p_opt.(T), sol.costate.(T), rtol = 1e-2)
 end
 
-#=@testset verbose = true showtiming = true ":analytic_solution :madnlp" begin
+@testset verbose = true showtiming = true ":analytic_solution :madnlp" begin
     sol = direct_solve(ocp, :madnlp, display = false)
-    T = sol.time_grid
+    T = sol.time_grid.grid
     @test isapprox(x_opt.(T), sol.state.(T), rtol = 1e-2)
     @test isapprox(u_opt.(T), sol.control.(T), rtol = 1e-2)
     @test isapprox(p_opt.(T), sol.costate.(T), rtol = 1e-2)
-end=#
+end
