@@ -9,9 +9,6 @@ using LinearAlgebra             # norm and misc
 using HSL
 using SparseArrays
 
-# other declarations
-const matrix2vec = CTBase.matrix2vec
-
 # includes
 include("default.jl")
 include("docp.jl")
