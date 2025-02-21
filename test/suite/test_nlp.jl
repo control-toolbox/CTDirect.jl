@@ -75,15 +75,15 @@ p_opt = t -> [24, 12 - 24 * t]
 @testset verbose = true showtiming = true ":analytic_solution :ipopt" begin
     sol = direct_solve(ocp, display = false)
     T = sol.time_grid.grid
-    @test isapprox(x_opt.(T), sol.state.(T), rtol = 1e-2)
-    @test isapprox(u_opt.(T), sol.control.(T), rtol = 1e-2)
+    @test isapprox(x_opt.(T), sol.state.solution.(T), rtol = 1e-2)
+    @test isapprox(u_opt.(T), sol.control.solution.(T), rtol = 1e-2)
     @test isapprox(p_opt.(T), sol.costate.(T), rtol = 1e-2)
 end
 
 @testset verbose = true showtiming = true ":analytic_solution :madnlp" begin
     sol = direct_solve(ocp, :madnlp, display = false)
     T = sol.time_grid.grid
-    @test isapprox(x_opt.(T), sol.state.(T), rtol = 1e-2)
-    @test isapprox(u_opt.(T), sol.control.(T), rtol = 1e-2)
+    @test isapprox(x_opt.(T), sol.state.solution.(T), rtol = 1e-2)
+    @test isapprox(u_opt.(T), sol.control.solution.(T), rtol = 1e-2)
     @test isapprox(p_opt.(T), sol.costate.(T), rtol = 1e-2)
 end
