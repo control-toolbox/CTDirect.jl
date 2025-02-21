@@ -206,7 +206,7 @@ solver_backend = CTDirect.IpoptBackend()
         (time = t_vec, state = x_vec, control = u_func, variable = v_const),
     )
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false, max_iter = maxiter)
-    sol = CTDirect.build_OCP_solution(docp, dsol)
+    sol = build_OCP_solution(docp, dsol)
     T = sol.time_grid.grid
     @test isapprox(sol.state.solution.(t_vec), x_vec, rtol = 1e-2)
     @test isapprox(sol.control.solution.(T), u_func.(T), rtol = 1e-2)

@@ -11,7 +11,7 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-#=
+#= +++ retry with adnlp_backend=:default ?
 # min tf (lagrange equal to 1) sometimes fails at AD...
 @testset verbose = true showtiming = true ":min_tf :lagrange" begin
     prob = double_integrator_mintf(lagrange = true)
@@ -37,7 +37,7 @@ prob = bolza_freetf()
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-#=
+#= +++retry
 @def ocp begin
     v = (t0, tf) ∈ R^2, variable
     t ∈ [t0, tf], time
@@ -56,7 +56,7 @@ end
 #end
 =#
 
-#=
+#= :default backend ?
 @def ocp2 begin
     s ∈ [0, 1], time
     y ∈ R^2, state

@@ -50,7 +50,7 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-#= robbins
+#= robbins +++retry ?
 if !isdefined(Main, :robbins)
     include("../problems/robbins.jl")
 end

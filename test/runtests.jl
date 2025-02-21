@@ -5,8 +5,8 @@ import CTBase
 import CTModels
 
 using NLPModelsIpopt
-using MadNLP
-using SplitApplyCombine # for flatten in some tests
+using MadNLP # move to related tests ?
+using SplitApplyCombine # for flatten in some tests (move to related tests ?)
 
 # check local test suite
 @testset verbose = true showtiming = true "Test suite" begin
