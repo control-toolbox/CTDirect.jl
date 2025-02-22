@@ -33,34 +33,27 @@ end
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = CTDirect.build_OCP_solution(docp, dsol)
     @test sol.objective ≈ prob.obj rtol = 1e-2
-    #sol = build_OCP_solution(docp, primal = dsol.solution)
-    #@test sol.objective ≈ prob.obj rtol = 1e-2
-    #sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    #@test sol.objective ≈ prob.obj rtol = 1e-2
-end
-
-@testset verbose = true showtiming = true ":solve_docp :midpoint" begin
-    docp, nlp = direct_transcription(ocp, disc_method = :midpoint)
-    solver_backend = CTDirect.IpoptBackend()
-    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
-    sol = CTDirect.build_OCP_solution(docp, dsol)
+    sol = build_OCP_solution(docp, primal = dsol.solution)
     @test sol.objective ≈ prob.obj rtol = 1e-2
-    #sol = build_OCP_solution(docp, primal = dsol.solution)
-    #@test sol.objective ≈ prob.obj rtol = 1e-2
-    #sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    #@test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers, mult_LB = dsol.multipliers_L, mult_UB = dsol.multipliers_U)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-@testset verbose = true showtiming = true ":solve_docp :madnlp" begin
-    docp, nlp = direct_transcription(ocp)
+
+@testset verbose = true showtiming = true ":solve_docp :madnlp :gl2" begin
+    docp, nlp = direct_transcription(ocp, disc_method=:gauss_legendre_2)
     solver_backend = CTDirect.MadNLPBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = CTDirect.build_OCP_solution(docp, dsol)
     @test sol.objective ≈ prob.obj rtol = 1e-2
-    #sol = build_OCP_solution(docp, primal = dsol.solution)
-    #@test sol.objective ≈ prob.obj rtol = 1e-2
-    #sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    #@test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = build_OCP_solution(docp, primal = dsol.solution)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+    sol = build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers, mult_LB = dsol.multipliers_L, mult_UB = dsol.multipliers_U)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
 # solution building
