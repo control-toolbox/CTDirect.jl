@@ -5,6 +5,7 @@ using CTBase
 
 using NLPModelsIpopt
 using MadNLP
+using Percival
 using SplitApplyCombine # for flatten in some tests
 
 # check local test suite
