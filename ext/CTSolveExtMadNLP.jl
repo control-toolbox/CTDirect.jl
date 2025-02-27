@@ -39,6 +39,8 @@ function CTDirect.solve_docp(
 end
 
 
+# +++ use this one as default instead of the one for ipopt ?
+# better, have a common one and maybe test for specific fields ?
 function CTBase.OptimalControlSolution(docp::CTDirect.DOCP, docp_solution::MadNLP.MadNLPExecutionStats)
 
     # adjust objective sign for maximization problems

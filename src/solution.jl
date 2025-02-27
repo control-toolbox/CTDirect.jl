@@ -22,7 +22,7 @@ function CTBase.OptimalControlSolution(docp::DOCP, docp_solution)
         objective = objective,
         iterations = docp_solution.iter,
         constraints_violation = docp_solution.primal_feas,
-        message = string(docp_solution.solver_specific[:internal_msg][1]),
+        message = string(docp_solution.solver_specific[:internal_msg][1]),  #+++ use GENERIC version and test for specific fields instead ! madnlp version can then probably be removed. 
         mult_LB = docp_solution.multipliers_L,
         mult_UB = docp_solution.multipliers_U,
     )
