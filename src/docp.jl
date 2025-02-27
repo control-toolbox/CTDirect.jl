@@ -354,18 +354,6 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
 end
 
 
-# +++ temp
-mutable struct OptimalControlInit
-    state_init
-    control_init
-    variable_init
-
-    function OptimalControlInit(args...; kwargs...)
-        return new(x -> nothing, x -> nothing, nothing)
-    end
-end
-
-
 """
 $(TYPEDSIGNATURES)
 

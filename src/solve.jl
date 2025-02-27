@@ -74,7 +74,7 @@ function direct_solve(
     docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp; display=display, kwargs...)
 
     # build and return OCP solution
-    return #build_OCP_solution(docp, docp_solution)
+    return build_OCP_solution(docp, docp_solution)
 end
 
 
