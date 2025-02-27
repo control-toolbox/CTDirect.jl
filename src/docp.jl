@@ -359,7 +359,7 @@ $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function DOCP_initial_guess(docp::DOCP, init::CTDirect.OptimalControlInit = CTDirect.OptimalControlInit())
+function DOCP_initial_guess(docp::DOCP, init::CTModels.Init = CTModels.Init())
 
     # default initialization (internal variables such as lagrange cost, k_i for RK schemes) will keep these default values 
     NLP_X = 0.1 * ones(docp.dim_NLP_variables)

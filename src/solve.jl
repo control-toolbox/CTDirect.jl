@@ -39,10 +39,10 @@ function direct_solve(
     ocp::CTModels.Model,
     description::Symbol...;
     display::Bool = CTBase.__display(),
-    grid_size::Int = CTDirect.__grid_size(),
+    grid_size::Int = __grid_size(),
     disc_method = __disc_method(),
-    time_grid = CTDirect.__time_grid(),
-    init = CTDirect.__ocp_init(),
+    time_grid = __time_grid(),
+    init = __ocp_init(),
     adnlp_backend = __adnlp_backend(),
     control_type = __control_type(),
     kwargs...,
@@ -103,7 +103,7 @@ function direct_transcription(
     grid_size = __grid_size(),
     disc_method = __disc_method(),
     time_grid = __time_grid(),
-    init = CTDirect.__ocp_init(),
+    init = __ocp_init(),
     adnlp_backend = __adnlp_backend(),
     control_type = __control_type(),
     show_time = false
@@ -117,7 +117,7 @@ function direct_transcription(
     constraints_bounds!(docp)
 
     # build and set initial guess in DOCP
-    docp_init = OptimalControlInit(
+    docp_init = CTModels.Init(
             init;
             state_dim = CTModels.state_dimension(ocp),
             control_dim = CTModels.control_dimension(ocp),
@@ -173,7 +173,7 @@ Set initial guess in the DOCP
 """
 function set_initial_guess(docp::DOCP, nlp, init)
     ocp = docp.ocp
-    docp_init = OptimalControlInit(
+    docp_init = CTModels.Init(
             init;
             state_dim = CTModels.state_dimension(ocp),
             control_dim = CTModels.control_dimension(ocp),
