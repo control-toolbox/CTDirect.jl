@@ -354,12 +354,24 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
 end
 
 
+# +++ temp
+mutable struct OptimalControlInit
+    state_init
+    control_init
+    variable_init
+
+    function OptimalControlInit(args...; kwargs...)
+        return new(x -> nothing, x -> nothing, nothing)
+    end
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function DOCP_initial_guess(docp::DOCP, init::CTBase.OptimalControlInit = CTBase.OptimalControlInit())
+function DOCP_initial_guess(docp::DOCP, init::CTDirect.OptimalControlInit = CTDirect.OptimalControlInit())
 
     # default initialization (internal variables such as lagrange cost, k_i for RK schemes) will keep these default values 
     NLP_X = 0.1 * ones(docp.dim_NLP_variables)

@@ -1,5 +1,8 @@
 # Direct methods
 
+# +++ temp
+__ocp_init() = nothing
+
 """
 $(TYPEDSIGNATURES)
 
