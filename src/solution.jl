@@ -62,8 +62,12 @@ $(TYPEDSIGNATURES)
 
 Retrieve convergence information (Ipopt version)
 """
+function SolverInfos()
+    return 0, 0., "undefined", :undefined, true
+end
 function SolverInfos(docp_solution)
 
+    # try to detect solver here for specific fields !
     iterations = docp_solution.iter
     constraints_violation = docp_solution.primal_feas
     message = string(docp_solution.solver_specific[:internal_msg][1]) # for NLPModelsIpopt
@@ -71,9 +75,6 @@ function SolverInfos(docp_solution)
     success = true
 
     return iterations, constraints_violation, message, stopping, success
-end
-function SolverInfos()
-    return 0, 0, "undefined", :undefined, true
 end
 
 

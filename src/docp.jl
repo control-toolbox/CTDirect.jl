@@ -298,7 +298,7 @@ function DOCP_objective(xu, docp::DOCP)
     if docp.is_maximization
         obj = -obj
     end
-    
+
     return obj
 end
 
@@ -311,7 +311,11 @@ Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
 function DOCP_constraints!(c, xu, docp::DOCP)
 
     # initialization
-    time_grid = get_time_grid(xu, docp)
+    if docp.has_free_initial_time || docp.has_free_final_time
+        time_grid = get_time_grid(xu, docp)
+    else
+        time_grid = docp.NLP_fixed_time_grid
+    end
     v = get_OCP_variable(xu, docp)
     work = setWorkArray(docp, xu, time_grid, v)
 
@@ -380,44 +384,25 @@ function DOCP_initial_guess(docp::DOCP, init::CTModels.Init = CTModels.Init())
     return NLP_X
 end
 
-# time grid
-function get_time_grid(xu, docp::DOCP{<:Discretization, <:CTModels.Model{CTModels.TimesModel{CTModels.FixedTimeModel,CTModels.FixedTimeModel}}})
-    return docp.NLP_fixed_time_grid
-end
-#=function get_time_grid(xu, docp::DOCP{<:Discretization, <:CTModels.Model{CTModels.TimesModel{CTModels.FixedTimeModel,CTModels.FreeTimeModel}}})
-    t0 = CTModels.initial_time(docp.ocp)
-    tf = CTModels.final_time(docp.ocp, xu)    
-    grid = similar(xu, docp.dim_NLP_steps+1)
-    @. grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
-    return grid
-end
-function get_time_grid(xu, docp::DOCP{<:Discretization, <:CTModels.Model{CTModels.TimesModel{CTModels.FreeTimeModel,CTModels.FixedTimeModel}}})
-    t0 = CTModels.initial_time(docp.ocp, xu)
-    tf = CTModels.final_time(docp.ocp)    
-    grid = similar(xu, docp.dim_NLP_steps+1)
-    @. grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
-    return grid
-end
-function get_time_grid(xu, docp::DOCP{<:Discretization, <:CTModels.Model{CTModels.TimesModel{CTModels.FreeTimeModel,CTModels.FreeTimeModel}}})
-    t0 = CTModels.initial_time(docp.ocp, xu)
-    tf = CTModels.final_time(docp.ocp, xu)    
-    grid = similar(xu, docp.dim_NLP_steps+1)
-    @. grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
-    return grid
-end=#
+# +++ recheck for runtime dispatch
 function get_time_grid(xu, docp::DOCP)
 
+    ocp = docp.ocp
     if docp.has_free_initial_time
         v = get_OCP_variable(xu, docp)
-        t0 = v[docp.NLP_free_initial_time_index]
+        #t0 = v[docp.NLP_free_initial_time_index]
+        t0 = CTModels.initial_time(ocp, v)
     else
-        t0 = docp.NLP_fixed_initial_time
+        #t0 = docp.NLP_fixed_initial_time
+        t0 = CTModels.initial_time(ocp)
     end
     if docp.has_free_final_time
         v = get_OCP_variable(xu, docp)
-        tf = v[docp.NLP_free_final_time_index]
+        #tf = v[docp.NLP_free_final_time_index]
+        tf = CTModels.final_time(ocp, v)
     else
-        tf = docp.NLP_fixed_final_time
+        #tf = docp.NLP_fixed_final_time
+        tf = CTModels.final_time(ocp)
     end
 
     grid = similar(xu, docp.dim_NLP_steps+1)
