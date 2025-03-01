@@ -38,13 +38,13 @@ All further keywords are passed to the inner call of `solve_docp`
 function direct_solve(
     ocp::OptimalControlModel,
     description::Symbol...;
-    display::Bool = CTBase.__display(),
-    grid_size::Int = CTDirect.__grid_size(),
-    disc_method = __disc_method(),
-    time_grid = CTDirect.__time_grid(),
-    init = CTBase.__ocp_init(),
-    adnlp_backend = __adnlp_backend(),
-    control_type = __control_type(),
+    display::Bool=CTBase.__display(),
+    grid_size::Int=CTDirect.__grid_size(),
+    disc_method=__disc_method(),
+    time_grid=CTDirect.__time_grid(),
+    init=CTBase.__ocp_init(),
+    adnlp_backend=__adnlp_backend(),
+    control_type=__control_type(),
     kwargs...,
 )
     method = getFullDescription(description, available_methods())
@@ -53,12 +53,12 @@ function direct_solve(
     docp, nlp = direct_transcription(
         ocp,
         description;
-        init = init,
-        grid_size = grid_size,
-        time_grid = time_grid,
-        disc_method = disc_method,
-        control_type = control_type,
-        adnlp_backend = adnlp_backend,
+        init=init,
+        grid_size=grid_size,
+        time_grid=time_grid,
+        disc_method=disc_method,
+        control_type=control_type,
+        adnlp_backend=adnlp_backend,
     )
 
     # solve DOCP
@@ -100,24 +100,24 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 function direct_transcription(
     ocp::OptimalControlModel,
     description...;
-    grid_size = __grid_size(),
-    disc_method = __disc_method(),
-    time_grid = __time_grid(),
-    init = CTBase.__ocp_init(),
-    adnlp_backend = __adnlp_backend(),
-    control_type = __control_type(),
-    show_time = false
+    grid_size=__grid_size(),
+    disc_method=__disc_method(),
+    time_grid=__time_grid(),
+    init=CTBase.__ocp_init(),
+    adnlp_backend=__adnlp_backend(),
+    control_type=__control_type(),
+    show_time=false
 )
 
     # build DOCP
-    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, control_type = control_type)
+    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, control_type=control_type)
 
     # set bounds in DOCP
     variables_bounds!(docp)
     constraints_bounds!(docp)
 
     # build and set initial guess in DOCP
-    docp_init = OptimalControlInit(init, state_dim = ocp.state_dimension, control_dim = ocp.control_dimension, variable_dim = ocp.variable_dimension)
+    docp_init = OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension)
     x0 = DOCP_initial_guess(docp, docp_init)
 
     # redeclare objective and constraints functions
@@ -126,35 +126,35 @@ function direct_transcription(
 
     # call NLP problem constructor
     if adnlp_backend == :manual
-        
+
         # build sparsity pattern
         J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
         H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
-        
+
         # build NLP with given patterns
         nlp = ADNLPModel!(
-        f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
-        gradient_backend = ADNLPModels.ReverseDiffADGradient,
-        jacobian_backend = J_backend,
-        hessian_backend = H_backend,
-        hprod_backend = ADNLPModels.EmptyADbackend,
-        jtprod_backend = ADNLPModels.EmptyADbackend,
-        jprod_backend = ADNLPModels.EmptyADbackend,
-        ghjvprod_backend = ADNLPModels.EmptyADbackend,
-        show_time = show_time,
-        #excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend]
-    )
+            f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+            gradient_backend=ADNLPModels.ReverseDiffADGradient,
+            jacobian_backend=J_backend,
+            hessian_backend=H_backend,
+            hprod_backend=ADNLPModels.EmptyADbackend,
+            jtprod_backend=ADNLPModels.EmptyADbackend,
+            jprod_backend=ADNLPModels.EmptyADbackend,
+            ghjvprod_backend=ADNLPModels.EmptyADbackend,
+            show_time=show_time,
+            #excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend]
+        )
     else
         # build NLP
         nlp = ADNLPModel!(
             f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
-            backend = adnlp_backend, 
-            hprod_backend = ADNLPModels.EmptyADbackend,
-            jtprod_backend = ADNLPModels.EmptyADbackend,
-            jprod_backend = ADNLPModels.EmptyADbackend,
-            ghjvprod_backend = ADNLPModels.EmptyADbackend,       
-            show_time = show_time,
-            )
+            backend=adnlp_backend,
+            hprod_backend=ADNLPModels.EmptyADbackend,
+            jtprod_backend=ADNLPModels.EmptyADbackend,
+            jprod_backend=ADNLPModels.EmptyADbackend,
+            ghjvprod_backend=ADNLPModels.EmptyADbackend,
+            show_time=show_time,
+        )
     end
 
     return docp, nlp
@@ -168,7 +168,7 @@ Set initial guess in the DOCP
 """
 function set_initial_guess(docp::DOCP, nlp, init)
     ocp = docp.ocp
-    nlp.meta.x0 .= DOCP_initial_guess(docp, OptimalControlInit(init, state_dim = ocp.state_dimension, control_dim = ocp.control_dimension, variable_dim = ocp.variable_dimension))
+    nlp.meta.x0 .= DOCP_initial_guess(docp, OptimalControlInit(init, state_dim=ocp.state_dimension, control_dim=ocp.control_dimension, variable_dim=ocp.variable_dimension))
 end
 
 
@@ -180,6 +180,6 @@ struct KnitroBackend <: AbstractSolverBackend end
 
 weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP, KnitroBackend => :NLPModelsKnitro)
 
-function solve_docp(solver_backend::T, args...; kwargs...) where {T <: AbstractSolverBackend}
+function solve_docp(solver_backend::T, args...; kwargs...) where {T<:AbstractSolverBackend}
     throw(ExtensionError(weakdeps[T]))
 end
