@@ -24,7 +24,7 @@ CTSolveExtMadNLP = ["MadNLP"]
 
 [compat]
 ADNLPModels = "0.8"
-CTBase = "0.14"
+CTBase = "0.15"
 DocStringExtensions = "0.9"
 HSL = "0.5"
 MadNLP = "0.8"
