@@ -30,6 +30,7 @@ HSL = "0.5"
 MadNLP = "0.8"
 NLPModels = "0.21"
 NLPModelsIpopt = "0.10"
+NLPModelsKnitro = "0.9"
 SparseArrays = "1.10.0"
 julia = "1.10"
 
