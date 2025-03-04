@@ -62,7 +62,14 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-# solution building
+#=
+@testset verbose = true showtiming = true ":solve_nlp :percival" begin
+    docp, nlp = direct_transcription(prob.ocp)
+    dsol = percival(nlp; verbose=0) # +++optimization currently fails...
+end
+=#
+
+# solution checking
 if !isdefined(Main, :double_integrator_minenergy)
     include("../problems/double_integrator.jl")
 end

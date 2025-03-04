@@ -38,28 +38,4 @@ function CTDirect.solve_docp(
     return docp_solution
 end
 
-
-function CTBase.OptimalControlSolution(docp::CTDirect.DOCP, docp_solution::MadNLP.MadNLPExecutionStats)
-
-    # adjust objective sign for maximization problems
-    if is_min(docp.ocp)
-        objective = docp_solution.objective
-    else
-        objective = -docp_solution.objective
-    end
-
-    # call lower level constructor
-    return OptimalControlSolution(
-        docp,
-        primal = docp_solution.solution,
-        dual = docp_solution.multipliers,
-        objective = objective,
-        iterations = docp_solution.iter,
-        constraints_violation = docp_solution.primal_feas,
-        message = "MadNLP",
-        mult_LB = docp_solution.multipliers_L,
-        mult_UB = docp_solution.multipliers_U,
-    )
-end
-
 end

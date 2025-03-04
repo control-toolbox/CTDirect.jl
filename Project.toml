@@ -1,7 +1,7 @@
 name = "CTDirect"
 uuid = "790bbbee-bee9-49ee-8912-a9de031322d5"
 authors = ["Pierre Martinon <pierrecmartinon@gmail.com>", "Joseph Gergaud <joseph.gergaud@enseeiht.fr>", "Olivier Cots <olivier.cots@enseeiht.fr>"]
-version = "0.13.2"
+version = "0.13.3"
 
 [deps]
 ADNLPModels = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
@@ -30,7 +30,9 @@ HSL = "0.5"
 MadNLP = "0.8"
 NLPModels = "0.21"
 NLPModelsIpopt = "0.10"
-SparseArrays = "1.10.0"
+NLPModelsKnitro = "0.9"
+SparseArrays = "1.10"
+SplitApplyCombine = "1.2"
 julia = "1.10"
 
 [extras]
@@ -40,7 +42,7 @@ SplitApplyCombine = "03a91e81-4c3e-53e1-a0a4-9c0c8f19dd66"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "NLPModelsIpopt", "MadNLP", "SplitApplyCombine"]
+test = ["MadNLP", "NLPModelsIpopt", "SplitApplyCombine", "Test"]
 
 [workspace]
 projects = ["test", "docs"]
