@@ -70,9 +70,17 @@ function SolverInfos(docp_solution)
     # try to detect solver here for specific fields !
     iterations = docp_solution.iter
     constraints_violation = docp_solution.primal_feas
-    message = string(docp_solution.solver_specific[:internal_msg][1]) # for NLPModelsIpopt
     stopping = :undefined
     success = true
+    message = "undefined"
+    try 
+        solver_specific = docp_solution.solver_specific
+        if haskey(solver_specific, :internal_msg)
+            # Ipopt solver
+            message = string(solver_specific[:internal_msg][1])
+        end
+    catch e # missing field solve_specific
+    end
 
     return iterations, constraints_violation, message, stopping, success
 end
