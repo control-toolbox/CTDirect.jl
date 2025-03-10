@@ -8,6 +8,7 @@ using NLPModelsIpopt
 
 using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
 
+using Test
 using BenchmarkTools
 using Printf
 using Profile
