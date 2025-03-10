@@ -123,7 +123,6 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
         # OCP dynamics
         CTModels.dynamics(docp.ocp)((@view work[offset+1:offset+docp.dim_OCP_x]), ti, xi, ui, v)
         # lagrange cost
-        # +++ runtime dispatch here for goddard_all which has no lagrnage cost !?
         if docp.has_lagrange
             work[offset+docp.dim_NLP_x] = CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
         end

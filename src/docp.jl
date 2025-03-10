@@ -42,10 +42,6 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
     dim_NLP_steps::Int
     NLP_normalized_time_grid::Vector{Float64}
     NLP_fixed_time_grid::Vector{Float64}
-    NLP_fixed_initial_time::Float64 # otherwise runtime dispatch on times
-    NLP_fixed_final_time::Float64
-    NLP_free_initial_time_index::Int
-    NLP_free_final_time_index::Int
     dim_NLP_variables::Int
     dim_NLP_constraints::Int
 
@@ -98,23 +94,11 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
         dim_OCP_x = CTModels.state_dimension(ocp)
 
         # times
-        if has_free_initial_time
-            NLP_fixed_initial_time = 0.
-            NLP_free_initial_time_index = CTModels.index(CTModels.initial(CTModels.times(ocp)))
-        else
-            NLP_fixed_initial_time = CTModels.initial_time(ocp)
-            NLP_free_initial_time_index = 0
-        end    
-        if has_free_final_time
-            NLP_fixed_final_time = 0.
-            NLP_free_final_time_index = CTModels.index(CTModels.final(CTModels.times(ocp)))
-        else
-            NLP_fixed_final_time = CTModels.final_time(ocp)
-            NLP_free_final_time_index = 0
-        end
         if !has_free_initial_time && !has_free_final_time
             # compute time grid once for all
-            NLP_fixed_time_grid = @. NLP_fixed_initial_time + (NLP_normalized_time_grid * (NLP_fixed_final_time - NLP_fixed_initial_time))
+            t0 = CTModels.initial_time(ocp)
+            tf = CTModels.final_time(ocp)
+            NLP_fixed_time_grid = @. t0 + (NLP_normalized_time_grid * (tf - t0))
         else
             # time grid will be recomputed at each NLP iteration
             NLP_fixed_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
@@ -168,10 +152,6 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
             dim_NLP_steps,
             NLP_normalized_time_grid,
             NLP_fixed_time_grid,
-            NLP_fixed_initial_time,
-            NLP_fixed_final_time,
-            NLP_free_initial_time_index,
-            NLP_free_final_time_index,
             dim_NLP_variables,
             dim_NLP_constraints,
             -Inf * ones(dim_NLP_variables),
@@ -266,7 +246,6 @@ function variables_bounds!(docp::DOCP)
     return var_l, var_u
 end
 
-# Q. should we put objective and constraints *in* DOCP ?
 
 """
 $(TYPEDSIGNATURES)
@@ -384,27 +363,29 @@ function DOCP_initial_guess(docp::DOCP, init::CTModels.Init = CTModels.Init())
     return NLP_X
 end
 
-# +++ using CTModels getters gives runtime dispatch -_-
+
+"""
+$(TYPEDSIGNATURES)
+
+Return time grid for variable time problems (times are then dependent on NLP variables)
+"""
 function get_time_grid(xu, docp::DOCP)
 
     grid = similar(xu, docp.dim_NLP_steps+1)
 
+    # NB. JET gives runtime dispacth warnings for the *uncalled* getters...
     ocp = docp.ocp
     if docp.has_free_initial_time
         v = get_OCP_variable(xu, docp)
-        t0 = v[docp.NLP_free_initial_time_index]
-        #t0 = CTModels.initial_time(ocp, v)
+        t0 = CTModels.initial_time(ocp, v)
     else
-        t0 = docp.NLP_fixed_initial_time
-        #t0 = CTModels.initial_time(ocp)
+        t0 = CTModels.initial_time(ocp)
     end
     if docp.has_free_final_time
         v = get_OCP_variable(xu, docp)
-        tf = v[docp.NLP_free_final_time_index]
-        #tf = CTModels.final_time(ocp, v)
+        tf = CTModels.final_time(ocp, v)
     else
-        tf = docp.NLP_fixed_final_time
-        #tf = CTModels.final_time(ocp)
+        tf = CTModels.final_time(ocp)
     end
 
     @. grid = t0 + docp.NLP_normalized_time_grid * (tf - t0)
