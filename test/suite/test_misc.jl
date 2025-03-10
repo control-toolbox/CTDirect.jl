@@ -1,5 +1,7 @@
 println("testing: miscellaneous")
 
+# +++ to be completed cf default.jl
+
 @testset verbose = true ":default_direct" begin
     @test CTDirect.__grid_size() isa Integer
     @test isnothing(CTDirect.__time_grid())

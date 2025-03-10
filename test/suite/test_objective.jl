@@ -11,14 +11,6 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-#= +++ retry with adnlp_backend=:default ?
-# min tf (lagrange equal to 1) sometimes fails at AD...
-@testset verbose = true showtiming = true ":min_tf :lagrange" begin
-    prob = double_integrator_mintf(lagrange = true)
-    sol = direct_solve(prob.ocp, display = false)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
-end
-=#
 
 # max t0 (free t0 and tf)
 @testset verbose = true showtiming = true ":max_t0" begin
@@ -37,7 +29,7 @@ prob = bolza_freetf()
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-#= +++retry
+#= +++retry with :default AD backend ?
 @def ocp begin
     v = (t0, tf) ∈ R^2, variable
     t ∈ [t0, tf], time
@@ -50,13 +42,12 @@ end
     0.01 ≤ tf - t0 ≤ 10
     (t0^2 + tf) + 0.5∫(u(t)^2) → min
 end
-#@testset verbose = true showtiming = true ":bolza :t0_tf_in_dyn_and_cost" begin
+@testset verbose = true showtiming = true ":bolza :t0_tf_in_dyn_and_cost" begin
     sol = direct_solve(ocp, print_level=5)
-#    @test sol.variable[1] ≈ 1.107 rtol=1e-2
-#end
-=#
+    @test sol.variable[1] ≈ 1.107 rtol=1e-2
+end
 
-#= :default backend ?
+# :default backend ?
 @def ocp2 begin
     s ∈ [0, 1], time
     y ∈ R^2, state

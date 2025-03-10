@@ -33,7 +33,7 @@ function parametric(ρ)
     mayer(x0, xf, v) = -(xf[2] - 2)^3
     function l(t, x, u, v) 
         τ = v[1]
-        return - ρ * (τ * m(x[1]))^2 + (T - τ) * m(x[2])^2
+        return - ρ * (τ * m(x[1])^2 + (T - τ) * m(x[2])^2)
     end
     CTModels.objective!(pre_ocp, :min, lagrange=l, mayer=mayer)
 

@@ -1,8 +1,8 @@
 println("testing: discrete continuation")
 
-test1 = false
+test1 = true
 test2 = true
-test3 = false
+test3 = true
 draw_plot = false
 
 # double integrator 
@@ -32,14 +32,13 @@ if test2
     @testset verbose = true showtiming = true ":continuation :parametric_ocp" begin
         init = ()
         obj_list = []
-        for ρ in [0.1,1,2,3,4,5,6,7,8,9, 10, 30, 100]
+        for ρ in [0.1, 5, 10, 30, 100]
             ocp = parametric(ρ).ocp
-            sol = direct_solve(ocp, display = false, grid_size=1000, tol=1e-8) #, init = init)
+            sol = direct_solve(ocp, display = false, init = init)
             init = sol
             push!(obj_list, sol.objective)
         end
-        println(obj_list)
-        #@test obj_list ≈ [-0.034,0,0,0,0, -1.67,0,0,0,0, -6.2, -35, -148] rtol = 1e-2
+        @test obj_list ≈ [-0.034, -1.67, -6.2, -35, -148] rtol = 1e-2
     end
 end
 

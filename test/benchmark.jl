@@ -1,21 +1,18 @@
 # Benchmark
 using CTDirect
-using NLPModelsIpopt
 import CTModels
 
-using LinearAlgebra
 using NLPModelsIpopt
-
+using MadNLP
 using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
 
 using Test
+using LinearAlgebra
 using BenchmarkTools
 using Printf
 using Profile
 using PProf
 using JET
-
-#using MadNLPMumps
 
 #######################################################
 # load examples library

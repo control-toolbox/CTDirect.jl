@@ -185,14 +185,14 @@ end
     @test CTModels.variable(sol) == v_const
 end
 
-#= 1.f warm start
+# 1.f warm start
 @testset verbose = true showtiming = true ":warm_start" begin
     sol = direct_solve(ocp, display = false, init = sol0, max_iter = maxiter)
     T = CTModels.time_grid(sol)
-    @test isapprox(CTModels.state(sol).(T), sol0.state.solution.(T), rtol = 1e-2)
-    @test isapprox(CTModels.control(sol).(T), sol0.control.solution.(T), rtol = 1e-2)
-    @test CTModels.variable(sol) == sol0.variable.solution
-end=#
+    @test isapprox(CTModels.state(sol).(T), CTModels.state(sol0).(T), rtol = 1e-2)
+    @test isapprox(CTModels.control(sol).(T), CTModels.control(sol0).(T), rtol = 1e-2)
+    @test CTModels.variable(sol) == CTModels.variable(sol0)
+end
 
 #################################################
 # 2 Setting the initial guess at the DOCP level
@@ -212,13 +212,13 @@ solver_backend = CTDirect.IpoptBackend()
     @test isapprox(CTModels.control(sol).(T), u_func.(T), rtol = 1e-2)
     @test CTModels.variable(sol) == v_const
 end
-#= warm start
+# warm start
 @testset verbose = true showtiming = true ":docp_warm_start" begin
     set_initial_guess(docp, nlp, sol0)
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false, max_iter = maxiter)
-    sol = OptimalControlSolution(docp, dsol)
+    sol = build_OCP_solution(docp, dsol)
     T = CTModels.time_grid(sol)
-    @test isapprox(CTModels.state(sol).(T), sol0.state.solution.(T), rtol = 1e-2)
-    @test isapprox(CTModels.control(sol).(T), sol0.control.solution.(T), rtol = 1e-2)
-    @test CTModels.variable(sol) == sol0.variable.solution
-end=#
+    @test isapprox(CTModels.state(sol).(T), CTModels.state(sol0).(T), rtol = 1e-2)
+    @test isapprox(CTModels.control(sol).(T), CTModels.control(sol0).(T), rtol = 1e-2)
+    @test CTModels.variable(sol) == CTModels.variable(sol0)
+end

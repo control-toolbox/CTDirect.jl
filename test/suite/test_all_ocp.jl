@@ -50,15 +50,15 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-#= robbins obj is 19.4 instead of 20
+# robbins obj is 19.4 instead of 20
 if !isdefined(Main, :robbins)
     include("../problems/robbins.jl")
 end
 @testset verbose = true showtiming = true ":robbins" begin
     prob = robbins()
-    sol = direct_solve(prob.ocp, display = false, grid_size=100, tol=1e-8)
+    sol = direct_solve(prob.ocp, display = false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
-end=#
+end
 
 # simple integrator
 if !isdefined(Main, :simple_integrator)
