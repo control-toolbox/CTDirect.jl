@@ -3,7 +3,8 @@ Internal layout for NLP variables:
 [X_1,U_1,K_1 .., X_N,U_N,K_N, X_N+1, V]
 with the convention u([t_i,t_i+1[) = U_i and u(tf) = U_N
 NB. stage variables K_i can be removed via the simplification x_s = (x_i + x_i+1) / 2
-however this seems to give worse performance...
+hence k_i = f(x_i + x_i+1)/2), however this seems to give worse performance...
++++ to be rechecked !
 =#
 
 struct Midpoint <: Discretization
@@ -21,7 +22,7 @@ struct Midpoint <: Discretization
         state_stage_eqs_block = dim_NLP_x * 2
         step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
 
-        # NLP variables size ([state, control]_1..N, final state, variable)
+        # NLP variables size ([state, control, stage]_1..N, final state, variable)
         dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
         
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
@@ -49,6 +50,8 @@ function get_OCP_state_at_time_step(xu, docp::DOCP{Midpoint, VectVariable, <: Sc
     offset = (i-1) * docp.discretization._step_variables_block
     return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
 end
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -59,6 +62,8 @@ function get_lagrange_state_at_time_step(xu, docp::DOCP{Midpoint}, i)
     offset = (i-1) * docp.discretization._step_variables_block
     return xu[offset + docp.dim_NLP_x]
 end
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -79,6 +84,7 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint, <: ScalVect, Vect
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -90,7 +96,6 @@ function get_stagevars_at_time_step(xu, docp::DOCP{Midpoint}, i, j)
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
     return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -105,6 +110,7 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP{Midpoint}, i)
         xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
     end
 end
+
 """
 $(TYPEDSIGNATURES)
 
@@ -130,7 +136,6 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
     return work
 
 end
-
 
 """
 $(TYPEDSIGNATURES)
