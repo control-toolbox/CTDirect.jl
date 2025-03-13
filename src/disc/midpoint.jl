@@ -60,11 +60,11 @@ end
 $(TYPEDSIGNATURES)
 
 Retrieve stage variables at given time step/stage from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps,	1 <= j <= s
+Convention: 1 <= i <= dim_NLP_steps
 Vector output
 """
-function get_stagevars_at_time_step(xu, docp::DOCP{Midpoint}, i, j)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
+function get_stagevars_at_time_step(xu, docp::DOCP{Midpoint}, i)
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u
     return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
 end
 
@@ -126,7 +126,7 @@ function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
         end
        
         # state equation: midpoint rule
-        ki = get_stagevars_at_time_step(xu, docp, i, 1)
+        ki = get_stagevars_at_time_step(xu, docp, i)
         @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * ki[1:docp.dim_OCP_x])
         if docp.is_lagrange
         c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * ki[docp.dim_NLP_x])
