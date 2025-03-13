@@ -36,40 +36,6 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve control variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
-Scalar / Vector output
-"""
-function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint_stage, <: ScalVect, ScalVariable, <: ScalVect}, i)
-    # final time case
-    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return xu[offset+1]
-end
-function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint_stage, <: ScalVect, VectVariable, <: ScalVect}, i)
-    # final time case
-    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Set initial guess for control variables at given time step
-Convention: 1 <= i <= dim_NLP_steps
-"""
-function set_control_at_time_step!(xu, u_init, docp::DOCP{Midpoint_stage}, i)
-    if i <= docp.dim_NLP_steps && !isnothing(u_init)
-        offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-        xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
-    end
-end
-
-"""
-$(TYPEDSIGNATURES)
-
 Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{Midpoint_stage}, xu, time_grid, v)
@@ -186,7 +152,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint_stage})
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, v_start, v_end)
         end
 
-        # 1.3 stage equation 0 = k_i - f(t_s, x_s, u_i, v)
+        # 1.3 stage equation 0 = k_i - f(t_s, x_s, u_i, v) (with lagrange part)
         # with t_s = (t_i + t_i+1)/2    x_s = (x_i + x_i+1)/2
         # depends on x_i, u_i, x_i+1, k_i, and v; skip l_i
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+2*docp.dim_NLP_x, xi_start, xi_end)
@@ -281,7 +247,10 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint_stage})
         add_nonzero_block!(Is, Js, xi_start, xi_end, v_start, v_end; sym=true)
         add_nonzero_block!(Is, Js, ui_start, xip1_end, v_start, v_end; sym=true)
 
-        # 1.4 path constraint g(t_i, x_i, u_i, v)
+        # 1.4 lagrange part 0 = l_i+1 - (l_i + h_i * l(t_s, x_s, u_i, v))
+        # -> included in 1.3 since l_i and l_i+1 have no second order term
+
+        # 1.5 path constraint g(t_i, x_i, u_i, v)
         # -> included in 1.3
     end
 

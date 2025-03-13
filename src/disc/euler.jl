@@ -4,6 +4,7 @@ Internal layout for NLP variables:
 with the convention 
 - Explicit Euler: u([t_i,t_i+1[) = U_i and u(tf) = U_N
 - Implicit Euler: u(]t_i,t_i+1]) = U_i and u(t0) = U_1
+Note that both the explicit and implicit versions therefore use the same variables layout.
 =#
 
 struct Euler <: Discretization
@@ -12,6 +13,7 @@ struct Euler <: Discretization
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
+    _final_control::Bool
     _explicit::Bool
 
     # constructor
@@ -33,7 +35,7 @@ struct Euler <: Discretization
         else
             info = "Euler (implicit), 1st order"
         end
-        disc = new(info, step_variables_block, state_stage_eqs_block, step_pathcons_block, explicit)
+        disc = new(info, step_variables_block, state_stage_eqs_block, step_pathcons_block, false, explicit)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -44,7 +46,7 @@ end
 $(TYPEDSIGNATURES)
 
 Retrieve control variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
+Convention: see above for acplicit / implicit versions
 Scalar / Vector output
 """
 function get_OCP_control_at_time_step(xu, docp::DOCP{Euler, <: ScalVect, ScalVariable, <: ScalVect}, i)
@@ -126,7 +128,7 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
         # state equation: euler rule
         @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * work[1:docp.dim_OCP_x])
         if docp.is_lagrange
-        c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[docp.dim_NLP_x])
+            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[docp.dim_NLP_x])
         end
         offset += docp.dim_NLP_x
 

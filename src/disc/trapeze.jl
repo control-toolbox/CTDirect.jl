@@ -57,10 +57,11 @@ Convention: 1 <= i <= dim_NLP_steps+1
 """
 function set_control_at_time_step!(xu, u_init, docp::DOCP{Trapeze}, i)
     if !isnothing(u_init)
-        offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+        offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
         xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
     end
 end
+
 
 """
 $(TYPEDSIGNATURES)

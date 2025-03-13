@@ -36,41 +36,6 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve control variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
-Scalar / Vector output
-"""
-function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint_nowork, <: ScalVect, ScalVariable, <: ScalVect}, i)
-    # final time case
-    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return xu[offset+1]
-end
-function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint_nowork, <: ScalVect, VectVariable, <: ScalVect}, i)
-    # final time case
-    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Set initial guess for control variables at given time step
-Convention: 1 <= i <= dim_NLP_steps
-"""
-function set_control_at_time_step!(xu, u_init, docp::DOCP{Midpoint_nowork}, i)
-    if i <= docp.dim_NLP_steps && !isnothing(u_init)
-        offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-        xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
-    end
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
 Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """

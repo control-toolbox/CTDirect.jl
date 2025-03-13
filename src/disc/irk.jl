@@ -291,6 +291,7 @@ function set_control_at_time_step!(xu, u_init, docp::DOCP{ <: GenericIRK}, i)
     end
 end
 
+
 """
 $(TYPEDSIGNATURES)
 

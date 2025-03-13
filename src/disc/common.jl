@@ -44,32 +44,26 @@ function get_lagrange_state_at_time_step(xu, docp::DOCP{<: Discretization}, i)
 end
 
 
-#=
-# for control the number of parameters can vary depending on discretization !
-# maybe reintroduce _final_control field ?
 """
 $(TYPEDSIGNATURES)
 
 Retrieve control variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
+Convention: 1 <= i <= dim_NLP_steps, with convention u(tf) = U_N
 Scalar / Vector output
 """
 function get_OCP_control_at_time_step(xu, docp::DOCP{D :< Discretization, <: ScalVect, ScalVariable, <: ScalVect}, i)
     # final time case
-    if (i == docp.dim_NLP_steps + 1) && !docp.discretization._final_control 
-        i = docp.dim_NLP_steps
-    end
+    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return xu[offset+1]
 end
 function get_OCP_control_at_time_step(xu, docp::DOCP{D :< Discretization, <: ScalVect, VectVariable, <: ScalVect}, i)
     # final time case
-    if (i == docp.dim_NLP_steps + 1) && !docp.discretization._final_control 
-        i = docp.dim_NLP_steps
-    end
+    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
-end=#
+end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -94,6 +88,7 @@ function set_optim_variable!(xu, v_init, docp)
     xu[(end - docp.dim_NLP_v + 1):end] .= v_init
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -108,16 +103,16 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP{<: Discretization}, i)
     end
 end
 
-# also add here a more toplevel set_variables_at_time_step ? (potentially include stage variables later ?) and call it from docp
+# +++ add here a more toplevel set_variables_at_time_step ? (potentially include stage variables later ?) and call it from docp
 """
 $(TYPEDSIGNATURES)
 
 Set initial guess for control variables at given time step
-Convention: 1 <= i <= dim_NLP_steps(+1)
+Convention: 1 <= i <= dim_NLP_steps
 """
 function set_control_at_time_step!(xu, u_init, docp::DOCP{<: Discretization}, i)
     if !isnothing(u_init)
-        if i <= docp.dim_NLP_steps #|| (docp.discretization._final_control && i <= docp.dim_NLP_steps + 1)
+        if i <= docp.dim_NLP_steps
             offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
             xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
         end
