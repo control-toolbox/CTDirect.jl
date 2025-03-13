@@ -3,7 +3,7 @@ Internal layout for NLP variables:
 [X_1,U_1, .., X_N+1,U_N+1, V]
 =#
 
-# NB. could be defined as a generic IRK
+# NB. could also be defined as a generic IRK for testing
 struct Trapeze <: Discretization
 
     info::String
@@ -29,14 +29,6 @@ struct Trapeze <: Discretization
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
-end
-
-# not only for Trapeze, but may be redefined if needed
-function get_OCP_variable(xu, docp::DOCP{<: Discretization, <: ScalVect, <: ScalVect, ScalVariable})
-    return xu[docp.dim_NLP_variables]
-end
-function get_OCP_variable(xu, docp::DOCP{<: Discretization, <: ScalVect, <: ScalVect, VectVariable})
-    return @view xu[(docp.dim_NLP_variables - docp.dim_NLP_v + 1):docp.dim_NLP_variables]
 end
 
 

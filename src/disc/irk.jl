@@ -18,7 +18,7 @@ abstract type GenericIRK <: Discretization end
 $(TYPEDSIGNATURES)
 
 Implicit Midpoint discretization, formulated as a generic IRK (ie Gauss Legendre 1)
-NB. does not use the simplification xs = 0.5 * (xi + xip1) as in midpoint.jl
+For testing purpose only, use :midpoint instead (cf midpoint.jl) !
 """
 struct Gauss_Legendre_1 <: GenericIRK
 
@@ -37,7 +37,7 @@ struct Gauss_Legendre_1 <: GenericIRK
 
         step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
 
-        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable", stage, hcat(0.5), [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block)
+        disc = new("[test only] Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable", stage, [0.5;;], [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -110,6 +110,101 @@ struct Gauss_Legendre_3 <: GenericIRK
         [0.5 - 0.1*sqrt(15), 0.5, 0.5 + 0.1*sqrt(15)],
         step_variables_block, state_stage_eqs_block, step_pathcons_block, control_type
         )
+
+        return disc, dim_NLP_variables, dim_NLP_constraints
+    end
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Explicit Euler discretization, formulated as a generic IRK
+For testing purpose only, use :euler instead (cf euler.jl) !
+"""
+struct Euler_explicit <: GenericIRK
+
+    info::String
+    stage::Int
+    butcher_a::Matrix{Float64}
+    butcher_b::Vector{Float64}
+    butcher_c::Vector{Float64}
+    _step_variables_block::Int
+    _state_stage_eqs_block::Int
+    _step_pathcons_block::Int
+
+    function Euler_explicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+        
+        stage = 1
+
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints =  IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
+
+        disc = new("[test only] Explicit Euler, 1st order",stage, [0.;;], [1.], [0.],
+        step_variables_block, state_stage_eqs_block, step_pathcons_block)
+
+        return disc, dim_NLP_variables, dim_NLP_constraints
+    end
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Implicit Euler discretization, formulated as a generic IRK
+For testing purpose only, use :euler_implicit instead (cf euler.jl) !
+"""
+struct Euler_implicit <: GenericIRK
+
+    info::String
+    stage::Int
+    butcher_a::Matrix{Float64}
+    butcher_b::Vector{Float64}
+    butcher_c::Vector{Float64}
+    _step_variables_block::Int
+    _state_stage_eqs_block::Int
+    _step_pathcons_block::Int
+
+    function Euler_implicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+        
+        stage = 1
+
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints =  IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
+
+        disc = new("[test only] Implicit Euler, 1st order",stage, [1.;;], [1.], [1.],
+        step_variables_block, state_stage_eqs_block, step_pathcons_block)
+
+        return disc, dim_NLP_variables, dim_NLP_constraints
+    end
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Implicit Trapeze (Crank-Nicolson) discretization, formulated as a generic IRK
+For testing purpose only, use :trapeze instead (cf trapeze.jl) !
+"""
+struct Trapeze_implicit <: GenericIRK
+
+    info::String
+    stage::Int
+    butcher_a::Matrix{Float64}
+    butcher_b::Vector{Float64}
+    butcher_c::Vector{Float64}
+    _step_variables_block::Int
+    _state_stage_eqs_block::Int
+    _step_pathcons_block::Int
+    _control_type::Symbol
+
+    function Trapeze_implicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)
+        
+        stage = 2
+
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints =  IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
+
+        disc = new("[test only] Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable",stage, 
+        [0 0; 0.5 0.5], [0.5, 0.5], [0.5, 0.5],
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, control_type)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
