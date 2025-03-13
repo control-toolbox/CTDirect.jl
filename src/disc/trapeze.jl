@@ -87,6 +87,7 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
             docp.ocp.lagrange((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ti, xi, ui, v)
         end
     end
+    
     return work
 end
 
@@ -127,8 +128,10 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     end
 
     # 2. path constraints
-    ui = get_OCP_control_at_time_step(xu, docp, i)
-    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    if docp.discretization._step_pathcons_block > 0
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    end
 
 end
 

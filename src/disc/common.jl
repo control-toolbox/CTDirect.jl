@@ -74,6 +74,20 @@ end=#
 """
 $(TYPEDSIGNATURES)
 
+Retrieve stage variables at given time step/stage from the NLP variables.
+Convention: 1 <= i <= dim_NLP_steps(+1),	1 <= j <= s
+Vector output
+Note that passing correct indices is up to the caller, no checks are made here.
+"""
+function get_stagevars_at_time_step(xu, docp::DOCP, i, j)
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
+    return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
 Set optimization variables in the NLP variables (for initial guess)
 """
 function set_optim_variable!(xu, v_init, docp)

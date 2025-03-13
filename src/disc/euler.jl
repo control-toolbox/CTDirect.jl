@@ -133,6 +133,8 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
     end
    
     # 2. path constraints
-    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    if docp.discretization._step_pathcons_block > 0
+        setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    end
     
 end

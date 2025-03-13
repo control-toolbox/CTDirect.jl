@@ -3,6 +3,7 @@ Internal layout for NLP variables:
 [X_1,U_1,K_1, ... , X_N+1,U_N+1,K_N+1, V]
 with 'stage' variables K_i = f(T_i, X_i, U_i, V)
 No work array
+NB. Seems much worse than standard version... Apparently the increased NLP variables and constraints size is not compensated by faster convergence.
 =#
 
 struct Trapeze_stage <: Discretization
@@ -49,11 +50,6 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze_stage, <: ScalVect,
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 
-function get_stagevars_at_time_step(xu, docp::DOCP{Trapeze_stage}, i)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
-end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -83,14 +79,14 @@ function setStepConstraints!(docp::DOCP{Trapeze_stage}, c, xu, v, time_grid, i, 
     # 0. variables
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
-    fi = get_stagevars_at_time_step(xu, docp, i)
+    fi = get_stagevars_at_time_step(xu, docp, i, 1)
 
     # 1.1 state equation
     if i <= docp.dim_NLP_steps
         # more variables
         tip1 = time_grid[i+1]
         xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
-        fip1 = get_stagevars_at_time_step(xu, docp, i+1)
+        fip1 = get_stagevars_at_time_step(xu, docp, i+1, 1)
         half_hi = 0.5 * (tip1 - ti)
 
         # trapeze rule
@@ -111,6 +107,8 @@ function setStepConstraints!(docp::DOCP{Trapeze_stage}, c, xu, v, time_grid, i, 
     offset += docp.dim_NLP_x
 
     # 2. path constraints
-    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    if docp.discretization._step_pathcons_block > 0
+        setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    end
 
 end

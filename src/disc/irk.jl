@@ -280,33 +280,6 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve stage variables at given time step/stage from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps,	1 <= j <= s
-Vector output
-"""
-function get_stagevars_at_time_step(xu, docp::DOCP{ <: GenericIRK}, i, j)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
-end
-
-#=
-"""
-$(TYPEDSIGNATURES)
-
-Set initial guess for state variables at given time step
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function set_state_at_time_step!(xu, x_init, docp::DOCP{ <: GenericIRK}, i)
-    # initialize only actual state variables from OCP (not lagrange state)
-    if !isnothing(x_init)
-        offset = (i-1) * docp.discretization._step_variables_block
-        xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
-    end
-end
-=#
-"""
-$(TYPEDSIGNATURES)
-
 Set initial guess for control variables at given time step (/stage)
 Convention: 1 <= i <= dim_NLP_steps+1
 Step / stage versions
@@ -411,9 +384,11 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
     end
 
     #2. path constraints
-    ui = get_OCP_control_at_time_step(xu, docp, i)
-    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
-
+    if docp.discretization._step_pathcons_block > 0
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    end
+    
 end
 
 
