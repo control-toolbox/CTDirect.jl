@@ -3,6 +3,7 @@ using CTDirect
 using CTBase
 
 using LinearAlgebra
+using MadNLP
 using NLPModelsIpopt
 
 using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
@@ -13,8 +14,8 @@ using Printf
 using Profile
 using PProf
 using JET
+using Test
 
-#using MadNLPMumps
 
 #######################################################
 # load examples library

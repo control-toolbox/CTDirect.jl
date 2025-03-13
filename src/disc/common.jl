@@ -57,6 +57,10 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP{<: Discretization}, i)
         xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
     end
 end
+
+# for control the number of parameters can vary depending on discretization !
+# maybe reintroduce _final_control field ?
+# also add here a more toplevel set_variables_at_time_step ? (potentially include stage variables later ?) and call it from docp
 """
 $(TYPEDSIGNATURES)
 

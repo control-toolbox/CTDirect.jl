@@ -3,7 +3,7 @@ Internal layout for NLP variables:
 [X_1,U_1, .., X_N+1,U_N+1, V]
 =#
 
-# NB. could also be defined as a generic IRK for testing
+
 struct Trapeze <: Discretization
 
     info::String
@@ -35,57 +35,20 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve state variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
-Scalar / Vector output
-"""
-function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze, ScalVariable, <: ScalVect, <: ScalVect}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    return xu[offset+1]
-end
-function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze, VectVariable, <: ScalVect, <: ScalVect}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
-end
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve state variable for lagrange cost at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function get_lagrange_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    return xu[offset + docp.dim_NLP_x]
-end
-"""
-$(TYPEDSIGNATURES)
-
 Retrieve control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
 Scalar / Vector output
 """
 function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, ScalVariable, <: ScalVect}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return xu[offset+1]
 end
 function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, VectVariable, <: ScalVect}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 
-"""
-$(TYPEDSIGNATURES)
 
-Set initial guess for state variables at given time step
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function set_state_at_time_step!(xu, x_init, docp::DOCP{Trapeze}, i)
-    # initialize only actual state variables from OCP (not lagrange state)
-    if !isnothing(x_init)
-        offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-        xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
-    end
-end
 """
 $(TYPEDSIGNATURES)
 

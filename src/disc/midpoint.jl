@@ -38,35 +38,6 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve state variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
-Scalar / Vector output
-"""
-function get_OCP_state_at_time_step(xu, docp::DOCP{Midpoint, ScalVariable, <: ScalVect, <: ScalVect}, i)
-    offset = (i-1) * docp.discretization._step_variables_block
-    return xu[offset+1]
-end
-function get_OCP_state_at_time_step(xu, docp::DOCP{Midpoint, VectVariable, <: ScalVect, <: ScalVect}, i)
-    offset = (i-1) * docp.discretization._step_variables_block
-    return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve state variable for lagrange cost at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function get_lagrange_state_at_time_step(xu, docp::DOCP{Midpoint}, i)
-    offset = (i-1) * docp.discretization._step_variables_block
-    return xu[offset + docp.dim_NLP_x]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
 Retrieve control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
 Scalar / Vector output
@@ -97,19 +68,6 @@ function get_stagevars_at_time_step(xu, docp::DOCP{Midpoint}, i, j)
     return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
 end
 
-"""
-$(TYPEDSIGNATURES)
-
-Set initial guess for state variables at given time step
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function set_state_at_time_step!(xu, x_init, docp::DOCP{Midpoint}, i)
-    # initialize only actual state variables from OCP (not lagrange state)
-    if !isnothing(x_init)
-        offset = (i-1) * docp.discretization._step_variables_block
-        xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
-    end
-end
 
 """
 $(TYPEDSIGNATURES)
