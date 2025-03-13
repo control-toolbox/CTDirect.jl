@@ -71,6 +71,14 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{D :< Discretization, <: Sca
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end=#
 
+"""
+$(TYPEDSIGNATURES)
+
+Set optimization variables in the NLP variables (for initial guess)
+"""
+function set_optim_variable!(xu, v_init, docp)
+    xu[(end - docp.dim_NLP_v + 1):end] .= v_init
+end
 
 """
 $(TYPEDSIGNATURES)

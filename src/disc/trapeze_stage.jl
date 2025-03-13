@@ -1,7 +1,7 @@
 #= Functions for trapeze discretization scheme
 Internal layout for NLP variables: 
-[X_1,U_1,K_1 .., X_N+1,U_N+1,K_N+1 V]
-with 'stage' variables k_i = f(t_i, x_i, u_i, v)
+[X_1,U_1,K_1, ... , X_N+1,U_N+1,K_N+1, V]
+with 'stage' variables K_i = f(T_i, X_i, U_i, V)
 No work array
 =#
 
@@ -40,16 +40,16 @@ Retrieve control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
 Scalar / Vector output
 """
-function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, ScalVariable, <: ScalVect}, i)
+function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze_stage, <: ScalVect, ScalVariable, <: ScalVect}, i)
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return xu[offset+1]
 end
-function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, VectVariable, <: ScalVect}, i)
+function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze_stage, <: ScalVect, VectVariable, <: ScalVect}, i)
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 
-function get_stagevars_at_time_step(xu, docp::DOCP{Midpoint}, i)
+function get_stagevars_at_time_step(xu, docp::DOCP{Trapeze_stage}, i)
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u
     return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
 end
@@ -61,9 +61,9 @@ $(TYPEDSIGNATURES)
 Set initial guess for control variables at given time step
 Convention: 1 <= i <= dim_NLP_steps+1
 """
-function set_control_at_time_step!(xu, u_init, docp::DOCP{Trapeze}, i)
+function set_control_at_time_step!(xu, u_init, docp::DOCP{Trapeze_stage}, i)
     if !isnothing(u_init)
-        offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+        offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
         xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
     end
 end
@@ -75,7 +75,7 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
-function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
+function setStepConstraints!(docp::DOCP{Trapeze_stage}, c, xu, v, time_grid, i, work)
 
     # offset for previous steps
     offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
@@ -83,7 +83,6 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # 0. variables
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
-    ui = get_OCP_control_at_time_step(xu, docp, i)
     fi = get_stagevars_at_time_step(xu, docp, i)
 
     # 1.1 state equation
@@ -103,6 +102,7 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     end
 
     # 1.2 stage equations k_i = f(t_i, x_i, u_i, v) including at tf
+    ui = get_OCP_control_at_time_step(xu, docp, i)
     docp.ocp.dynamics((@view c[offset+1:offset+docp.dim_OCP_x]), ti, xi, ui, v)
     if docp.is_lagrange
         docp.ocp.lagrange((@view c[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ti, xi, ui, v)
@@ -110,9 +110,7 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     @views @. c[offset+1:offset+docp.dim_NLP_x] = fi - c[offset+1:offset+docp.dim_NLP_x]
     offset += docp.dim_NLP_x
 
-
     # 2. path constraints
-    ui = get_OCP_control_at_time_step(xu, docp, i)
     setPathConstraints!(docp, c, ti, xi, ui, v, offset)
 
 end

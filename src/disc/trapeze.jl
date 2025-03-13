@@ -15,17 +15,17 @@ struct Trapeze <: Discretization
     function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
 
         # aux variables
-        step_variables_block = dim_NLP_x + dim_NLP_u
-        state_stage_eqs_block = dim_NLP_x
-        step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
+        _step_variables_block = dim_NLP_x + dim_NLP_u
+        _state_stage_eqs_block = dim_NLP_x
+        _step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
 
         # NLP variables size ([state, control]_1..N+1, variable)
-        dim_NLP_variables = (dim_NLP_steps + 1) * step_variables_block + dim_NLP_v
+        dim_NLP_variables = (dim_NLP_steps + 1) * _step_variables_block + dim_NLP_v
 
         # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
-        dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
+        dim_NLP_constraints = dim_NLP_steps * (_state_stage_eqs_block + _step_pathcons_block) + _step_pathcons_block + dim_boundary_cons + dim_v_cons
 
-        disc = new("Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", step_variables_block, state_stage_eqs_block, step_pathcons_block)
+        disc = new("Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", _step_variables_block, _state_stage_eqs_block, _step_pathcons_block)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
