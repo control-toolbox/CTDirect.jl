@@ -1,5 +1,3 @@
-using SplitApplyCombine
-
 println("testing: constraint types")
 
 if !isdefined(Main, :goddard)

@@ -1,8 +1,5 @@
 # Direct methods
 
-# +++ temp
-__ocp_init() = nothing
-
 """
 $(TYPEDSIGNATURES)
 
@@ -18,6 +15,22 @@ Used to set the default grid size.
 The default value is `250`.
 """
 __grid_size() = 250
+
+"""
+$(TYPEDSIGNATURES)
+
+Used to set the default initial guess.
+The default value is `nothing` and will correspond to 0.1 for all variables.
+"""
+__ocp_init() = nothing 
+
+"""
+$(TYPEDSIGNATURES)
+
+Used to set the default display toggle.
+The default value is true.
+"""
+__display() = true 
 
 """
 $(TYPEDSIGNATURES)

@@ -16,7 +16,7 @@ function CTDirect.solve_docp(
     solver_backend::CTDirect.MadNLPBackend,
     docp::CTDirect.DOCP,
     nlp;
-    display::Bool = CTBase.__display(),
+    display::Bool = CTDirect.__display(),
     max_iter::Integer = CTDirect.__max_iterations(),
     tol::Real = CTDirect.__tolerance(),
     linear_solver::String = CTDirect.__madnlp_linear_solver(), # ?

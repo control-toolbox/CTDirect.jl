@@ -2,17 +2,20 @@
 using CTDirect
 import CTModels
 
-using NLPModelsIpopt
+using LinearAlgebra
 using MadNLP
+using NLPModelsIpopt
+
 using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
 
-using Test
-using LinearAlgebra
 using BenchmarkTools
+using Plots
 using Printf
 using Profile
 using PProf
 using JET
+using Test
+
 
 #######################################################
 # load examples library
@@ -154,9 +157,9 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
     # solve
     if test_solve
         sol = direct_solve(ocp, display=false, grid_size=grid_size, disc_method=disc_method)
-        #if !isapprox(sol.objective, prob.obj, rtol=1e-2)
-        #    error("objective mismatch: ", sol.objective, " vs ", prob.obj)
-        #end
+        if !isapprox(sol.objective, prob.obj, rtol=1e-2)
+            error("objective mismatch: ", sol.objective, " vs ", prob.obj)
+        end
         print("Solve"); @btime direct_solve($ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
     end
 

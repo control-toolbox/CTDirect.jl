@@ -1,5 +1,3 @@
-using SplitApplyCombine
-
 println("testing: initial guess options")
 
 # use 0 iterations to check initial guess, >0 to check cv

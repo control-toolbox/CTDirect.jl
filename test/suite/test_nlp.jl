@@ -80,3 +80,4 @@ end
     @test isapprox(u_opt.(T), CTModels.control(sol).(T), rtol = 1e-2)
     @test isapprox(p_opt.(T), CTModels.costate(sol).(T), rtol = 1e-2)
 end
+

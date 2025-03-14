@@ -58,12 +58,12 @@ end
     @test CTModels.time_grid(sol) ≈ time_grid
 end
 
-# implicit midpoint scheme
+# discretization methods
 if !isdefined(Main, :goddard_all)
     include("../problems/goddard.jl")
 end
 
-@testset verbose = true showtiming = true ":simple_integrator :trapeze :midpoint :gl2" begin
+@testset verbose = true showtiming = true ":simple_integrator :disc_method" begin
     prob = simple_integrator()
     sol = direct_solve(prob.ocp, display = false, disc_method = :trapeze)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
@@ -77,7 +77,7 @@ end
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2 
 end
 
-@testset verbose = true showtiming = true ":double_integrator :trapeze :midpoint :gl2" begin
+@testset verbose = true showtiming = true ":double_integrator :disc_method" begin
     prob = double_integrator_freet0tf()
     sol = direct_solve(prob.ocp, display = false, disc_method = :trapeze)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
@@ -91,7 +91,7 @@ end
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2  
 end
 
-@testset verbose = true showtiming = true ":goddard :trapeze :midpoint :gl2" begin
+@testset verbose = true showtiming = true ":goddard :disc_method" begin
     prob = goddard_all()
     sol = direct_solve(prob.ocp, display = false, disc_method = :trapeze)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
