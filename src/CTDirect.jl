@@ -13,7 +13,7 @@ using SparseArrays
 include("default.jl")
 include("docp.jl")
 include("disc/common.jl")
-#include("disc/euler.jl")
+include("disc/euler.jl")
 include("disc/irk.jl")
 include("disc/midpoint.jl")
 include("disc/trapeze.jl")

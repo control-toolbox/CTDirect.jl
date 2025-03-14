@@ -116,6 +116,10 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
         elseif disc_method == :midpoint
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
+        elseif disc_method == :euler
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
+        elseif disc_method == :euler_implicit
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons; explicit=false)
         elseif disc_method == :gauss_legendre_1
                 discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
         elseif disc_method == :gauss_legendre_2
@@ -377,7 +381,7 @@ function get_time_grid(xu, docp::DOCP)
 
     grid = similar(xu, docp.dim_NLP_steps+1)
 
-    # NB. JET gives runtime dispacth warnings for the *uncalled* getters...
+    # NB. JET gives runtime dispatch warnings for the *uncalled* getters...
     ocp = docp.ocp
     if docp.has_free_initial_time
         v = get_OCP_variable(xu, docp)
