@@ -110,7 +110,8 @@ function direct_transcription(
     adnlp_backend = __adnlp_backend(),
     solver_backend = nothing,
     control_type = __control_type(),
-    show_time = false
+    show_time = false,
+    matrix_free = false
 )
 
     # build DOCP
@@ -175,6 +176,7 @@ function direct_transcription(
                 f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
                 backend = adnlp_backend,    
                 show_time = show_time,
+                matrix_free = matrix_free
                 )
         end
     end
