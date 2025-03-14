@@ -16,7 +16,7 @@ function CTDirect.solve_docp(
     solver_backend::CTDirect.IpoptBackend,
     docp::CTDirect.DOCP,
     nlp;
-    display::Bool = CTBase.__display(),
+    display::Bool = CTDirect.__display(),
     max_iter::Integer = CTDirect.__max_iterations(),
     tol::Real = CTDirect.__tolerance(),
     print_level::Integer = CTDirect.__ipopt_print_level(),

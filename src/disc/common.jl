@@ -47,6 +47,51 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Retrieve control variables at given time step from the NLP variables.
+Convention: 1 <= i <= dim_NLP_steps, with convention u(tf) = U_N
+Scalar / Vector output
+"""
+function get_OCP_control_at_time_step(xu, docp::DOCP{<: Discretization, <: ScalVect, ScalVariable, <: ScalVect}, i)
+    # final time case
+    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
+    return xu[offset+1]
+end
+function get_OCP_control_at_time_step(xu, docp::DOCP{<: Discretization, <: ScalVect, VectVariable, <: ScalVect}, i)
+    # final time case
+    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
+    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve stage variables at given time step/stage from the NLP variables.
+Convention: 1 <= i <= dim_NLP_steps(+1),	1 <= j <= s
+Vector output
+Note that passing correct indices is up to the caller, no checks are made here.
+"""
+function get_stagevars_at_time_step(xu, docp::DOCP, i, j)
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
+    return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Set optimization variables in the NLP variables (for initial guess)
+"""
+function set_optim_variable!(xu, v_init, docp)
+    xu[(end - docp.dim_NLP_v + 1):end] .= v_init
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
 Set initial guess for state variables at given time step
 Convention: 1 <= i <= dim_NLP_steps+1
 """
@@ -57,6 +102,8 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP{<: Discretization}, i)
         xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
     end
 end
+
+# +++ add here a more toplevel set_variables_at_time_step ? (potentially include stage variables later ?) and call it from docp
 """
 $(TYPEDSIGNATURES)
 
@@ -64,9 +111,11 @@ Set initial guess for control variables at given time step
 Convention: 1 <= i <= dim_NLP_steps
 """
 function set_control_at_time_step!(xu, u_init, docp::DOCP{<: Discretization}, i)
-    if i <= docp.dim_NLP_steps && !isnothing(u_init)
-        offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-        xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
+    if !isnothing(u_init)
+        if i <= docp.dim_NLP_steps
+            offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
+            xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
+        end
     end
 end
 
@@ -98,4 +147,45 @@ Build sparsity pattern for Hessian of Lagrangian
 """
 function DOCP_Hessian_pattern(docp::DOCP{D}) where (D <: Discretization)
     error("DOCP_Hessian_pattern not implemented for discretization ", D)
+end
+
+
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Add block of nonzeros elements to a sparsity pattern 
+Format: boolean matrix (M) or index vectors (Is, Js) 
+Includes a more compact method for single element case
+Option to add the symmetric block also (eg for Hessian)
+Note: independent from discretization scheme
+"""
+function add_nonzero_block!(M, i_start, i_end, j_start, j_end; sym=false)
+    M[i_start:i_end, j_start:j_end] .= true
+    sym && (M[j_start:j_end, i_start:i_end] .= true)
+    return
+end
+function add_nonzero_block!(M, i, j; sym=false)
+    M[i,j] = true
+    sym && (M[j,i] = true)
+    return
+end
+function add_nonzero_block!(Is, Js, i_start, i_end, j_start, j_end; sym=false)
+    for i=i_start:i_end
+        for j=j_start:j_end
+            push!(Is, i)
+            push!(Js, j)
+            sym && push!(Is, j)
+            sym && push!(Js, i)
+        end
+    end
+    return
+end
+function add_nonzero_block!(Is, Js, i, j; sym=false)
+    push!(Is, i)
+    push!(Js, j)
+    sym && push!(Is, j)
+    sym && push!(Js, i)
+    return
 end

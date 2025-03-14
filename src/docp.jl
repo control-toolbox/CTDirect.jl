@@ -184,8 +184,14 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect, G 
         # parameter: discretization method
         if disc_method == :trapeze
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+        elseif disc_method == :trapeze_stage
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze_stage(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)            
         elseif disc_method == :midpoint
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+        elseif disc_method == :midpoint_stage
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint_stage(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+        elseif disc_method == :midpoint_nowork
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint_nowork(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)            
         elseif disc_method == :euler
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :euler_implicit
@@ -288,18 +294,22 @@ function constraints_bounds!(docp::DOCP)
     lb = docp.con_l
     ub = docp.con_u
 
-    index = 1 # counter for the constraints
+    offset = 0
     for i = 1:docp.dim_NLP_steps+1
+        #+++ setStepConstraintsBounds in disc/  different for trapeze_stage !
         if i <= docp.dim_NLP_steps
             # skip (ie leave 0) for state / stage equations 
-            index = index + docp.discretization._state_stage_eqs_block
+            offset = offset + docp.discretization._state_stage_eqs_block
         end
         # path constraints
-        index = setPathBounds!(docp, index, lb, ub)
+        offset = setPathConstraintsBounds!(docp, lb, ub, offset)
     end
 
     # boundary and variable constraints
-    index = setPointBounds!(docp, index, lb, ub)
+    offset = setPointConstraintsBounds!(docp, lb, ub)
+    if offset != docp.dim_NLP_constraints
+        error("Mismatch for last index in constraints: ", offset, " instead of ", docp.dim_NLP_constraints)
+    end
 
     return lb, ub
 end
@@ -315,10 +325,11 @@ function variables_bounds!(docp::DOCP)
     var_u = docp.var_u
     ocp = docp.ocp
 
-    # first we build full ordered sets of bounds, then set them in NLP
-    # state / control box
+    # build full ordered sets of bounds
     x_lb, x_ub = build_bounds(docp.dim_OCP_x, docp.dim_x_box, docp.state_box)
     u_lb, u_ub = build_bounds(docp.dim_NLP_u, docp.dim_u_box, docp.control_box)
+    
+    # set state / control box along time steps
     for i = 1:N+1
         set_state_at_time_step!(var_l, x_lb, docp, i)
         set_state_at_time_step!(var_u, x_ub, docp, i)
@@ -436,30 +447,30 @@ $(TYPEDSIGNATURES)
 
 Set bounds for the path constraints at given time step
 """
-function setPathBounds!(docp::DOCP, index::Int, lb, ub)
+function setPathConstraintsBounds!(docp::DOCP, lb, ub, offset)
 
     # pure control constraints
     if docp.dim_u_cons > 0
-        lb[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[1]
-        ub[index:(index + docp.dim_u_cons - 1)] = docp.control_constraints[3]
-        index = index + docp.dim_u_cons
+        lb[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[1]
+        ub[offset+1:offset+docp.dim_u_cons] = docp.control_constraints[3]
+        offset = offset + docp.dim_u_cons
     end
 
     # pure state constraints
     if docp.dim_x_cons > 0
-        lb[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[1]
-        ub[index:(index + docp.dim_x_cons - 1)] = docp.state_constraints[3]
-        index = index + docp.dim_x_cons
+        lb[offset+1:offset+docp.dim_x_cons] = docp.state_constraints[1]
+        ub[offset+1:offset+docp.dim_x_cons] = docp.state_constraints[3]
+        offset = offset + docp.dim_x_cons
     end
 
     # mixed state / control constraints
     if docp.dim_xu_cons > 0
-        lb[index:(index + docp.dim_xu_cons - 1)] = docp.mixed_constraints[1]
-        ub[index:(index + docp.dim_xu_cons - 1)] = docp.mixed_constraints[3]
-        index = index + docp.dim_xu_cons
+        lb[offset+1:offset+docp.dim_xu_cons] = docp.mixed_constraints[1]
+        ub[offset+1:offset+docp.dim_xu_cons] = docp.mixed_constraints[3]
+        offset = offset + docp.dim_xu_cons
     end
 
-    return index
+    return offset
 end
 
 """
@@ -469,8 +480,8 @@ Set the boundary and variable constraints
 """
 function setPointConstraints!(docp::DOCP, c, xu, v)
 
-    # offset: [state eq, stage eq, path constraints]_1..N and final path constraints
-    offset = docp.dim_NLP_steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
+    offset = docp.dim_NLP_constraints - (docp.dim_boundary_cons + docp.dim_v_cons)
+    docp.is_lagrange && (offset = offset - 1)
 
     # variables
     x0 = get_OCP_state_at_time_step(xu, docp, 1)
@@ -479,16 +490,18 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     # boundary constraints
     if docp.dim_boundary_cons > 0
         docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
+        offset = offset + docp.dim_boundary_cons
     end
 
     # variable constraints
     if docp.dim_v_cons > 0
-        docp.variable_constraints[2]((@view c[offset+docp.dim_boundary_cons+1:offset+docp.dim_boundary_cons+docp.dim_v_cons]), v)
+        docp.variable_constraints[2]((@view c[offset+1:offset+docp.dim_v_cons]), v)
+        offset = offset + docp.dim_v_cons
     end
 
     # null initial condition for lagrangian cost state
     if docp.is_lagrange
-        c[offset+docp.dim_boundary_cons+docp.dim_v_cons+1] = get_lagrange_state_at_time_step(xu, docp, 1)
+        c[offset+1] = get_lagrange_state_at_time_step(xu, docp, 1)
     end
 end
 
@@ -498,36 +511,33 @@ $(TYPEDSIGNATURES)
 
 Set bounds for the boundary and variable constraints
 """
-function setPointBounds!(docp::DOCP, index::Int, lb, ub)
-    ocp = docp.ocp
+function setPointConstraintsBounds!(docp::DOCP, lb, ub)
+    
+    offset = docp.dim_NLP_constraints - (docp.dim_boundary_cons + docp.dim_v_cons)
+    docp.is_lagrange && (offset = offset - 1)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        lb[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[1]
-        ub[index:(index + docp.dim_boundary_cons - 1)] = docp.boundary_constraints[3]
-        index = index + docp.dim_boundary_cons
+        lb[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[1]
+        ub[offset+1:offset+docp.dim_boundary_cons] = docp.boundary_constraints[3]
+        offset = offset + docp.dim_boundary_cons
     end
 
     # variable constraints
     if docp.dim_v_cons > 0
-        lb[index:(index + docp.dim_v_cons - 1)] = docp.variable_constraints[1]
-        ub[index:(index + docp.dim_v_cons - 1)] = docp.variable_constraints[3]
-        index = index + docp.dim_v_cons
+        lb[offset+1:offset+docp.dim_v_cons] = docp.variable_constraints[1]
+        ub[offset+1:offset+docp.dim_v_cons] = docp.variable_constraints[3]
+        offset = offset + docp.dim_v_cons
     end
 
     # null initial condition for lagrangian cost state
     if docp.is_lagrange
-        lb[index] = 0.0
-        ub[index] = 0.0
-        index = index + 1
+        lb[offset+1] = 0.0
+        ub[offset+1] = 0.0
+        offset = offset + 1
     end
 
-    return index
-end
-
-
-function DOCP_Jac_pattern(docp::DOCP)
-    error("DOCP_Jac_pattern not implemented for discretization ", typeof(docp.discretization))
+    return offset
 end
 
 
@@ -557,27 +567,6 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
     return NLP_X
 end
 
-#= using time_grid does not allocate more and avoids recomputing steps twice for step length
-function get_time_step(xu, docp::DOCP{<:Discretization, <: ScalVect, <: ScalVect, <: ScalVect, FixedTimeGrid}, i)
-    return docp.NLP_fixed_time_grid[i]
-end
-function get_time_step(xu, docp::DOCP{<:Discretization, <: ScalVect, <: ScalVect, <: ScalVect, FreeTimeGrid}, i)
-    if docp.has_free_initial_time
-        v = get_OCP_variable(xu, docp)
-        t0 = v[docp.NLP_free_initial_time_index]
-    else
-        t0 = docp.NLP_fixed_initial_time
-    end
-
-    if docp.has_free_final_time
-        v = get_OCP_variable(xu, docp)
-        tf = v[docp.NLP_free_final_time_index]
-    else
-        tf = docp.NLP_fixed_final_time
-    end
-
-    return t0 + docp.NLP_normalized_time_grid[i] * (tf - t0)
-end=#
 
 function get_time_grid(xu, docp::DOCP{<:Discretization, <: ScalVect, <: ScalVect, <: ScalVect, FixedTimeGrid})
     return docp.NLP_fixed_time_grid
@@ -607,18 +596,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Set optimization variables in the NLP variables (for initial guess)
-"""
-function set_optim_variable!(xu, v_init, docp)
-    xu[(end - docp.dim_NLP_v + 1):end] .= v_init
-end
-
-"""
-$(TYPEDSIGNATURES)
-
 Build full, ordered sets of bounds for state, control or optimization variables
 """
 function build_bounds(dim_var, dim_box, box_triplet)
+
     x_lb = -Inf * ones(dim_var)
     x_ub = Inf * ones(dim_var)
     for j = 1:(dim_box)
