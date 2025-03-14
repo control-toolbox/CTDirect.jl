@@ -46,6 +46,3 @@ test = ["MadNLP", "NLPModelsIpopt", "SplitApplyCombine", "Test"]
 
 [workspace]
 projects = ["test", "docs"]
-
-[sources.CTModels]
-url = "https://github.com/control-toolbox/CTModels.jl"

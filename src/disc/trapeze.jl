@@ -31,39 +31,7 @@ struct Trapeze <: Discretization
     end
 end
 
-# not only for Trapeze, but may be redefined if needed
-"""
-$(TYPEDSIGNATURES)
 
-Retrieve scalar optimization variables from the NLP variables.
-Vector output
-"""
-function get_OCP_variable(xu, docp::DOCP{<: Discretization})
-    return @view xu[(docp.dim_NLP_variables - docp.dim_NLP_v + 1):docp.dim_NLP_variables]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve state variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
-Vector output
-"""
-function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
-end
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve state variable for lagrange cost at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function get_lagrange_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    return xu[offset + docp.dim_NLP_x]
-end
 """
 $(TYPEDSIGNATURES)
 
@@ -76,19 +44,7 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 
-"""
-$(TYPEDSIGNATURES)
 
-Set initial guess for state variables at given time step
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function set_state_at_time_step!(xu, x_init, docp::DOCP{Trapeze}, i)
-    # initialize only actual state variables from OCP (not lagrange state)
-    if !isnothing(x_init)
-        offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-        xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
-    end
-end
 """
 $(TYPEDSIGNATURES)
 
@@ -327,43 +283,4 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
     Vs = ones(Bool, nnzj)
     return sparse(Is, Js, Vs, docp.dim_NLP_variables, docp.dim_NLP_variables)
 
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Add block of nonzeros elements to a sparsity pattern 
-Format: boolean matrix (M) or index vectors (Is, Js) 
-Includes a more compact method for single element case
-Option to add the symmetric block also (eg for Hessian)
-Note: independent from discretization scheme
-"""
-function add_nonzero_block!(M, i_start, i_end, j_start, j_end; sym=false)
-    M[i_start:i_end, j_start:j_end] .= true
-    sym && (M[j_start:j_end, i_start:i_end] .= true)
-    return
-end
-function add_nonzero_block!(M, i, j; sym=false)
-    M[i,j] = true
-    sym && (M[j,i] = true)
-    return
-end
-function add_nonzero_block!(Is, Js, i_start, i_end, j_start, j_end; sym=false)
-    for i=i_start:i_end
-        for j=j_start:j_end
-            push!(Is, i)
-            push!(Js, j)
-            sym && push!(Is, j)
-            sym && push!(Js, i)
-        end
-    end
-    return
-end
-function add_nonzero_block!(Is, Js, i, j; sym=false)
-    push!(Is, i)
-    push!(Js, j)
-    sym && push!(Is, j)
-    sym && push!(Js, i)
-    return
 end

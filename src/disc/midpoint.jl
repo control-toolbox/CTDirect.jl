@@ -33,7 +33,7 @@ struct Midpoint <: Discretization
     end
 end
 
-
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -54,7 +54,7 @@ Convention: 1 <= i <= dim_NLP_steps+1
 function get_lagrange_state_at_time_step(xu, docp::DOCP{Midpoint}, i)
     offset = (i-1) * docp.discretization._step_variables_block
     return xu[offset + docp.dim_NLP_x]
-end
+end=#
 """
 $(TYPEDSIGNATURES)
 
@@ -69,6 +69,7 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{Midpoint}, i)
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -80,8 +81,9 @@ function get_stagevars_at_time_step(xu, docp::DOCP{Midpoint}, i, j)
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
     return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
 end
+=#
 
-
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -94,7 +96,7 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP{Midpoint}, i)
         offset = (i-1) * docp.discretization._step_variables_block
         xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
     end
-end
+end=#
 """
 $(TYPEDSIGNATURES)
 
