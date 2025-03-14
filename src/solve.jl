@@ -38,11 +38,11 @@ All further keywords are passed to the inner call of `solve_docp`
 function direct_solve(
     ocp::OptimalControlModel,
     description::Symbol...;
-    display::Bool = CTBase.__display(),
-    grid_size::Int = CTDirect.__grid_size(),
+    display::Bool = __display(),
+    grid_size::Int = __grid_size(),
     disc_method = __disc_method(),
-    time_grid = CTDirect.__time_grid(),
-    init = CTBase.__ocp_init(),
+    time_grid = __time_grid(),
+    init = __ocp_init(),
     adnlp_backend = __adnlp_backend(),
     control_type = __control_type(),
     kwargs...,
@@ -92,9 +92,9 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 
 # Keyword arguments (optional)
 * `grid_size`: number of time steps for the discretized problem ([250])
-* `disc_method`: discretization method ([`:trapeze`], `:midpoint`, `gauss_legendre_2`)
+* `disc_method`: discretization method ([`:trapeze`], `:euler`, `:euler_implicit`, `:midpoint`, `gauss_legendre_2`, `gauss_legendre_3`)
 * `time_grid`: explicit time grid (can be non uniform)
-* `init`: info for the starting guess (values or existing solution)
+* `init`: info for the starting guess (values as named tuple or existing solution)
 * `adnlp_backend`: backend for automatic differentiation in ADNLPModels ([`:optimized`], `:manual`, `:default`)
 * `control_type`: ([`:constant`], `:linear`) control piecewise parametrization for IRK methods
 * show_time: (:true, [:false]) show timing details from ADNLPModels
@@ -106,10 +106,10 @@ function direct_transcription(
     grid_size = __grid_size(),
     disc_method = __disc_method(),
     time_grid = __time_grid(),
-    init = CTBase.__ocp_init(),
+    init = __ocp_init(),
     adnlp_backend = __adnlp_backend(),
-    solver_backend = nothing,
     control_type = __control_type(),
+    solver_backend = nothing,
     show_time = false,
     matrix_free = false
 )

@@ -3,7 +3,7 @@ Internal layout for NLP variables:
 [X_1,U_1, .., X_N+1,U_N+1, V]
 =#
 
-# NB. could also be defined as a generic IRK for testing
+
 struct Trapeze <: Discretization
 
     info::String
@@ -15,17 +15,17 @@ struct Trapeze <: Discretization
     function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
 
         # aux variables
-        step_variables_block = dim_NLP_x + dim_NLP_u
-        state_stage_eqs_block = dim_NLP_x
-        step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
+        _step_variables_block = dim_NLP_x + dim_NLP_u
+        _state_stage_eqs_block = dim_NLP_x
+        _step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
 
         # NLP variables size ([state, control]_1..N+1, variable)
-        dim_NLP_variables = (dim_NLP_steps + 1) * step_variables_block + dim_NLP_v
+        dim_NLP_variables = (dim_NLP_steps + 1) * _step_variables_block + dim_NLP_v
 
         # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
-        dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
+        dim_NLP_constraints = dim_NLP_steps * (_state_stage_eqs_block + _step_pathcons_block) + _step_pathcons_block + dim_boundary_cons + dim_v_cons
 
-        disc = new("Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", step_variables_block, state_stage_eqs_block, step_pathcons_block)
+        disc = new("Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", _step_variables_block, _state_stage_eqs_block, _step_pathcons_block)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -35,57 +35,20 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve state variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
-Scalar / Vector output
-"""
-function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze, ScalVariable, <: ScalVect, <: ScalVect}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    return xu[offset+1]
-end
-function get_OCP_state_at_time_step(xu, docp::DOCP{Trapeze, VectVariable, <: ScalVect, <: ScalVect}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
-end
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve state variable for lagrange cost at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function get_lagrange_state_at_time_step(xu, docp::DOCP{Trapeze}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-    return xu[offset + docp.dim_NLP_x]
-end
-"""
-$(TYPEDSIGNATURES)
-
 Retrieve control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
 Scalar / Vector output
 """
 function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, ScalVariable, <: ScalVect}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return xu[offset+1]
 end
 function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, VectVariable, <: ScalVect}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 
-"""
-$(TYPEDSIGNATURES)
 
-Set initial guess for state variables at given time step
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function set_state_at_time_step!(xu, x_init, docp::DOCP{Trapeze}, i)
-    # initialize only actual state variables from OCP (not lagrange state)
-    if !isnothing(x_init)
-        offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u)
-        xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
-    end
-end
 """
 $(TYPEDSIGNATURES)
 
@@ -94,10 +57,11 @@ Convention: 1 <= i <= dim_NLP_steps+1
 """
 function set_control_at_time_step!(xu, u_init, docp::DOCP{Trapeze}, i)
     if !isnothing(u_init)
-        offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
+        offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
         xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
     end
 end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -124,6 +88,7 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
             docp.ocp.lagrange((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ti, xi, ui, v)
         end
     end
+    
     return work
 end
 
@@ -164,8 +129,10 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     end
 
     # 2. path constraints
-    ui = get_OCP_control_at_time_step(xu, docp, i)
-    setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    if docp.discretization._step_pathcons_block > 0
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+    end
 
 end
 
@@ -176,6 +143,12 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
+
+    # +++ possible improvements (besides getting actual pattern of OCP functions !)
+    # - handle l_i separately ie dont skip them but handle them at the end
+    # ie put zeros everywhere then re add the few nonzeros
+    # NB. requires a new function remove_nnz_block and remove_nnz
+    # - handle variable time ie dependency to v via time step h_i ?
 
     # vector format for sparse matrix
     Is = Vector{Int}(undef, 0)
@@ -322,43 +295,4 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
     Vs = ones(Bool, nnzj)
     return sparse(Is, Js, Vs, docp.dim_NLP_variables, docp.dim_NLP_variables)
 
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Add block of nonzeros elements to a sparsity pattern 
-Format: boolean matrix (M) or index vectors (Is, Js) 
-Includes a more compact method for single element case
-Option to add the symmetric block also (eg for Hessian)
-Note: independent from discretization scheme
-"""
-function add_nonzero_block!(M, i_start, i_end, j_start, j_end; sym=false)
-    M[i_start:i_end, j_start:j_end] .= true
-    sym && (M[j_start:j_end, i_start:i_end] .= true)
-    return
-end
-function add_nonzero_block!(M, i, j; sym=false)
-    M[i,j] = true
-    sym && (M[j,i] = true)
-    return
-end
-function add_nonzero_block!(Is, Js, i_start, i_end, j_start, j_end; sym=false)
-    for i=i_start:i_end
-        for j=j_start:j_end
-            push!(Is, i)
-            push!(Js, j)
-            sym && push!(Is, j)
-            sym && push!(Js, i)
-        end
-    end
-    return
-end
-function add_nonzero_block!(Is, Js, i, j; sym=false)
-    push!(Is, i)
-    push!(Js, j)
-    sym && push!(Is, j)
-    sym && push!(Js, i)
-    return
 end
