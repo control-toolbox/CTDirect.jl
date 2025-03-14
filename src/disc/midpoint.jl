@@ -41,7 +41,6 @@ Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
     
-    # NB. recheck performance vs using stage variables again
     work = similar(xu, docp.dim_NLP_x * docp.dim_NLP_steps)
 
     # loop over time steps
@@ -52,7 +51,7 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
         ui = get_OCP_control_at_time_step(xu, docp, i)
         # OCP dynamics
         docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), ts, xs, ui, v)
-        # lagrnage cost
+        # lagrange cost
         if docp.is_lagrange
             docp.ocp.lagrange((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ts, xs, ui, v)
         end   
@@ -133,8 +132,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
         ui_start = var_offset + docp.dim_NLP_x + 1
         ui_end = var_offset + docp.dim_NLP_x + docp.dim_NLP_u
         xip1_end = var_offset + docp.discretization._step_variables_block + docp.dim_OCP_x
-        li = var_offset + docp.dim_NLP_x
-        lip1 = var_offset + docp.discretization._step_variables_block + docp.dim_NLP_x
+        var_end = var_offset + docp.discretization._step_variables_block + docp.dim_NLP_x
 
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i * f(t_s, x_s, u_i, v))
         # with t_s = (t_i + t_i+1) / 2 and x_s = (x_i + x_i+1) / 2
@@ -146,7 +144,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
         # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i * l(t_s, x_s, u_i, v))
         # depends on l_i, l_i+1, x_i, x_i+1, u_i, and v for h_i, t_s in variable times case
         if docp.is_lagrange
-            add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, xi_start, xip1_end)
+            add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, xi_start, var_end)
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, v_start, v_end)
         end
 

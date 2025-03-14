@@ -9,6 +9,7 @@ with s the stage number and U piecewise constant equal to U_i in [t_i, t_i+1]
 or, for methods with s>1, piecewise linear if option control_type set to :linear
 NB. U_N may be removed at some point if we disable piecewise linear control
 Path constraints are all evaluated at time steps, including final time.
++++ TODO: compare with a 'work array' version, cf trapeze and midpoint
 =#
 
 

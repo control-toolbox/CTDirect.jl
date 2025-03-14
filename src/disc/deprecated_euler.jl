@@ -5,6 +5,7 @@ with the convention
 - Explicit Euler: u([t_i,t_i+1[) = U_i and u(tf) = U_N
 - Implicit Euler: u(]t_i,t_i+1]) = U_i and u(t0) = U_1
 Note that both the explicit and implicit versions therefore use the same variables layout.
+NB. Current implementation may not be optimal: either remove the small work array for the dynamics or preferably use a larger work array for all the dynamics, as for trapeze and midpoint.
 =#
 
 struct Euler <: Discretization
@@ -81,30 +82,7 @@ $(TYPEDSIGNATURES)
 Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
-
-    work = similar(xu, docp.dim_NLP_x * docp.dim_NLP_steps)
-
-    # loop over time steps
-    for i = 1:docp.dim_NLP_steps
-        offset = (i-1) * docp.dim_NLP_x
-
-        # get variables at t_i or t_i+1
-        if docp.discretization._explicit
-            index = i
-        else
-            index = i+1
-        end
-        t = time_grid[index]
-        x = get_OCP_state_at_time_step(xu, docp, index)
-        u =get_OCP_control_at_time_step(xu, docp, index)
-
-        # OCP dynamics
-        docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), t, x, u, v)
-        # lagrange cost
-        if docp.is_lagrange
-            docp.ocp.lagrange((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), t, x, u, v)
-        end   
-    end
+    work = similar(xu, docp.dim_NLP_x)
     return work
 end
 
@@ -131,12 +109,27 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
         tip1 = time_grid[i+1]
         xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
         hi = tip1 - ti
-        offset_dyn_i = (i-1)*docp.dim_NLP_x
 
+        # compute dynamics
+        if docp.discretization._explicit
+            # explicit Euler
+            docp.ocp.dynamics((@view work[1:docp.dim_OCP_x]), ti, xi, ui, v)
+            if docp.is_lagrange
+                docp.ocp.lagrange((@view work[docp.dim_NLP_x:docp.dim_NLP_x]),ti, xi, ui, v)
+            end
+        else
+            # implicit euler
+            uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
+            docp.ocp.dynamics((@view work[1:docp.dim_OCP_x]), tip1, xip1, uip1, v)
+            if docp.is_lagrange
+                docp.ocp.lagrange((@view work[docp.dim_NLP_x:docp.dim_NLP_x]),tip1, xip1, uip1, v)
+            end
+        end
+       
         # state equation: euler rule
-        @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x])
+        @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * work[1:docp.dim_OCP_x])
         if docp.is_lagrange
-            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[offset_dyn_i+docp.dim_NLP_x])
+            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[docp.dim_NLP_x])
         end
         offset += docp.dim_NLP_x
 

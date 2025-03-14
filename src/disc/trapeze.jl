@@ -144,6 +144,12 @@ Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
 
+    # +++ possible improvements (besides getting actual pattern of OCP functions !)
+    # - handle l_i separately ie dont skip them but handle them at the end
+    # ie put zeros everywhere then re add the few nonzeros
+    # NB. requires a new function remove_nnz_block and remove_nnz
+    # - handle variable time ie dependency to v via time step h_i ?
+
     # vector format for sparse matrix
     Is = Vector{Int}(undef, 0)
     Js = Vector{Int}(undef, 0)
