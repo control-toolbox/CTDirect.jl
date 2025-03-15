@@ -22,13 +22,13 @@ struct Euler <: Discretization
         # aux variables
         step_variables_block = dim_NLP_x + dim_NLP_u
         state_stage_eqs_block = dim_NLP_x
-        step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
+        step_pathcons_block = dim_path_cons
 
         # NLP variables size ([state, control]_1..N, final state, variable)
         dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
         
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
-        dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
+        dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons
 
         if explicit 
             info = "Euler (explicit), 1st order"
@@ -111,7 +111,6 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
     # 0. variables
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
-    ui = get_OCP_control_at_time_step(xu, docp, i)
 
     # 1. state equation
     if i <= docp.dim_NLP_steps
@@ -132,7 +131,9 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
    
     # 2. path constraints
     if docp.discretization._step_pathcons_block > 0
-        setPathConstraints!(docp, c, ti, xi, ui, v, offset)
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
+        offset += docp.dim_path_cons
     end
     
 end
