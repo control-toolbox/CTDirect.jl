@@ -39,12 +39,14 @@ end
 $(TYPEDSIGNATURES)
 
 Retrieve control variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps, with convention u(tf) = U_N
+Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
 Vector output
 """
 function get_OCP_control_at_time_step(xu, docp::DOCP, i)
-    # final time case
-    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
+    # final time case  
+    if !docp.discretization._final_control && i == docp.dim_NLP_steps + 1
+        i = docp.dim_NLP_steps
+    end
     offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
@@ -93,11 +95,11 @@ end
 $(TYPEDSIGNATURES)
 
 Set initial guess for control variables at given time step
-Convention: 1 <= i <= dim_NLP_steps
+Convention: 1 <= i <= dim_NLP_steps(+1)
 """
 function set_control_at_time_step!(xu, u_init, docp::DOCP, i)
     if !isnothing(u_init)
-        if i <= docp.dim_NLP_steps
+        if i <= docp.dim_NLP_steps || (docp.discretization._final_control && i <= docp.dim_NLP_steps + 1)
             offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
             xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
         end
@@ -133,8 +135,6 @@ Build sparsity pattern for Hessian of Lagrangian
 function DOCP_Hessian_pattern(docp::DOCP{D}) where (D <: Discretization)
     error("DOCP_Hessian_pattern not implemented for discretization ", D)
 end
-
-
 
 
 """

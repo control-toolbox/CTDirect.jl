@@ -31,7 +31,6 @@ Solve an OCP with a direct method
 * `time_grid`: explicit time grid (can be non uniform)
 * `init`: info for the starting guess (values or existing solution)
 * `adnlp_backend`: backend for automatic differentiation in ADNLPModels ([`:optimized`], `:manual`, `:default`)
-* `control_type`: ([`:constant`], `:linear`) control piecewise parametrization for IRK methods 
 
 All further keywords are passed to the inner call of `solve_docp`
 """
@@ -44,7 +43,6 @@ function direct_solve(
     time_grid = __time_grid(),
     init = __ocp_init(),
     adnlp_backend = __adnlp_backend(),
-    control_type = __control_type(),
     kwargs...,
 )
     method = CTBase.getFullDescription(description, available_methods())
@@ -57,7 +55,6 @@ function direct_solve(
         grid_size = grid_size,
         time_grid = time_grid,
         disc_method = disc_method,
-        control_type = control_type,
         adnlp_backend = adnlp_backend,
     )
 
@@ -93,7 +90,6 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 * `time_grid`: explicit time grid (can be non uniform)
 * `init`: info for the starting guess (values or existing solution)
 * `adnlp_backend`: backend for automatic differentiation in ADNLPModels ([`:optimized`], `:manual`, `:default`)
-* `control_type`: ([`:constant`], `:linear`) control piecewise parametrization for IRK methods
 * show_time: (:true, [:false]) show timing details from ADNLPModels
 
 """
@@ -105,12 +101,11 @@ function direct_transcription(
     time_grid = __time_grid(),
     init = __ocp_init(),
     adnlp_backend = __adnlp_backend(),
-    control_type = __control_type(),
     show_time = false
 )
 
     # build DOCP
-    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, control_type = control_type)
+    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
 
     # set bounds in DOCP
     variables_bounds!(docp)

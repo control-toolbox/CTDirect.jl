@@ -6,8 +6,6 @@ Internal layout for NLP variables:
  X_N-1, U_N-1, K_N-1^1..K_N-1^s,
  X_N, U_N, V]
 with s the stage number and U piecewise constant equal to U_i in [t_i, t_i+1]
-or, for methods with s>1, piecewise linear if option control_type set to :linear
-NB. U_N may be removed at some point if we disable piecewise linear control
 Path constraints are all evaluated at time steps, including final time.
 =#
 
@@ -30,6 +28,7 @@ struct Gauss_Legendre_1 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
+    _final_control::Bool
 
     function Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
         
@@ -37,7 +36,7 @@ struct Gauss_Legendre_1 <: GenericIRK
 
         step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, stage)
 
-        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable", stage, hcat(0.5), [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block)
+        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable", stage, hcat(0.5), [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block, false)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -58,9 +57,9 @@ struct Gauss_Legendre_2 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
-    _control_type::Symbol
+    _final_control::Bool
 
-    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, control_type)
+    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
         
         stage = 2
 
@@ -70,8 +69,7 @@ struct Gauss_Legendre_2 <: GenericIRK
         [0.25 (0.25-sqrt(3) / 6); (0.25+sqrt(3) / 6) 0.25],
         [0.5, 0.5],
         [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block,
-        control_type
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, false
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -94,9 +92,9 @@ struct Gauss_Legendre_3 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
-    _control_type::Symbol
+    _final_control::Bool
 
-    function Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons,  dim_boundary_cons, control_type)
+    function Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons,  dim_boundary_cons)
         
         stage = 3
 
@@ -108,7 +106,7 @@ struct Gauss_Legendre_3 <: GenericIRK
         (5/36 + sqrt(15) / 30) (2/9 + sqrt(15) / 15) (5.0/36.0)],
         [5.0/18.0, 4.0/9.0, 5.0/18.0],
         [0.5 - 0.1*sqrt(15), 0.5, 0.5 + 0.1*sqrt(15)],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block, control_type
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, false
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -133,7 +131,7 @@ function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons,
     step_pathcons_block = dim_path_cons
 
     # NLP variables size ([state, control, stage]_1..N, final state and control, variable)
-    dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_u + dim_NLP_v
+    dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
 
     # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
     dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons
@@ -141,45 +139,6 @@ function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons,
     return step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints
 end
 
-
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve control variables at given time step (/stage) from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps
-Vector output
-Step / Stage versions
-"""
-function get_OCP_control_at_time_step(xu, docp::DOCP{ <: GenericIRK}, i)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
-end
-function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK}, i, cj)
-    if (docp.discretization.stage == 1) || (docp.discretization._control_type == :constant)
-        # constant interpolation on step
-        return get_OCP_control_at_time_step(xu, docp, i)
-    else
-        # linear interpolation on step
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
-        return @views @. (1 - cj) * ui + cj * uip1
-    end
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Set initial guess for control variables at given time step (/stage)
-Convention: 1 <= i <= dim_NLP_steps+1
-Step / stage versions
-"""
-function set_control_at_time_step!(xu, u_init, docp::DOCP{ <: GenericIRK}, i)
-    if !isnothing(u_init)
-        offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-        xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
-    end
-end
 
 """
 $(TYPEDSIGNATURES)
@@ -210,6 +169,7 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
     # 0. variables
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
+    ui = get_OCP_control_at_time_step(xu, docp, i)
 
     # 1. state and stage equations
     if i <= docp.dim_NLP_steps
@@ -244,14 +204,11 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
                 @views @. work_xij[1:docp.dim_OCP_x] = work_xij[1:docp.dim_OCP_x] + hi * docp.discretization.butcher_a[j,l] * kil[1:docp.dim_OCP_x]
             end
 
-            # control at stage
-            uij = get_OCP_control_at_time_stage(xu, docp, i, cj)
-
             # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f
             # NB. we skip the state equation here, which will be set below
-            CTModels.dynamics(docp.ocp)((@view c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_OCP_x]), tij, work_xij, uij, v)
+            CTModels.dynamics(docp.ocp)((@view c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_OCP_x]), tij, work_xij, ui, v)
             if docp.has_lagrange
-                c[offset+offset_stage_eqs+docp.dim_NLP_x] = CTModels.lagrange(docp.ocp)(tij, work_xij, uij, v)
+                c[offset+offset_stage_eqs+docp.dim_NLP_x] = CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
             end
             @views @. c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_NLP_x] = kij - c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_NLP_x]
             offset_stage_eqs += docp.dim_NLP_x
@@ -270,7 +227,6 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
 
     #2. path constraints
     if docp.dim_path_cons > 0
-        ui = get_OCP_control_at_time_step(xu, docp, i)
         CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
         offset += docp.dim_path_cons
     end
@@ -284,10 +240,6 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
-
-    if docp.discretization._control_type != :constant
-        error("Manual Jacobian sparsity pattern not supported for IRK scheme with piecewise linear control")
-    end
 
     # vector format for sparse matrix
     Is = Vector{Int}(undef, 0)
@@ -389,10 +341,6 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Hessian of Lagrangian
 """
 function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
-
-    if docp.discretization._control_type != :constant
-        error("Manual Hessian sparsity pattern not supported for IRK scheme with piecewise linear control")
-    end
 
     # NB. need to provide full pattern for coloring, not just upper/lower part
     Is = Vector{Int}(undef, 0)

@@ -10,6 +10,7 @@ struct Trapeze <: Discretization
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
+    _final_control::Bool
 
     # constructor
     function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
@@ -25,38 +26,12 @@ struct Trapeze <: Discretization
         # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons
 
-        disc = new("Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", step_variables_block, state_stage_eqs_block, step_pathcons_block)
+        disc = new("Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", step_variables_block, state_stage_eqs_block, step_pathcons_block, true)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
 end
 
-
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve control variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
-Vector output
-"""
-function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze}, i)
-    offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Set initial guess for control variables at given time step
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function set_control_at_time_step!(xu, u_init, docp::DOCP{Trapeze}, i)
-    if !isnothing(u_init)
-        offset = (i-1) * (docp.dim_NLP_x + docp.dim_NLP_u) + docp.dim_NLP_x
-        xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
-    end
-end
 
 """
 $(TYPEDSIGNATURES)
