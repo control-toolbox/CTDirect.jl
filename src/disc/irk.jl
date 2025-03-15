@@ -4,7 +4,7 @@ Internal layout for NLP variables:
  X_1, U_1, K_1^1..K_1^s,
  .., 
  X_N-1, U_N-1, K_N-1^1..K_N-1^s,
- X_N, U_N, V]
+ X_N, V]
 with s the stage number and U piecewise constant equal to U_i in [t_i, t_i+1]
 Path constraints are all evaluated at time steps, including final time.
 =#
@@ -16,7 +16,7 @@ abstract type GenericIRK <: Discretization end
 $(TYPEDSIGNATURES)
 
 Implicit Midpoint discretization, formulated as a generic IRK (ie Gauss Legendre 1)
-NB. does not use the simplification xs = 0.5 * (xi + xip1) as in midpoint.jl
+For testing purpose only, use :midpoint instead (cf midpoint.jl) !
 """
 struct Gauss_Legendre_1 <: GenericIRK
 
@@ -36,7 +36,7 @@ struct Gauss_Legendre_1 <: GenericIRK
 
         step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, stage)
 
-        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable", stage, hcat(0.5), [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block, false)
+        disc = new("[test only] Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable", stage, [0.5;;], [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block, false)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -289,8 +289,8 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, v_start, v_end)
         end
 
-        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_ij, v) (with lagrange part)
-        # with x_ij = x_i + sum_l a_il k_jl and assuming u_ij = u_i
+        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_i, v) (with lagrange part)
+        # with x_ij = x_i + sum_l a_il k_jl
         # depends on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1] too...)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, ui_start, ki_end)      
@@ -309,8 +309,9 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
     var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
     xf_start = var_offset + 1
     xf_end = var_offset + docp.dim_OCP_x
-    uf_start = var_offset + docp.dim_NLP_x + 1
-    uf_end = var_offset + docp.dim_NLP_x + docp.dim_NLP_u
+    # NB convention u(tf) = U_N-1
+    uf_start = var_offset - docp.discretization._step_variables_block + docp.dim_NLP_x + 1
+    uf_end = var_offset - docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1,c_offset+c_block, uf_start, uf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
@@ -379,8 +380,8 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
         # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i (sum_j b_j k_ij[n+1]))
         # -> 2nd order terms are zero
 
-        # 1.3 stage equations 0 = k_ij - f(t_ij, x_ij, u_ij, v) (with lagrange part)
-        # with x_ij = x_i + sum_l a_il k_jl and assuming u_ij = u_i
+        # 1.3 stage equations 0 = k_ij - f(t_ij, x_ij, u_i, v) (with lagrange part)
+        # with x_ij = x_i + sum_l a_il k_jl
         # depends on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1] too...)
         add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
         add_nonzero_block!(Is, Js, ui_start, ki_end, ui_start, ki_end)
@@ -396,8 +397,9 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
     var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
     xf_start = var_offset + 1
     xf_end = var_offset + docp.dim_OCP_x
-    uf_start = var_offset + docp.dim_NLP_x + 1
-    uf_end = var_offset + docp.dim_NLP_x + docp.dim_NLP_u
+    # NB convention u(tf) = U_N-1
+    uf_start = var_offset - docp.discretization._step_variables_block + docp.dim_NLP_x + 1
+    uf_end = var_offset - docp.discretization._step_variables_block+ docp.dim_NLP_x + docp.dim_NLP_u
     add_nonzero_block!(Is, Js, xf_start, xf_end, xf_start, xf_end)
     add_nonzero_block!(Is, Js, uf_start, uf_end, uf_start, uf_end)
     add_nonzero_block!(Is, Js, xf_start, xf_end, uf_start, uf_end; sym=true) 
