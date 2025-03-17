@@ -102,44 +102,27 @@ end
 
 
 # tests to check allocations in particular
-function init(prob ;grid_size, disc_method)
-    ocp = prob[:ocp]
+function init(ocp; grid_size, disc_method)
     docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=disc_method)
     xu = CTDirect.DOCP_initial_guess(docp)
-    return prob, docp, xu
+    return docp, xu
 end
 
 
-function test_unit(;prob=goddard_all(), test_get=false, test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
+function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
 
     if profile
         Profile.Allocs.clear()
     end
 
     # define problem and variables
-    prob, docp, xu = init(prob; grid_size=grid_size, disc_method=disc_method)
+    docp, xu = init(ocp, grid_size=grid_size, disc_method=disc_method)
     disc = docp.discretization
     #= OK, same as calling the functions with docp
     NLP_objective = (xu) -> CTDirect.DOCP_objective(xu, docp)
     NLP_constraints! = (c, xu) -> CTDirect.DOCP_constraints!(c, xu, docp) =#
     c = fill(666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dim_NLP_x)
-
-    # getters
-    if test_get
-        println("Getters")
-        print("t"); @btime CTDirect.get_final_time($xu, $docp)
-        print("x"); @btime CTDirect.get_OCP_state_at_time_step($xu, $docp, 1)
-        print("u"); @btime CTDirect.get_OCP_control_at_time_step($xu, $docp, 1)
-        print("v"); @btime CTDirect.get_OCP_variable($xu, $docp)
-        if warntype
-            @code_warntype CTDirect.get_final_time(xu, docp)
-            @code_warntype CTDirect.get_time_grid(xu, docp)
-            @code_warntype CTDirect.get_OCP_state_at_time_step(xu, docp, 1)
-            @code_warntype CTDirect.get_OCP_control_at_time_step(xu, docp, 1)
-            @code_warntype CTDirect.get_OCP_variable(xu, docp)
-        end
-    end
 
     # DOCP_objective
     if test_obj
@@ -168,16 +151,16 @@ function test_unit(;prob=goddard_all(), test_get=false, test_obj=true, test_cons
 
     # transcription
     if test_trans
-        print("Transcription"); @btime direct_transcription($prob.ocp, grid_size=$grid_size, disc_method=$disc_method)
+        print("Transcription"); @btime direct_transcription($ocp, grid_size=$grid_size, disc_method=$disc_method)
     end
 
     # solve
     if test_solve
-        sol = direct_solve(prob.ocp, display=false, grid_size=grid_size, disc_method=disc_method)
+        sol = direct_solve(ocp, display=false, grid_size=grid_size, disc_method=disc_method)
         if !isapprox(sol.objective, prob.obj, rtol=1e-2)
             error("objective mismatch: ", sol.objective, " vs ", prob.obj)
         end
-        print("Solve"); @btime direct_solve($prob.ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
+        print("Solve"); @btime direct_solve($ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
     end
 
 end

@@ -12,6 +12,7 @@ struct Midpoint <: Discretization
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
+    _final_control::Bool
 
     # constructor
     function Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
@@ -27,7 +28,7 @@ struct Midpoint <: Discretization
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
 
-        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", step_variables_block, state_stage_eqs_block, step_pathcons_block)
+        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", step_variables_block, state_stage_eqs_block, step_pathcons_block, false)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -52,7 +53,7 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
         # OCP dynamics
         docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), ts, xs, ui, v)
         # lagrange cost
-        if docp.is_lagrange
+        if docp.has_lagrange
             docp.ocp.lagrange((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), ts, xs, ui, v)
         end   
     end
@@ -86,7 +87,7 @@ function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
        
         # state equation: midpoint rule
         @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x])
-        if docp.is_lagrange
+        if docp.has_lagrange
             c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[offset_dyn_i+docp.dim_NLP_x])
         end
         offset += docp.dim_NLP_x
@@ -98,7 +99,7 @@ function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
         ui = get_OCP_control_at_time_step(xu, docp, i)
         setPathConstraints!(docp, c, ti, xi, ui, v, offset)
     end
-    
+
 end
 
 
@@ -143,7 +144,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, v_start, v_end)
         # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i * l(t_s, x_s, u_i, v))
         # depends on l_i, l_i+1, x_i, x_i+1, u_i, and v for h_i, t_s in variable times case
-        if docp.is_lagrange
+        if docp.has_lagrange
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, xi_start, var_end)
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, v_start, v_end)
         end
@@ -176,7 +177,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
     # 3.4 null initial condition for lagrangian cost state l0
-    if docp.is_lagrange
+    if docp.has_lagrange
         add_nonzero_block!(Is, Js, docp.dim_NLP_constraints, docp.dim_NLP_x)
     end
 

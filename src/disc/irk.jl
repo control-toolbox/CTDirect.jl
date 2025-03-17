@@ -4,7 +4,7 @@ Internal layout for NLP variables:
  X_1, U_1, K_1^1..K_1^s,
  .., 
  X_N-1, U_N-1, K_N-1^1..K_N-1^s,
- X_N, U_N, V]
+ X_N, V]
 with s the stage number and U piecewise constant equal to U_i in [t_i, t_i+1]
 Path constraints are all evaluated at time steps, including final time.
 =#
@@ -28,6 +28,7 @@ struct Gauss_Legendre_1 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
+    _final_control::Bool
 
     function Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         
@@ -35,7 +36,7 @@ struct Gauss_Legendre_1 <: GenericIRK
 
         step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
 
-        disc = new("[test only] Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable", stage, [0.5;;], [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block)
+        disc = new("[test only] Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable", stage, [0.5;;], [1], [0.5], step_variables_block, state_stage_eqs_block, step_pathcons_block, false)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -56,6 +57,7 @@ struct Gauss_Legendre_2 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
+    _final_control::Bool
 
     function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         
@@ -67,7 +69,7 @@ struct Gauss_Legendre_2 <: GenericIRK
         [0.25 (0.25-sqrt(3) / 6); (0.25+sqrt(3) / 6) 0.25],
         [0.5, 0.5],
         [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block,
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, false
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -90,6 +92,7 @@ struct Gauss_Legendre_3 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
+    _final_control::Bool
 
     function Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         
@@ -103,102 +106,8 @@ struct Gauss_Legendre_3 <: GenericIRK
         (5/36 + sqrt(15) / 30) (2/9 + sqrt(15) / 15) (5.0/36.0)],
         [5.0/18.0, 4.0/9.0, 5.0/18.0],
         [0.5 - 0.1*sqrt(15), 0.5, 0.5 + 0.1*sqrt(15)],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, false
         )
-
-        return disc, dim_NLP_variables, dim_NLP_constraints
-    end
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Explicit Euler discretization, formulated as a generic IRK
-For testing purpose only, use :euler instead (cf euler.jl) !
-"""
-struct Euler_explicit <: GenericIRK
-
-    info::String
-    stage::Int
-    butcher_a::Matrix{Float64}
-    butcher_b::Vector{Float64}
-    butcher_c::Vector{Float64}
-    _step_variables_block::Int
-    _state_stage_eqs_block::Int
-    _step_pathcons_block::Int
-
-    function Euler_explicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
-        
-        stage = 1
-
-        step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints =  IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
-
-        disc = new("[test only] Explicit Euler, 1st order",stage, [0.;;], [1.], [0.],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block)
-
-        return disc, dim_NLP_variables, dim_NLP_constraints
-    end
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Implicit Euler discretization, formulated as a generic IRK
-For testing purpose only, use :euler_implicit instead (cf euler.jl) !
-"""
-struct Euler_implicit <: GenericIRK
-
-    info::String
-    stage::Int
-    butcher_a::Matrix{Float64}
-    butcher_b::Vector{Float64}
-    butcher_c::Vector{Float64}
-    _step_variables_block::Int
-    _state_stage_eqs_block::Int
-    _step_pathcons_block::Int
-
-    function Euler_implicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
-        
-        stage = 1
-
-        step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints =  IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
-
-        disc = new("[test only] Implicit Euler, 1st order",stage, [1.;;], [1.], [1.],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block)
-
-        return disc, dim_NLP_variables, dim_NLP_constraints
-    end
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Implicit Trapeze (Crank-Nicolson) discretization, formulated as a generic IRK
-For testing purpose only, use :trapeze instead (cf trapeze.jl) !
-"""
-struct Trapeze_implicit <: GenericIRK
-
-    info::String
-    stage::Int
-    butcher_a::Matrix{Float64}
-    butcher_b::Vector{Float64}
-    butcher_c::Vector{Float64}
-    _step_variables_block::Int
-    _state_stage_eqs_block::Int
-    _step_pathcons_block::Int
-
-    function Trapeze_implicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
-        
-        stage = 2
-
-        step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints =  IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, stage)
-
-        disc = new("[test only] Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable",stage, 
-        [0 0; 0.5 0.5], [0.5, 0.5], [0.5, 0.5],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -222,7 +131,7 @@ function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, di
     step_pathcons_block = dim_u_cons + dim_x_cons + dim_xu_cons
 
     # NLP variables size ([state, control, stage]_1..N, final state and control, variable)
-    dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_u + dim_NLP_v
+    dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
 
     # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
     dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons + dim_v_cons
@@ -230,7 +139,7 @@ function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, di
     return step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints
 end
 
-
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -270,7 +179,7 @@ function set_control_at_time_step!(xu, u_init, docp::DOCP{ <: GenericIRK}, i)
         xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
     end
 end
-
+=#
 
 """
 $(TYPEDSIGNATURES)
@@ -301,6 +210,7 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
     # 0. variables
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
+    ui = get_OCP_control_at_time_step(xu, docp, i)
 
     # 1. state and stage equations
     if i <= docp.dim_NLP_steps
@@ -340,14 +250,11 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
                 xij = work_xij
             end
 
-            # control at stage
-            uij = get_OCP_control_at_time_stage(xu, docp, i, cj)
-
             # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f
             # NB. we skip the state equation here, which will be set below
-            docp.ocp.dynamics((@view c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_OCP_x]), tij, xij, uij, v)
-            if docp.is_lagrange
-                docp.ocp.lagrange((@view c[offset+offset_stage_eqs+docp.dim_NLP_x:offset+offset_stage_eqs+docp.dim_NLP_x]), tij, xij, uij, v)
+            docp.ocp.dynamics((@view c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_OCP_x]), tij, xij, ui, v)
+            if docp.has_lagrange
+                docp.ocp.lagrange((@view c[offset+offset_stage_eqs+docp.dim_NLP_x:offset+offset_stage_eqs+docp.dim_NLP_x]), tij, xij, ui, v)
             end
             @views @. c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_NLP_x] = kij - c[offset+offset_stage_eqs+1:offset+offset_stage_eqs+docp.dim_NLP_x]
             offset_stage_eqs += docp.dim_NLP_x
@@ -356,7 +263,7 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
 
         # state equation x_i+1 = x_i + h_i sum b_j k_i^j
         @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * work_sumbk[1:docp.dim_OCP_x])
-        if docp.is_lagrange
+        if docp.has_lagrange
             c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work_sumbk[docp.dim_NLP_x])
         end
 
@@ -366,10 +273,9 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
 
     #2. path constraints
     if docp.discretization._step_pathcons_block > 0
-        ui = get_OCP_control_at_time_step(xu, docp, i)
         setPathConstraints!(docp, c, ti, xi, ui, v, offset)
     end
-    
+
 end
 
 
@@ -418,7 +324,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dim_OCP_x, v_start, v_end)
         # 1.2 lagrange part l_i+1 = l_i + h_i (sum_j b_j k_ij)[n+1]
         # depends on l_i, k_ij[n+1], l_i+1, and v for h_i in variable times case !
-        if docp.is_lagrange
+        if docp.has_lagrange
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, li)
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, lip1)
             for i=1:s
@@ -428,8 +334,8 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
             add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x, c_offset+docp.dim_NLP_x, v_start, v_end)
         end
 
-        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_ij, v) (with lagrange part)
-        # with x_ij = x_i + sum_l a_il k_jl and assuming u_ij = u_i
+        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_i, v) (with lagrange part)
+        # with x_ij = x_i + sum_l a_il k_jl
         # depends on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1] too...)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+docp.dim_NLP_x+1, c_offset+(s+1)*docp.dim_NLP_x, ui_start, ki_end)      
@@ -448,8 +354,9 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
     var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
     xf_start = var_offset + 1
     xf_end = var_offset + docp.dim_OCP_x
-    uf_start = var_offset + docp.dim_NLP_x + 1
-    uf_end = var_offset + docp.dim_NLP_x + docp.dim_NLP_u
+    # NB convention u(tf) = U_N-1
+    uf_start = var_offset - docp.discretization._step_variables_block + docp.dim_NLP_x + 1
+    uf_end = var_offset - docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1,c_offset+c_block, uf_start, uf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
@@ -463,7 +370,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
     # 3.4 null initial condition for lagrangian cost state l0
-    if docp.is_lagrange
+    if docp.has_lagrange
         add_nonzero_block!(Is, Js, docp.dim_NLP_constraints, docp.dim_NLP_x)
     end
 
@@ -518,8 +425,8 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
         # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i (sum_j b_j k_ij[n+1]))
         # -> 2nd order terms are zero
 
-        # 1.3 stage equations 0 = k_ij - f(t_ij, x_ij, u_ij, v) (with lagrange part)
-        # with x_ij = x_i + sum_l a_il k_jl and assuming u_ij = u_i
+        # 1.3 stage equations 0 = k_ij - f(t_ij, x_ij, u_i, v) (with lagrange part)
+        # with x_ij = x_i + sum_l a_il k_jl
         # depends on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1] too...)
         add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
         add_nonzero_block!(Is, Js, ui_start, ki_end, ui_start, ki_end)
@@ -535,8 +442,9 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
     var_offset = docp.dim_NLP_steps*docp.discretization._step_variables_block
     xf_start = var_offset + 1
     xf_end = var_offset + docp.dim_OCP_x
-    uf_start = var_offset + docp.dim_NLP_x + 1
-    uf_end = var_offset + docp.dim_NLP_x + docp.dim_NLP_u
+    # NB convention u(tf) = U_N-1
+    uf_start = var_offset - docp.discretization._step_variables_block + docp.dim_NLP_x + 1
+    uf_end = var_offset - docp.discretization._step_variables_block+ docp.dim_NLP_x + docp.dim_NLP_u
     add_nonzero_block!(Is, Js, xf_start, xf_end, xf_start, xf_end)
     add_nonzero_block!(Is, Js, uf_start, uf_end, uf_start, uf_end)
     add_nonzero_block!(Is, Js, xf_start, xf_end, uf_start, uf_end; sym=true) 

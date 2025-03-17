@@ -101,7 +101,7 @@ function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
         # OCP dynamics
         docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), t, x, u, v)
         # lagrange cost
-        if docp.is_lagrange
+        if docp.has_lagrange
             docp.ocp.lagrange((@view work[offset+docp.dim_NLP_x:offset+docp.dim_NLP_x]), t, x, u, v)
         end   
     end
@@ -123,7 +123,6 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
     # 0. variables
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
-    ui = get_OCP_control_at_time_step(xu, docp, i)
 
     # 1. state equation
     if i <= docp.dim_NLP_steps
@@ -135,7 +134,7 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
 
         # state equation: euler rule
         @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x])
-        if docp.is_lagrange
+        if docp.has_lagrange
             c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[offset_dyn_i+docp.dim_NLP_x])
         end
         offset += docp.dim_NLP_x
@@ -144,6 +143,7 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
    
     # 2. path constraints
     if docp.discretization._step_pathcons_block > 0
+        ui = get_OCP_control_at_time_step(xu, docp, i)
         setPathConstraints!(docp, c, ti, xi, ui, v, offset)
     end
     

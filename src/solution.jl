@@ -99,6 +99,7 @@ function CTBase.OptimalControlSolution(
     )
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -127,7 +128,7 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     mult_variable_box_upper = zeros(size(v))
 
     # retrieve optimization variables
-    if docp.is_variable
+    if docp.has_variable
         v = get_OCP_variable(solution, docp)
         mult_variable_box_lower = get_OCP_variable(mult_LB, docp)
         mult_variable_box_upper = get_OCP_variable(mult_UB, docp)

@@ -95,7 +95,7 @@ $(TYPEDSIGNATURES)
 Set initial guess for state variables at given time step
 Convention: 1 <= i <= dim_NLP_steps+1
 """
-function set_state_at_time_step!(xu, x_init, docp::DOCP{<: Discretization}, i)
+function set_state_at_time_step!(xu, x_init, docp::DOCP, i)
     # initialize only actual state variables from OCP (not lagrange state)
     if !isnothing(x_init)
         offset = (i-1) * docp.discretization._step_variables_block
@@ -108,11 +108,11 @@ end
 $(TYPEDSIGNATURES)
 
 Set initial guess for control variables at given time step
-Convention: 1 <= i <= dim_NLP_steps
+Convention: 1 <= i <= dim_NLP_steps(+1)
 """
-function set_control_at_time_step!(xu, u_init, docp::DOCP{<: Discretization}, i)
+function set_control_at_time_step!(xu, u_init, docp::DOCP, i)
     if !isnothing(u_init)
-        if i <= docp.dim_NLP_steps
+        if i <= docp.dim_NLP_steps || (docp.discretization._final_control && i <= docp.dim_NLP_steps + 1)
             offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
             xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
         end
@@ -148,8 +148,6 @@ Build sparsity pattern for Hessian of Lagrangian
 function DOCP_Hessian_pattern(docp::DOCP{D}) where (D <: Discretization)
     error("DOCP_Hessian_pattern not implemented for discretization ", D)
 end
-
-
 
 
 """
