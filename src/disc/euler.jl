@@ -133,7 +133,6 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
     if docp.discretization._step_pathcons_block > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
         CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
-        offset += docp.dim_path_cons
     end
     
 end

@@ -38,7 +38,6 @@ function CTDirect.solve_docp(
     return docp_solution
 end
 
-
 function CTDirect.SolverInfos(docp_solution::MadNLP.MadNLPExecutionStats)
 
     iterations = docp_solution.iter

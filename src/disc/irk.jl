@@ -228,7 +228,6 @@ function setStepConstraints!(docp::DOCP{ <: GenericIRK}, c, xu, v, time_grid, i,
     #2. path constraints
     if docp.dim_path_cons > 0
         CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
-        offset += docp.dim_path_cons
     end
 
 end

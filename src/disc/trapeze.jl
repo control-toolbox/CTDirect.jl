@@ -16,17 +16,17 @@ struct Trapeze <: Discretization
     function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
 
         # aux variables
-        step_variables_block = dim_NLP_x + dim_NLP_u
-        state_stage_eqs_block = dim_NLP_x
-        step_pathcons_block = dim_path_cons
+        _step_variables_block = dim_NLP_x + dim_NLP_u
+        _state_stage_eqs_block = dim_NLP_x
+        _step_pathcons_block = dim_path_cons
 
         # NLP variables size ([state, control]_1..N+1, variable)
-        dim_NLP_variables = (dim_NLP_steps + 1) * step_variables_block + dim_NLP_v
+        dim_NLP_variables = (dim_NLP_steps + 1) * _step_variables_block + dim_NLP_v
 
         # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
-        dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons
+        dim_NLP_constraints = dim_NLP_steps * (_state_stage_eqs_block + _step_pathcons_block) + _step_pathcons_block + dim_boundary_cons
 
-        disc = new("Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", step_variables_block, state_stage_eqs_block, step_pathcons_block, true)
+        disc = new("Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable", _step_variables_block, _state_stage_eqs_block, _step_pathcons_block, true)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -101,7 +101,6 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     if docp.dim_path_cons > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
         CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
-        offset += docp.dim_path_cons
     end
 end
 
@@ -112,6 +111,12 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
+
+    # +++ possible improvements (besides getting actual pattern of OCP functions !)
+    # - handle l_i separately ie dont skip them but handle them at the end
+    # ie put zeros everywhere then re add the few nonzeros
+    # NB. requires a new function remove_nnz_block and remove_nnz
+    # - handle variable time ie dependency to v via time step h_i ?
 
     # vector format for sparse matrix
     Is = Vector{Int}(undef, 0)
