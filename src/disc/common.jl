@@ -31,18 +31,16 @@ function get_OCP_state_at_time_step(xu, docp::DOCP{<: Discretization, VectVariab
     offset = (i-1) * docp.discretization._step_variables_block
     return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
 end
-
 """
 $(TYPEDSIGNATURES)
 
 Retrieve state variable for lagrange cost at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
+Convention: 1 <= i <= dim_NLP_steps+1   (no check for actual lagrange cost presence !)
 """
-function get_lagrange_state_at_time_step(xu, docp::DOCP{<: Discretization}, i)
+function get_lagrange_state_at_time_step(xu, docp::DOCP, i)
     offset = (i-1) * docp.discretization._step_variables_block
     return xu[offset + docp.dim_NLP_x]
 end
-
 
 """
 $(TYPEDSIGNATURES)

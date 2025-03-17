@@ -39,6 +39,7 @@ function CTBase.OptimalControlSolution(docp::DOCP, docp_solution)
     )
 end
 
+
 """
 $(TYPEDSIGNATURES)
 

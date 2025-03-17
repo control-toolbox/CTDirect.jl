@@ -40,7 +40,7 @@ end
     @test normalize_grid(sol.time_grid) ≈ time_grid
 end
 
-# 3. parametric ocp (T=2) with explicit / non-uniform grid
+# 3. double integrator min energy ocp (T=2) with explicit / non-uniform grid
 if !isdefined(Main, :double_integrator_minenergy)
     include("../problems/double_integrator.jl")
 end

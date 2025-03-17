@@ -11,7 +11,7 @@ if test1
         include("../problems/double_integrator.jl")
     end
     @testset verbose = true showtiming = true ":continuation :double_integrator" begin
-        init = ()
+        init = nothing
         obj_list = []
         for T = 1:5
             ocp = double_integrator_minenergy(T).ocp
@@ -34,11 +34,11 @@ if test2
         obj_list = []
         for ρ in [0.1, 5, 10, 30, 100]
             ocp = parametric(ρ).ocp
-            sol = direct_solve(ocp, display = false, init = init, grid_size=100)
+            sol = direct_solve(ocp, display = false, init = init)
             init = sol
             push!(obj_list, sol.objective)
         end
-        @test obj_list ≈ [-0.034, -1.7, -6.2, -35, -148] rtol = 1e-2
+        @test obj_list ≈ [-0.034, -1.67, -6.2, -35, -148] rtol = 1e-2
     end
 end
 

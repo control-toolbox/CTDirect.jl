@@ -96,7 +96,7 @@ function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
         end
         t = time_grid[index]
         x = get_OCP_state_at_time_step(xu, docp, index)
-        u =get_OCP_control_at_time_step(xu, docp, index)
+        u = get_OCP_control_at_time_step(xu, docp, index)
 
         # OCP dynamics
         docp.ocp.dynamics((@view work[offset+1:offset+docp.dim_OCP_x]), t, x, u, v)
