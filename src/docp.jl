@@ -87,7 +87,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect, G 
     _type_v::V
 
     # constructor
-    function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method(), control_type=__control_type())
+    function DOCP(ocp::OptimalControlModel; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method())
 
         # time grid
         if time_grid == nothing
@@ -183,15 +183,9 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect, G 
 
         # parameter: discretization method
         if disc_method == :trapeze
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
-        elseif disc_method == :trapeze_stage
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze_stage(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)            
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)           
         elseif disc_method == :midpoint
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
-        elseif disc_method == :midpoint_stage
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint_stage(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
-        elseif disc_method == :midpoint_nowork
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint_nowork(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)            
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)           
         elseif disc_method == :euler
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :euler_implicit
@@ -199,17 +193,17 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect, G 
         elseif disc_method == :gauss_legendre_1
                 discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_2
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_3
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :euler_irk
                 discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler_explicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :euler_implicit_irk
                 discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler_implicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :trapeze_irk
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze_implicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)           
+                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze_implicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)           
         else           
-            error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:euler, :euler_implicit, :trapeze, :trapeze_irk, :midpoint, :gauss_legendre_2, :gauss_legendre_3, (:euler_irk, :euler_implicit_irk, :gauss_legendre_1, :trapeze_irk)}\n", typeof(disc_method))
+            error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:euler, :euler_implicit, :trapeze, :midpoint, :gauss_legendre_2, :gauss_legendre_3, (:euler_irk, :euler_implicit_irk, :gauss_legendre_1, :trapeze_irk)}\n", typeof(disc_method))
         end
 
         # add initial condition for lagrange state
@@ -356,36 +350,37 @@ Compute the objective for the DOCP problem.
 """
 function DOCP_objective(xu, docp::DOCP)
 
-    obj = similar(xu, 1)
+    obj_mayer = similar(xu, 1)
     N = docp.dim_NLP_steps
-
-    # optimization variables
-    v = get_OCP_variable(xu, docp)
-
-    # final state is always needed since lagrange cost is there
-    xf = get_OCP_state_at_time_step(xu, docp, N+1)
 
     # mayer cost
     if docp.is_mayer
         x0 = get_OCP_state_at_time_step(xu, docp, 1)
-        docp.ocp.mayer(obj, x0, xf, v)
+        xf = get_OCP_state_at_time_step(xu, docp, N+1)
+        v = get_OCP_variable(xu, docp)
+        docp.ocp.mayer(obj_mayer, x0, xf, v)
     end
 
     # lagrange cost
     if docp.is_lagrange
-        if docp.is_mayer # bolza case
-            obj[1] = obj[1] + get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
-        else
-            obj[1] = get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
-        end
+        obj_lagrange = get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
+    else
+        obj_lagrange = 0.
+    end
+
+    # total objective (workaround usual AD error when setting constant -_-)
+    if docp.is_mayer
+        obj = obj_mayer[1] + obj_lagrange
+    else
+        obj = obj_lagrange
     end
 
     # maximization problem
     if docp.is_maximization
-        obj[1] = -obj[1]
+        obj = -obj
     end
     
-    return obj[1]
+    return obj
 end
 
 

@@ -6,10 +6,7 @@ Internal layout for NLP variables:
  X_N-1, U_N-1, K_N-1^1..K_N-1^s,
  X_N, U_N, V]
 with s the stage number and U piecewise constant equal to U_i in [t_i, t_i+1]
-or, for methods with s>1, piecewise linear if option control_type set to :linear
-NB. U_N may be removed at some point if we disable piecewise linear control
 Path constraints are all evaluated at time steps, including final time.
-+++ TODO: compare with a 'work array' version, cf trapeze and midpoint
 =#
 
 
@@ -59,9 +56,8 @@ struct Gauss_Legendre_2 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
-    _control_type::Symbol
 
-    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)
+    function Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         
         stage = 2
 
@@ -72,7 +68,6 @@ struct Gauss_Legendre_2 <: GenericIRK
         [0.5, 0.5],
         [(0.5 - sqrt(3) / 6), (0.5 + sqrt(3) / 6)],
         step_variables_block, state_stage_eqs_block, step_pathcons_block,
-        control_type
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -95,9 +90,8 @@ struct Gauss_Legendre_3 <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
-    _control_type::Symbol
 
-    function Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)
+    function Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         
         stage = 3
 
@@ -109,7 +103,7 @@ struct Gauss_Legendre_3 <: GenericIRK
         (5/36 + sqrt(15) / 30) (2/9 + sqrt(15) / 15) (5.0/36.0)],
         [5.0/18.0, 4.0/9.0, 5.0/18.0],
         [0.5 - 0.1*sqrt(15), 0.5, 0.5 + 0.1*sqrt(15)],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block, control_type
+        step_variables_block, state_stage_eqs_block, step_pathcons_block
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -195,9 +189,8 @@ struct Trapeze_implicit <: GenericIRK
     _step_variables_block::Int
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
-    _control_type::Symbol
 
-    function Trapeze_implicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons, control_type)
+    function Trapeze_implicit(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         
         stage = 2
 
@@ -205,7 +198,7 @@ struct Trapeze_implicit <: GenericIRK
 
         disc = new("[test only] Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable",stage, 
         [0 0; 0.5 0.5], [0.5, 0.5], [0.5, 0.5],
-        step_variables_block, state_stage_eqs_block, step_pathcons_block, control_type)
+        step_variables_block, state_stage_eqs_block, step_pathcons_block)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -255,26 +248,12 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{ <: GenericIRK, <: ScalVect
     return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
 end
 function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, ScalVariable, <: ScalVect}, i, cj)
-    if (docp.discretization.stage == 1) || (docp.discretization._control_type == :constant)
-        # constant interpolation on step
-        return get_OCP_control_at_time_step(xu, docp, i)
-    else
-        # linear interpolation on step
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
-        return (1 - cj) * ui + cj * uip1
-    end
+    # constant interpolation on step
+    return get_OCP_control_at_time_step(xu, docp, i)
 end
 function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, VectVariable, <: ScalVect}, i, cj)
-    if (docp.discretization.stage == 1) || (docp.discretization._control_type == :constant)
-        # constant interpolation on step
-        return get_OCP_control_at_time_step(xu, docp, i)
-    else
-        # linear interpolation on step
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        uip1 = get_OCP_control_at_time_step(xu, docp, i+1)
-        return @views @. (1 - cj) * ui + cj * uip1
-    end
+    # constant interpolation on step
+    return get_OCP_control_at_time_step(xu, docp, i)
 end
 
 
@@ -401,10 +380,6 @@ Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{ <: GenericIRK})
 
-    if docp.discretization._control_type != :constant
-        error("Manual Jacobian sparsity pattern not supported for IRK scheme with piecewise linear control")
-    end
-
     # vector format for sparse matrix
     Is = Vector{Int}(undef, 0)
     Js = Vector{Int}(undef, 0)
@@ -505,10 +480,6 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Hessian of Lagrangian
 """
 function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
-
-    if docp.discretization._control_type != :constant
-        error("Manual Hessian sparsity pattern not supported for IRK scheme with piecewise linear control")
-    end
 
     # NB. need to provide full pattern for coloring, not just upper/lower part
     Is = Vector{Int}(undef, 0)
