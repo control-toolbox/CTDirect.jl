@@ -139,47 +139,6 @@ function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, di
     return step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints
 end
 
-#=
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve control variables at given time step (/stage) from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps
-Scalar / Vector output
-Step / Stage versions
-"""
-function get_OCP_control_at_time_step(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, ScalVariable, <: ScalVect}, i)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return xu[offset+1]
-end
-function get_OCP_control_at_time_step(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, VectVariable, <: ScalVect}, i)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
-end
-function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, ScalVariable, <: ScalVect}, i, cj)
-    # constant interpolation on step
-    return get_OCP_control_at_time_step(xu, docp, i)
-end
-function get_OCP_control_at_time_stage(xu, docp::DOCP{ <: GenericIRK, <: ScalVect, VectVariable, <: ScalVect}, i, cj)
-    # constant interpolation on step
-    return get_OCP_control_at_time_step(xu, docp, i)
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Set initial guess for control variables at given time step (/stage)
-Convention: 1 <= i <= dim_NLP_steps+1
-Step / stage versions
-"""
-function set_control_at_time_step!(xu, u_init, docp::DOCP{ <: GenericIRK}, i)
-    if !isnothing(u_init)
-        offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-        xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
-    end
-end
-=#
 
 """
 $(TYPEDSIGNATURES)

@@ -32,37 +32,6 @@ struct Trapeze <: Discretization
     end
 end
 
-#=
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve control variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1
-Scalar / Vector output
-"""
-function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, ScalVariable, <: ScalVect}, i)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return xu[offset+1]
-end
-function get_OCP_control_at_time_step(xu, docp::DOCP{Trapeze, <: ScalVect, VectVariable, <: ScalVect}, i)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Set initial guess for control variables at given time step
-Convention: 1 <= i <= dim_NLP_steps+1
-"""
-function set_control_at_time_step!(xu, u_init, docp::DOCP{Trapeze}, i)
-    if !isnothing(u_init)
-        offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-        xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
-    end
-end
-=#
 
 """
 $(TYPEDSIGNATURES)
