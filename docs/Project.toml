@@ -8,7 +8,7 @@ NLPModelsIpopt = "f4238b75-b362-5c4c-b852-0801c9a21d71"
 
 [compat]
 CTBase = "0.14"
-CTDirect = "0.13"
+CTDirect = "0.14"
 Documenter = "1"
 DocumenterMermaid = "0.1"
 HSL = "0.5"
