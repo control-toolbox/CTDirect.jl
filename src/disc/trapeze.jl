@@ -3,7 +3,7 @@ Internal layout for NLP variables:
 [X_1,U_1, .., X_N+1,U_N+1, V]
 =#
 
-# NB. could be defined as a generic IRK
+
 struct Trapeze <: Discretization
 
     info::String
