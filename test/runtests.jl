@@ -1,7 +1,6 @@
 using Test
 
 using CTDirect
-import CTBase
 import CTModels
 
 using NLPModelsIpopt

@@ -1,20 +1,17 @@
-# Benchmark
+# Benchmark and profiling
 using CTDirect
 import CTModels
 
-using LinearAlgebra
-using MadNLP
 using NLPModelsIpopt
-
 using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
 
-using BenchmarkTools
-#using Plots
 using Printf
+
+using BenchmarkTools
+using JET
 using Profile
 using PProf
-using JET
-using Test
+using Test # to run individual test scripts if needed
 
 
 #######################################################
@@ -39,7 +36,7 @@ function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs..
     for problem in problem_list
 
         # check (will also precompile)
-        sol = direct_solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, kwargs...)
+        sol = solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, kwargs...)
         if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
             error("Objective mismatch for ",problem[:name],": ",sol.objective," instead of ",problem[:obj])
         else
@@ -47,7 +44,7 @@ function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs..
         end
 
         # time
-        t = @belapsed direct_solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, $kwargs...)
+        t = @belapsed solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, $kwargs...)
         append!(t_list, t)
         verbose > 2 && @printf("%7.2f s\n", t)
     end
@@ -156,11 +153,11 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
 
     # solve
     if test_solve
-        sol = direct_solve(ocp, display=false, grid_size=grid_size, disc_method=disc_method)
+        sol = solve(ocp, display=false, grid_size=grid_size, disc_method=disc_method)
         if !isapprox(sol.objective, prob.obj, rtol=1e-2)
             error("objective mismatch: ", sol.objective, " vs ", prob.obj)
         end
-        print("Solve"); @btime direct_solve($ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
+        print("Solve"); @btime solve($ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
     end
 
 end

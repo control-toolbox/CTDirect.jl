@@ -27,14 +27,11 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
     has_mayer::Bool
     is_maximization::Bool
 
-    # dimensions
-    dim_x_box::Int
-    dim_u_box::Int
-    dim_v_box::Int
+    # constraints dimensions
     dim_path_cons::Int
     dim_boundary_cons::Int
 
-    ## NLP  
+    ## NLP
     dim_NLP_x::Int  # possible lagrange cost
     dim_NLP_u::Int
     dim_NLP_v::Int
@@ -105,9 +102,6 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
         end
 
         # NLP constraints dimensions
-        dim_x_box = CTModels.dim_state_constraints_box(ocp)
-        dim_u_box = CTModels.dim_control_constraints_box(ocp)
-        dim_v_box = CTModels.dim_variable_constraints_box(ocp)
         dim_path_cons = CTModels.dim_path_constraints_nl(ocp)
         dim_boundary_cons = CTModels.dim_boundary_constraints_nl(ocp)
 
@@ -144,9 +138,6 @@ struct DOCP{T <: Discretization, O <: CTModels.Model}
             has_lagrange,
             has_mayer,
             is_maximization,
-            dim_x_box,
-            dim_u_box,
-            dim_v_box,
             dim_path_cons,
             dim_boundary_cons,
             dim_NLP_x,
@@ -189,7 +180,6 @@ function constraints_bounds!(docp::DOCP)
 
     offset = 0
     for i = 1:docp.dim_NLP_steps+1
-        #+++ setStepConstraintsBounds in disc/  different for trapeze_stage !
         if i <= docp.dim_NLP_steps
             # skip (ie leave 0) for state / stage equations 
             offset = offset + docp.discretization._state_stage_eqs_block
@@ -225,14 +215,15 @@ $(TYPEDSIGNATURES)
 Build upper and lower bounds vectors for the DOCP variable box constraints.
 """
 function variables_bounds!(docp::DOCP)
+
     N = docp.dim_NLP_steps
     var_l = docp.var_l
     var_u = docp.var_u
     ocp = docp.ocp
 
     # build full ordered sets of bounds
-    x_lb, x_ub = build_bounds(docp.dim_OCP_x, docp.dim_x_box, CTModels.state_constraints_box(docp.ocp))
-    u_lb, u_ub = build_bounds(docp.dim_NLP_u, docp.dim_u_box, CTModels.control_constraints_box(docp.ocp))
+    x_lb, x_ub = build_bounds(docp.dim_OCP_x, CTModels.dim_state_constraints_box(ocp), CTModels.state_constraints_box(docp.ocp))
+    u_lb, u_ub = build_bounds(docp.dim_NLP_u, CTModels.dim_control_constraints_box(ocp), CTModels.control_constraints_box(docp.ocp))
 
     # set state / control box along time steps
     for i = 1:N+1
@@ -244,7 +235,7 @@ function variables_bounds!(docp::DOCP)
 
     # variable box
     if docp.dim_NLP_v > 0
-        v_lb, v_ub = build_bounds(docp.dim_NLP_v, docp.dim_v_box, CTModels.variable_constraints_box(docp.ocp))
+        v_lb, v_ub = build_bounds(docp.dim_NLP_v, CTModels.dim_variable_constraints_box(ocp), CTModels.variable_constraints_box(docp.ocp))
         set_optim_variable!(var_l, v_lb, docp)
         set_optim_variable!(var_u, v_ub, docp)
     end
@@ -380,9 +371,8 @@ Return time grid for variable time problems (times are then dependent on NLP var
 function get_time_grid(xu, docp::DOCP)
 
     grid = similar(xu, docp.dim_NLP_steps+1)
-
-    # NB. JET gives runtime dispatch warnings for the *uncalled* getters...
     ocp = docp.ocp
+    
     if docp.has_free_initial_time
         v = get_OCP_variable(xu, docp)
         t0 = CTModels.initial_time(ocp, v)

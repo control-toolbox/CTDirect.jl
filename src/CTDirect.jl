@@ -3,10 +3,9 @@ module CTDirect
 import CTBase
 import CTModels
 
+using ADNLPModels
+
 using DocStringExtensions
-using ADNLPModels               # docp model with AD
-using LinearAlgebra             # norm and misc
-using HSL
 using SparseArrays
 
 # includes

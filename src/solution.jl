@@ -88,7 +88,7 @@ end
 
 """
 $(TYPEDSIGNATURES)
-   
+
 Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
 """
 function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB=nothing)

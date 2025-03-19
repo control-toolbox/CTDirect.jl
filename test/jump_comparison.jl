@@ -34,7 +34,7 @@ if ctdirect
         for disc_method in disc_method_list
             for grid_size in grid_size_list
                 @printf("CTDirect (%s) %s %d:", backend, disc_method, grid_size)
-                @btime direct_solve(algal_bacterial().ocp, grid_size=$grid_size, disc_method=$disc_method, print_level=0, adnlp_backend=$backend)
+                @btime solve(algal_bacterial().ocp, grid_size=$grid_size, disc_method=$disc_method, print_level=0, adnlp_backend=$backend)
             end
         end
     end
