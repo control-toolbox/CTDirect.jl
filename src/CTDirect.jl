@@ -21,14 +21,8 @@ include("solution.jl")
 include("solve.jl")
 
 # exports
-export available_methods
-export is_solvable
 export direct_transcription
 export set_initial_guess
 export solve
-export build_OCP_solution
-
-const direct_solve = solve
-export direct_solve
 
 end
