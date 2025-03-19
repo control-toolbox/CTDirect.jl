@@ -34,7 +34,7 @@ Solve an OCP with a direct method
 
 All further keywords are passed to the inner call of `solve_docp`
 """
-function direct_solve(
+function solve(
     ocp::CTModels.Model,
     description::Symbol...;
     display::Bool = __display(),
@@ -84,7 +84,7 @@ $(TYPEDSIGNATURES)
 Discretize an optimal control problem into a nonlinear optimization problem (ie direct transcription)
 
 # Arguments
-* ocp: optimal control problem as defined in `CTBase`
+* ocp: optimal control problem as defined in `CTModels`
 * [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
 
 # Keyword arguments (optional)
