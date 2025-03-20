@@ -70,7 +70,9 @@ end
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :midpoint)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display = false, disc_method = :gauss_legendre_1)
+    sol = solve(prob.ocp, display = false, disc_method = :euler)
+    @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
+    sol = solve(prob.ocp, display = false, disc_method = :euler_implicit)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
@@ -84,7 +86,9 @@ end
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :midpoint)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display = false, disc_method = :gauss_legendre_1)
+    sol = solve(prob.ocp, display = false, disc_method = :euler)
+    @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
+    sol = solve(prob.ocp, display = false, disc_method = :euler_implicit)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
@@ -98,7 +102,9 @@ end
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :midpoint)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display = false, disc_method = :gauss_legendre_1)
+    sol = solve(prob.ocp, display = false, disc_method = :euler)
+    @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
+    sol = solve(prob.ocp, display = false, disc_method = :euler_implicit)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
     @test CTModels.objective(sol) ≈ prob.obj rtol = 1e-2

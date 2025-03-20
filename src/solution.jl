@@ -19,7 +19,7 @@ function build_OCP_solution(docp, docp_solution)
 
     # recompute / check objective
     objective_r = DOCP_objective(solution, docp)
-    if docp.is_maximization
+    if docp.flags.max
         objective = -docp_solution.objective
         objective_r = -objective_r
     else
@@ -105,7 +105,7 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
 
     # recompute objective
     objective = DOCP_objective(solution, docp)
-    if docp.is_maximization
+    if docp.flags.max
         objective = -objective
     end
 
@@ -143,10 +143,10 @@ Recover OCP primal variables from DOCP solution
 function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB = nothing)
 
     # state and control variables
-    N = docp.dim_NLP_steps
-    X = zeros(N + 1, docp.dim_OCP_x)
-    U = zeros(N + 1, docp.dim_NLP_u)
-    v = zeros(docp.dim_NLP_v)
+    N = docp.time.steps
+    X = zeros(N + 1, docp.dims.OCP_x)
+    U = zeros(N + 1, docp.dims.NLP_u)
+    v = zeros(docp.dims.NLP_v)
 
     # multipliers for box constraints
     if isnothing(mult_LB) || length(mult_LB) == 0
@@ -163,7 +163,7 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     mult_variable_box_upper = zeros(size(v))
 
     # retrieve optimization variables
-    if docp.dim_NLP_v > 0
+    if docp.dims.NLP_v > 0
         v .= get_OCP_variable(solution, docp)
         mult_variable_box_lower .= get_OCP_variable(mult_LB, docp)
         mult_variable_box_upper .= get_OCP_variable(mult_UB, docp)
@@ -204,13 +204,13 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
     end
 
     # costate
-    N = docp.dim_NLP_steps
-    P = zeros(N, docp.dim_NLP_x)
+    N = docp.time.steps
+    P = zeros(N, docp.dims.NLP_x)
     ocp = docp.ocp
 
     # constraints
-    dpc = docp.dim_path_cons
-    dbc = docp.dim_boundary_cons
+    dpc = docp.dims.path_cons
+    dbc = docp.dims.boundary_cons
     sol_path_constraints = zeros(N + 1, dpc)
     sol_boundary_constraints = zeros(dbc)
 
@@ -225,7 +225,7 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
 
         # state equation multiplier for costate
         if i <= N
-            P[i, :] = multipliers[i_m:(i_m + docp.dim_NLP_x - 1)]
+            P[i, :] = multipliers[i_m:(i_m + docp.dims.NLP_x - 1)]
             # skip state / stage constraints
             i_c += docp.discretization._state_stage_eqs_block
             i_m += docp.discretization._state_stage_eqs_block

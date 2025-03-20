@@ -139,7 +139,11 @@ function direct_transcription(
         # build NLP with given patterns; disable unused backends according to solver info
         if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
             nlp = ADNLPModel!(
-                f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+                f, 
+                x0, 
+                docp.bounds.var_l, docp.bounds.var_u, 
+                c!, 
+                docp.bounds.con_l, docp.bounds.con_u,
                 gradient_backend = ADNLPModels.ReverseDiffADGradient,
                 jacobian_backend = J_backend,
                 hessian_backend = H_backend,
@@ -152,7 +156,11 @@ function direct_transcription(
             )
         else
             nlp = ADNLPModel!(
-                f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+                f, 
+                x0, 
+                docp.bounds.var_l, docp.bounds.var_u, 
+                c!, 
+                docp.bounds.con_l, docp.bounds.con_u,
                 gradient_backend = ADNLPModels.ReverseDiffADGradient,
                 jacobian_backend = J_backend,
                 hessian_backend = H_backend,
@@ -163,7 +171,11 @@ function direct_transcription(
         # build NLP; disable unused backends according to solver info
         if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
             nlp = ADNLPModel!(
-                f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+                f, 
+                x0, 
+                docp.bounds.var_l, docp.bounds.var_u, 
+                c!, 
+                docp.bounds.con_l, docp.bounds.con_u,
                 backend = adnlp_backend, 
                 hprod_backend = ADNLPModels.EmptyADbackend,
                 jtprod_backend = ADNLPModels.EmptyADbackend,
@@ -173,7 +185,11 @@ function direct_transcription(
                 )
         else
             nlp = ADNLPModel!(
-                f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+                f, 
+                x0, 
+                docp.bounds.var_l, docp.bounds.var_u, 
+                c!, 
+                docp.bounds.con_l, docp.bounds.con_u,
                 backend = adnlp_backend,    
                 show_time = show_time,
                 matrix_free = matrix_free

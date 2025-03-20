@@ -52,14 +52,14 @@ Vector output
 function get_OCP_control_at_time_step(xu, docp::DOCP{Euler}, i)
     if docp.discretization._explicit
         # final time case
-        (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
-        offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
+        (i == docp.time.steps + 1) && (i = docp.time.steps)
+        offset = (i-1) * docp.discretization._step_variables_block + docp.dims.NLP_x
     else 
         # initial time case
         (i == 1) && (i = 2)
-        offset = (i-2) * docp.discretization._step_variables_block + docp.dim_NLP_x
+        offset = (i-2) * docp.discretization._step_variables_block + docp.dims.NLP_x
     end
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
+    return @view xu[(offset + 1):(offset + docp.dims.NLP_u)]
 end
 
 
@@ -70,11 +70,11 @@ Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
 
-    work = similar(xu, docp.dim_NLP_x * docp.dim_NLP_steps)
+    work = similar(xu, docp.dims.NLP_x * docp.time.steps)
 
     # loop over time steps
-    for i = 1:docp.dim_NLP_steps
-        offset = (i-1) * docp.dim_NLP_x
+    for i = 1:docp.time.steps
+        offset = (i-1) * docp.dims.NLP_x
 
         # get variables at t_i or t_i+1
         if docp.discretization._explicit
@@ -87,10 +87,10 @@ function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
         u = get_OCP_control_at_time_step(xu, docp, index)
 
         # OCP dynamics
-        CTModels.dynamics(docp.ocp)((@view work[offset+1:offset+docp.dim_OCP_x]), t, x, u, v)
+        CTModels.dynamics(docp.ocp)((@view work[offset+1:offset+docp.dims.OCP_x]), t, x, u, v)
         # lagrange cost
-        if docp.has_lagrange
-            work[offset+docp.dim_NLP_x] = CTModels.lagrange(docp.ocp)(t, x, u, v)
+        if docp.flags.lagrange
+            work[offset+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(t, x, u, v)
         end   
     end
     return work
@@ -113,26 +113,26 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
     xi = get_OCP_state_at_time_step(xu, docp, i)
 
     # 1. state equation
-    if i <= docp.dim_NLP_steps
+    if i <= docp.time.steps
         # more variables
         tip1 = time_grid[i+1]
         xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
         hi = tip1 - ti
-        offset_dyn_i = (i-1)*docp.dim_NLP_x
+        offset_dyn_i = (i-1)*docp.dims.NLP_x
 
         # state equation: euler rule
-        @views @. c[offset+1:offset+docp.dim_OCP_x] = xip1 - (xi + hi * work[offset_dyn_i+1:offset_dyn_i+docp.dim_OCP_x])
-        if docp.has_lagrange
-            c[offset+docp.dim_NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[offset_dyn_i+docp.dim_NLP_x])
+        @views @. c[offset+1:offset+docp.dims.OCP_x] = xip1 - (xi + hi * work[offset_dyn_i+1:offset_dyn_i+docp.dims.OCP_x])
+        if docp.flags.lagrange
+            c[offset+docp.dims.NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[offset_dyn_i+docp.dims.NLP_x])
         end
-        offset += docp.dim_NLP_x
+        offset += docp.dims.NLP_x
 
     end
    
     # 2. path constraints
     if docp.discretization._step_pathcons_block > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dim_path_cons]), ti, xi, ui, v)
+        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dims.path_cons]), ti, xi, ui, v)
     end
     
 end

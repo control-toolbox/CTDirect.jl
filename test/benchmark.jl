@@ -119,7 +119,7 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
     NLP_objective = (xu) -> CTDirect.DOCP_objective(xu, docp)
     NLP_constraints! = (c, xu) -> CTDirect.DOCP_constraints!(c, xu, docp) =#
     c = fill(666.666, docp.dim_NLP_constraints)
-    work = similar(xu, docp.dim_NLP_x)
+    work = similar(xu, docp.dims.NLP_x)
 
     # DOCP_objective
     if test_obj
