@@ -1,6 +1,6 @@
 # some test problems with free times
 
-function bolza_freetf()
+#=function bolza_freetf()
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 1)
     CTModels.control!(pre_ocp, 1)
@@ -24,9 +24,9 @@ function bolza_freetf()
 
     ocp = CTModels.build_model(pre_ocp)
     return ((ocp = ocp, obj = 1.476, name = "bolza_freetf", init = nothing))    
-end
+end=#
 
-#=function bolza_freetf()
+function bolza_freetf()
     @def ocp begin
         tf ∈ R, variable
         t ∈ [0, tf], time
@@ -41,4 +41,4 @@ end
     end
 
     return ((ocp = ocp, obj = 1.476, name = "bolza_freetf", init = nothing))
-end=#
+end

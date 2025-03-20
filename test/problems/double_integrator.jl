@@ -1,6 +1,6 @@
 # double integrator
 
-# define problem with new model: double integrator
+#= define problem with new model: double integrator
 function double_integrator_mintf()
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 2)
@@ -27,10 +27,10 @@ function double_integrator_mintf()
     ocp = CTModels.build_model(pre_ocp)
     
     return ((ocp = ocp, obj = 2.0, name = "double_integrator_mintf", init = nothing))
-end
+end=#
 
 
-#= min tf
+# min tf
 function double_integrator_mintf()
     @def ocp begin
         tf ∈ R, variable
@@ -47,9 +47,9 @@ function double_integrator_mintf()
 
     return ((ocp = ocp, obj = 2.0, name = "double_integrator_mintf", init = nothing))
 end
-=#
 
-# min energy with fixed tf
+
+#= min energy with fixed tf
 function double_integrator_minenergy(T=2)
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 2)
@@ -73,9 +73,9 @@ function double_integrator_minenergy(T=2)
     ocp = CTModels.build_model(pre_ocp)
 
     return ((ocp = ocp, obj = nothing, name = "double_integrator_minenergy", init = nothing))
-end
+end=#
 
-#=
+
 function double_integrator_minenergy(T=2)
     @def ocp begin
         t ∈ [0, T], time
@@ -92,9 +92,9 @@ function double_integrator_minenergy(T=2)
     end
 
     return ((ocp = ocp, obj = nothing, name = "double_integrator_minenergy", init = nothing))
-end=#
+end
 
-# max t0 with free t0,tf
+#= max t0 with free t0,tf
 function double_integrator_freet0tf()
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 2)
@@ -122,10 +122,9 @@ function double_integrator_freet0tf()
     ocp = CTModels.build_model(pre_ocp)
 
     return ((ocp = ocp, obj = 8.0, name = "double_integrator_freet0tf", init = nothing))
-end
+end=#
 
-#=
-function double_integrator_freet0tf(lagrange = false)
+function double_integrator_freet0tf()
     @def ocp begin
         v ∈ R², variable
         t0 = v₁
@@ -144,4 +143,4 @@ function double_integrator_freet0tf(lagrange = false)
     end
 
     return ((ocp = ocp, obj = 8.0, name = "double_integrator_freet0tf", init = nothing))
-end=#
+end

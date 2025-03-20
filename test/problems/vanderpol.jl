@@ -1,5 +1,5 @@
 # Van der Pol example from Bocop
-function vanderpol()
+#=function vanderpol()
     # constants
     omega = 1
     epsilon = 1
@@ -23,9 +23,9 @@ function vanderpol()
     ocp = CTModels.build_model(pre_ocp)
 
     return ((ocp = ocp, obj = 1.047921, name = "vanderpol", init = nothing))
-end
+end=#
 
-#=function vanderpol()
+function vanderpol()
     @def vanderpol begin
         # constants
         omega = 1
@@ -40,5 +40,5 @@ end
     end
 
     return ((ocp = vanderpol, obj = 1.047921, name = "vanderpol", init = nothing))
-end=#
+end
 

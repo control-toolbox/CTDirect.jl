@@ -1,7 +1,7 @@
 # Fuller example
 
 # define problem with new model: fuller
-function fuller()
+#=function fuller()
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 2)
     CTModels.control!(pre_ocp, 1)
@@ -25,9 +25,9 @@ function fuller()
     ocp = CTModels.build_model(pre_ocp)
 
     return ((ocp = ocp, obj = 2.683944e-1, name = "fuller", init = nothing))
-end
+end=#
 
-#=function fuller()
+function fuller()
     @def fuller begin
         t ∈ [0, 3.5], time
         x ∈ R², state
@@ -40,4 +40,4 @@ end
     end
 
     return ((ocp = fuller, obj = 2.683944e-1, name = "fuller", init = nothing))
-end=#
+end

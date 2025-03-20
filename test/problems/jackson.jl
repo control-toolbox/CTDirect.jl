@@ -1,5 +1,5 @@
 # Jackson example from Bocop
-function jackson()
+#=function jackson()
     # constants
     k1 = 1
     k2 = 10
@@ -27,9 +27,9 @@ function jackson()
     ocp = CTModels.build_model(pre_ocp)
 
     return ((ocp = ocp, obj = 1.92011e-1, name = "jackson", init = nothing))
-end
+end=#
 
-#=function jackson()
+function jackson()
     @def jackson begin
         # constants
         k1 = 1
@@ -53,4 +53,4 @@ end
     end
 
     return ((ocp = jackson, obj = 0.192011, name = "jackson", init = nothing))
-end=#
+end

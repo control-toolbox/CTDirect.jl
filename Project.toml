@@ -1,12 +1,13 @@
 name = "CTDirect"
 uuid = "790bbbee-bee9-49ee-8912-a9de031322d5"
 authors = ["Pierre Martinon <pierrecmartinon@gmail.com>", "Joseph Gergaud <joseph.gergaud@enseeiht.fr>", "Olivier Cots <olivier.cots@enseeiht.fr>"]
-version = "0.14.4"
+version = "0.14.5"
 
 [deps]
 ADNLPModels = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
 CTBase = "54762871-cc72-4466-b8e8-f6c8b58076cd"
 CTModels = "34c4fa32-2049-4079-8329-de33c2a22e2d"
+CTParser = "32681960-a1b1-40db-9bff-a1ca817385d1"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 HSL = "34c5aeac-e683-54a6-a0e9-6e0fdc586c50"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

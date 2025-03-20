@@ -1,6 +1,6 @@
 # Parametric problem (name ??)
 
-function parametric(ρ)
+#=function parametric(ρ)
 
     relu(x) = max(0, x)
     μ = 10
@@ -40,9 +40,9 @@ function parametric(ρ)
     CTModels.definition!(pre_ocp, Expr(:parametric))
     ocp = CTModels.build_model(pre_ocp)
     return ((ocp = ocp, obj = nothing, name = "parametric", init = nothing))
-end
+end=#
 
-#=function parametric(ρ)
+function parametric(ρ)
     relu(x) = max(0, x)
     μ = 10
     p_relu(x) = log(abs(1 + exp(μ * x))) / μ
@@ -66,4 +66,4 @@ end
     end
 
     return ((ocp = param, obj = nothing, name = "parametric", init = nothing))
-end=#
+end

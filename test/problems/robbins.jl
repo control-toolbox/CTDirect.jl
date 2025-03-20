@@ -1,5 +1,5 @@
 # Robbins example from Bocop
-function robbins()
+#=function robbins()
     # constants
     alpha = 3
     beta = 0
@@ -26,9 +26,9 @@ function robbins()
     ocp = CTModels.build_model(pre_ocp)
 
     return ((ocp = ocp, obj = 19.44, name = "robbins", init = nothing))
-end
+end=#
 
-#=function robbins()
+function robbins()
     @def robbins begin
         # constants
         alpha = 3
@@ -45,5 +45,5 @@ end
         ∫(alpha * x[1](t) + beta * x[1](t)^2 + gamma * u(t)^2) → min
     end
 
-    return ((ocp = robbins, obj = 20.0, name = "robbins", init = nothing))
-end=#
+    return ((ocp = robbins, obj = 19.4, name = "robbins", init = nothing))
+end

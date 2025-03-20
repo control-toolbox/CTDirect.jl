@@ -1,6 +1,6 @@
 # Beam example from bocop
 
-function beam()
+#=function beam()
     pre_ocp = CTModels.PreModel()
     CTModels.state!(pre_ocp, 2)
     CTModels.control!(pre_ocp, 1)
@@ -26,8 +26,8 @@ function beam()
 
     return ((ocp = ocp, obj = 8.898598, name = "beam", init = nothing))
 end
+=#
 
-#=
 function beam()
     @def beam begin
         t ∈ [0, 1], time
@@ -43,4 +43,3 @@ function beam()
 
     return ((ocp = beam, obj = 8.898598, name = "beam", init = nothing))
 end
-=#

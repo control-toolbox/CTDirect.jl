@@ -14,7 +14,7 @@ function F1(x, Tmax, b)
     return [0, Tmax / m, -b * Tmax]
 end
 
-function goddard(; vmax = 0.1, Tmax = 3.5)
+#=function goddard(; vmax = 0.1, Tmax = 3.5)
     # constants
     Cd = 310
     beta = 500
@@ -54,9 +54,9 @@ function goddard(; vmax = 0.1, Tmax = 3.5)
     return ((
         ocp = ocp, obj = 1.01257, name = "goddard", init = (state = [1.01, 0.05, 0.8],),
     ))
-end
+end=#
 
-#= abstract definition
+# abstract definition
 function goddard(; vmax = 0.1, Tmax = 3.5)
     # constants
     Cd = 310
@@ -93,7 +93,7 @@ function goddard(; vmax = 0.1, Tmax = 3.5)
         name = "goddard",
         init = (state = [1.01, 0.05, 0.8],),
     ))
-end=#
+end
 
 
 # all constraints, inplace functional version
