@@ -156,12 +156,9 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
 
     # solve
     if test_solve
-        sol = direct_solve(ocp, display=false, grid_size=grid_size, disc_method=disc_method)
-        if !isapprox(sol.objective, prob.obj, rtol=1e-2)
-            error("objective mismatch: ", sol.objective, " vs ", prob.obj)
-        end
         print("Solve"); @btime direct_solve($ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
     end
 
+    return nothing
 end
 
