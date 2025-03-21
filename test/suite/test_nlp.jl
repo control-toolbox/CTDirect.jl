@@ -16,15 +16,15 @@ end
 # AD backends
 @testset verbose = true showtiming = true ":AD_backends" begin
     sol = solve(ocp, display = false)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
     sol = solve(ocp, display = false, adnlp_backend = :default)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
     sol = solve(ocp, display = false, adnlp_backend = :manual)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
     sol = solve(ocp, display = false, disc_method=:midpoint, adnlp_backend = :manual)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
     sol = solve(ocp, display = false, disc_method=:gauss_legendre_2, adnlp_backend = :manual)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
 end
 
 
@@ -34,13 +34,13 @@ end
     solver_backend = CTDirect.IpoptBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = CTDirect.build_OCP_solution(docp, dsol)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
     sol = CTDirect.build_OCP_solution(docp, primal = dsol.solution)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
     sol = CTDirect.build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
     sol = CTDirect.build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers, mult_LB = dsol.multipliers_L, mult_UB = dsol.multipliers_U)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
 end
 
 
@@ -49,13 +49,13 @@ end
     solver_backend = CTDirect.MadNLPBackend()
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false)
     sol = CTDirect.build_OCP_solution(docp, dsol)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
     sol = CTDirect.build_OCP_solution(docp, primal = dsol.solution)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
     sol = CTDirect.build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
     sol = CTDirect.build_OCP_solution(docp, primal = dsol.solution, dual = dsol.multipliers, mult_LB = dsol.multipliers_L, mult_UB = dsol.multipliers_U)
-    @test CTModels.objective(sol) ≈ obj rtol = 1e-2
+    @test objective(sol) ≈ obj rtol = 1e-2
 end
 
 # solution building
@@ -69,18 +69,18 @@ p_opt = t -> [24, 12 - 24 * t]
 
 @testset verbose = true showtiming = true ":analytic_solution :ipopt" begin
     sol = solve(ocp, display = false)
-    T = CTModels.time_grid(sol)
-    @test isapprox(x_opt.(T), CTModels.state(sol).(T), rtol = 1e-2)
-    @test isapprox(u_opt.(T), CTModels.control(sol).(T), rtol = 1e-2)
-    @test isapprox(p_opt.(T), CTModels.costate(sol).(T), rtol = 1e-2)
+    T = time_grid(sol)
+    @test isapprox(x_opt.(T), state(sol).(T), rtol = 1e-2)
+    @test isapprox(u_opt.(T), control(sol).(T), rtol = 1e-2)
+    @test isapprox(p_opt.(T), costate(sol).(T), rtol = 1e-2)
 end
 
 @testset verbose = true showtiming = true ":analytic_solution :madnlp" begin
     sol = solve(ocp, :madnlp, display = false)
-    T = CTModels.time_grid(sol)
-    @test isapprox(x_opt.(T), CTModels.state(sol).(T), rtol = 1e-2)
-    @test isapprox(u_opt.(T), CTModels.control(sol).(T), rtol = 1e-2)
-    @test isapprox(p_opt.(T), CTModels.costate(sol).(T), rtol = 1e-2)
+    T = time_grid(sol)
+    @test isapprox(x_opt.(T), state(sol).(T), rtol = 1e-2)
+    @test isapprox(u_opt.(T), control(sol).(T), rtol = 1e-2)
+    @test isapprox(p_opt.(T), costate(sol).(T), rtol = 1e-2)
 end
 
 
@@ -103,18 +103,18 @@ u_func = t -> (cos(10 * t) + 1) * 0.5
     )
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false, max_iter = maxiter)
     sol = CTDirect.build_OCP_solution(docp, dsol)
-    T = CTModels.time_grid(sol)
-    @test isapprox(CTModels.state(sol).(t_vec), x_vec, rtol = 1e-2)
-    @test isapprox(CTModels.control(sol).(T), u_func.(T), rtol = 1e-2)
-    @test CTModels.variable(sol) == v_const
+    T = time_grid(sol)
+    @test isapprox(state(sol).(t_vec), x_vec, rtol = 1e-2)
+    @test isapprox(control(sol).(T), u_func.(T), rtol = 1e-2)
+    @test variable(sol) == v_const
 end
 # warm start
 @testset verbose = true showtiming = true ":docp_warm_start" begin
     set_initial_guess(docp, nlp, sol0)
     dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display = false, max_iter = maxiter)
     sol = CTDirect.build_OCP_solution(docp, dsol)
-    T = CTModels.time_grid(sol)
-    @test isapprox(CTModels.state(sol).(T), CTModels.state(sol0).(T), rtol = 1e-2)
-    @test isapprox(CTModels.control(sol).(T), CTModels.control(sol0).(T), rtol = 1e-2)
-    @test CTModels.variable(sol) == CTModels.variable(sol0)
+    T = time_grid(sol)
+    @test isapprox(state(sol).(T), state(sol0).(T), rtol = 1e-2)
+    @test isapprox(control(sol).(T), control(sol0).(T), rtol = 1e-2)
+    @test variable(sol) == variable(sol0)
 end

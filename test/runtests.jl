@@ -2,14 +2,15 @@ using Test
 
 using CTDirect
 using CTModels
-using CTParser # for abstract formulation 
+import CTModels: objective, state, control, variable, costate, time_grid, iterations
+import CTParser: @def, set_prefix # for abstract formulation 
 
 using NLPModelsIpopt
 using MadNLP
 using SplitApplyCombine # for flatten in some tests
 
 # tell CTParser def macro to use CTModels instead of OptimalControl
-CTParser.set_prefix(:CTModels)
+set_prefix(:CTModels)
 
 # check local test suite
 @testset verbose = true showtiming = true "Test suite" begin
