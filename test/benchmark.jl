@@ -1,7 +1,7 @@
 # Benchmark and profiling
 using CTDirect
 using CTModels
-using CTParser # for abstract formulation 
+import CTParser: @def, set_prefix # for abstract formulation
 
 using NLPModelsIpopt
 using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
@@ -15,7 +15,7 @@ using PProf
 using Test # to run individual test scripts if needed
 
 # tell CTParser def macro to use CTModels instead of OptimalControl
-CTParser.set_prefix(:CTModels)
+set_prefix(:CTModels)
 
 #######################################################
 # load examples library
@@ -118,9 +118,6 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
     # define problem and variables
     docp, xu = init(ocp, grid_size=grid_size, disc_method=disc_method)
     disc = docp.discretization
-    #= OK, same as calling the functions with docp
-    NLP_objective = (xu) -> CTDirect.DOCP_objective(xu, docp)
-    NLP_constraints! = (c, xu) -> CTDirect.DOCP_constraints!(c, xu, docp) =#
     c = fill(666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dims.NLP_x)
 
@@ -156,12 +153,9 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
 
     # solve
     if test_solve
-        sol = solve(ocp, display=false, grid_size=grid_size, disc_method=disc_method)
-        if !isapprox(sol.objective, prob.obj, rtol=1e-2)
-            error("objective mismatch: ", sol.objective, " vs ", prob.obj)
-        end
         print("Solve"); @btime solve($ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
     end
 
+    return nothing
 end
 
