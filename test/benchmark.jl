@@ -1,7 +1,8 @@
 # Benchmark and profiling
 using CTDirect
 using CTModels
-import CTParser: @def, set_prefix # for abstract formulation
+using CTParser: CTParser, @def, set_prefix
+set_prefix(:CTModels) # tell CTParser def macro to use CTModels instead of OptimalControl
 
 using NLPModelsIpopt
 using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
@@ -14,8 +15,6 @@ using Profile
 using PProf
 using Test # to run individual test scripts if needed
 
-# tell CTParser def macro to use CTModels instead of OptimalControl
-set_prefix(:CTModels)
 
 #######################################################
 # load examples library
