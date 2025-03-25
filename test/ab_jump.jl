@@ -4,7 +4,6 @@
 # https://gist.github.com/rand-asswad/7120f1ab39bf28fffd414e780b4c0196
 using JuMP, Ipopt
 
-
 struct rk_method
     name::Symbol
     s::Integer
@@ -28,6 +27,7 @@ function algal_bacterial_jump(;grid_size=1000, disc_method=:trapeze, print_level
     set_optimizer_attribute(sys, "max_iter", 1500)
     set_optimizer_attribute(sys, "mu_strategy", "adaptive")
     set_optimizer_attribute(sys, "sb", "yes")
+    set_optimizer_attribute(sys, "print_user_options", "yes")
 
     # Discretization parameters
     N = grid_size

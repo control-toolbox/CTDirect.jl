@@ -1,4 +1,5 @@
 # Beam example from bocop
+
 function beam()
     @def beam begin
         t ∈ [0, 1], time
