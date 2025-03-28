@@ -1,6 +1,6 @@
 # Benchmark and profiling
-using CTDirect
-using CTModels
+using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
+using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
 using CTParser: CTParser, @def, set_prefix
 set_prefix(:CTModels) # tell CTParser def macro to use CTModels instead of OptimalControl
 
@@ -22,8 +22,6 @@ problem_path = pwd() * "/test/problems"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true))
     include(problem_file)
 end
-
-
 
 function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs...)
 
