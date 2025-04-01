@@ -16,7 +16,7 @@ end
 
 
 # abstract definition
-function goddard(; vmax = 0.1, Tmax = 3.5)
+function goddard(; vmax=0.1, Tmax=3.5)
     # constants
     Cd = 310
     beta = 500
@@ -47,10 +47,10 @@ function goddard(; vmax = 0.1, Tmax = 3.5)
     end
 
     return ((
-        ocp = goddard,
-        obj = 1.01257,
-        name = "goddard",
-        init = (state = [1.01, 0.05, 0.8],),
+        ocp=goddard,
+        obj=1.01257,
+        name="goddard",
+        init=(state=[1.01, 0.05, 0.8],),
     ))
 end
 
@@ -77,11 +77,11 @@ function goddard_all()
         @views c[:] .= u
         return
     end
-    function m_fun!(c, x, u, v) 
+    function m_fun!(c, x, u, v)
         @views c[:] .= x[3]
         return
     end
-    function xu_fun!(c, x, u, v) 
+    function xu_fun!(c, x, u, v)
         #dummy mixed constraint
         @views c[:] .= x[1] + x[2] + x[3] + u + v
         return
@@ -96,34 +96,34 @@ function goddard_all()
     end
 
     #ocp
-    goddard = Model(variable = true, in_place=true)
+    goddard = Model(variable=true, in_place=true)
     state!(goddard, 3)
     control!(goddard, 1)
     variable!(goddard, 1)
-    time!(goddard, t0 = 0, indf = 1)
+    time!(goddard, t0=0, indf=1)
     # initial constraint
-    constraint!(goddard, :initial, val = x0)
+    constraint!(goddard, :initial, val=x0)
     # final constraint
-    constraint!(goddard, :final, rg = 3, val = mf)
+    constraint!(goddard, :final, rg=3, val=mf)
     # state box (active at t0 and tf)
-    constraint!(goddard, :state, lb = [r0, v0, 0], ub = [Inf, Inf, m0])
+    constraint!(goddard, :state, lb=[r0, v0, 0], ub=[Inf, Inf, m0])
     # control box (active on last bang arc)
-    constraint!(goddard, :control, lb = 0, ub = Inf)
+    constraint!(goddard, :control, lb=0, ub=Inf)
     # variable box (inactive)
-    constraint!(goddard, :variable, lb = 0.01, ub = Inf)
+    constraint!(goddard, :variable, lb=0.01, ub=Inf)
     # state constraint (active on constrained arc)
-    constraint!(goddard, :state, f = v_fun!, lb = -Inf, ub = vmax)
+    constraint!(goddard, :state, f=v_fun!, lb=-Inf, ub=vmax)
     # control constraint (active on first bang arc)
-    constraint!(goddard, :control, f = u_fun!, lb = -Inf, ub = 1)
+    constraint!(goddard, :control, f=u_fun!, lb=-Inf, ub=1)
     # 'mixed' constraint (inactive)
-    constraint!(goddard, :mixed, f = xu_fun!, lb = 0, ub = Inf)
+    constraint!(goddard, :mixed, f=xu_fun!, lb=0, ub=Inf)
     objective!(goddard, :mayer, rf_fun!, :max)
     dynamics!(goddard, f_fun!)
 
     return ((
-        ocp = goddard,
-        obj = 1.01257,
-        name = "goddard_all_constraints",
-        init = (state = [1.01, 0.05, 0.8],),
+        ocp=goddard,
+        obj=1.01257,
+        name="goddard_all_constraints",
+        init=(state=[1.01, 0.05, 0.8],),
     ))
 end

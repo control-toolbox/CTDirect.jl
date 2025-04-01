@@ -16,7 +16,7 @@ Contains:
 - a copy of the original OCP
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
+struct DOCP{T<:Discretization,X<:ScalVect,U<:ScalVect,V<:ScalVect}
 
     ## OCP
     ocp::OptimalControlModel # remove at some point ?
@@ -77,7 +77,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
 
     # scalar / vector aux function
     _type_x::X
-    _type_u::U  
+    _type_u::U
     _type_v::V
 
     # constructor
@@ -89,7 +89,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             dim_NLP_steps = grid_size
         else
             # check strictly increasing
-            if !issorted(time_grid, lt = <=)
+            if !issorted(time_grid, lt=<=)
                 throw(ArgumentError("given time grid is not strictly increasing. Aborting..."))
                 return nothing
             end
@@ -149,7 +149,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
             NLP_fixed_time_grid = @. fixed_initial_time + (NLP_normalized_time_grid * (fixed_final_time - fixed_initial_time))
         else
             # unused
-            NLP_fixed_time_grid = Vector{Float64}(undef, dim_NLP_steps+1)
+            NLP_fixed_time_grid = Vector{Float64}(undef, dim_NLP_steps + 1)
         end
 
         # NLP constraints 
@@ -175,20 +175,20 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
 
         # parameter: discretization method
         if disc_method == :trapeze
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)           
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :midpoint
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)           
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :euler
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :euler_implicit
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons; explicit=false)
         elseif disc_method == :gauss_legendre_1
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_2
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
         elseif disc_method == :gauss_legendre_3
-                discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
-        else           
+            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_u_cons, dim_x_cons, dim_xu_cons, dim_boundary_cons, dim_v_cons)
+        else
             error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:euler, :euler_implicit, :trapeze, :midpoint, :gauss_legendre_2, :gauss_legendre_3}\n", typeof(disc_method))
         end
 
@@ -203,7 +203,7 @@ struct DOCP{T <: Discretization, X <: ScalVect, U <: ScalVect, V <: ScalVect}
         dim_NLP_v == 1 ? _type_v = ScalVariable() : _type_v = VectVariable()
 
         # call constructor with const fields
-        docp = new{typeof(discretization), typeof(_type_x), typeof(_type_u), typeof(_type_v)}(
+        docp = new{typeof(discretization),typeof(_type_x),typeof(_type_u),typeof(_type_v)}(
             ocp,
             control_constraints,
             state_constraints,
@@ -340,13 +340,13 @@ function DOCP_objective(xu, docp::DOCP)
     if docp.has_mayer
         v = get_OCP_variable(xu, docp)
         x0 = get_OCP_state_at_time_step(xu, docp, 1)
-        xf = get_OCP_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
+        xf = get_OCP_state_at_time_step(xu, docp, docp.dim_NLP_steps + 1)
         docp.ocp.mayer(obj_mayer, x0, xf, v)
     end
 
     # lagrange cost
     if docp.has_lagrange
-        obj_lagrange = get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
+        obj_lagrange = get_lagrange_state_at_time_step(xu, docp, docp.dim_NLP_steps + 1)
     else
         obj_lagrange = 0.0
     end
@@ -384,7 +384,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     work = setWorkArray(docp, xu, time_grid, v)
 
     # main loop on time steps (using c block view seems similar)
-    for i = 1:docp.dim_NLP_steps + 1
+    for i = 1:docp.dim_NLP_steps+1
         setStepConstraints!(docp, c, xu, v, time_grid, i, work)
     end
 
@@ -405,13 +405,13 @@ function setPathConstraints!(docp, c, ti, xi, ui, v, offset)
 
     # control constraints
     if docp.dim_u_cons > 0
-        docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]),ti, ui, v)
+        docp.control_constraints[2]((@view c[offset+1:offset+docp.dim_u_cons]), ti, ui, v)
         offset += docp.dim_u_cons
     end
 
     # state constraints
-    if docp.dim_x_cons > 0 
-        docp.state_constraints[2]((@view c[offset+1:offset+docp.dim_x_cons]),ti, xi, v)
+    if docp.dim_x_cons > 0
+        docp.state_constraints[2]((@view c[offset+1:offset+docp.dim_x_cons]), ti, xi, v)
         offset += docp.dim_x_cons
     end
 
@@ -465,11 +465,11 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # variables
     x0 = get_OCP_state_at_time_step(xu, docp, 1)
-    xf = get_OCP_state_at_time_step(xu, docp, docp.dim_NLP_steps+1)
+    xf = get_OCP_state_at_time_step(xu, docp, docp.dim_NLP_steps + 1)
 
     # boundary constraints
     if docp.dim_boundary_cons > 0
-        docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]),x0, xf, v)
+        docp.boundary_constraints[2]((@view c[offset+1:offset+docp.dim_boundary_cons]), x0, xf, v)
         offset = offset + docp.dim_boundary_cons
     end
 
@@ -492,7 +492,7 @@ $(TYPEDSIGNATURES)
 Set bounds for the boundary and variable constraints
 """
 function setPointConstraintsBounds!(docp::DOCP, lb, ub)
-    
+
     offset = docp.dim_NLP_constraints - (docp.dim_boundary_cons + docp.dim_v_cons)
     docp.has_lagrange && (offset = offset - 1)
 
@@ -526,7 +526,7 @@ $(TYPEDSIGNATURES)
 
 Build initial guess for discretized problem
 """
-function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalControlInit())
+function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit=OptimalControlInit())
 
     # default initialization (internal variables such as lagrange cost, k_i for RK schemes) will keep these default values 
     NLP_X = 0.1 * ones(docp.dim_NLP_variables)
@@ -538,7 +538,7 @@ function DOCP_initial_guess(docp::DOCP, init::OptimalControlInit = OptimalContro
 
     # set state / control variables if provided (final control case handled by setter)
     time_grid = get_time_grid(NLP_X, docp)
-    for i = 1:docp.dim_NLP_steps + 1
+    for i = 1:docp.dim_NLP_steps+1
         ti = time_grid[i]
         set_state_at_time_step!(NLP_X, init.state_init(ti), docp, i)
         set_control_at_time_step!(NLP_X, init.control_init(ti), docp, i)
@@ -555,7 +555,7 @@ Return time grid for variable time problems (times are then dependent on NLP var
 """
 function get_time_grid(xu, docp::DOCP)
 
-    grid = similar(xu, docp.dim_NLP_steps+1)
+    grid = similar(xu, docp.dim_NLP_steps + 1)
 
     if docp.has_free_initial_time
         v = get_OCP_variable(xu, docp)

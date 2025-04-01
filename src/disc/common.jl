@@ -8,11 +8,11 @@ Retrieve optimization variables from the NLP variables.
 Convention: stored at the end, hence not dependent on the discretization method
 Scalar / Vector output
 """
-function get_OCP_variable(xu, docp::DOCP{<: Discretization, <: ScalVect, <: ScalVect, ScalVariable})
+function get_OCP_variable(xu, docp::DOCP{<:Discretization,<:ScalVect,<:ScalVect,ScalVariable})
     return xu[docp.dim_NLP_variables]
 end
-function get_OCP_variable(xu, docp::DOCP{<: Discretization, <: ScalVect, <: ScalVect, VectVariable})
-    return @view xu[(docp.dim_NLP_variables - docp.dim_NLP_v + 1):docp.dim_NLP_variables]
+function get_OCP_variable(xu, docp::DOCP{<:Discretization,<:ScalVect,<:ScalVect,VectVariable})
+    return @view xu[(docp.dim_NLP_variables-docp.dim_NLP_v+1):docp.dim_NLP_variables]
 end
 
 
@@ -23,13 +23,13 @@ Retrieve state variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
 Scalar / Vector output
 """
-function get_OCP_state_at_time_step(xu, docp::DOCP{<: Discretization, ScalVariable, <: ScalVect, <: ScalVect}, i)
-    offset = (i-1) * docp.discretization._step_variables_block
+function get_OCP_state_at_time_step(xu, docp::DOCP{<:Discretization,ScalVariable,<:ScalVect,<:ScalVect}, i)
+    offset = (i - 1) * docp.discretization._step_variables_block
     return xu[offset+1]
 end
-function get_OCP_state_at_time_step(xu, docp::DOCP{<: Discretization, VectVariable, <: ScalVect, <: ScalVect}, i)
-    offset = (i-1) * docp.discretization._step_variables_block
-    return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
+function get_OCP_state_at_time_step(xu, docp::DOCP{<:Discretization,VectVariable,<:ScalVect,<:ScalVect}, i)
+    offset = (i - 1) * docp.discretization._step_variables_block
+    return @view xu[(offset+1):(offset+docp.dim_OCP_x)]
 end
 """
 $(TYPEDSIGNATURES)
@@ -38,8 +38,8 @@ Retrieve state variable for lagrange cost at given time step from the NLP variab
 Convention: 1 <= i <= dim_NLP_steps+1   (no check for actual lagrange cost presence !)
 """
 function get_lagrange_state_at_time_step(xu, docp::DOCP, i)
-    offset = (i-1) * docp.discretization._step_variables_block
-    return xu[offset + docp.dim_NLP_x]
+    offset = (i - 1) * docp.discretization._step_variables_block
+    return xu[offset+docp.dim_NLP_x]
 end
 
 """
@@ -49,17 +49,17 @@ Retrieve control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps, with convention u(tf) = U_N
 Scalar / Vector output
 """
-function get_OCP_control_at_time_step(xu, docp::DOCP{<: Discretization, <: ScalVect, ScalVariable, <: ScalVect}, i)
+function get_OCP_control_at_time_step(xu, docp::DOCP{<:Discretization,<:ScalVect,ScalVariable,<:ScalVect}, i)
     # final time case
     (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
+    offset = (i - 1) * docp.discretization._step_variables_block + docp.dim_NLP_x
     return xu[offset+1]
 end
-function get_OCP_control_at_time_step(xu, docp::DOCP{<: Discretization, <: ScalVect, VectVariable, <: ScalVect}, i)
+function get_OCP_control_at_time_step(xu, docp::DOCP{<:Discretization,<:ScalVect,VectVariable,<:ScalVect}, i)
     # final time case
     (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
+    offset = (i - 1) * docp.discretization._step_variables_block + docp.dim_NLP_x
+    return @view xu[(offset+1):(offset+docp.dim_NLP_u)]
 end
 
 
@@ -72,8 +72,8 @@ Vector output
 Note that passing correct indices is up to the caller, no checks are made here.
 """
 function get_stagevars_at_time_step(xu, docp::DOCP, i, j)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
+    offset = (i - 1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u + (j - 1) * docp.dim_NLP_x
+    return @view xu[(offset+1):(offset+docp.dim_NLP_x)]
 end
 
 
@@ -83,7 +83,7 @@ $(TYPEDSIGNATURES)
 Set optimization variables in the NLP variables (for initial guess)
 """
 function set_optim_variable!(xu, v_init, docp)
-    xu[(end - docp.dim_NLP_v + 1):end] .= v_init
+    xu[(end-docp.dim_NLP_v+1):end] .= v_init
 end
 
 
@@ -96,8 +96,8 @@ Convention: 1 <= i <= dim_NLP_steps+1
 function set_state_at_time_step!(xu, x_init, docp::DOCP, i)
     # initialize only actual state variables from OCP (not lagrange state)
     if !isnothing(x_init)
-        offset = (i-1) * docp.discretization._step_variables_block
-        xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
+        offset = (i - 1) * docp.discretization._step_variables_block
+        xu[(offset+1):(offset+docp.dim_OCP_x)] .= x_init
     end
 end
 
@@ -111,8 +111,8 @@ Convention: 1 <= i <= dim_NLP_steps(+1)
 function set_control_at_time_step!(xu, u_init, docp::DOCP, i)
     if !isnothing(u_init)
         if i <= docp.dim_NLP_steps || (docp.discretization._final_control && i <= docp.dim_NLP_steps + 1)
-            offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-            xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
+            offset = (i - 1) * docp.discretization._step_variables_block + docp.dim_NLP_x
+            xu[(offset+1):(offset+docp.dim_NLP_u)] .= u_init
         end
     end
 end
@@ -123,7 +123,7 @@ $(TYPEDSIGNATURES)
 
 Set work array for all dynamics and lagrange cost evaluations
 """
-function setWorkArray(docp::DOCP{<: Discretization}, xu, time_grid, v)
+function setWorkArray(docp::DOCP{<:Discretization}, xu, time_grid, v)
     return nothing
 end
 
@@ -163,13 +163,13 @@ function add_nonzero_block!(M, i_start, i_end, j_start, j_end; sym=false)
     return
 end
 function add_nonzero_block!(M, i, j; sym=false)
-    M[i,j] = true
-    sym && (M[j,i] = true)
+    M[i, j] = true
+    sym && (M[j, i] = true)
     return
 end
 function add_nonzero_block!(Is, Js, i_start, i_end, j_start, j_end; sym=false)
-    for i=i_start:i_end
-        for j=j_start:j_end
+    for i = i_start:i_end
+        for j = j_start:j_end
             push!(Is, i)
             push!(Js, j)
             sym && push!(Is, j)
