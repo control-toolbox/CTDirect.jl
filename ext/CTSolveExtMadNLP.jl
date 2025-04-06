@@ -1,11 +1,12 @@
 module CTSolveExtMadNLP
 
 using CTDirect
-using CTBase
+
 using DocStringExtensions
 
 using MadNLP
 using HSL
+using MKL
 
 """
 $(TYPEDSIGNATURES)

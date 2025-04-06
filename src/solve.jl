@@ -1,4 +1,5 @@
 # CTDirect interface
+using CTBase
 
 """
 $(TYPEDSIGNATURES)

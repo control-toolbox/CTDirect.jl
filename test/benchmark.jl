@@ -5,7 +5,6 @@ using CTParser: CTParser, @def, set_prefix
 set_prefix(:CTModels) # tell CTParser def macro to use CTModels instead of OptimalControl
 
 using NLPModelsIpopt
-using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
 
 using Printf
 

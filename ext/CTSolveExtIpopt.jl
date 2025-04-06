@@ -1,11 +1,12 @@
 module CTSolveExtIpopt
 
 using CTDirect
-using CTBase
+
 using DocStringExtensions
 
 using NLPModelsIpopt
 using HSL
+using MKL
 
 """
 $(TYPEDSIGNATURES)

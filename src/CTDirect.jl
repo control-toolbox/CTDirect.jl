@@ -1,6 +1,5 @@
 module CTDirect
 
-import CTBase
 import CTModels
 
 using ADNLPModels

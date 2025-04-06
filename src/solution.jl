@@ -12,7 +12,7 @@ function build_OCP_solution(docp, docp_solution)
     iterations, constraints_violation, message, stopping, success = SolverInfos(docp_solution)
 
     # time grid
-    T = time_grid = get_time_grid(solution, docp)
+    T = get_time_grid(solution, docp)
 
     # primal variables X, U, v and box multipliers
     X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=docp_solution.multipliers_L, mult_UB=docp_solution.multipliers_U)
@@ -98,7 +98,7 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
     iterations, constraints_violation, message, stopping, success = SolverInfos()
 
     # time grid
-    T = time_grid = get_time_grid(solution, docp)
+    T = get_time_grid(solution, docp)
 
     # primal variables X, U, v and box multipliers
     X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=mult_LB, mult_UB=mult_UB)
