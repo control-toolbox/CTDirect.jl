@@ -24,10 +24,14 @@ CTSolveExtKnitro = ["NLPModelsKnitro"]
 CTSolveExtMadNLP = ["MadNLP"]
 
 [compat]
+
 CTBase = "0.15"
 CTModels = "0.2"
 CTParser = "0.2"
 DocStringExtensions = "0.9"
+HSL = "0.5"
+MKL = "0.8"
+NLPModelsIpopt = "0.10"
 SparseArrays = "1.10"
 julia = "1.10"
 
