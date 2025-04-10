@@ -15,9 +15,9 @@ if test1
         obj_list = []
         for T = 1:5
             ocp = double_integrator_minenergy(T).ocp
-            sol = direct_solve(ocp, display = false, init = init, grid_size=100)
+            sol = solve(ocp, display = false, init = init, grid_size=100)
             init = sol
-            push!(obj_list, sol.objective)
+            push!(obj_list, objective(sol))
         end
         @test obj_list ≈ [12, 1.5, 0.44, 0.19, 0.096] rtol = 1e-2
     end
@@ -34,9 +34,9 @@ if test2
         obj_list = []
         for ρ in [0.1, 5, 10, 30, 100]
             ocp = parametric(ρ).ocp
-            sol = direct_solve(ocp, display = false, init = init)
+            sol = solve(ocp, display = false, init = init)
             init = sol
-            push!(obj_list, sol.objective)
+            push!(obj_list, objective(sol))
         end
         @test obj_list ≈ [-0.034, -1.67, -6.2, -35, -148] rtol = 1e-2
     end
@@ -47,16 +47,16 @@ if test3
     if !isdefined(Main, :goddard)
         include("../problems/goddard.jl")
     end
-    sol0 = direct_solve(goddard().ocp, display = false)
+    sol0 = solve(goddard().ocp, display = false)
 
     @testset verbose = true showtiming = true ":continuation :goddard" begin
         sol = sol0
         Tmax_list = []
         obj_list = []
         for Tmax = 3.5:-0.5:1
-            sol = direct_solve(goddard(Tmax = Tmax).ocp, display = false, init = sol)
+            sol = solve(goddard(Tmax = Tmax).ocp, display = false, init = sol)
             push!(Tmax_list, Tmax)
-            push!(obj_list, sol.objective)
+            push!(obj_list, objective(sol))
         end
         @test obj_list ≈ [1.0125, 1.0124, 1.0120, 1.0112, 1.0092, 1.0036] rtol = 1e-2
 

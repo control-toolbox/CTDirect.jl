@@ -1,6 +1,6 @@
 # simple intergator
+# min enery, dual control
 
-# min enery, dual control (no constraint u1 * u2 = 0 cf objective)
 function simple_integrator()
     @def ocp begin
         t ∈ [0, 1], time

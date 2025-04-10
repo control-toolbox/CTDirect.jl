@@ -1,4 +1,5 @@
 # CTDirect interface
+using CTBase
 
 """
 $(TYPEDSIGNATURES)
@@ -8,9 +9,9 @@ Return the list of available methods to solve the optimal control problem.
 function available_methods()
     # available methods by order of preference
     algorithms = ()
-    algorithms = add(algorithms, (:adnlp, :ipopt))
-    algorithms = add(algorithms, (:adnlp, :madnlp))
-    algorithms = add(algorithms, (:adnlp, :knitro))
+    algorithms = CTBase.add(algorithms, (:adnlp, :ipopt))
+    algorithms = CTBase.add(algorithms, (:adnlp, :madnlp))
+    algorithms = CTBase.add(algorithms, (:adnlp, :knitro))
     return algorithms
 end
 
@@ -34,8 +35,8 @@ Solve an OCP with a direct method
 
 All further keywords are passed to the inner call of `solve_docp`
 """
-function direct_solve(
-    ocp::OptimalControlModel,
+function solve(
+    ocp::CTModels.Model,
     description::Symbol...;
     display::Bool = __display(),
     grid_size::Int = __grid_size(),
@@ -47,7 +48,7 @@ function direct_solve(
 )
 
     # get solver choice
-    method = getFullDescription(description, available_methods())
+    method = CTBase.getFullDescription(description, available_methods())
     if :ipopt ∈ method
         solver_backend = CTDirect.IpoptBackend()
     elseif :madnlp ∈ method
@@ -74,7 +75,7 @@ function direct_solve(
     docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp; display=display, kwargs...)
 
     # build and return OCP solution
-    return OptimalControlSolution(docp, docp_solution)
+    return build_OCP_solution(docp, docp_solution)
 end
 
 
@@ -84,7 +85,7 @@ $(TYPEDSIGNATURES)
 Discretize an optimal control problem into a nonlinear optimization problem (ie direct transcription)
 
 # Arguments
-* ocp: optimal control problem as defined in `CTBase`
+* ocp: optimal control problem as defined in `CTModels`
 * [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
 
 # Keyword arguments (optional)
@@ -97,7 +98,7 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 
 """
 function direct_transcription(
-    ocp::OptimalControlModel,
+    ocp::CTModels.Model,
     description...;
     grid_size = __grid_size(),
     disc_method = __disc_method(),
@@ -117,7 +118,12 @@ function direct_transcription(
     constraints_bounds!(docp)
 
     # build and set initial guess in DOCP
-    docp_init = OptimalControlInit(init, state_dim = ocp.state_dimension, control_dim = ocp.control_dimension, variable_dim = ocp.variable_dimension)
+    docp_init = CTModels.Init(
+            init;
+            state_dim = CTModels.state_dimension(ocp),
+            control_dim = CTModels.control_dimension(ocp),
+            variable_dim = CTModels.variable_dimension(ocp),
+        )
     x0 = DOCP_initial_guess(docp, docp_init)
 
     # redeclare objective and constraints functions
@@ -134,7 +140,11 @@ function direct_transcription(
         # build NLP with given patterns; disable unused backends according to solver info
         if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
             nlp = ADNLPModel!(
-                f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+                f, 
+                x0, 
+                docp.bounds.var_l, docp.bounds.var_u, 
+                c!, 
+                docp.bounds.con_l, docp.bounds.con_u,
                 gradient_backend = ADNLPModels.ReverseDiffADGradient,
                 jacobian_backend = J_backend,
                 hessian_backend = H_backend,
@@ -147,7 +157,11 @@ function direct_transcription(
             )
         else
             nlp = ADNLPModel!(
-                f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+                f, 
+                x0, 
+                docp.bounds.var_l, docp.bounds.var_u, 
+                c!, 
+                docp.bounds.con_l, docp.bounds.con_u,
                 gradient_backend = ADNLPModels.ReverseDiffADGradient,
                 jacobian_backend = J_backend,
                 hessian_backend = H_backend,
@@ -158,7 +172,11 @@ function direct_transcription(
         # build NLP; disable unused backends according to solver info
         if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
             nlp = ADNLPModel!(
-                f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+                f, 
+                x0, 
+                docp.bounds.var_l, docp.bounds.var_u, 
+                c!, 
+                docp.bounds.con_l, docp.bounds.con_u,
                 backend = adnlp_backend, 
                 hprod_backend = ADNLPModels.EmptyADbackend,
                 jtprod_backend = ADNLPModels.EmptyADbackend,
@@ -168,7 +186,11 @@ function direct_transcription(
                 )
         else
             nlp = ADNLPModel!(
-                f, x0, docp.var_l, docp.var_u, c!, docp.con_l, docp.con_u,
+                f, 
+                x0, 
+                docp.bounds.var_l, docp.bounds.var_u, 
+                c!, 
+                docp.bounds.con_l, docp.bounds.con_u,
                 backend = adnlp_backend,    
                 show_time = show_time,
                 matrix_free = matrix_free
@@ -187,7 +209,13 @@ Set initial guess in the DOCP
 """
 function set_initial_guess(docp::DOCP, nlp, init)
     ocp = docp.ocp
-    nlp.meta.x0 .= DOCP_initial_guess(docp, OptimalControlInit(init, state_dim = ocp.state_dimension, control_dim = ocp.control_dimension, variable_dim = ocp.variable_dimension))
+    docp_init = CTModels.Init(
+            init;
+            state_dim = CTModels.state_dimension(ocp),
+            control_dim = CTModels.control_dimension(ocp),
+            variable_dim = CTModels.variable_dimension(ocp),
+        )
+    nlp.meta.x0 .= DOCP_initial_guess(docp, docp_init)
 end
 
 
@@ -200,5 +228,5 @@ struct KnitroBackend <: AbstractSolverBackend end
 weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP, KnitroBackend => :NLPModelsKnitro)
 
 function solve_docp(solver_backend::T, args...; kwargs...) where {T <: AbstractSolverBackend}
-    throw(ExtensionError(weakdeps[T]))
+    throw(CTBase.ExtensionError(weakdeps[T]))
 end

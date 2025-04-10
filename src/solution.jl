@@ -5,16 +5,73 @@ $(TYPEDSIGNATURES)
    
 Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
 """
-function CTBase.OptimalControlSolution(docp::DOCP, docp_solution)
+function build_OCP_solution(docp, docp_solution)
 
-    # retrieve data (could pass some status info too (get_status ?))
-    if docp.is_maximization
+    ocp = docp.ocp
+    solution = docp_solution.solution
+    iterations, constraints_violation, message, stopping, success = SolverInfos(docp_solution)
+
+    # time grid
+    T = get_time_grid(solution, docp)
+
+    # primal variables X, U, v and box multipliers
+    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=docp_solution.multipliers_L, mult_UB=docp_solution.multipliers_U)
+
+    # recompute / check objective
+    objective_r = DOCP_objective(solution, docp)
+    if docp.flags.max
         objective = -docp_solution.objective
+        objective_r = -objective_r
     else
         objective = docp_solution.objective
     end
+    if isnothing(objective)
+        objective = objective_r
+    elseif abs((objective - objective_r) / objective) > 1e-2
+        println("WARNING: recomputed objective mismatch ", objective, objective_r)
+    end
 
-    # solver specific infos
+    # recompute constraints
+    constraints = zeros(docp.dim_NLP_constraints)
+    DOCP_constraints!(constraints, solution, docp)
+
+    # costate and constraints multipliers
+    P, path_constraints, boundary_constraints, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers, constraints)
+
+    return CTModels.build_solution(
+        ocp,
+        T, X, U, v, P;
+        objective=objective, iterations=iterations, constraints_violation=constraints_violation,
+        message=message, stopping=stopping, success=success,
+        path_constraints=path_constraints, 
+        path_constraints_dual=path_constraints_dual,
+        boundary_constraints=boundary_constraints,
+        boundary_constraints_dual=boundary_constraints_dual,
+        state_constraints_lb_dual=box_multipliers[1],
+        state_constraints_ub_dual=box_multipliers[2],
+        control_constraints_lb_dual=box_multipliers[3],
+        control_constraints_ub_dual=box_multipliers[4],
+        variable_constraints_lb_dual=box_multipliers[5],
+        variable_constraints_ub_dual=box_multipliers[6]
+    )
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve convergence information (Ipopt version)
+"""
+function SolverInfos()
+    return 0, 0., "undefined", :undefined, true
+end
+function SolverInfos(docp_solution)
+
+    # try to detect solver here for specific fields !
+    iterations = docp_solution.iter
+    constraints_violation = docp_solution.primal_feas
+    stopping = :undefined
+    success = true
     message = "undefined"
     try 
         solver_specific = docp_solution.solver_specific
@@ -25,78 +82,55 @@ function CTBase.OptimalControlSolution(docp::DOCP, docp_solution)
     catch e # missing field solve_specific
     end
 
-    # call lower level constructor
-    return OptimalControlSolution(
-        docp,
-        primal = docp_solution.solution,
-        dual = docp_solution.multipliers,
-        objective = objective,
-        iterations = docp_solution.iter,
-        constraints_violation = docp_solution.primal_feas,
-        message = message,
-        mult_LB = docp_solution.multipliers_L,
-        mult_UB = docp_solution.multipliers_U,
-    )
+    return iterations, constraints_violation, message, stopping, success
 end
 
 
 """
 $(TYPEDSIGNATURES)
 
-Build OCP functional solution from the DOCP discrete solution, given as a vector. Costate will be retrieved from dual variables (multipliers) if available.
+Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
 """
-function CTBase.OptimalControlSolution(
-    docp::DOCP;
-    primal = Vector(),
-    dual = nothing,
-    objective = nothing,
-    iterations = nothing,
-    constraints_violation = nothing,
-    message = nothing,
-    mult_LB = nothing,
-    mult_UB = nothing,
-)
+function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB=nothing)
+
+    ocp = docp.ocp
+    solution = primal
+    iterations, constraints_violation, message, stopping, success = SolverInfos()
 
     # time grid
-    T = get_time_grid(primal, docp)
+    T = get_time_grid(solution, docp)
 
-    # recover primal variables
-    X, U, v, box_multipliers =
-        parse_DOCP_solution_primal(docp, primal, mult_LB = mult_LB, mult_UB = mult_UB)
+    # primal variables X, U, v and box multipliers
+    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=mult_LB, mult_UB=mult_UB)
 
-    # recompute / check objective
-    objective_r = DOCP_objective(primal, docp)
-    if docp.is_maximization
-        objective_r = -objective_r
-    end
-    if isnothing(objective)
-        objective = objective_r
-    elseif abs((objective - objective_r) / objective) > 1e-2
-        println("WARNING: recomputed objective mismatch ", objective, objective_r)
+    # recompute objective
+    objective = DOCP_objective(solution, docp)
+    if docp.flags.max
+        objective = -objective
     end
 
     # recompute constraints
     constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraints!(constraints, primal, docp)
+    DOCP_constraints!(constraints, solution, docp)
 
-    # recover costate and constraints with their multipliers
-    P, constraints_types, constraints_mult = parse_DOCP_solution_dual(docp, dual, constraints)
+    # costate and constraints multipliers
+    P, path_constraints, boundary_constraints, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, dual, constraints)
 
-    # call lowest level constructor
-    return OptimalControlSolution(
-        docp.ocp,
-        T,
-        X,
-        U,
-        v,
-        P,
-        objective = objective,
-        iterations = iterations,
-        constraints_violation = constraints_violation,
-        message = message,
-        constraints_types = constraints_types,
-        constraints_mult = constraints_mult,
-        box_multipliers = box_multipliers
+    return CTModels.build_solution(
+        ocp,
+        T, X, U, v, P;
+        objective=objective, iterations=iterations, constraints_violation=constraints_violation,
+        message=message, stopping=stopping, success=success,
+        path_constraints=path_constraints, 
+        path_constraints_dual=path_constraints_dual,
+        boundary_constraints=boundary_constraints,
+        boundary_constraints_dual=boundary_constraints_dual,
+        state_constraints_lb_dual=box_multipliers[1],
+        state_constraints_ub_dual=box_multipliers[2],
+        control_constraints_lb_dual=box_multipliers[3],
+        control_constraints_ub_dual=box_multipliers[4],
+        variable_constraints_lb_dual=box_multipliers[5],
+        variable_constraints_ub_dual=box_multipliers[6]
     )
 end
 
@@ -109,10 +143,10 @@ Recover OCP primal variables from DOCP solution
 function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB = nothing)
 
     # state and control variables
-    N = docp.dim_NLP_steps
-    X = zeros(N + 1, docp.dim_OCP_x)
-    U = zeros(N + 1, docp.dim_NLP_u)
-    v = Float64[]
+    N = docp.time.steps
+    X = zeros(N + 1, docp.dims.OCP_x)
+    U = zeros(N + 1, docp.dims.NLP_u)
+    v = zeros(docp.dims.NLP_v)
 
     # multipliers for box constraints
     if isnothing(mult_LB) || length(mult_LB) == 0
@@ -129,10 +163,10 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     mult_variable_box_upper = zeros(size(v))
 
     # retrieve optimization variables
-    if docp.is_variable
-        v = get_OCP_variable(solution, docp)
-        mult_variable_box_lower = get_OCP_variable(mult_LB, docp)
-        mult_variable_box_upper = get_OCP_variable(mult_UB, docp)
+    if docp.dims.NLP_v > 0
+        v .= get_OCP_variable(solution, docp)
+        mult_variable_box_lower .= get_OCP_variable(mult_LB, docp)
+        mult_variable_box_upper .= get_OCP_variable(mult_UB, docp)
     end
 
     # state variables and box multipliers
@@ -169,30 +203,20 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
         multipliers = zeros(docp.dim_NLP_constraints)
     end
 
-    # constraints tuple: (state, control, mixed, variable, boundary)
-    N = docp.dim_NLP_steps
-    P = zeros(N, docp.dim_NLP_x)
-
+    # costate
+    N = docp.time.steps
+    P = zeros(N, docp.dims.NLP_x)
     ocp = docp.ocp
-    dcc = dim_control_constraints(ocp)
-    dsc = dim_state_constraints(ocp)
-    dmc = dim_mixed_constraints(ocp)
-    dbc = dim_boundary_constraints(ocp)
-    dvc = dim_variable_constraints(ocp)
 
     # constraints
-    sol_state_constraints = zeros(N + 1, dsc)
+    dpc = docp.dims.path_cons
+    dbc = docp.dims.boundary_cons
+    sol_path_constraints = zeros(N + 1, dpc)
     sol_boundary_constraints = zeros(dbc)
-    sol_variable_constraints = zeros(dvc)
-    sol_control_constraints = zeros(N + 1, dcc)
-    sol_mixed_constraints = zeros(N + 1, dmc)
 
     # constraints multipliers
-    mul_control_constraints = zeros(size(sol_control_constraints))
-    mul_state_constraints = zeros(size(sol_state_constraints))
-    mul_mixed_constraints = zeros(size(sol_mixed_constraints))
+    mul_path_constraints = zeros(size(sol_path_constraints))
     mul_boundary_constraints = zeros(size(sol_boundary_constraints))
-    mul_variable_constraints = zeros(size(sol_variable_constraints))
 
     # loop over time steps
     i_c = 1
@@ -201,33 +225,18 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
 
         # state equation multiplier for costate
         if i <= N
-            P[i, :] = multipliers[i_m:(i_m + docp.dim_NLP_x - 1)]
+            P[i, :] = multipliers[i_m:(i_m + docp.dims.NLP_x - 1)]
             # skip state / stage constraints
             i_c += docp.discretization._state_stage_eqs_block
             i_m += docp.discretization._state_stage_eqs_block
         end
 
         # path constraints and multipliers
-        # pure control constraints
-        if dcc > 0
-            sol_control_constraints[i, :] = constraints[i_c:(i_c + dcc - 1)]
-            mul_control_constraints[i, :] = multipliers[i_m:(i_m + dcc - 1)]
-            i_c += dcc
-            i_m += dcc
-        end
-        # pure state constraints
-        if dsc > 0
-            sol_state_constraints[i, :] = constraints[i_c:(i_c + dsc - 1)]
-            mul_state_constraints[i, :] = multipliers[i_m:(i_m + dsc - 1)]
-            i_c += dsc
-            i_m += dsc
-        end
-        # mixed constraints
-        if dmc > 0
-            sol_mixed_constraints[i, :] = constraints[i_c:(i_c + dmc - 1)]
-            mul_mixed_constraints[i, :] = multipliers[i_m:(i_m + dmc - 1)]
-            i_c += dmc
-            i_m += dmc
+        if dpc > 0
+            sol_path_constraints[i, :] = constraints[i_c:(i_c + dpc - 1)]
+            mul_path_constraints[i, :] = multipliers[i_m:(i_m + dpc - 1)]
+            i_c += dpc
+            i_m += dpc
         end
     end
 
@@ -238,28 +247,7 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
         i_c += dbc
         i_m += dbc
     end
-    if dvc > 0
-        sol_variable_constraints[:] = constraints[i_c:(i_c + dvc - 1)]
-        mul_variable_constraints[:] = multipliers[i_m:(i_m + dvc - 1)]
-        i_c += dvc
-        i_m += dvc
-    end
 
-    # return tuples
-    constraints_types = (
-        sol_control_constraints,
-        sol_state_constraints,
-        sol_mixed_constraints,
-        sol_boundary_constraints,
-        sol_variable_constraints,
-    )
-    constraints_mult = (
-        mul_control_constraints,
-        mul_state_constraints,
-        mul_mixed_constraints,
-        mul_boundary_constraints,
-        mul_variable_constraints,
-    )
-
-    return P, constraints_types, constraints_mult
+    return P, sol_path_constraints, sol_boundary_constraints, mul_path_constraints, mul_boundary_constraints
 end
+

@@ -1,5 +1,8 @@
 # Insurance (non audit) example from Bocop
-function insurance()
+
+# +++ redo
+
+#=function insurance()
     @def insurance begin
 
         # constants
@@ -54,4 +57,4 @@ function insurance()
     end
 
     return ((ocp = insurance, obj = 2.059511, name = "insurance", init = nothing))
-end
+end=#

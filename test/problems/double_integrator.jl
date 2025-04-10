@@ -39,7 +39,7 @@ function double_integrator_minenergy(T=2)
 end
 
 # max t0 with free t0,tf
-function double_integrator_freet0tf(lagrange = false)
+function double_integrator_freet0tf()
     @def ocp begin
         v ∈ R², variable
         t0 = v₁

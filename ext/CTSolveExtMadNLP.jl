@@ -1,11 +1,12 @@
 module CTSolveExtMadNLP
 
 using CTDirect
-using CTBase
+
 using DocStringExtensions
 
 using MadNLP
 using HSL
+using MKL
 
 """
 $(TYPEDSIGNATURES)
@@ -36,6 +37,17 @@ function CTDirect.solve_docp(
 
     # return DOCP solution
     return docp_solution
+end
+
+function CTDirect.SolverInfos(docp_solution::MadNLP.MadNLPExecutionStats)
+
+    iterations = docp_solution.iter
+    constraints_violation = docp_solution.primal_feas
+    message = "MadNLP"
+    stopping = :undefined
+    success = true
+
+    return iterations, constraints_violation, message, stopping, success
 end
 
 end

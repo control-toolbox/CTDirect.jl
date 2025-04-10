@@ -6,13 +6,10 @@ $(TYPEDSIGNATURES)
 
 Retrieve optimization variables from the NLP variables.
 Convention: stored at the end, hence not dependent on the discretization method
-Scalar / Vector output
+Vector output
 """
-function get_OCP_variable(xu, docp::DOCP{<: Discretization, <: ScalVect, <: ScalVect, ScalVariable})
-    return xu[docp.dim_NLP_variables]
-end
-function get_OCP_variable(xu, docp::DOCP{<: Discretization, <: ScalVect, <: ScalVect, VectVariable})
-    return @view xu[(docp.dim_NLP_variables - docp.dim_NLP_v + 1):docp.dim_NLP_variables]
+function get_OCP_variable(xu, docp::DOCP)
+    return @view xu[(docp.dim_NLP_variables - docp.dims.NLP_v + 1):docp.dim_NLP_variables]
 end
 
 
@@ -21,15 +18,11 @@ $(TYPEDSIGNATURES)
 
 Retrieve state variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps+1
-Scalar / Vector output
+Vector output
 """
-function get_OCP_state_at_time_step(xu, docp::DOCP{<: Discretization, ScalVariable, <: ScalVect, <: ScalVect}, i)
+function get_OCP_state_at_time_step(xu, docp::DOCP, i)
     offset = (i-1) * docp.discretization._step_variables_block
-    return xu[offset+1]
-end
-function get_OCP_state_at_time_step(xu, docp::DOCP{<: Discretization, VectVariable, <: ScalVect, <: ScalVect}, i)
-    offset = (i-1) * docp.discretization._step_variables_block
-    return @view xu[(offset + 1):(offset + docp.dim_OCP_x)]
+    return @view xu[(offset + 1):(offset + docp.dims.OCP_x)]
 end
 """
 $(TYPEDSIGNATURES)
@@ -39,27 +32,23 @@ Convention: 1 <= i <= dim_NLP_steps+1   (no check for actual lagrange cost prese
 """
 function get_lagrange_state_at_time_step(xu, docp::DOCP, i)
     offset = (i-1) * docp.discretization._step_variables_block
-    return xu[offset + docp.dim_NLP_x]
+    return xu[offset + docp.dims.NLP_x]
 end
 
 """
 $(TYPEDSIGNATURES)
 
 Retrieve control variables at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps, with convention u(tf) = U_N
-Scalar / Vector output
+Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
+Vector output
 """
-function get_OCP_control_at_time_step(xu, docp::DOCP{<: Discretization, <: ScalVect, ScalVariable, <: ScalVect}, i)
-    # final time case
-    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return xu[offset+1]
-end
-function get_OCP_control_at_time_step(xu, docp::DOCP{<: Discretization, <: ScalVect, VectVariable, <: ScalVect}, i)
-    # final time case
-    (i == docp.dim_NLP_steps + 1) && (i = docp.dim_NLP_steps)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_u)]
+function get_OCP_control_at_time_step(xu, docp::DOCP, i)
+    # final time case  
+    if !docp.discretization._final_control && i == docp.time.steps + 1
+        i = docp.time.steps
+    end
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dims.NLP_x
+    return @view xu[(offset + 1):(offset + docp.dims.NLP_u)]
 end
 
 
@@ -72,8 +61,8 @@ Vector output
 Note that passing correct indices is up to the caller, no checks are made here.
 """
 function get_stagevars_at_time_step(xu, docp::DOCP, i, j)
-    offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x + docp.dim_NLP_u + (j-1)*docp.dim_NLP_x
-    return @view xu[(offset + 1):(offset + docp.dim_NLP_x)]
+    offset = (i-1) * docp.discretization._step_variables_block + docp.dims.NLP_x + docp.dims.NLP_u + (j-1)*docp.dims.NLP_x
+    return @view xu[(offset + 1):(offset + docp.dims.NLP_x)]
 end
 
 
@@ -83,7 +72,7 @@ $(TYPEDSIGNATURES)
 Set optimization variables in the NLP variables (for initial guess)
 """
 function set_optim_variable!(xu, v_init, docp)
-    xu[(end - docp.dim_NLP_v + 1):end] .= v_init
+    xu[(end - docp.dims.NLP_v + 1):end] .= v_init
 end
 
 
@@ -97,7 +86,7 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP, i)
     # initialize only actual state variables from OCP (not lagrange state)
     if !isnothing(x_init)
         offset = (i-1) * docp.discretization._step_variables_block
-        xu[(offset + 1):(offset + docp.dim_OCP_x)] .= x_init
+        xu[(offset + 1):(offset + docp.dims.OCP_x)] .= x_init
     end
 end
 
@@ -110,9 +99,9 @@ Convention: 1 <= i <= dim_NLP_steps(+1)
 """
 function set_control_at_time_step!(xu, u_init, docp::DOCP, i)
     if !isnothing(u_init)
-        if i <= docp.dim_NLP_steps || (docp.discretization._final_control && i <= docp.dim_NLP_steps + 1)
-            offset = (i-1) * docp.discretization._step_variables_block + docp.dim_NLP_x
-            xu[(offset + 1):(offset + docp.dim_NLP_u)] .= u_init
+        if i <= docp.time.steps || (docp.discretization._final_control && i <= docp.time.steps + 1)
+            offset = (i-1) * docp.discretization._step_variables_block + docp.dims.NLP_x
+            xu[(offset + 1):(offset + docp.dims.NLP_u)] .= u_init
         end
     end
 end

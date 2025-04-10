@@ -1,20 +1,18 @@
-# Benchmark
-using CTDirect
-using CTBase
+# Benchmark and profiling
+using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
+using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
+using CTParser: CTParser, @def, set_prefix
+set_prefix(:CTModels) # tell CTParser def macro to use CTModels instead of OptimalControl
 
-using LinearAlgebra
-using MadNLP
 using NLPModelsIpopt
 
-using MKL # Replace OpenBLAS with Intel MKL +++ should be an option
+using Printf
 
 using BenchmarkTools
-using Plots
-using Printf
+using JET
 using Profile
 using PProf
-using JET
-using Test
+using Test # to run individual test scripts if needed
 
 
 #######################################################
@@ -23,8 +21,6 @@ problem_path = pwd() * "/test/problems"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true))
     include(problem_file)
 end
-
-
 
 function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs...)
 
@@ -39,7 +35,7 @@ function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs..
     for problem in problem_list
 
         # check (will also precompile)
-        sol = direct_solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, kwargs...)
+        sol = solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, kwargs...)
         if !isnothing(problem[:obj]) && !isapprox(sol.objective, problem[:obj], rtol = 5e-2)
             error("Objective mismatch for ",problem[:name],": ",sol.objective," instead of ",problem[:obj])
         else
@@ -47,7 +43,7 @@ function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs..
         end
 
         # time
-        t = @belapsed direct_solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, $kwargs...)
+        t = @belapsed solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, $kwargs...)
         append!(t_list, t)
         verbose > 2 && @printf("%7.2f s\n", t)
     end
@@ -118,11 +114,8 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
     # define problem and variables
     docp, xu = init(ocp, grid_size=grid_size, disc_method=disc_method)
     disc = docp.discretization
-    #= OK, same as calling the functions with docp
-    NLP_objective = (xu) -> CTDirect.DOCP_objective(xu, docp)
-    NLP_constraints! = (c, xu) -> CTDirect.DOCP_constraints!(c, xu, docp) =#
     c = fill(666.666, docp.dim_NLP_constraints)
-    work = similar(xu, docp.dim_NLP_x)
+    work = similar(xu, docp.dims.NLP_x)
 
     # DOCP_objective
     if test_obj
@@ -156,7 +149,7 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
 
     # solve
     if test_solve
-        print("Solve"); @btime direct_solve($ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
+        print("Solve"); @btime solve($ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
     end
 
     return nothing

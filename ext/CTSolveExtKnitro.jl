@@ -1,11 +1,12 @@
 module CTSolveExtKnitro
 
 using CTDirect
-using CTBase
+
 using DocStringExtensions
 
 using NLPModelsKnitro
 using HSL
+using MKL
 
 """
 $(TYPEDSIGNATURES)
