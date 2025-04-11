@@ -1,6 +1,6 @@
 # Optimal control of an algal-bacterial consortium system. Original code from Rand Asswad.
 
-function algal_bacterial()
+function algal_bacterial(eps_reg=0.0)
 
     # parameters
     s_in = 0.5
@@ -34,7 +34,7 @@ function algal_bacterial()
             u₂(t)*x₅(t),
         ]
 
-        x₆(tf) → max
+        x₆(tf) - ∫((eps_reg*u₁(t))^2 + (eps_reg*u₂(t))^2) → max
     end
 
 return ((ocp = algal_bacterial, obj = 5.45, name = "algal_bacterial", init = nothing))
