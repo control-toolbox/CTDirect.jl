@@ -44,9 +44,9 @@ __time_grid() = nothing
 """
 $(TYPEDSIGNATURES)
 Used to set the default backend for AD in ADNLPModels.
-The default value is `:optimized`.
+The default value is `:manual`.
 """
-__adnlp_backend() = :optimized
+__adnlp_backend() = :manual
 
 """
 $(TYPEDSIGNATURES)
