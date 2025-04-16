@@ -121,7 +121,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
     # 1. main loop over steps
     for i = 1:docp.time.steps
 
-        # constraints block and offset: state equation, stage equation, path constraints
+        # constraints block and offset: state equation, path constraints
         c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
         c_offset = (i-1)*c_block
 

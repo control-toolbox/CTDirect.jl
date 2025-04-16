@@ -71,7 +71,7 @@ function bench(; grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp
     # load problems for benchmark
     # Note that problems may vary significantly in convergence times...  
     if names_list == :default
-        names_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
+        names_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
     elseif names_list == :quick
         names_list = ["beam", "double_integrator_mintf", "fuller", "jackson", "simple_integrator", "vanderpol"]
     elseif names_list == :all 
