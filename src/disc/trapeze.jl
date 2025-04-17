@@ -230,9 +230,9 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
         var_offset = (i-1)*docp.discretization._step_variables_block
 
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i/2 (f(t_i,x_i,u_i,v) + f(t_i+1,x_i+1,u_i+1,v)))
-        # depends on x_i, u_i, x_i+1, u_i+1, and v -> included in 1.2
-        # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i/2 (l(t_i,x_i,u_i,v) + l(t_i+1,x_i+1,u_i+1,v)))
-        # depends on x_i, l_i, u_i, x_i+1, l_i+1, u_i+1, and v
+        # 2nd order terms depend on x_i, u_i, x_i+1, u_i+1, and v -> included in 1.2
+        # 1.2 lagrange 0 = l_i+1 - (l_i + h_i/2 (l(t_i,x_i,u_i,v) + l(t_i+1,x_i+1,u_i+1,v)))
+        # 2nd order terms depend on x_i, l_i, u_i, x_i+1, l_i+1, u_i+1, and v
         # -> use single block for all step variables
         add_nonzero_block!(Is, Js, var_offset+1, var_offset+var_block, var_offset+1, var_offset+var_block)
         add_nonzero_block!(Is, Js, var_offset+1, var_offset+var_block, v_start, v_end; sym=true)

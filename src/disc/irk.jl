@@ -381,7 +381,7 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
 
         # 1.3 stage equations 0 = k_ij - f(t_ij, x_ij, u_i, v) (with lagrange part)
         # with x_ij = x_i + sum_l a_il k_jl
-        # depends on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1] too...)
+        # 2nd order terms depend on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1]...)
         add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
         add_nonzero_block!(Is, Js, ui_start, ki_end, ui_start, ki_end)
         add_nonzero_block!(Is, Js, xi_start, xi_end, ui_start, ki_end; sym=true)
@@ -392,7 +392,7 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
         # -> included in 1.3
     end
 
-    # 2. final path constraints (xf, uf, v) (assume present)
+    # 2. final path constraints (xf, uf, v) (assume present) +++ done in 1.4 above ?
     var_offset = docp.time.steps*docp.discretization._step_variables_block
     xf_start = var_offset + 1
     xf_end = var_offset + docp.dims.OCP_x

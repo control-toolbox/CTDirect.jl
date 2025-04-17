@@ -69,9 +69,9 @@ end
     @test objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :midpoint)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display = false, disc_method = :euler, adnlp_backend=:optimized)
+    sol = solve(prob.ocp, display = false, disc_method = :euler)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display = false, disc_method = :euler_implicit, adnlp_backend=:optimized)
+    sol = solve(prob.ocp, display = false, disc_method = :euler_implicit)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
@@ -85,9 +85,9 @@ end
     @test objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :midpoint)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display = false, disc_method = :euler, adnlp_backend=:optimized)
+    sol = solve(prob.ocp, display = false, disc_method = :euler)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display = false, disc_method = :euler_implicit, adnlp_backend=:optimized)
+    sol = solve(prob.ocp, display = false, disc_method = :euler_implicit)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
@@ -101,9 +101,9 @@ end
     @test objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :midpoint)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display = false, disc_method = :euler, adnlp_backend=:optimized)
+    sol = solve(prob.ocp, display = false, disc_method = :euler)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display = false, disc_method = :euler_implicit, adnlp_backend=:optimized)
+    sol = solve(prob.ocp, display = false, disc_method = :euler_implicit)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display = false, disc_method = :gauss_legendre_2)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
