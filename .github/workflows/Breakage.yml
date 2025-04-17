@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["OptimalControl.jl"]
+        pkg: ["control-toolbox/OptimalControl.jl"]
         pkgversion: [latest, stable]
     uses: control-toolbox/CTActions/.github/workflows/breakage.yml@main
     with:
