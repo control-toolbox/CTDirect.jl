@@ -392,7 +392,7 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
         # -> included in 1.3
     end
 
-    # 2. final path constraints (xf, uf, v) (assume present)
+    # 2. final path constraints (xf, uf, v) (assume present) +++ done in 1.4 above ?
     var_offset = docp.time.steps*docp.discretization._step_variables_block
     xf_start = var_offset + 1
     xf_end = var_offset + docp.dims.OCP_x

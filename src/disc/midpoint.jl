@@ -240,7 +240,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
     end
 
     # 2. final path constraints (xf, uf, v)
-    # -> included in last loop iteration (with x_i+1 as x_j and u_i as u_f)
+    # -> included in last loop iteration (with x_i+1 as x_f and u_i as u_f)
 
     # 3. boundary constraints (x0, xf, v) or mayer cost g0(x0, xf, v) (assume present)
     # -> x0 / x0, x0 / v terms included in first loop iteration
