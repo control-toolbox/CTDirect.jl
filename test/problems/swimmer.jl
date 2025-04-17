@@ -1,9 +1,8 @@
 # Microswimmer example from Bocop
 
 # +++ make 2 versions: 1 stroke periodic and free N strokes
-# +++ redo
 
-#=function swimmer(tf = 25)
+function swimmer(tf = 25)
     @def swimmer begin
         t ∈ [0, tf], time
         x ∈ R^5, state
@@ -132,4 +131,4 @@
     end
 
     return ((ocp = swimmer, obj = 0.984273, name = "swimmer", init = nothing))
-end=#
+end

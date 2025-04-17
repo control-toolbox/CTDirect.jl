@@ -4,13 +4,12 @@ Note that the problem is redefined for each method, jump and ctdirect.
 Also, the Gauss Legendre 2 implementations use a piecewise constant control.
 
 ## Takeaways
-- Hessian is handled differently by Jump, with a less sparse but faster method.
+- convergence: generally speaking, objective and trajectory are similar, iterations differ, maybe due to the different hessian handling. For Trapeze, computation times are similar for Jump and CTDirect (:optimized backend), with CTDirect (:manual backend) being slower. Qualitatively, Jump Trapeze solutions show a bit of noise, while CTDirect solutions are very noisy. How Jump manages to find a cleaner solution with Trapeze is unclear. For GL2, Jump is faster than both CTDirect versions, and all solutions show a clean control.
 - CTDirect with manual sparsity patterns still allocates 5 to 10 times more memory than Jump, but scales better than the automatic sparsity detection. Manual mode becomes faster than automatic mode for GL2 above 2000 steps, while being slower for Trapeze even at 5000 steps.
-- convergence: objective and trajectory are similar, iterations differ, maybe due to the different hessian handling. Total computation times for Trapeze are similar for Jump and CTDirect (auto). For GL2, Jump is faster than both CTDirect versions.
-- in terms of control structures, GL2 solutions are clean, Jump Trapeze solutions shows a bit of noise, while CTDirect Trapeze solutions are very noisy. How Jump manages to find a cleaner solution with Trapeze is unclear.
+- Hessian is handled differently by Jump, with a less sparse but faster method.
 
 ## Todo
-- investigate how jump finds a cleaner solution for trapeze discretization (print settings ?)
+- investigate how jump finds a cleaner solution for trapeze discretization
 
 ## Results: Jump vs CTDirect
 See `test/jump_comparison.jl`

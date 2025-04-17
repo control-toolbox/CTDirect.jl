@@ -1,6 +1,6 @@
 # Parametric problem (name ??)
 
-function parametric(ρ)
+function parametric(ρ=1)
     relu(x) = max(0, x)
     μ = 10
     p_relu(x) = log(abs(1 + exp(μ * x))) / μ
@@ -23,5 +23,11 @@ function parametric(ρ)
         -(x₂(1) - 2)^3 - ∫(ρ * (τ * m(x₁(s))^2 + (T - τ) * m(x₂(s))^2)) → min
     end
 
-    return ((ocp = param, obj = nothing, name = "parametric", init = nothing))
+    if ρ == 1
+        obj = -3.36e-1
+    else
+        obj = nothing
+    end
+
+    return ((ocp = param, obj = obj, name = "parametric", init = nothing))
 end

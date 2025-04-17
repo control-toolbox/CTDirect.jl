@@ -22,7 +22,7 @@ end
 # +++ redo
 
 # 1 day periodic problem
-#=function bioreactor_1day()
+function bioreactor_1day()
     @def bioreactor_1 begin
         # constants
         beta = 1
@@ -58,10 +58,10 @@ end
     end
 
     return ((ocp = bioreactor_1, obj = 0.614134, name = "bioreactor_1day", init = nothing))
-end=#
+end
 
 # N days (non periodic)
-#=function bioreactor_Ndays()
+function bioreactor_Ndays()
     @def bioreactor_N begin
         # constants
         beta = 1
@@ -103,4 +103,4 @@ end=#
         init = (state = [50, 50, 50],),
         name = "bioreactor_Ndays",
     ))
-end=#
+end
