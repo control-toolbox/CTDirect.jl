@@ -123,7 +123,8 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{D}) where (D <: Discretization)
-    error("DOCP_Jacobian_pattern not implemented for discretization ", D)
+    error("DOCP_Jacobian_pattern not implemented for discretization ", D,
+    " Use option solve(...; adnlp_backend=:optimized)")
 end
 
 
@@ -133,7 +134,8 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Hessian of Lagrangian
 """
 function DOCP_Hessian_pattern(docp::DOCP{D}) where (D <: Discretization)
-    error("DOCP_Hessian_pattern not implemented for discretization ", D)
+    error("DOCP_Hessian_pattern not implemented for discretization ", D,
+    " Use option solve(...; adnlp_backend=:optimized)")
 end
 
 

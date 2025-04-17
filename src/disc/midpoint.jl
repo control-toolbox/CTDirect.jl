@@ -121,7 +121,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
     # 1. main loop over steps
     for i = 1:docp.time.steps
 
-        # constraints block and offset: state equation, stage equation, path constraints
+        # constraints block and offset: state equation, path constraints
         c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
         c_offset = (i-1)*c_block
 
@@ -220,12 +220,12 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
         var_offset = (i-1)*docp.discretization._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + docp.dims.OCP_x
-        xip1_end = var_offset + docp.discretization._step_variables_block + docp.dims.NLP_x
+        xip1_end = var_offset + docp.discretization._step_variables_block + docp.dims.OCP_x
         ui_start = var_offset + docp.dims.NLP_x + 1
 
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i * f(t_s, x_s, u_i, v))
         # with t_s = (t_i + t_i+1)/2    x_s = (x_i + x_i+1)/2
-        # depends on x_i, u_i, x_i+1, and v; skip l_i
+        # 2nd order terms depend on x_i, u_i, x_i+1, and v; skip l_i
         add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
         add_nonzero_block!(Is, Js, ui_start, xip1_end, ui_start, xip1_end)
         add_nonzero_block!(Is, Js, xi_start, xi_end, ui_start, xip1_end; sym=true)
@@ -240,7 +240,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
     end
 
     # 2. final path constraints (xf, uf, v)
-    # -> included in last loop iteration (with x_i+1 as x_j and u_i as u_f)
+    # -> included in last loop iteration (with x_i+1 as x_f and u_i as u_f)
 
     # 3. boundary constraints (x0, xf, v) or mayer cost g0(x0, xf, v) (assume present)
     # -> x0 / x0, x0 / v terms included in first loop iteration

@@ -15,7 +15,7 @@
 [release-img]: https://juliahub.com/docs/General/CTDirect/stable/version.svg
 [release-url]: https://github.com/control-toolbox/CTDirect.jl/releases
 
-[pkg-eval-img]: https://juliahub.com/docs/General/CTDirect/stable/pkgeval.svg
+[pkg-eval-img]: https://img.shields.io/badge/Julia-package-purple
 [pkg-eval-url]: https://juliahub.com/ui/Packages/General/CTDirect
 
 [deps-img]: https://juliahub.com/docs/General/CTDirect/stable/deps.svg
