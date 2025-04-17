@@ -16,6 +16,17 @@ function algal_bacterial()
     t0 = 0; tf = 20
     x0 = [0.1629, 0.0487, 0.0003, 0.0177, 0.035, 0]
 
+    function f(x, α, d)
+        return [
+            d*(s_in - x[1]) - ϕ(x[1])*x[2]/γ,           # s
+            ((1-α)*ϕ(x[1]) - d)*x[2],                   # e
+            α*β*ϕ(x[1])*x[2] - ρ(x[3])*x[5] - d*x[3],   # v
+            ρ(x[3]) - μ(x[4])*x[4],                     # q
+            (μ(x[4]) - d)*x[5],                         # c
+            d * x[5]                                    # obj = d*c
+        ]
+    end
+
     @def algal_bacterial begin
         t ∈ [t0, tf], time
         x ∈ R⁶, state
@@ -25,14 +36,16 @@ function algal_bacterial()
         x(t) ≥ [0, 0, 0, qmin, 0, 0]
         [0, 0] ≤ u(t) ≤ [1, dmax]
 
-        ẋ(t) == [
+        #=ẋ(t) == [
             u₂(t)*(s_in - x₁(t)) - ϕ(x₁(t))*x₂(t)/γ,
             ((1 - u₁(t))*ϕ(x₁(t)) - u₂(t))*x₂(t),
             u₁(t)*β*ϕ(x₁(t))*x₂(t) - ρ(x₃(t))*x₅(t) - u₂(t)*x₃(t),
             ρ(x₃(t)) - μ(x₄(t))*x₄(t),
             (μ(x₄(t)) - u₂(t))*x₅(t),
             u₂(t)*x₅(t),
-        ]
+        ]=#
+
+        ẋ(t) == f(x(t), u₁(t), u₂(t))
 
         x₆(tf) → max
     end
