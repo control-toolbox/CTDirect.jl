@@ -16,6 +16,7 @@ function algal_bacterial()
     t0 = 0; tf = 20
     x0 = [0.1629, 0.0487, 0.0003, 0.0177, 0.035, 0]
 
+    # to be closer to jump formulation; similar performance to inlined expression in def
     function f(x, α, d)
         return [
             d*(s_in - x[1]) - ϕ(x[1])*x[2]/γ,           # s
@@ -35,15 +36,6 @@ function algal_bacterial()
         x(t0) == x0
         x(t) ≥ [0, 0, 0, qmin, 0, 0]
         [0, 0] ≤ u(t) ≤ [1, dmax]
-
-        #=ẋ(t) == [
-            u₂(t)*(s_in - x₁(t)) - ϕ(x₁(t))*x₂(t)/γ,
-            ((1 - u₁(t))*ϕ(x₁(t)) - u₂(t))*x₂(t),
-            u₁(t)*β*ϕ(x₁(t))*x₂(t) - ρ(x₃(t))*x₅(t) - u₂(t)*x₃(t),
-            ρ(x₃(t)) - μ(x₄(t))*x₄(t),
-            (μ(x₄(t)) - u₂(t))*x₅(t),
-            u₂(t)*x₅(t),
-        ]=#
 
         ẋ(t) == f(x(t), u₁(t), u₂(t))
 
