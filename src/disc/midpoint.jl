@@ -220,12 +220,12 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
         var_offset = (i-1)*docp.discretization._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + docp.dims.OCP_x
-        xip1_end = var_offset + docp.discretization._step_variables_block + docp.dims.NLP_x
+        xip1_end = var_offset + docp.discretization._step_variables_block + docp.dims.OCP_x
         ui_start = var_offset + docp.dims.NLP_x + 1
 
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i * f(t_s, x_s, u_i, v))
         # with t_s = (t_i + t_i+1)/2    x_s = (x_i + x_i+1)/2
-        # depends on x_i, u_i, x_i+1, and v; skip l_i
+        # 2nd order terms depend on x_i, u_i, x_i+1, and v; skip l_i
         add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
         add_nonzero_block!(Is, Js, ui_start, xip1_end, ui_start, xip1_end)
         add_nonzero_block!(Is, Js, xi_start, xi_end, ui_start, xip1_end; sym=true)

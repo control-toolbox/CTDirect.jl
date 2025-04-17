@@ -381,7 +381,7 @@ function DOCP_Hessian_pattern(docp::DOCP{ <: GenericIRK})
 
         # 1.3 stage equations 0 = k_ij - f(t_ij, x_ij, u_i, v) (with lagrange part)
         # with x_ij = x_i + sum_l a_il k_jl
-        # depends on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1] too...)
+        # 2nd order terms depend on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1]...)
         add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
         add_nonzero_block!(Is, Js, ui_start, ki_end, ui_start, ki_end)
         add_nonzero_block!(Is, Js, xi_start, xi_end, ui_start, ki_end; sym=true)

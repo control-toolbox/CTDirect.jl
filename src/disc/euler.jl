@@ -1,9 +1,9 @@
 #= Functions for explicit and implicit euler discretization scheme
 Internal layout for NLP variables: 
-[X_1,U_1,K_1 .., X_N,U_N,K_N, X_N+1, V]
+[X_1,U_1, .., X_N,U_N, X_N+1, V]
 with the convention 
-- Explicit Euler: u([t_i,t_i+1[) = U_i and u(tf) = U_N
-- Implicit Euler: u(]t_i,t_i+1]) = U_i and u(t0) = U_1
+- Explicit Euler: u([t_i,t_i+1[) = U_i and u(tf==t_N+1) = U_N
+- Implicit Euler: u(]t_i,t_i+1]) = U_i and u(t0==t_1) = U_1
 Note that both the explicit and implicit versions therefore use the same variables layout.
 =#
 
@@ -46,7 +46,7 @@ end
 $(TYPEDSIGNATURES)
 
 Retrieve control variables at given time step from the NLP variables.
-Convention: see above for acplicit / implicit versions
+Convention: see above for explicit / implicit versions
 Vector output
 """
 function get_OCP_control_at_time_step(xu, docp::DOCP{Euler}, i)
@@ -145,7 +145,7 @@ Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{Euler})
 
-    # Due to variables layout u_i for explicit euler corresponds to the same variable block as u_i+1 for implicit euler, so the patterns are the same
+    # Due to variables layout u_i for explicit euler corresponds to the same variable block as u_i+1 for implicit euler, so the patterns are the same wrt the control
 
     # vector format for sparse matrix
     Is = Vector{Int}(undef, 0)
@@ -167,6 +167,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
         var_offset = (i-1)*docp.discretization._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + docp.dims.OCP_x
+        li = var_offset + docp.dims.NLP_x
         ui_start = var_offset + docp.dims.NLP_x + 1
         ui_end = var_offset + docp.dims.NLP_x + docp.dims.NLP_u
         xip1_end = var_offset + docp.discretization._step_variables_block + docp.dims.OCP_x
@@ -175,18 +176,23 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
         # 1.1 (explicit) state eq 0 = x_i+1 - (x_i + h_i * f(t_i, x_i, u_i, v))
         # depends on x_i, x_i+1, u_i, and v for h_i, t_i in variable times case
         # skip l_i
-        # same pattern for implicit euler
+        # same pattern for implicit euler with f(t_i+1, x_i+1, u_i+1, v) (same U_i)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dims.OCP_x, xi_start, xi_end)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dims.OCP_x, ui_start, xip1_end)
         add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dims.OCP_x, v_start, v_end)
         # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i * l(t_i, x_i, u_i, v))
         # depends on l_i, l_i+1, x_i, u_i, and v for h_i, t_i in variable times case
-        # same pattern for implicit euler
+        # for implicit euler we depend on x_i+1 instead of x_i (for f)
         if docp.flags.lagrange
-            # [x_i, l_i, u_i]
-            add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, xi_start, ui_end)
-            # l_i+1
-            add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, lip1)
+            if docp.discretization._explicit
+                # [x_i, l_i, u_i]
+                add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, xi_start, ui_end)
+                # l_i+1
+                add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, lip1)
+            else
+                # [l_i, u_i, x_i+1, l_i+1]
+                add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, li, lip1)
+            end
             # v
             add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, v_start, v_end)
         end
@@ -237,7 +243,7 @@ Build sparsity pattern for Hessian of Lagrangian
 """
 function DOCP_Hessian_pattern(docp::DOCP{Euler})
 
-    # Due to variables layout u_i for explicit euler corresponds to the same variable block as u_i+1 for implicit euler, so the patterns are the same
+    # Due to variables layout u_i for explicit euler corresponds to the same variable block as u_i+1 for implicit euler, so the patterns are the same wrt the control
 
     # NB. need to provide full pattern for coloring, not just upper/lower part
     Is = Vector{Int}(undef, 0)
@@ -264,22 +270,36 @@ function DOCP_Hessian_pattern(docp::DOCP{Euler})
         var_offset = (i-1)*docp.discretization._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + docp.dims.OCP_x
-        xip1_end = var_offset + docp.discretization._step_variables_block + docp.dims.NLP_x
+        xip1_start = var_offset + docp.discretization._step_variables_block + 1
+        xip1_end = var_offset + docp.discretization._step_variables_block + docp.dims.OCP_x
         ui_start = var_offset + docp.dims.NLP_x + 1
+        ui_end = var_offset + docp.dims.NLP_x + docp.dims.NLP_u
 
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i * f(t_i, x_i, u_i, v))
-        # depends on x_i, u_i, x_i+1, and v; skip l_i
-        add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
-        add_nonzero_block!(Is, Js, ui_start, xip1_end, ui_start, xip1_end)
-        add_nonzero_block!(Is, Js, xi_start, xi_end, ui_start, xip1_end; sym=true)
-        add_nonzero_block!(Is, Js, xi_start, xi_end, v_start, v_end; sym=true)
-        add_nonzero_block!(Is, Js, ui_start, xip1_end, v_start, v_end; sym=true)
+        # 2nd order terms depend on x_i, u_i, and v; skip l_i
+        # for implicit euler x_i+1 instead of x_i
+        add_nonzero_block!(Is, Js, ui_start, ui_end, ui_start, ui_end)
+        add_nonzero_block!(Is, Js, ui_start, ui_end, v_start, v_end; sym=true)
+        if docp.discretization._explicit
+            add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
+            add_nonzero_block!(Is, Js, xi_start, xi_end, ui_start, ui_end; sym=true)
+            add_nonzero_block!(Is, Js, xi_start, xi_end, v_start, v_end; sym=true)
+        else
+            add_nonzero_block!(Is, Js, xip1_start, xip1_end, xip1_start, xip1_end)
+            add_nonzero_block!(Is, Js, xip1_start, xip1_end, ui_start, ui_end; sym=true)
+            add_nonzero_block!(Is, Js, xip1_start, xip1_end, v_start, v_end; sym=true)
+        end
 
         # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i * l(t_i, x_i, u_i, v))
-        # -> included in 1.1 since l_i and l_i+1 have no second order term
+        # -> no more 2nd order terms than those already in 1.1
 
         # 1.3 path constraint g(t_i, x_i, u_i, v)
-        # -> included in 1.1
+        # -> included in 1.1 for explicit euler, missing x_i part for implicit euler
+        if !docp.discretization._explicit
+            add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
+            add_nonzero_block!(Is, Js, xi_start, xi_end, ui_start, ui_end; sym=true)
+            add_nonzero_block!(Is, Js, xi_start, xi_end, v_start, v_end; sym=true)
+        end
     end
 
     # 2. final path constraints (xf, uf, v)
