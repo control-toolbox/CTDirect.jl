@@ -11,10 +11,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["control-toolbox/OptimalControl.jl"]
+        pkg: ["OptimalControl.jl"]
         pkgversion: [latest, stable]
     uses: control-toolbox/CTActions/.github/workflows/breakage.yml@main
     with:
       pkg: ${{ matrix.pkg }}
       pkgversion: ${{ matrix.pkgversion }}
-      #caller: "CTDirect"
+
