@@ -15,7 +15,7 @@ for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true)
 end
 
 # coloring test function
-function coloring_test(ocp; grid_size = CTDirect.__grid_size(), disc_method = CTDirect.__disc_method())
+function coloring_test(ocp; order = NaturalOrder(), grid_size = CTDirect.__grid_size(), disc_method = CTDirect.__disc_method())
 
     # build DOCP
     time_grid = CTDirect.__time_grid()
@@ -27,14 +27,14 @@ function coloring_test(ocp; grid_size = CTDirect.__grid_size(), disc_method = CT
 
     ## Coloring for Jacobians
     problem_J = ColoringProblem(; structure=:nonsymmetric, partition=:column)
-    order_J = NaturalOrder()
+    order_J = order
     algo_J = GreedyColoringAlgorithm(order_J; decompression=:direct)
     result_J = coloring(J, problem_J, algo_J)
     num_colors_J = ncolors(result_J)
 
     ## Coloring for Hessians
     problem_H = ColoringProblem(; structure=:symmetric, partition=:column)
-    order_H = NaturalOrder()
+    order_H = order
     algo_H = GreedyColoringAlgorithm(order_H; decompression=:substitution, postprocessing=true)
     result_H = coloring(H, problem_H, algo_H)
     num_colors_H = ncolors(result_H)
@@ -43,7 +43,7 @@ function coloring_test(ocp; grid_size = CTDirect.__grid_size(), disc_method = CT
 end
 
 # batch testing
-function batch_coloring_test(; target_list = :default, verbose = 1, grid_size = CTDirect.__grid_size(), disc_method = CTDirect.__disc_method())
+function batch_coloring_test(; order = NaturalOrder(), target_list = :default, verbose = 1, grid_size = CTDirect.__grid_size(), disc_method = CTDirect.__disc_method())
 
     if target_list == :default
         target_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
@@ -56,8 +56,13 @@ function batch_coloring_test(; target_list = :default, verbose = 1, grid_size = 
         push!(problem_list, ocp_data)
     end
 
+    num_J_list = []
+    num_H_list = []
     for problem in problem_list
-        (num_J, num_H) = coloring_test(problem.ocp; grid_size=grid_size, disc_method=disc_method)
-        @printf("%-30s J colors %2d    H colors %2d\n", problem.name, num_J, num_H)
+        (num_J, num_H) = coloring_test(problem.ocp; order=order, grid_size=grid_size, disc_method=disc_method)
+        push!(num_J_list, num_J)
+        push!(num_H_list, num_H)
+        verbose > 1 && @printf("%-30s J colors %2d    H colors %2d\n", problem.name, num_J, num_H)
     end
+    return sum(num_J_list), sum(num_H_list)
 end
