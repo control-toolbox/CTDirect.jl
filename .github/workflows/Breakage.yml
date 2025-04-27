@@ -17,6 +17,6 @@ jobs:
           - pkgpath: control-toolbox
     uses: control-toolbox/CTActions/.github/workflows/breakage.yml@main
     with:
-      pkg: ${{ matrix.pkg }}
+      pkgname: ${{ matrix.pkgname }}
+      pkgpath: ${{ matrix.pkgpath }}
       pkgversion: ${{ matrix.pkgversion }}
-
