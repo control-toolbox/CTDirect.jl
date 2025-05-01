@@ -31,12 +31,9 @@ println("percival")
 # @btime dsol = percival(nlp)
 # same allocs/time as calling percival(nlp)
 solver = PercivalSolver(nlp)
-@btime solve!(solver, nlp) 
+@btime solve!(solver, nlp)
 
 # check solution
 dsol = percival(nlp, verbose=1)
 sol = OptimalControlSolution(docp, dsol)
 display(plot(sol))
-
-
-

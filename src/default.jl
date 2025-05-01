@@ -22,7 +22,7 @@ $(TYPEDSIGNATURES)
 Used to set the default initial guess.
 The default value is `nothing` and will correspond to 0.1 for all variables.
 """
-__ocp_init() = nothing 
+__ocp_init() = nothing
 
 """
 $(TYPEDSIGNATURES)
@@ -30,7 +30,7 @@ $(TYPEDSIGNATURES)
 Used to set the default display toggle.
 The default value is true.
 """
-__display() = true 
+__display() = true
 
 """
 $(TYPEDSIGNATURES)

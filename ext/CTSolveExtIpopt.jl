@@ -17,12 +17,12 @@ function CTDirect.solve_docp(
     solver_backend::CTDirect.IpoptBackend,
     docp::CTDirect.DOCP,
     nlp;
-    display::Bool = CTDirect.__display(),
-    max_iter::Integer = CTDirect.__max_iterations(),
-    tol::Real = CTDirect.__tolerance(),
-    print_level::Integer = CTDirect.__ipopt_print_level(),
-    mu_strategy::String = CTDirect.__ipopt_mu_strategy(),
-    linear_solver::String = CTDirect.__ipopt_linear_solver(),
+    display::Bool=CTDirect.__display(),
+    max_iter::Integer=CTDirect.__max_iterations(),
+    tol::Real=CTDirect.__tolerance(),
+    print_level::Integer=CTDirect.__ipopt_print_level(),
+    mu_strategy::String=CTDirect.__ipopt_mu_strategy(),
+    linear_solver::String=CTDirect.__ipopt_linear_solver(),
     kwargs...,
 )
 
@@ -55,13 +55,13 @@ function CTDirect.solve_docp(
     docp_solution = solve!(
         solver,
         nlp,
-        print_level = print_level,
-        mu_strategy = mu_strategy,
-        tol = tol,
-        max_iter = max_iter,
-        sb = "yes",
+        print_level=print_level,
+        mu_strategy=mu_strategy,
+        tol=tol,
+        max_iter=max_iter,
+        sb="yes",
         #check_derivatives_for_naninf = "yes",
-        linear_solver = linear_solver;
+        linear_solver=linear_solver;
         kwargs...,
     )
 

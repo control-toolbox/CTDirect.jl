@@ -26,11 +26,11 @@ struct Euler <: Discretization
 
         # NLP variables size ([state, control]_1..N, final state, variable)
         dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
-        
+
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons
 
-        if explicit 
+        if explicit
             info = "Euler (explicit), 1st order"
         else
             info = "Euler (implicit), 1st order"
@@ -54,12 +54,12 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{Euler}, i)
         # final time case
         (i == docp.time.steps + 1) && (i = docp.time.steps)
         offset = (i-1) * docp.discretization._step_variables_block + docp.dims.NLP_x
-    else 
+    else
         # initial time case
         (i == 1) && (i = 2)
         offset = (i-2) * docp.discretization._step_variables_block + docp.dims.NLP_x
     end
-    return @view xu[(offset + 1):(offset + docp.dims.NLP_u)]
+    return @view xu[(offset+1):(offset+docp.dims.NLP_u)]
 end
 
 
@@ -87,11 +87,11 @@ function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
         u = get_OCP_control_at_time_step(xu, docp, index)
 
         # OCP dynamics
-        CTModels.dynamics(docp.ocp)((@view work[offset+1:offset+docp.dims.OCP_x]), t, x, u, v)
+        CTModels.dynamics(docp.ocp)((@view work[(offset+1):(offset+docp.dims.OCP_x)]), t, x, u, v)
         # lagrange cost
         if docp.flags.lagrange
             work[offset+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(t, x, u, v)
-        end   
+        end
     end
     return work
 end
@@ -104,7 +104,7 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
-    
+
     # offset for previous steps
     offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
 
@@ -121,20 +121,20 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
         offset_dyn_i = (i-1)*docp.dims.NLP_x
 
         # state equation: euler rule
-        @views @. c[offset+1:offset+docp.dims.OCP_x] = xip1 - (xi + hi * work[offset_dyn_i+1:offset_dyn_i+docp.dims.OCP_x])
+        @views @. c[(offset+1):(offset+docp.dims.OCP_x)] = xip1 - (xi + hi * work[(offset_dyn_i+1):(offset_dyn_i+docp.dims.OCP_x)])
         if docp.flags.lagrange
             c[offset+docp.dims.NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[offset_dyn_i+docp.dims.NLP_x])
         end
         offset += docp.dims.NLP_x
 
     end
-   
+
     # 2. path constraints
     if docp.discretization._step_pathcons_block > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dims.path_cons]), ti, xi, ui, v)
+        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[(offset+1):(offset+docp.dims.path_cons)]), ti, xi, ui, v)
     end
-    
+
 end
 
 
@@ -213,7 +213,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
     uf_start = var_offset-docp.discretization._step_variables_block + docp.dims.NLP_x + 1
     uf_end = var_offset-docp.discretization._step_variables_block + docp.dims.NLP_x + docp.dims.NLP_u
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
-    add_nonzero_block!(Is, Js, c_offset+1,c_offset+c_block, uf_start, uf_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, uf_start, uf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
 
     # 3. boundary constraints (x0, xf, v)
@@ -258,7 +258,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Euler})
     # -> grouped with term 3. for boundary conditions
     # 0.2 lagrange case (lf)
     # -> 2nd order term is zero
-   
+
     # 1. main loop over steps
     # 1.0 v / v term
     add_nonzero_block!(Is, Js, v_start, v_end, v_start, v_end)
@@ -317,7 +317,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Euler})
 
     # 3.1 null initial condition for lagrangian cost state l0
     # -> 2nd order term is zero
-   
+
     # build and return sparse matrix
     nnzj = length(Is)
     Vs = ones(Bool, nnzj)

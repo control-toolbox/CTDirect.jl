@@ -17,4 +17,3 @@ end
     @test CTDirect.__ipopt_mu_strategy() isa String
     @test CTDirect.__ipopt_linear_solver() isa String
 end
-

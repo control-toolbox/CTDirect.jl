@@ -5,13 +5,13 @@ function action()
     T = 50
 
     # Define the vector field
-    f(u, v) = [u - u^3 - 10*u*v^2,  -(1 - u^2)*v]
+    f(u, v) = [u - u^3 - 10*u*v^2, -(1 - u^2)*v]
     f(x) = f(x...)
 
     eps = 1e-1
     asqrt(x) = sqrt(sqrt(x^2 + eps^2))
 
-    function lag(x,u)
+    function lag(x, u)
         fx = f(x)
         unorm2 = u[1]^2 + u[2]^2
         fnorm2 = fx[1]^2 + fx[2]^2
@@ -28,7 +28,7 @@ function action()
         x(T) == [1, 0]     # End point (right well)
         ẋ(t) == u(t)       # Path dynamics
         #∫(asqrt(dot(u(t),u(t))*dot(f(x(t)),f(x(t)))) - dot(u(t),f(x(t)))) → min
-        ∫(lag(x(t),u(t))) → min
+        ∫(lag(x(t), u(t))) → min
     end
 
 
@@ -39,5 +39,5 @@ function action()
     u(t) = f(x(t))
     init = (state=x, control=u)
 
-    return ((ocp = action, obj = nothing, name = "action", init = init))
+    return ((ocp=action, obj=nothing, name="action", init=init))
 end

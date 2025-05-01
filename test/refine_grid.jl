@@ -18,7 +18,7 @@ if test4
     N = N_target
     println("\nBasic solve")
     @time begin
-        sol = solve(goddard, time_grid = LinRange(0, 1, N + 1), display = false)
+        sol = solve(goddard, time_grid=LinRange(0, 1, N + 1), display=false)
         @printf("steps %4d, objective %9.6f, iterations %4d\n", N, sol.objective, sol.iterations)
     end
 
@@ -26,7 +26,7 @@ if test4
     println("\nStep continuation")
     @time begin
         N = 10
-        sol = solve(goddard, time_grid = LinRange(0, 1, N + 1), display = false, max_iter = 5)
+        sol = solve(goddard, time_grid=LinRange(0, 1, N + 1), display=false, max_iter=5)
         @printf(
             "steps %4d, objective %9.6f, iterations set to %4d\n",
             N,
@@ -38,10 +38,10 @@ if test4
             global N = min(N * 2, N_target)
             global sol = solve(
                 goddard,
-                time_grid = LinRange(0, 1, N + 1),
-                display = false,
-                init = sol,
-                max_iter = 5,
+                time_grid=LinRange(0, 1, N + 1),
+                display=false,
+                init=sol,
+                max_iter=5,
             )
             @printf(
                 "steps %4d, objective %9.6f, iterations set to %4d\n",
@@ -52,7 +52,7 @@ if test4
         end
         # final solve
         N = N_target
-        sol = solve(goddard, time_grid = LinRange(0, 1, N + 1), display = false, init = sol)
+        sol = solve(goddard, time_grid=LinRange(0, 1, N + 1), display=false, init=sol)
         @printf("steps %4d, objective %9.6f, iterations %4d\n", N, sol.objective, sol.iterations)
     end
 end
@@ -67,7 +67,7 @@ function dt(t, v)
     elseif t == N_vars
         dt = v[end]
     else
-        dt = 0.5 * (v[Int(t)] + v[Int(t) + 1])
+        dt = 0.5 * (v[Int(t)] + v[Int(t)+1])
     end
     return dt
 end
@@ -76,15 +76,15 @@ if test5
     # number of time steps to be optimized
     N_vars = 10
 
-    ocp = Model(variable = true, autonomous = false)
+    ocp = Model(variable=true, autonomous=false)
     state!(ocp, 2)
     control!(ocp, 1)
     variable!(ocp, N_vars)
-    time!(ocp, t0 = 0, tf = N_vars)
-    constraint!(ocp, :initial, lb = [0, 0], ub = [0, 0])
-    constraint!(ocp, :final, lb = [1, 0], ub = [1, 0])
-    constraint!(ocp, :control, lb = -1, ub = 1)
-    constraint!(ocp, :variable, lb = 0.01 * ones(N_vars), ub = 10 * ones(N_vars))
+    time!(ocp, t0=0, tf=N_vars)
+    constraint!(ocp, :initial, lb=[0, 0], ub=[0, 0])
+    constraint!(ocp, :final, lb=[1, 0], ub=[1, 0])
+    constraint!(ocp, :control, lb=-1, ub=1)
+    constraint!(ocp, :variable, lb=0.01 * ones(N_vars), ub=10 * ones(N_vars))
     dynamics!(ocp, (t, x, u, v) -> [x[2], u] * dt(t, v))
     # min tf
     objective!(ocp, :mayer, (x0, xf, v) -> sum(v))
@@ -94,13 +94,13 @@ if test5
     objective!(ocp, :lagrange, (t, x, u, v) -> u^2 * v[Int(t)])
     =#
 
-    sol = solve(ocp, grid_size = N_vars)
+    sol = solve(ocp, grid_size=N_vars)
 
     # actual time grid
     v = sol.variable
     T_opt = zeros(N_vars + 1)
     for i = 1:N_vars
-        T_opt[i + 1] = T_opt[i] + v[i]
+        T_opt[i+1] = T_opt[i] + v[i]
     end
     println("Optimized time steps ", T_opt)
     println("And tf: ", sum(sol.variable))
@@ -108,10 +108,10 @@ if test5
     #plot(sol)
     U_opt = zeros(N_vars + 1)
     # ffs julia
-    for i = 1:(N_vars + 1)
+    for i = 1:(N_vars+1)
         U_opt[i] = sol.control(sol.times[i])
     end
-    p = plot(T_opt, U_opt, markershape = :circle, show = true)
+    p = plot(T_opt, U_opt, markershape=:circle, show=true)
 end
 
 # goddard test case: does not work very well
@@ -120,7 +120,7 @@ end
 # this feature needs a proper implementation anyway
 if test6
     N_vars = 30
-    goddard = Model(variable = true, autonomous = false)
+    goddard = Model(variable=true, autonomous=false)
     Cd = 310
     Tmax = 3.5
     β = 500
@@ -134,12 +134,12 @@ if test6
     state!(goddard, 3)
     control!(goddard, 1)
     variable!(goddard, N_vars)
-    time!(goddard, t0 = 0, tf = N_vars)
-    constraint!(goddard, :initial, lb = x0, ub = x0)
-    constraint!(goddard, :final, rg = 3, lb = mf, ub = mf)
-    constraint!(goddard, :state, lb = [r0, v0, mf], ub = [r0 + 0.2, vmax, m0])
-    constraint!(goddard, :control, lb = 0, ub = 1)
-    constraint!(goddard, :variable, lb = 0.05 / N_vars * ones(N_vars), ub = Inf * ones(N_vars))
+    time!(goddard, t0=0, tf=N_vars)
+    constraint!(goddard, :initial, lb=x0, ub=x0)
+    constraint!(goddard, :final, rg=3, lb=mf, ub=mf)
+    constraint!(goddard, :state, lb=[r0, v0, mf], ub=[r0 + 0.2, vmax, m0])
+    constraint!(goddard, :control, lb=0, ub=1)
+    constraint!(goddard, :variable, lb=0.05 / N_vars * ones(N_vars), ub=Inf * ones(N_vars))
     objective!(goddard, :mayer, (x0, xf, v) -> xf[1], :max)
     function F0(x)
         r, v, m = x
@@ -153,17 +153,17 @@ if test6
     dynamics!(goddard, (t, x, u, v) -> (F0(x) + u * F1(x)) * dt(t, v))
 
     # start will small time steps ?
-    sol = solve(goddard, grid_size = N_vars, tol = 1e-12, init = (variable = zeros(N_vars),))
+    sol = solve(goddard, grid_size=N_vars, tol=1e-12, init=(variable=zeros(N_vars),))
 
     # actual time grid
     v = sol.variable
     T_opt = zeros(N_vars + 1)
     for i = 1:N_vars
-        T_opt[i + 1] = T_opt[i] + v[i]
+        T_opt[i+1] = T_opt[i] + v[i]
     end
     println("Optimized time steps ", T_opt)
     println("And tf: ", sum(sol.variable))
 
     U_opt = sol.control.(sol.times)
-    p = plot(T_opt, U_opt, markershape = :circle, show = true)
+    p = plot(T_opt, U_opt, markershape=:circle, show=true)
 end
