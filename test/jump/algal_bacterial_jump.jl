@@ -12,13 +12,13 @@ struct rk_method
     c::Vector{<:Real}
 end
 
-rk = rk_method(:gauss2, 2, 
+rk = rk_method(:gauss2, 2,
     [0.25 (0.25 - sqrt(3)/6); (0.25 + sqrt(3)/6) 0.25],
     [0.5, 0.5],
     [(0.5 - sqrt(3)/6), (0.5 + sqrt(3)/6)]
 )
 
-function algal_bacterial_jump(;grid_size=1000, disc_method=:trapeze, print_level=5)
+function algal_bacterial_jump(; grid_size=1000, disc_method=:trapeze, print_level=5)
 
     #initialize JuMP model with Ipopt solver backend
     sys = JuMP.Model(Ipopt.Optimizer)
@@ -31,7 +31,8 @@ function algal_bacterial_jump(;grid_size=1000, disc_method=:trapeze, print_level
 
     # Discretization parameters
     N = grid_size
-    t0 = 0; tf = 20
+    t0 = 0;
+    tf = 20
     Δt = (tf - t0) / N
 
     # System parameters
@@ -53,10 +54,10 @@ function algal_bacterial_jump(;grid_size=1000, disc_method=:trapeze, print_level
     function f(x, α, d)
         return [
             d*(s_in - x[1]) - ϕ(x[1])*x[2]/γ,           # s
-            ((1-α)*ϕ(x[1]) - d)*x[2],                   # e
-            α*β*ϕ(x[1])*x[2] - ρ(x[3])*x[5] - d*x[3],   # v
+            ((1-α)*ϕ(x[1]) - d) * x[2],                   # e
+            α * β * ϕ(x[1]) * x[2] - ρ(x[3])*x[5] - d*x[3],   # v
             ρ(x[3]) - μ(x[4])*x[4],                     # q
-            (μ(x[4]) - d)*x[5],                         # c
+            (μ(x[4]) - d) * x[5],                         # c
             d * x[5]                                    # obj = d*c
         ]
     end
@@ -69,14 +70,14 @@ function algal_bacterial_jump(;grid_size=1000, disc_method=:trapeze, print_level
 
         # Variables
         @variables(sys, begin
-            x[1:N+1, i=1:6] ≥ x_lower[i]    # x
-            0.0 ≤ α[1:N+1] ≤ 1.0 
-            0.0 ≤ d[1:N+1] ≤ dmax  
+            x[1:(N+1), i=1:6] ≥ x_lower[i]    # x
+            0.0 ≤ α[1:(N+1)] ≤ 1.0
+            0.0 ≤ d[1:(N+1)] ≤ dmax
         end)
 
         # Dynamics
         @constraints(sys, begin
-            con_dx[i = 1:N], x[i+1,:] == x[i,:] + Δt * (f(x[i,:], α[i], d[i]) + f(x[i+1,:], α[i+1], d[i+1]))/2.0
+            con_dx[i=1:N], x[i+1, :] == x[i, :] + Δt * (f(x[i, :], α[i], d[i]) + f(x[i+1, :], α[i+1], d[i+1]))/2.0
         end)
 
     elseif disc_method == :gauss_legendre_2
@@ -94,8 +95,8 @@ function algal_bacterial_jump(;grid_size=1000, disc_method=:trapeze, print_level
         # x[i+1] = x[i] + Δt Σ_j b[j]k[j,i]
         # k[j,i] = f( x[i] + Δt Σ_s A[j,s]k[s,i] )
         @constraints(sys, begin
-            rk_nodes[j=1:rk.s, i=1:N], k[j,i,:] == f(x[i,:] + Δt*sum(rk.a[j,s]*k[s,i,:] for s in 1:rk.s), α[i], d[i])
-            rk_scheme[i = 1:N-1], x[i+1,:] == x[i,:] + Δt*sum(rk.b[j] * k[j,i,:] for j in 1:rk.s)
+            rk_nodes[j=1:rk.s, i=1:N], k[j, i, :] == f(x[i, :] + Δt*sum(rk.a[j, s]*k[s, i, :] for s in 1:rk.s), α[i], d[i])
+            rk_scheme[i=1:(N-1)], x[i+1, :] == x[i, :] + Δt*sum(rk.b[j] * k[j, i, :] for j in 1:rk.s)
         end)
 
     else
@@ -106,7 +107,7 @@ function algal_bacterial_jump(;grid_size=1000, disc_method=:trapeze, print_level
     @objective(sys, Max, x[end, end])
 
     # Initial condition
-    @constraint(sys, initial, x[1,:] == x0[:])
+    @constraint(sys, initial, x[1, :] == x0[:])
 
     # Optimization 
     print_level > 0 && println("Solving...")

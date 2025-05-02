@@ -19,7 +19,7 @@ using Test # to run individual test scripts if needed
 #######################################################
 # load examples library
 problem_path = pwd() * "/test/problems"
-for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true))
+for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
@@ -37,8 +37,8 @@ function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs..
 
         # check (will also precompile)
         sol = solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, kwargs...)
-        if !isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj], rtol = 5e-2)
-            error("Objective mismatch for ",problem[:name],": ",objective(sol)," instead of ",problem[:obj])
+        if !isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj], rtol=5e-2)
+            error("Objective mismatch for ", problem[:name], ": ", objective(sol), " instead of ", problem[:obj])
         else
             verbose > 2 && @printf("%-30s: %4d iter %5.2f obj ", problem[:name], iterations(sol), objective(sol))
         end
@@ -53,7 +53,7 @@ function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs..
 end
 
 
-function bench(; grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp_solver = :ipopt, linear_solver = nothing, target_list = :default, kwargs...)
+function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_solver=:ipopt, linear_solver=nothing, target_list=:default, kwargs...)
 
     #######################################################
     # set (non) linear solvers and backends
@@ -75,7 +75,7 @@ function bench(; grid_size_list = [250, 500, 1000, 2500, 5000], verbose = 1, nlp
         target_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
     elseif target_list == :quick
         target_list = ["beam", "double_integrator_mintf", "fuller", "jackson", "simple_integrator", "vanderpol"]
-    elseif target_list == :all 
+    elseif target_list == :all
         target_list = ["algal_bacterial", "beam", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "insurance", "jackson", "parametric", "robbins", "simple_integrator", "swimmer", "vanderpol"]
     elseif target_list == :hard
         target_list = ["algal_bacterial", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "insurance", "swimmer"]
@@ -120,7 +120,8 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
 
     # DOCP_objective
     if test_obj
-        print("Objective"); @btime CTDirect.DOCP_objective($xu, $docp)
+        print("Objective");
+        @btime CTDirect.DOCP_objective($xu, $docp)
         warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
         jet && display(@report_opt CTDirect.DOCP_objective(xu, docp))
         if profile
@@ -132,8 +133,9 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
 
     # DOCP_constraints
     if test_cons
-        print("Constraints"); @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
-        any(c.==666.666) && error("undefined values in constraints ",c)
+        print("Constraints");
+        @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
+        any(c .== 666.666) && error("undefined values in constraints ", c)
         warntype && @code_warntype CTDirect.DOCP_constraints!(c, xu, docp)
         jet && display(@report_opt CTDirect.DOCP_constraints!(c, xu, docp))
         if profile
@@ -145,14 +147,15 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
 
     # transcription
     if test_trans
-        print("Transcription"); @btime direct_transcription($ocp, grid_size=$grid_size, disc_method=$disc_method)
+        print("Transcription");
+        @btime direct_transcription($ocp, grid_size=($grid_size), disc_method=($disc_method))
     end
 
     # solve
     if test_solve
-        print("Solve"); @btime solve($ocp, display=false, grid_size=$grid_size, disc_method=$disc_method)
+        print("Solve");
+        @btime solve($ocp, display=false, grid_size=($grid_size), disc_method=($disc_method))
     end
 
     return nothing
 end
-

@@ -24,7 +24,7 @@ struct Midpoint <: Discretization
 
         # NLP variables size ([state, control, stage]_1..N, final state, variable)
         dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
-        
+
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons
 
@@ -41,7 +41,7 @@ $(TYPEDSIGNATURES)
 Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
-    
+
     work = similar(xu, docp.dims.NLP_x * docp.time.steps)
 
     # loop over time steps
@@ -51,11 +51,11 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
         xs = 0.5 * (get_OCP_state_at_time_step(xu, docp, i) + get_OCP_state_at_time_step(xu, docp, i+1))
         ui = get_OCP_control_at_time_step(xu, docp, i)
         # OCP dynamics
-        CTModels.dynamics(docp.ocp)((@view work[offset+1:offset+docp.dims.OCP_x]), ts, xs, ui, v)
+        CTModels.dynamics(docp.ocp)((@view work[(offset+1):(offset+docp.dims.OCP_x)]), ts, xs, ui, v)
         # lagrange cost
         if docp.flags.lagrange
             work[offset+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(ts, xs, ui, v)
-        end   
+        end
     end
 
     return work
@@ -69,7 +69,7 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
-    
+
     # offset for previous steps
     offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
 
@@ -84,20 +84,20 @@ function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
         xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
         hi = tip1 - ti
         offset_dyn_i = (i-1)*docp.dims.NLP_x
-       
+
         # state equation: midpoint rule
-        @views @. c[offset+1:offset+docp.dims.OCP_x] = xip1 - (xi + hi * work[offset_dyn_i+1:offset_dyn_i+docp.dims.OCP_x])
+        @views @. c[(offset+1):(offset+docp.dims.OCP_x)] = xip1 - (xi + hi * work[(offset_dyn_i+1):(offset_dyn_i+docp.dims.OCP_x)])
         if docp.flags.lagrange
             c[offset+docp.dims.NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[offset_dyn_i+docp.dims.NLP_x])
         end
         offset += docp.dims.NLP_x
 
     end
-   
+
     # 2. path constraints
     if docp.dims.path_cons > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dims.path_cons]), ti, xi, ui, v)
+        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[(offset+1):(offset+docp.dims.path_cons)]), ti, xi, ui, v)
     end
 
 end
@@ -165,7 +165,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
     uf_start = var_offset-docp.discretization._step_variables_block + docp.dims.NLP_x + 1
     uf_end = var_offset-docp.discretization._step_variables_block + docp.dims.NLP_x + docp.dims.NLP_u
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
-    add_nonzero_block!(Is, Js, c_offset+1,c_offset+c_block, uf_start, uf_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, uf_start, uf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
 
     # 3. boundary constraints (x0, xf, v)
@@ -208,7 +208,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
     # -> grouped with term 3. for boundary conditions
     # 0.2 lagrange case (lf)
     # -> 2nd order term is zero
-   
+
     # 1. main loop over steps
     # 1.0 v / v term
     add_nonzero_block!(Is, Js, v_start, v_end, v_start, v_end)
@@ -254,7 +254,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
 
     # 3.1 null initial condition for lagrangian cost state l0
     # -> 2nd order term is zero
-   
+
     # build and return sparse matrix
     nnzj = length(Is)
     Vs = ones(Bool, nnzj)

@@ -1,4 +1,8 @@
+
+
+
 #= Common parts for the discretization =#
+
 
 
 """
@@ -9,7 +13,7 @@ Convention: stored at the end, hence not dependent on the discretization method
 Vector output
 """
 function get_OCP_variable(xu, docp::DOCP)
-    return @view xu[(docp.dim_NLP_variables - docp.dims.NLP_v + 1):docp.dim_NLP_variables]
+    return @view xu[(docp.dim_NLP_variables-docp.dims.NLP_v+1):docp.dim_NLP_variables]
 end
 
 
@@ -22,7 +26,7 @@ Vector output
 """
 function get_OCP_state_at_time_step(xu, docp::DOCP, i)
     offset = (i-1) * docp.discretization._step_variables_block
-    return @view xu[(offset + 1):(offset + docp.dims.OCP_x)]
+    return @view xu[(offset+1):(offset+docp.dims.OCP_x)]
 end
 """
 $(TYPEDSIGNATURES)
@@ -32,7 +36,7 @@ Convention: 1 <= i <= dim_NLP_steps+1   (no check for actual lagrange cost prese
 """
 function get_lagrange_state_at_time_step(xu, docp::DOCP, i)
     offset = (i-1) * docp.discretization._step_variables_block
-    return xu[offset + docp.dims.NLP_x]
+    return xu[offset+docp.dims.NLP_x]
 end
 
 """
@@ -48,7 +52,7 @@ function get_OCP_control_at_time_step(xu, docp::DOCP, i)
         i = docp.time.steps
     end
     offset = (i-1) * docp.discretization._step_variables_block + docp.dims.NLP_x
-    return @view xu[(offset + 1):(offset + docp.dims.NLP_u)]
+    return @view xu[(offset+1):(offset+docp.dims.NLP_u)]
 end
 
 
@@ -62,7 +66,7 @@ Note that passing correct indices is up to the caller, no checks are made here.
 """
 function get_stagevars_at_time_step(xu, docp::DOCP, i, j)
     offset = (i-1) * docp.discretization._step_variables_block + docp.dims.NLP_x + docp.dims.NLP_u + (j-1)*docp.dims.NLP_x
-    return @view xu[(offset + 1):(offset + docp.dims.NLP_x)]
+    return @view xu[(offset+1):(offset+docp.dims.NLP_x)]
 end
 
 
@@ -72,7 +76,7 @@ $(TYPEDSIGNATURES)
 Set optimization variables in the NLP variables (for initial guess)
 """
 function set_optim_variable!(xu, v_init, docp)
-    xu[(end - docp.dims.NLP_v + 1):end] .= v_init
+    xu[(end-docp.dims.NLP_v+1):end] .= v_init
 end
 
 
@@ -86,7 +90,7 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP, i)
     # initialize only actual state variables from OCP (not lagrange state)
     if !isnothing(x_init)
         offset = (i-1) * docp.discretization._step_variables_block
-        xu[(offset + 1):(offset + docp.dims.OCP_x)] .= x_init
+        xu[(offset+1):(offset+docp.dims.OCP_x)] .= x_init
     end
 end
 
@@ -101,7 +105,7 @@ function set_control_at_time_step!(xu, u_init, docp::DOCP, i)
     if !isnothing(u_init)
         if i <= docp.time.steps || (docp.discretization._final_control && i <= docp.time.steps + 1)
             offset = (i-1) * docp.discretization._step_variables_block + docp.dims.NLP_x
-            xu[(offset + 1):(offset + docp.dims.NLP_u)] .= u_init
+            xu[(offset+1):(offset+docp.dims.NLP_u)] .= u_init
         end
     end
 end
@@ -122,9 +126,9 @@ $(TYPEDSIGNATURES)
 
 Build sparsity pattern for Jacobian of constraints
 """
-function DOCP_Jacobian_pattern(docp::DOCP{D}) where (D <: Discretization)
+function DOCP_Jacobian_pattern(docp::DOCP{D}) where (D<:Discretization)
     error("DOCP_Jacobian_pattern not implemented for discretization ", D,
-    " Use option solve(...; adnlp_backend=:optimized)")
+        " Use option solve(...; adnlp_backend=:optimized)")
 end
 
 
@@ -133,9 +137,9 @@ $(TYPEDSIGNATURES)
 
 Build sparsity pattern for Hessian of Lagrangian
 """
-function DOCP_Hessian_pattern(docp::DOCP{D}) where (D <: Discretization)
+function DOCP_Hessian_pattern(docp::DOCP{D}) where (D<:Discretization)
     error("DOCP_Hessian_pattern not implemented for discretization ", D,
-    " Use option solve(...; adnlp_backend=:optimized)")
+        " Use option solve(...; adnlp_backend=:optimized)")
 end
 
 
@@ -154,8 +158,8 @@ function add_nonzero_block!(M, i_start, i_end, j_start, j_end; sym=false)
     return
 end
 function add_nonzero_block!(M, i, j; sym=false)
-    M[i,j] = true
-    sym && (M[j,i] = true)
+    M[i, j] = true
+    sym && (M[j, i] = true)
     return
 end
 function add_nonzero_block!(Is, Js, i_start, i_end, j_start, j_end; sym=false)

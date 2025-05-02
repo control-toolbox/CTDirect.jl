@@ -43,7 +43,7 @@ function build_OCP_solution(docp, docp_solution)
         T, X, U, v, P;
         objective=objective, iterations=iterations, constraints_violation=constraints_violation,
         message=message, stopping=stopping, success=success,
-        path_constraints=path_constraints, 
+        path_constraints=path_constraints,
         path_constraints_dual=path_constraints_dual,
         boundary_constraints=boundary_constraints,
         boundary_constraints_dual=boundary_constraints_dual,
@@ -73,7 +73,7 @@ function SolverInfos(docp_solution)
     stopping = :undefined
     success = true
     message = "undefined"
-    try 
+    try
         solver_specific = docp_solution.solver_specific
         if haskey(solver_specific, :internal_msg)
             # Ipopt solver
@@ -121,7 +121,7 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
         T, X, U, v, P;
         objective=objective, iterations=iterations, constraints_violation=constraints_violation,
         message=message, stopping=stopping, success=success,
-        path_constraints=path_constraints, 
+        path_constraints=path_constraints,
         path_constraints_dual=path_constraints_dual,
         boundary_constraints=boundary_constraints,
         boundary_constraints_dual=boundary_constraints_dual,
@@ -140,7 +140,7 @@ $(TYPEDSIGNATURES)
 
 Recover OCP primal variables from DOCP solution
 """
-function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB = nothing)
+function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=nothing)
 
     # state and control variables
     N = docp.time.steps
@@ -170,14 +170,14 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB = nothing, mult_UB =
     end
 
     # state variables and box multipliers
-    for i = 1:N+1
-        X[i,:] .= get_OCP_state_at_time_step(solution, docp, i)
+    for i = 1:(N+1)
+        X[i, :] .= get_OCP_state_at_time_step(solution, docp, i)
         mult_state_box_lower[i, :] .= get_OCP_state_at_time_step(mult_LB, docp, i)
         mult_state_box_upper[i, :] .= get_OCP_state_at_time_step(mult_UB, docp, i)
     end
     # control variables and box multipliers
-    for i = 1:N+1
-        U[i,:] .= get_OCP_control_at_time_step(solution, docp, i)
+    for i = 1:(N+1)
+        U[i, :] .= get_OCP_control_at_time_step(solution, docp, i)
         mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(mult_LB, docp, i)
         mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(mult_UB, docp, i)
     end
@@ -221,11 +221,11 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
     # loop over time steps
     i_c = 1
     i_m = 1
-    for i = 1:N+1
+    for i = 1:(N+1)
 
         # state equation multiplier for costate
         if i <= N
-            P[i, :] = multipliers[i_m:(i_m + docp.dims.NLP_x - 1)]
+            P[i, :] = multipliers[i_m:(i_m+docp.dims.NLP_x-1)]
             # skip state / stage constraints
             i_c += docp.discretization._state_stage_eqs_block
             i_m += docp.discretization._state_stage_eqs_block
@@ -233,8 +233,8 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
 
         # path constraints and multipliers
         if dpc > 0
-            sol_path_constraints[i, :] = constraints[i_c:(i_c + dpc - 1)]
-            mul_path_constraints[i, :] = multipliers[i_m:(i_m + dpc - 1)]
+            sol_path_constraints[i, :] = constraints[i_c:(i_c+dpc-1)]
+            mul_path_constraints[i, :] = multipliers[i_m:(i_m+dpc-1)]
             i_c += dpc
             i_m += dpc
         end
@@ -242,12 +242,11 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
 
     # pointwise constraints: boundary then variables
     if dbc > 0
-        sol_boundary_constraints[:] = constraints[i_c:(i_c + dbc - 1)]
-        mul_boundary_constraints[:] = multipliers[i_m:(i_m + dbc - 1)]
+        sol_boundary_constraints[:] = constraints[i_c:(i_c+dbc-1)]
+        mul_boundary_constraints[:] = multipliers[i_m:(i_m+dbc-1)]
         i_c += dbc
         i_m += dbc
     end
 
     return P, sol_path_constraints, sol_boundary_constraints, mul_path_constraints, mul_boundary_constraints
 end
-

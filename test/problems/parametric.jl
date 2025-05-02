@@ -29,5 +29,5 @@ function parametric(ρ=1)
         obj = nothing
     end
 
-    return ((ocp = param, obj = obj, name = "parametric", init = nothing))
+    return ((ocp=param, obj=obj, name="parametric", init=nothing))
 end

@@ -15,7 +15,7 @@ function F1(x, Tmax, b)
 end
 
 # abstract definition
-function goddard(; vmax = 0.1, Tmax = 3.5)
+function goddard(; vmax=0.1, Tmax=3.5)
     # constants
     Cd = 310
     beta = 500
@@ -46,10 +46,10 @@ function goddard(; vmax = 0.1, Tmax = 3.5)
     end
 
     return ((
-        ocp = goddard,
-        obj = 1.01257,
-        name = "goddard",
-        init = (state = [1.01, 0.05, 0.8],),
+        ocp=goddard,
+        obj=1.01257,
+        name="goddard",
+        init=(state=[1.01, 0.05, 0.8],),
     ))
 end
 
@@ -86,7 +86,7 @@ function goddard_all()
         r[2] = u[1]
         r[3] = x[1] + x[2] + x[3] + u[1] + v[1]
     end
-    CTModels.constraint!(pre_ocp, :path; f=path!, lb=[-Inf, -Inf, 0], ub=[vmax, 1, Inf], label=:path)
+    CTModels.constraint!(pre_ocp, :path; f=(path!), lb=[-Inf, -Inf, 0], ub=[vmax, 1, Inf], label=:path)
     mayer(x0, xf, v) = xf[1]
     CTModels.objective!(pre_ocp, :max, mayer=mayer)
     function f!(r, t, x, u, v)
@@ -94,7 +94,7 @@ function goddard_all()
         D = Cd * x[2]^2 * exp(-beta * (x[1] - 1))
         r[2] = -D / x[3] - 1 / x[1]^2 + u[1] * Tmax / x[3]
         r[3] = -b * Tmax * u[1]
-    end 
+    end
     CTModels.dynamics!(pre_ocp, f!)
     function bc!(r, x0, xf, v)
         r[1] = x0[1]
@@ -102,12 +102,12 @@ function goddard_all()
         r[3] = x0[3]
         r[4] = xf[3]
     end
-    CTModels.constraint!(pre_ocp, :boundary, f=bc!, lb=[r0, v0, m0, mf], ub=[r0, v0, m0, mf], label=:boundary)
+    CTModels.constraint!(pre_ocp, :boundary, f=(bc!), lb=[r0, v0, m0, mf], ub=[r0, v0, m0, mf], label=:boundary)
     CTModels.definition!(pre_ocp, Expr(:goddard_all))
     ocp = CTModels.build_model(pre_ocp)
 
     return ((
-        ocp = ocp, obj = 1.01257, name = "goddard_all_constraints", init = (state = [1.01, 0.05, 0.8],),
+        ocp=ocp, obj=1.01257, name="goddard_all_constraints", init=(state=[1.01, 0.05, 0.8],),
     ))
 end
 
@@ -141,28 +141,27 @@ function goddard_all_outplace()
     # 'mixed' constraint (inactive)
     function path(t, x, u, v)
         return [x[2],
-                u[1],
-                x[1] + x[2] + x[3] + u[1] + v[1] ]
+            u[1],
+            x[1] + x[2] + x[3] + u[1] + v[1]]
     end
     CTModels.constraint!(pre_ocp, :path; f=path, lb=[-Inf, -Inf, 0], ub=[vmax, 1, Inf], label=:path)
     mayer(x0, xf, v) = xf[1]
     CTModels.objective!(pre_ocp, :max, mayer=mayer)
     function f(r, t, x, u, v)
         D = Cd * x[2]^2 * exp(-beta * (x[1] - 1))
-        return [ x[2],
-                -D / x[3] - 1 / x[1]^2 + u[1] * Tmax / x[3],
-                -b * Tmax * u[1] ]
-    end 
+        return [x[2],
+            -D / x[3] - 1 / x[1]^2 + u[1] * Tmax / x[3],
+            -b * Tmax * u[1]]
+    end
     CTModels.dynamics!(pre_ocp, f)
     function bc(x0, xf, v)
-        return [ x0[1], x0[2], x0[3], xf[3] ]
+        return [x0[1], x0[2], x0[3], xf[3]]
     end
     CTModels.constraint!(pre_ocp, :boundary, f=bc, lb=[r0, v0, m0, mf], ub=[r0, v0, m0, mf], label=:boundary)
     CTModels.definition!(pre_ocp, Expr(:goddard_all))
     ocp = CTModels.build_model(pre_ocp)
 
     return ((
-        ocp = ocp, obj = 1.01257, name = "goddard_all_constraints", init = (state = [1.01, 0.05, 0.8],),
+        ocp=ocp, obj=1.01257, name="goddard_all_constraints", init=(state=[1.01, 0.05, 0.8],),
     ))
 end
-

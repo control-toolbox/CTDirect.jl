@@ -42,17 +42,17 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
 
     #= use work array to store all dynamics + lagrange costs
     NB. using a smaller work array to store a single dynamics between steps
-    appears slower, maybe due to the copy involved ? =# 
+    appears slower, maybe due to the copy involved ? =#
     work = similar(xu, docp.dims.NLP_x * (docp.time.steps+1))
 
     # loop over time steps
-    for i = 1:docp.time.steps+1
+    for i = 1:(docp.time.steps+1)
         offset = (i-1) * docp.dims.NLP_x
         ti = time_grid[i]
         xi = get_OCP_state_at_time_step(xu, docp, i)
         ui = get_OCP_control_at_time_step(xu, docp, i)
         # OCP dynamics
-        CTModels.dynamics(docp.ocp)((@view work[offset+1:offset+docp.dims.OCP_x]), ti, xi, ui, v)
+        CTModels.dynamics(docp.ocp)((@view work[(offset+1):(offset+docp.dims.OCP_x)]), ti, xi, ui, v)
         # lagrange cost
         if docp.flags.lagrange
             work[offset+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
@@ -89,7 +89,7 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         offset_dyn_ip1 = i*docp.dims.NLP_x
 
         # trapeze rule (no allocations ^^)
-        @views @. c[offset+1:offset+docp.dims.OCP_x] = xip1 - (xi + half_hi * (work[offset_dyn_i+1:offset_dyn_i+docp.dims.OCP_x] + work[offset_dyn_ip1+1:offset_dyn_ip1+docp.dims.OCP_x]))
+        @views @. c[(offset+1):(offset+docp.dims.OCP_x)] = xip1 - (xi + half_hi * (work[(offset_dyn_i+1):(offset_dyn_i+docp.dims.OCP_x)] + work[(offset_dyn_ip1+1):(offset_dyn_ip1+docp.dims.OCP_x)]))
 
         if docp.flags.lagrange
             c[offset+docp.dims.NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + half_hi * (work[offset_dyn_i+docp.dims.NLP_x] + work[offset_dyn_ip1+docp.dims.NLP_x]))
@@ -100,7 +100,7 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # 2. path constraints
     if docp.dims.path_cons > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[offset+1:offset+docp.dims.path_cons]), ti, xi, ui, v)
+        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[(offset+1):(offset+docp.dims.path_cons)]), ti, xi, ui, v)
     end
 end
 
@@ -174,7 +174,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
     uf_start = var_offset + docp.dims.NLP_x + 1
     uf_end = var_offset + docp.dims.NLP_x + docp.dims.NLP_u
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
-    add_nonzero_block!(Is, Js, c_offset+1,c_offset+c_block, uf_start, uf_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, uf_start, uf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
 
     # 3. boundary constraints (x0, xf, v)
@@ -217,7 +217,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
     # -> grouped with term 3. for boundary conditions
     # 0.2 lagrange case (lf)
     # -> 2nd order term is zero
-   
+
     # 1. main loop over steps
     # 1.0 v / v term
     add_nonzero_block!(Is, Js, v_start, v_end, v_start, v_end)

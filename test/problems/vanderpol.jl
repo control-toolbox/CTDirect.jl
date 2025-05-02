@@ -14,5 +14,5 @@ function vanderpol()
         ∫(0.5 * (x[1](t)^2 + x[2](t)^2 + u(t)^2)) → min
     end
 
-    return ((ocp = vanderpol, obj = 1.047921, name = "vanderpol", init = nothing))
+    return ((ocp=vanderpol, obj=1.047921, name="vanderpol", init=nothing))
 end
