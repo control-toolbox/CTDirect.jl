@@ -36,16 +36,14 @@ function build_OCP_solution(docp, docp_solution)
     DOCP_constraints!(constraints, solution, docp)
 
     # costate and constraints multipliers
-    P, path_constraints, boundary_constraints, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers, constraints)
+    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers)
 
     return CTModels.build_solution(
         ocp,
         T, X, U, v, P;
         objective=objective, iterations=iterations, constraints_violation=constraints_violation,
         message=message, stopping=stopping, success=success,
-        path_constraints=path_constraints,
         path_constraints_dual=path_constraints_dual,
-        boundary_constraints=boundary_constraints,
         boundary_constraints_dual=boundary_constraints_dual,
         state_constraints_lb_dual=box_multipliers[1],
         state_constraints_ub_dual=box_multipliers[2],
@@ -114,16 +112,14 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
     DOCP_constraints!(constraints, solution, docp)
 
     # costate and constraints multipliers
-    P, path_constraints, boundary_constraints, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, dual, constraints)
+    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, dual)
 
     return CTModels.build_solution(
         ocp,
         T, X, U, v, P;
         objective=objective, iterations=iterations, constraints_violation=constraints_violation,
         message=message, stopping=stopping, success=success,
-        path_constraints=path_constraints,
         path_constraints_dual=path_constraints_dual,
-        boundary_constraints=boundary_constraints,
         boundary_constraints_dual=boundary_constraints_dual,
         state_constraints_lb_dual=box_multipliers[1],
         state_constraints_ub_dual=box_multipliers[2],
@@ -196,7 +192,7 @@ $(TYPEDSIGNATURES)
 
 Recover OCP costate and constraints multipliers from DOCP multipliers
 """
-function parse_DOCP_solution_dual(docp, multipliers, constraints)
+function parse_DOCP_solution_dual(docp, multipliers)
 
     # if called with multipliers = nothing, fill with zeros
     if isnothing(multipliers)
@@ -206,20 +202,16 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
     # costate
     N = docp.time.steps
     P = zeros(N, docp.dims.NLP_x)
-    ocp = docp.ocp
 
-    # constraints
+    # dimensions
     dpc = docp.dims.path_cons
     dbc = docp.dims.boundary_cons
-    sol_path_constraints = zeros(N + 1, dpc)
-    sol_boundary_constraints = zeros(dbc)
 
     # constraints multipliers
-    mul_path_constraints = zeros(size(sol_path_constraints))
-    mul_boundary_constraints = zeros(size(sol_boundary_constraints))
+    mul_path_constraints = zeros(N + 1, dpc)
+    mul_boundary_constraints = zeros(dbc)
 
     # loop over time steps
-    i_c = 1
     i_m = 1
     for i = 1:(N+1)
 
@@ -227,26 +219,21 @@ function parse_DOCP_solution_dual(docp, multipliers, constraints)
         if i <= N
             P[i, :] = multipliers[i_m:(i_m+docp.dims.NLP_x-1)]
             # skip state / stage constraints
-            i_c += docp.discretization._state_stage_eqs_block
             i_m += docp.discretization._state_stage_eqs_block
         end
 
         # path constraints and multipliers
         if dpc > 0
-            sol_path_constraints[i, :] = constraints[i_c:(i_c+dpc-1)]
             mul_path_constraints[i, :] = multipliers[i_m:(i_m+dpc-1)]
-            i_c += dpc
             i_m += dpc
         end
     end
 
     # pointwise constraints: boundary then variables
     if dbc > 0
-        sol_boundary_constraints[:] = constraints[i_c:(i_c+dbc-1)]
         mul_boundary_constraints[:] = multipliers[i_m:(i_m+dbc-1)]
-        i_c += dbc
         i_m += dbc
     end
 
-    return P, sol_path_constraints, sol_boundary_constraints, mul_path_constraints, mul_boundary_constraints
+    return P, mul_path_constraints, mul_boundary_constraints
 end
