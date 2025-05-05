@@ -48,7 +48,7 @@ function solve(
 )
 
     # get solver choice
-    method = CTBase.getFullDescription(description, available_methods())
+    method = CTBase.complete(description; descriptions=available_methods())
     if :ipopt ∈ method
         solver_backend = CTDirect.IpoptBackend()
     elseif :madnlp ∈ method
