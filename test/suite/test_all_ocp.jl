@@ -70,6 +70,16 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
+#= quadrotor
+if !isdefined(Main, :quadrotor)
+    include("../problems/quadrotor.jl")
+end
+@testset verbose = true showtiming = true ":quadrotor" begin
+    prob = moonlander()
+    sol = solve(prob.ocp, display=false, disc_method=:midpoint, adnlp_backend=:manual)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end=#
+
 # robbins
 if !isdefined(Main, :robbins)
     include("../problems/robbins.jl")
