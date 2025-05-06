@@ -30,6 +30,16 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
+# glider
+if !isdefined(Main, :glider)
+    include("../problems/glider.jl")
+end
+@testset verbose = true showtiming = true ":glider" begin
+    prob = glider()
+    sol = solve(prob.ocp, display=false, init=prob.init)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end
+
 # goddard max rf
 if !isdefined(Main, :goddard)
     include("../problems/goddard.jl")
