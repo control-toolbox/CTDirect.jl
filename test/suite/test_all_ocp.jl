@@ -60,7 +60,17 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-# robbins obj is 19.4 instead of 20
+# moonlander
+if !isdefined(Main, :moonlander)
+    include("../problems/moonlander.jl")
+end
+@testset verbose = true showtiming = true ":moonlander" begin
+    prob = moonlander()
+    sol = solve(prob.ocp, display=false, disc_method=:midpoint)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end
+
+# robbins
 if !isdefined(Main, :robbins)
     include("../problems/robbins.jl")
 end
