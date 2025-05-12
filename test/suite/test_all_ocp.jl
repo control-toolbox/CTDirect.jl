@@ -100,6 +100,10 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
+# space shuttle
+
+# truck trailer
+
 # vanderpol
 if !isdefined(Main, :vanderpol)
     include("../problems/vanderpol.jl")

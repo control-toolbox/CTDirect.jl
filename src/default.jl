@@ -60,9 +60,9 @@ __tolerance() = 1e-8
 $(TYPEDSIGNATURES)
 
 Used to set the default maximum of iterations.
-The default value is `5000`.
+The default value is `1000`.
 """
-__max_iterations() = 5000
+__max_iterations() = 1000
 
 # IPOPT
 
