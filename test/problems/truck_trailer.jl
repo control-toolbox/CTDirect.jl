@@ -24,9 +24,9 @@ function truck_trailer(;data=[0.4 0.1 0.2; 1.1 0.2 0.2; 0.8 0.1 0.2])
     theta0_t0 = 0.0
     x2_tf = 0.0
     y2_tf = -2.0
-    theta2_tf = 2 * pi / 4
-    theta1_tf = 2 * pi / 4
-    theta0_tf = 2 * pi / 4
+    theta2_tf = pi / 2
+    theta1_tf = pi / 2
+    theta0_tf = pi / 2
 
     function dynamics(x, u)
         x2, y2, theta0, theta1, theta2, v0, delta0 = x
@@ -73,6 +73,7 @@ function truck_trailer(;data=[0.4 0.1 0.2; 1.1 0.2 0.2; 0.8 0.1 0.2])
         y0 = y_1 + L1 * sin(theta1) + M0 * sin(theta0)
 
         ## constraints
+        1.0 ≤ tf ≤ 1000
         # state constraints
         -pi / 2 ≤ theta0(t) ≤ pi / 2, (theta0_con)
         -pi / 2 ≤ theta1(t) ≤ pi / 2, (theta1_con)
@@ -103,8 +104,9 @@ function truck_trailer(;data=[0.4 0.1 0.2; 1.1 0.2 0.2; 0.8 0.1 0.2])
         tf + ∫((beta01(t)^2) + (beta12(t)^2)) → min
     end
 
-    # Initial guess
-    init = (state=[0, 0, 0.1, 0.0, 0.0, -0.2, 0],)
+    # initial guess
+    tf_init = 10
+    init = (variable=[tf_init],)
 
     return ((ocp=ocp, obj=nothing, name="truck_trailer", init=init))
 end
