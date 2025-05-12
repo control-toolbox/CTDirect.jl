@@ -42,7 +42,7 @@ function quadrotor()
     ocp = @def begin
 
         ## define the problem
-        tf ∈ R¹, variable
+        tf ∈ R, variable
         t ∈ [0.0, tf], time
         x ∈ R⁸, state
         u ∈ R⁴, control
