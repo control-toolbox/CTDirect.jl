@@ -50,7 +50,7 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-# robbins obj is 19.4 instead of 20
+# robbins
 if !isdefined(Main, :robbins)
     include("../problems/robbins.jl")
 end
