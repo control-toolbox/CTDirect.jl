@@ -8,42 +8,49 @@ using ADNLPModels
 using SparseMatrixColorings
 using Printf
 
+using CliqueTrees
+
 # load examples library
 problem_path = pwd() * "/test/problems"
 for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true))
     include(problem_file)
 end
 
-# coloring test function
-function coloring_test(ocp; order = NaturalOrder(), grid_size = CTDirect.__grid_size(), disc_method = CTDirect.__disc_method())
+function get_patterns(ocp; grid_size=CTDirect.__grid_size(), disc_method=CTDirect.__disc_method(), adnlp_backend=CTDirect.__adnlp_backend())
 
-    # build DOCP
-    time_grid = CTDirect.__time_grid()
-    docp = CTDirect.DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
+    docp, nlp = direct_transcription(ocp; grid_size=grid_size, disc_method=disc_method, adnlp_backend=adnlp_backend)
+    J = get_sparsity_pattern(nlp, :jacobian)
+    H = get_sparsity_pattern(nlp, :hessian) + transpose(get_sparsity_pattern(nlp, :hessian))
+   
+    return J, H 
+end
 
-    # build sparsity pattern
-    J = CTDirect.DOCP_Jacobian_pattern(docp)
-    H = CTDirect.DOCP_Hessian_pattern(docp)
+# coloring test functions
+function test_Jacobian_coloring(J, order)
 
-    ## Coloring for Jacobians
     problem_J = ColoringProblem(; structure=:nonsymmetric, partition=:column)
-    order_J = order
+    if order == PerfectEliminationOrder()
+        order_J = NaturalOrder() 
+    else 
+        order_J = order
+    end
     algo_J = GreedyColoringAlgorithm(order_J; decompression=:direct)
-    result_J = coloring(J, problem_J, algo_J)
-    num_colors_J = ncolors(result_J)
+   
+    return ncolors(coloring(J, problem_J, algo_J))
+end
 
-    ## Coloring for Hessians
+function test_Hessian_coloring(H, order)
+   
     problem_H = ColoringProblem(; structure=:symmetric, partition=:column)
     order_H = order
-    algo_H = GreedyColoringAlgorithm(order_H; decompression=:substitution, postprocessing=true)
-    result_H = coloring(H, problem_H, algo_H)
-    num_colors_H = ncolors(result_H)
-
-    return num_colors_J, num_colors_H
+    algo_H = GreedyColoringAlgorithm(order_H; decompression=:substitution, postprocessing=true) # check vs direct ?
+   
+    return ncolors(coloring(H, problem_H, algo_H))
 end
 
 # batch testing
-function batch_coloring_test(; order = NaturalOrder(), target_list = :default, verbose = 1, grid_size = CTDirect.__grid_size(), disc_method = CTDirect.__disc_method())
+# possible orders: NaturalOrder(), RandomOrder(), LargestFirst(), SmallestLast(), IncidenceDegree(), DynamicLargestFirst(), PerfectEliminationOrder() (for Hessian with substitution decomposition)
+function batch_coloring_test(; order = NaturalOrder(), target_list = :default, verbose = 1, grid_size = CTDirect.__grid_size(), disc_method = CTDirect.__disc_method(), adnlp_backend = CTDirect.__adnlp_backend())
 
     if target_list == :default
         target_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
@@ -59,10 +66,13 @@ function batch_coloring_test(; order = NaturalOrder(), target_list = :default, v
     num_J_list = []
     num_H_list = []
     for problem in problem_list
-        (num_J, num_H) = coloring_test(problem.ocp; order=order, grid_size=grid_size, disc_method=disc_method)
+        J, H = get_patterns(problem.ocp; grid_size=grid_size, disc_method=disc_method, adnlp_backend=adnlp_backend)
+        num_J = test_Jacobian_coloring(J, order)
+        num_H = test_Hessian_coloring(H, order)
         push!(num_J_list, num_J)
         push!(num_H_list, num_H)
         verbose > 1 && @printf("%-30s J colors %2d    H colors %2d\n", problem.name, num_J, num_H)
     end
     return sum(num_J_list), sum(num_H_list)
 end
+
