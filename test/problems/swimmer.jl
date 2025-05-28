@@ -130,5 +130,11 @@ function swimmer(tf=25)
         #∫(a1^2 + a2^2) → min
     end
 
-    return ((ocp=swimmer, obj=0.984273, name="swimmer", init=nothing))
+    if tf == 25.0
+        objective = 0.984273
+    else
+        objective = nothing
+    end
+
+    return ((ocp=swimmer, obj=objective, name="swimmer", init=nothing))
 end
