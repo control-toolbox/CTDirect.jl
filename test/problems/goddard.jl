@@ -104,7 +104,8 @@ function goddard_all()
     end
     CTModels.constraint!(pre_ocp, :boundary, f=(bc!), lb=[r0, v0, m0, mf], ub=[r0, v0, m0, mf], label=:boundary)
     CTModels.definition!(pre_ocp, Expr(:goddard_all))
-    ocp = CTModels.build_model(pre_ocp)
+    CTModels.time_dependence!(pre_ocp; autonomous=false)
+    ocp = CTModels.build(pre_ocp)
 
     return ((
         ocp=ocp, obj=1.01257, name="goddard_all_constraints", init=(state=[1.01, 0.05, 0.8],),
@@ -159,7 +160,8 @@ function goddard_all_outplace()
     end
     CTModels.constraint!(pre_ocp, :boundary, f=bc, lb=[r0, v0, m0, mf], ub=[r0, v0, m0, mf], label=:boundary)
     CTModels.definition!(pre_ocp, Expr(:goddard_all))
-    ocp = CTModels.build_model(pre_ocp)
+    CTModels.time_dependence!(pre_ocp; autonomous=false)
+    ocp = CTModels.build(pre_ocp)
 
     return ((
         ocp=ocp, obj=1.01257, name="goddard_all_constraints", init=(state=[1.01, 0.05, 0.8],),

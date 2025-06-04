@@ -10,12 +10,12 @@ using Printf
 
 # load examples library
 problem_path = pwd() * "/test/problems"
-for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true))
+for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
 # coloring test function
-function coloring_test(ocp; order = NaturalOrder(), grid_size = CTDirect.__grid_size(), disc_method = CTDirect.__disc_method())
+function coloring_test(ocp; order=NaturalOrder(), grid_size=CTDirect.__grid_size(), disc_method=CTDirect.__disc_method())
 
     # build DOCP
     time_grid = CTDirect.__time_grid()
@@ -43,7 +43,7 @@ function coloring_test(ocp; order = NaturalOrder(), grid_size = CTDirect.__grid_
 end
 
 # batch testing
-function batch_coloring_test(; order = NaturalOrder(), target_list = :default, verbose = 1, grid_size = CTDirect.__grid_size(), disc_method = CTDirect.__disc_method())
+function batch_coloring_test(; order=NaturalOrder(), target_list=:default, verbose=1, grid_size=CTDirect.__grid_size(), disc_method=CTDirect.__disc_method())
 
     if target_list == :default
         target_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
