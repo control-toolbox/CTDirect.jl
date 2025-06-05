@@ -15,7 +15,6 @@ function available_methods()
     return algorithms
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -31,7 +30,9 @@ Solve an OCP with a direct method
 * `disc_method`: discretization method ([`:trapeze`], `:midpoint`, `gauss_legendre_2`)
 * `time_grid`: explicit time grid (can be non uniform)
 * `init`: info for the starting guess (values or existing solution)
+* `nlp_model`: modeller used for optimisation ([`:adnlp`], `:exa`)
 * `adnlp_backend`: backend for automatic differentiation in ADNLPModels ([`:optimized`], `:manual`, `:default`)
+* `exa_backend`: backend for ExaModels ([`nothing`])
 
 All further keywords are passed to the inner call of `solve_docp`
 """
@@ -43,7 +44,9 @@ function solve(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
+    nlp_model=__nlp_model(),
     adnlp_backend=__adnlp_backend(),
+    exa_backend=__exa_backend(),
     kwargs...,
 )
 
@@ -67,8 +70,10 @@ function solve(
         grid_size=grid_size,
         time_grid=time_grid,
         disc_method=disc_method,
+        nlp_model=nlp_model,
         adnlp_backend=adnlp_backend,
-        solver_backend=solver_backend
+        solver_backend=solver_backend,
+        exa_backend=exa_backend
     )
 
     # solve DOCP
@@ -93,8 +98,10 @@ Discretize an optimal control problem into a nonlinear optimization problem (ie 
 * `disc_method`: discretization method ([`:trapeze`], `:euler`, `:euler_implicit`, `:midpoint`, `gauss_legendre_2`, `gauss_legendre_3`)
 * `time_grid`: explicit time grid (can be non uniform)
 * `init`: info for the starting guess (values as named tuple or existing solution)
+* `nlp_model`: modeller used for optimisation ([`:adnlp`], `:exa`)
 * `adnlp_backend`: backend for automatic differentiation in ADNLPModels ([`:optimized`], `:manual`, `:default`)
-* show_time: (:true, [:false]) show timing details from ADNLPModels
+* `exa_backend`: tries to solve on GPU whenever possible ([`false`], `true`)
+* `show_time`: (:true, [:false]) show timing details from ADNLPModels
 
 """
 function direct_transcription(
@@ -104,7 +111,9 @@ function direct_transcription(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
+    nlp_model=__nlp_model(),
     adnlp_backend=__adnlp_backend(),
+    exa_backend=__exa_backend(),
     solver_backend=nothing,
     show_time=false,
     matrix_free=false
@@ -126,81 +135,89 @@ function direct_transcription(
     )
     x0 = DOCP_initial_guess(docp, docp_init)
 
-    # redeclare objective and constraints functions
-    f = x -> DOCP_objective(x, docp)
-    c! = (c, x) -> DOCP_constraints!(c, x, docp)
+    if nlp_model == :exa
 
-    # call NLP problem constructor
-    if adnlp_backend == :manual
+        !isnothing(time_grid) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
+        build_exa = CTModels.get_build_exa(ocp)
+        nlp = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method) # debug: add init (ignored, here)
 
-        # build sparsity pattern
-        J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
-        H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
+    else # adnlp (default)
 
-        # build NLP with given patterns; disable unused backends according to solver info
-        if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
-            nlp = ADNLPModel!(
-                f,
-                x0,
-                docp.bounds.var_l, docp.bounds.var_u,
-                c!,
-                docp.bounds.con_l, docp.bounds.con_u,
-                gradient_backend=ADNLPModels.ReverseDiffADGradient,
-                jacobian_backend=J_backend,
-                hessian_backend=H_backend,
-                hprod_backend=ADNLPModels.EmptyADbackend,
-                jtprod_backend=ADNLPModels.EmptyADbackend,
-                jprod_backend=ADNLPModels.EmptyADbackend,
-                ghjvprod_backend=ADNLPModels.EmptyADbackend,
-                show_time=show_time,
-                #excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend]
-            )
+        # redeclare objective and constraints functions
+        f = x -> DOCP_objective(x, docp)
+        c! = (c, x) -> DOCP_constraints!(c, x, docp)
+    
+        # call NLP problem constructor
+        if adnlp_backend == :manual
+    
+            # build sparsity pattern
+            J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
+            H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
+    
+            # build NLP with given patterns; disable unused backends according to solver info
+            if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
+                nlp = ADNLPModel!(
+                    f,
+                    x0,
+                    docp.bounds.var_l, docp.bounds.var_u,
+                    c!,
+                    docp.bounds.con_l, docp.bounds.con_u,
+                    gradient_backend=ADNLPModels.ReverseDiffADGradient,
+                    jacobian_backend=J_backend,
+                    hessian_backend=H_backend,
+                    hprod_backend=ADNLPModels.EmptyADbackend,
+                    jtprod_backend=ADNLPModels.EmptyADbackend,
+                    jprod_backend=ADNLPModels.EmptyADbackend,
+                    ghjvprod_backend=ADNLPModels.EmptyADbackend,
+                    show_time=show_time,
+                    #excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend]
+                )
+            else
+                nlp = ADNLPModel!(
+                    f,
+                    x0,
+                    docp.bounds.var_l, docp.bounds.var_u,
+                    c!,
+                    docp.bounds.con_l, docp.bounds.con_u,
+                    gradient_backend=ADNLPModels.ReverseDiffADGradient,
+                    jacobian_backend=J_backend,
+                    hessian_backend=H_backend,
+                    show_time=show_time,
+                )
+            end
         else
-            nlp = ADNLPModel!(
-                f,
-                x0,
-                docp.bounds.var_l, docp.bounds.var_u,
-                c!,
-                docp.bounds.con_l, docp.bounds.con_u,
-                gradient_backend=ADNLPModels.ReverseDiffADGradient,
-                jacobian_backend=J_backend,
-                hessian_backend=H_backend,
-                show_time=show_time,
-            )
-        end
-    else
-        # build NLP; disable unused backends according to solver info
-        if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
-            nlp = ADNLPModel!(
-                f,
-                x0,
-                docp.bounds.var_l, docp.bounds.var_u,
-                c!,
-                docp.bounds.con_l, docp.bounds.con_u,
-                backend=adnlp_backend,
-                hprod_backend=ADNLPModels.EmptyADbackend,
-                jtprod_backend=ADNLPModels.EmptyADbackend,
-                jprod_backend=ADNLPModels.EmptyADbackend,
-                ghjvprod_backend=ADNLPModels.EmptyADbackend,
-                show_time=show_time,
-            )
-        else
-            nlp = ADNLPModel!(
-                f,
-                x0,
-                docp.bounds.var_l, docp.bounds.var_u,
-                c!,
-                docp.bounds.con_l, docp.bounds.con_u,
-                backend=adnlp_backend,
-                show_time=show_time,
-                matrix_free=matrix_free
-            )
+            # build NLP; disable unused backends according to solver info
+            if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
+                nlp = ADNLPModel!(
+                    f,
+                    x0,
+                    docp.bounds.var_l, docp.bounds.var_u,
+                    c!,
+                    docp.bounds.con_l, docp.bounds.con_u,
+                    backend=adnlp_backend,
+                    hprod_backend=ADNLPModels.EmptyADbackend,
+                    jtprod_backend=ADNLPModels.EmptyADbackend,
+                    jprod_backend=ADNLPModels.EmptyADbackend,
+                    ghjvprod_backend=ADNLPModels.EmptyADbackend,
+                    show_time=show_time,
+                )
+            else
+                nlp = ADNLPModel!(
+                    f,
+                    x0,
+                    docp.bounds.var_l, docp.bounds.var_u,
+                    c!,
+                    docp.bounds.con_l, docp.bounds.con_u,
+                    backend=adnlp_backend,
+                    show_time=show_time,
+                    matrix_free=matrix_free
+                )
+            end
         end
     end
 
     return docp, nlp
 end
-
 
 """
 $(TYPEDSIGNATURES)
