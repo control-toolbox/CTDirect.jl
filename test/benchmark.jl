@@ -53,7 +53,7 @@ function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs..
 end
 
 
-function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_solver=:ipopt, linear_solver=nothing, target_list=:default, kwargs...)
+function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_solver=:ipopt, linear_solver=nothing, target_list=:easy, kwargs...)
 
     #######################################################
     # set (non) linear solvers and backends
@@ -71,14 +71,11 @@ function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_sol
 
     # load problems for benchmark
     # Note that problems may vary significantly in convergence times...  
-    if target_list == :default
+    if target_list == :easy
         target_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
-    elseif target_list == :quick
-        target_list = ["beam", "double_integrator_mintf", "fuller", "jackson", "simple_integrator", "vanderpol"]
-    elseif target_list == :all
-        target_list = ["algal_bacterial", "beam", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "insurance", "jackson", "parametric", "robbins", "simple_integrator", "swimmer", "vanderpol"]
     elseif target_list == :hard
-        target_list = ["algal_bacterial", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "insurance", "swimmer"]
+        target_list = ["algal_bacterial", "bioreactor_Ndays", "bolza_freetf", "glider", "insurance", "moonlander", "quadrotor", "space_shuttle", "swimmer", "truck_trailer"]
+
     end
     verbose > 1 && println("\nProblem list: ", target_list)
     problem_list = []
