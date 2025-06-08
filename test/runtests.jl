@@ -3,15 +3,18 @@ using Test
 
 # OptimalControl
 using CTBase
-using CTParser: CTParser, @def, prefix!, e_prefix
+using CTParser: CTParser, @def, prefix!, e_prefix!
 using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
 using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
 prefix!(:CTModels) # tell CTParser def macro to use CTModels instead of OptimalControl
-e_prefix!(:CTBase) # tell CTParser def macro to use CTModels instead of OptimalControl
+e_prefix!(:CTBase) # tell CTParser def macro to use CTBase instead of OptimalControl
 
 # NLP solvers
-using NLPModelsIpopt
 import ExaModels
+using NLPModelsIpopt
+using MadNLP
+using MadNLPGPU
+using CUDA
 using MadNLP
 
 # misc

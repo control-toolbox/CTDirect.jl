@@ -1,12 +1,20 @@
 println("testing: OCP definitions (:exa)")
 
-# beam
-if !isdefined(Main, :beam)
-    include("../problems/beam.jl")
+
+if CUDA.functional()
+    exa_backend = CUDA.functional() ? CUDABackend() : nothing
+else
+    println("********** CUDA not available")
+    exa_backend = nothing 
 end
-@testset verbose = true showtiming = true ":beam" begin
-    prob = beam() # debug: must be coordinate wise
-    sol = solve(prob.ocp; nlp_model=:exa) #, display=false)
+
+# beam
+if !isdefined(Main, :beam2)
+    include("../problems/beam2.jl")
+end
+@testset verbose = true showtiming = true ":beam2" begin
+    prob = beam2()
+    sol = solve(prob.ocp, :madnlp; nlp_model = :exa, disc_method = :euler, exa_backend = exa_backend) #, display=false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
