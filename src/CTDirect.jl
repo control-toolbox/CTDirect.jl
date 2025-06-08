@@ -1,7 +1,6 @@
 module CTDirect
 
 import CTModels
-
 using ADNLPModels
 import ExaModels
 

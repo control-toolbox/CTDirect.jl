@@ -1,9 +1,9 @@
-# CTDirect API
+# Common
 
 ## Index
 
 ```@index
-Pages   = ["api.md"]
+Pages   = ["common.md"]
 Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 ```
@@ -11,7 +11,7 @@ Order = [:module, :constant, :type, :function, :macro]
 ## Documentation
 
 ```@autodocs
+Pages = ["common.jl"]
 Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
-Private = false
 ```
