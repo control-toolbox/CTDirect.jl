@@ -3,6 +3,7 @@ module CTDirect
 import CTModels
 
 using ADNLPModels
+import ExaModels
 
 using DocStringExtensions
 using SparseArrays

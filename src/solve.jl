@@ -137,8 +137,8 @@ function direct_transcription(
 
     if nlp_model == :exa
 
-        !isnothing(time_grid) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
-        build_exa = CTModels.get_build_exa(ocp)
+        # debug: (time_grid != __time_grid()) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
+        build_exa = CTModels.get_build_examodel(ocp)
         nlp = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method) # debug: add init (ignored, here)
 
     else # adnlp (default)
