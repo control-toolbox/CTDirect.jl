@@ -62,6 +62,7 @@ function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_sol
         linear_solver = "mumps"
     end
     # linear solver for madnlp: default umfpack; MumpsSolver
+    # +++ GPU case ?
     if nlp_solver == :madnlp && isnothing(linear_solver)
         linear_solver = "UmfpackSolver"
     end

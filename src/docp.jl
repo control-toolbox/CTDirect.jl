@@ -293,7 +293,7 @@ function DOCP_objective(xu, docp::DOCP)
     # lagrange cost
     if !docp.flags.lagrange
         obj_lagrange = 0.0
-    else if docp.flags.lagrange_to_mayer
+    elseif docp.flags.lagrange_to_mayer
         obj_lagrange = get_lagrange_state_at_time_step(xu, docp, docp.time.steps+1)
     else
         error("Lagrange cost without Mayer conversion is not supported in DOCP_Objective")

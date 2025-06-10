@@ -76,7 +76,7 @@ function solve(
         nlp_model=nlp_model, # -> description instead
         adnlp_backend=adnlp_backend, # -> kwargs
         solver_backend=solver_backend, # -> description
-        #exa_backend=exa_backend # -> move down
+        exa_backend=exa_backend # -> move down
     )
 
     # solve DOCP
@@ -116,15 +116,19 @@ function direct_transcription(
     init=__ocp_init(),
     nlp_model=__nlp_model(),
     adnlp_backend=__adnlp_backend(),
-    #exa_backend=__exa_backend(),
+    exa_backend=__exa_backend(),
     solver_backend=nothing,
     show_time=false,
     matrix_free=false
 )
 
     # build DOCP
-     +++ for examodel disable the lagrange to mayer conversion ?
-    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
+    # +++ for examodel disable the lagrange to mayer conversion ?
+    if nlp_model == :exa
+        docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, lagrange_to_mayer=false)
+    else
+        docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
+    end
 
     # set bounds in DOCP
     variables_bounds!(docp)
@@ -143,7 +147,6 @@ function direct_transcription(
     # +++ add here sub function with dispatch on nlp_backend (exa/adnlp) ?
     if nlp_model == :exa
 
-        exa_backend = __exa_backend()
         # debug: (time_grid != __time_grid()) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
         build_exa = CTModels.get_build_examodel(ocp)
         nlp = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method) # debug: add init (ignored, here)

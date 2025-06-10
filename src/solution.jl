@@ -17,23 +17,17 @@ function build_OCP_solution(docp, docp_solution)
     # primal variables X, U, v and box multipliers
     X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=docp_solution.multipliers_L, mult_UB=docp_solution.multipliers_U)
 
-    # recompute / check objective
-    objective_r = DOCP_objective(solution, docp)
+    # objective from solution
     if docp.flags.max
         objective = -docp_solution.objective
-        objective_r = -objective_r
     else
         objective = docp_solution.objective
     end
-    if isnothing(objective)
-        objective = objective_r
-    elseif abs((objective - objective_r) / objective) > 1e-2
-        println("WARNING: recomputed objective mismatch ", objective, objective_r)
-    end
 
-    # recompute constraints
-    constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraints!(constraints, solution, docp)
+    # recompute and check objective
+    #if abs((objective - objective_r) / objective) > 1e-2
+    #    println("WARNING: recomputed objective mismatch ", objective, objective_r)
+    #end
 
     # costate and constraints multipliers
     P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers)
@@ -101,15 +95,16 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
     # primal variables X, U, v and box multipliers
     X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=mult_LB, mult_UB=mult_UB)
 
-    # recompute objective
-    objective = DOCP_objective(solution, docp)
+    # recompute objective (NB lagrange without conversion not supported)
+    if docp.flags.lagrange_to_mayer
+        objective = DOCP_objective(solution, docp)
+    else
+        println("Warning: cannot recompute objective (lagrange to mayer disabled)")
+        objective = 0.0
+    end
     if docp.flags.max
         objective = -objective
     end
-
-    # recompute constraints
-    constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraints!(constraints, solution, docp)
 
     # costate and constraints multipliers
     P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, dual)
@@ -138,12 +133,12 @@ Recover OCP primal variables from DOCP solution
 """
 function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=nothing)
 
-    # + debug
+    #= + debug
     println("discretization", docp.discretization)
     println("steps", docp.time.steps)
     println("dim x", docp.dims.OCP_x, "/", docp.dims.NLP_x, "dim u", docp.dims.NLP_u)
     println("NLP unknown size", docp.dim_NLP_variables)
-    println("solution size", size(solution))
+    println("solution size", size(solution)) =#
 
     # state and control variables
     N = docp.time.steps
