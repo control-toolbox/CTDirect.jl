@@ -15,9 +15,17 @@ end
 if !isdefined(Main, :beam2)
     include("../problems/beam2.jl")
 end
-@testset verbose = true showtiming = true ":examodel :beam2" begin
+@testset verbose = true showtiming = true ":examodel :cpu :beam2" begin
     prob = beam2()
-    sol = solve(prob.ocp, :madnlp; nlp_model = :exa, disc_method = :euler, exa_backend = exa_backend)
-    #sol = solve(prob.ocp, :madnlp; nlp_model = :exa, disc_method = :euler) # debug: no exa_backend (copy from GPUarray issue...) #, display=false)
+    sol = solve(prob.ocp, :madnlp; nlp_model = :exa, disc_method = :euler, display=false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
+end
+if !isnothing(exa_backend) 
+@testset verbose = true showtiming = true ":examodel :GPU :beam2" begin
+    prob = beam2()
+    sol = solve(prob.ocp, :madnlp; nlp_model = :exa, disc_method = :euler, exa_backend = exa_backend, display=false)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end
+else
+    println("skip GPU test")
 end
