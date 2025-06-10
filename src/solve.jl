@@ -12,6 +12,9 @@ function available_methods()
     algorithms = CTBase.add(algorithms, (:adnlp, :ipopt))
     algorithms = CTBase.add(algorithms, (:adnlp, :madnlp))
     algorithms = CTBase.add(algorithms, (:adnlp, :knitro))
+    algorithms = CTBase.add(algorithms, (:exa, :ipopt))
+    algorithms = CTBase.add(algorithms, (:exa, :madnlp))
+    algorithms = CTBase.add(algorithms, (:exa, :knitro))
     return algorithms
 end
 
@@ -44,13 +47,13 @@ function solve(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
-    nlp_model=__nlp_model(),
-    adnlp_backend=__adnlp_backend(),
-    exa_backend=__exa_backend(),
+    nlp_model=__nlp_model(),         # -> description instead
+    adnlp_backend=__adnlp_backend(), # -> kwargs
+    exa_backend=__exa_backend(), # -> move down
     kwargs...,
 )
 
-    # get solver choice
+    # get solver choice (put below direct_transcription which als has the description for solver info)
     method = CTBase.complete(description; descriptions=available_methods())
     if :ipopt ∈ method
         solver_backend = CTDirect.IpoptBackend()
@@ -70,10 +73,10 @@ function solve(
         grid_size=grid_size,
         time_grid=time_grid,
         disc_method=disc_method,
-        nlp_model=nlp_model,
-        adnlp_backend=adnlp_backend,
-        solver_backend=solver_backend,
-        exa_backend=exa_backend
+        nlp_model=nlp_model, # -> description instead
+        adnlp_backend=adnlp_backend, # -> kwargs
+        solver_backend=solver_backend, # -> description
+        #exa_backend=exa_backend # -> move down
     )
 
     # solve DOCP
@@ -113,13 +116,14 @@ function direct_transcription(
     init=__ocp_init(),
     nlp_model=__nlp_model(),
     adnlp_backend=__adnlp_backend(),
-    exa_backend=__exa_backend(),
+    #exa_backend=__exa_backend(),
     solver_backend=nothing,
     show_time=false,
     matrix_free=false
 )
 
     # build DOCP
+     +++ for examodel disable the lagrange to mayer conversion ?
     docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
 
     # set bounds in DOCP
@@ -135,8 +139,11 @@ function direct_transcription(
     )
     x0 = DOCP_initial_guess(docp, docp_init)
 
+    # build nlp
+    # +++ add here sub function with dispatch on nlp_backend (exa/adnlp) ?
     if nlp_model == :exa
 
+        exa_backend = __exa_backend()
         # debug: (time_grid != __time_grid()) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
         build_exa = CTModels.get_build_examodel(ocp)
         nlp = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method) # debug: add init (ignored, here)

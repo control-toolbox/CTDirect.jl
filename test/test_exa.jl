@@ -1,3 +1,7 @@
+import ExaModels
+using MadNLPGPU
+using CUDA
+
 println("testing: OCP definitions (:exa)")
 
 

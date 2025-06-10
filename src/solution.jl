@@ -138,6 +138,13 @@ Recover OCP primal variables from DOCP solution
 """
 function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=nothing)
 
+    # + debug
+    println("discretization", docp.discretization)
+    println("steps", docp.time.steps)
+    println("dim x", docp.dims.OCP_x, "/", docp.dims.NLP_x, "dim u", docp.dims.NLP_u)
+    println("NLP unknown size", docp.dim_NLP_variables)
+    println("solution size", size(solution))
+
     # state and control variables
     N = docp.time.steps
     X = zeros(N + 1, docp.dims.OCP_x)
