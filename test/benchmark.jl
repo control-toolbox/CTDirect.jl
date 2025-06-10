@@ -53,22 +53,7 @@ function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs..
 end
 
 
-function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_solver=:ipopt, linear_solver=nothing, target_list=:default, kwargs...)
-
-    #######################################################
-    # set (non) linear solvers and backends
-    # linear solver for ipopt: default mumps; spral, ma27, ma57, ma77, ma86, ma97
-    if nlp_solver == :ipopt && isnothing(linear_solver)
-        linear_solver = "mumps"
-    end
-    # linear solver for madnlp: default umfpack; MumpsSolver
-    # +++ GPU case ?
-    if nlp_solver == :madnlp && isnothing(linear_solver)
-        linear_solver = "UmfpackSolver"
-    end
-    verbose > 1 && @printf("Profile: NLP Solver %s with linear solver %s\n", nlp_solver, linear_solver)
-    # blas backend (cf using MKL above, should be option...)
-    verbose > 1 && @printf("Blas config: %s\n", LinearAlgebra.BLAS.lbt_get_config())
+function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_solver=:ipopt, target_list=:default, kwargs...)
 
     # load problems for benchmark
     # Note that problems may vary significantly in convergence times...  
