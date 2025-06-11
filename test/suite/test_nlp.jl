@@ -30,9 +30,9 @@ end
 
 # DOCP solving
 @testset verbose = true showtiming = true ":solve_docp" begin
-    docp, nlp = direct_transcription(ocp)
+    docp = direct_transcription(ocp)
     solver_backend = CTDirect.IpoptBackend()
-    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display=false)
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp(docp), display=false)
     sol = CTDirect.build_OCP_solution(docp, dsol)
     @test objective(sol) ≈ obj rtol = 1e-2
     sol = CTDirect.build_OCP_solution(docp, primal=dsol.solution)
@@ -45,9 +45,9 @@ end
 
 
 @testset verbose = true showtiming = true ":solve_docp :madnlp :gl2" begin
-    docp, nlp = direct_transcription(ocp, disc_method=:gauss_legendre_2)
+    docp = direct_transcription(ocp, disc_method=:gauss_legendre_2)
     solver_backend = CTDirect.MadNLPBackend()
-    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display=false)
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp(docp), display=false)
     sol = CTDirect.build_OCP_solution(docp, dsol)
     @test objective(sol) ≈ obj rtol = 1e-2
     sol = CTDirect.build_OCP_solution(docp, primal=dsol.solution)
@@ -88,7 +88,7 @@ end
 prob = double_integrator_mintf()
 ocp = prob.ocp
 sol0 = solve(ocp, display=false)
-docp, nlp = direct_transcription(ocp)
+docp = direct_transcription(ocp)
 solver_backend = CTDirect.IpoptBackend()
 v_const = 0.15
 t_vec = [0, 0.1, v_const]
@@ -96,12 +96,8 @@ x_vec = [[0, 0], [1, 2], [5, -1]]
 u_func = t -> (cos(10 * t) + 1) * 0.5
 # mixed init
 @testset verbose = true showtiming = true ":docp_mixed_init" begin
-    set_initial_guess(
-        docp,
-        nlp,
-        (time=t_vec, state=x_vec, control=u_func, variable=v_const),
-    )
-    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display=false, max_iter=maxiter)
+    set_initial_guess(docp, (time=t_vec, state=x_vec, control=u_func, variable=v_const),)
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp(docp), display=false, max_iter=maxiter)
     sol = CTDirect.build_OCP_solution(docp, dsol)
     T = time_grid(sol)
     @test isapprox(state(sol).(t_vec), x_vec, rtol=1e-2)
@@ -110,8 +106,8 @@ u_func = t -> (cos(10 * t) + 1) * 0.5
 end
 # warm start
 @testset verbose = true showtiming = true ":docp_warm_start" begin
-    set_initial_guess(docp, nlp, sol0)
-    dsol = CTDirect.solve_docp(solver_backend, docp, nlp, display=false, max_iter=maxiter)
+    set_initial_guess(docp, sol0)
+    dsol = CTDirect.solve_docp(solver_backend, docp, nlp(docp), display=false, max_iter=maxiter)
     sol = CTDirect.build_OCP_solution(docp, dsol)
     T = time_grid(sol)
     @test isapprox(state(sol).(T), state(sol0).(T), rtol=1e-2)
