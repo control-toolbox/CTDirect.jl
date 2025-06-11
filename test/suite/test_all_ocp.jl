@@ -30,6 +30,16 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
+# glider
+if !isdefined(Main, :glider)
+    include("../problems/glider.jl")
+end
+@testset verbose = true showtiming = true ":glider" begin
+    prob = glider()
+    sol = solve(prob.ocp, display=false, init=prob.init)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end
+
 # goddard max rf
 if !isdefined(Main, :goddard)
     include("../problems/goddard.jl")
@@ -50,6 +60,26 @@ end
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
+# moonlander
+if !isdefined(Main, :moonlander)
+    include("../problems/moonlander.jl")
+end
+@testset verbose = true showtiming = true ":moonlander" begin
+    prob = moonlander()
+    sol = solve(prob.ocp, display=false, disc_method=:midpoint)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end
+
+#= quadrotor
+if !isdefined(Main, :quadrotor)
+    include("../problems/quadrotor.jl")
+end
+@testset verbose = true showtiming = true ":quadrotor" begin
+    prob = moonlander()
+    sol = solve(prob.ocp, display=false, disc_method=:midpoint, adnlp_backend=:manual)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end=#
+
 # robbins
 if !isdefined(Main, :robbins)
     include("../problems/robbins.jl")
@@ -69,6 +99,10 @@ end
     sol = solve(prob.ocp, display=false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
+
+# space shuttle
+
+# truck trailer
 
 # vanderpol
 if !isdefined(Main, :vanderpol)

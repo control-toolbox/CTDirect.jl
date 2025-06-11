@@ -61,7 +61,7 @@ function bioreactor_1day()
 end
 
 # N days (non periodic)
-function bioreactor_Ndays()
+function bioreactor_Ndays(N=30)
     @def bioreactor_N begin
         # constants
         beta = 1
@@ -97,9 +97,15 @@ function bioreactor_Ndays()
         ∫(mu2 * b(t) / (beta + c)) → max
     end
 
+    if N == 30
+        objective = 19.0745
+    else
+        objective = nothing
+    end
+
     return ((
         ocp=bioreactor_N,
-        obj=19.0745,
+        obj=objective,
         init=(state=[50, 50, 50],),
         name="bioreactor_Ndays",
     ))
