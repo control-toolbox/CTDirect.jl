@@ -66,7 +66,7 @@ function solve(
     end
 
     # build discretized OCP, including initial guess
-    docp, nlp = direct_transcription(
+    docp = direct_transcription(
         ocp,
         description;
         init=init,
@@ -80,7 +80,7 @@ function solve(
     )
 
     # solve DOCP
-    docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp; display=display, kwargs...)
+    docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp(docp); display=display, kwargs...)
 
     # build and return OCP solution
     return build_OCP_solution(docp, docp_solution)
@@ -226,7 +226,9 @@ function direct_transcription(
         end
     end
 
-    return docp, nlp
+    docp.nlp = nlp
+
+    return docp
 end
 
 """
@@ -234,14 +236,15 @@ $(TYPEDSIGNATURES)
 
 Set initial guess in the DOCP
 """
-function set_initial_guess(docp::DOCP, nlp, init)
-    ocp = docp.ocp
+function set_initial_guess(docp::DOCP, init)
+    ocp = ocp(docp)
     docp_init = CTModels.Init(
         init;
         state_dim=CTModels.state_dimension(ocp),
         control_dim=CTModels.control_dimension(ocp),
         variable_dim=CTModels.variable_dimension(ocp),
     )
+    nlp = nlp(docp)
     nlp.meta.x0 .= DOCP_initial_guess(docp, docp_init)
 end
 

@@ -23,7 +23,7 @@ for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
-function bench_list(problem_list; verbose=1, nlp_solver, linear_solver, kwargs...)
+function bench_list(problem_list; verbose=1, nlp_solver, kwargs...)
 
     if verbose > 3
         display = true
@@ -76,7 +76,7 @@ function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_sol
     verbose > 1 && println("\nGrid size list: ", grid_size_list)
     t_list = []
     for grid_size in grid_size_list
-        t = bench_list(problem_list; grid_size=grid_size, verbose=verbose, nlp_solver=nlp_solver, linear_solver=linear_solver, kwargs...)
+        t = bench_list(problem_list; grid_size=grid_size, verbose=verbose, nlp_solver=nlp_solver, kwargs...)
         append!(t_list, t)
         @printf("Grid size %6d: time (s) = %6.1f\n", grid_size, t)
     end

@@ -98,7 +98,6 @@ struct DOCPbounds
 end
 
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -106,23 +105,27 @@ Struct for discretized optimal control problem DOCP
 
 Contains:
 - a copy of the original OCP
+- the discretized DOCP as a NLP problem
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T<:Discretization,O<:CTModels.Model}
+mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
 
     # discretization scheme
-    discretization::T
+    discretization::D
 
-    ## OCP
+    # OCP
     ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
 
-    # OCP boolean flags
+    # NLP
+    nlp
+
+    # boolean flags
     flags::DOCPFlags
 
-    # OCP dimensions
+    # dimensions
     dims::DOCPdims
 
-    # NLP time grid
+    # time grid
     time::DOCPtime
 
     # lower and upper bounds for variables and constraints
@@ -176,6 +179,7 @@ struct DOCP{T<:Discretization,O<:CTModels.Model}
         docp = new{typeof(discretization),typeof(ocp)}(
             discretization,
             ocp,
+            nothing,
             flags,
             dims,
             time,
@@ -187,6 +191,18 @@ struct DOCP{T<:Discretization,O<:CTModels.Model}
         return docp
     end
 end
+
+# getters
+discretization(docp::DOCP) = docp.discretization
+ocp(docp::DOCP) = docp.ocp
+nlp(docp::DOCP) = docp.nlp
+flags(docp::DOCP) = docp.flags # dictionary / named tuple instead ?
+dims(docp::DOCP) = docp.dims # dict / named tuple ?
+time(docp::DOCP) = docp.time #idem
+bounds(docp::DOCP) = docp.bounds # idem
+dim_NLP_variables(docp::DOCP) = docp.dim_NLP_variables
+dim_NLP_constraints(docp::DOCP) = docp.dim_NLP_constraints
+
 
 """
 $(TYPEDSIGNATURES)
