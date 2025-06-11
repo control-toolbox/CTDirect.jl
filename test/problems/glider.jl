@@ -3,6 +3,7 @@ Hang Glider Problem:
     We want to find the optimal trajectory of a hang glider.
     The objective is to maximize the final horizontal position of the glider while in the presence of a thermal updraft.
     The problem is formulated as an OptimalControl model.
+    Original formulation from MadNLP/COPSBenchmark
 """
 function glider()
     # parameters
@@ -84,5 +85,5 @@ function glider()
     uinit = cL_max / 2.0
     init = (state=xinit, control=uinit, variable=tf)
 
-    return ((ocp=ocp, obj=1.248e3, name="glider", init=init))
+    return ((ocp=ocp, obj=1.25e3, name="glider", init=init))
 end

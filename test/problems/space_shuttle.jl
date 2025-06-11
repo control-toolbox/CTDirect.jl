@@ -90,11 +90,11 @@ function space_shuttle()
         β = u₂
 
         ## constraints
-        0 ≤ tf ≤ 3000
+        500 ≤ tf ≤ 10000
         # state constraints
-        0 ≤ scaled_h(t) ≤ 1000, (scaled_h_con)
+        h_t*0.9 ≤ scaled_h(t) ≤ h_s*1.1, (scaled_h_con)
         deg2rad(-89) ≤ θ(t) ≤ deg2rad(89), (θ_con)
-        1e-4 ≤ scaled_v(t) ≤ 1000, (scaled_v_con)
+        v_t*0.9 ≤ scaled_v(t) ≤ v_s*1.1, (scaled_v_con)
         deg2rad(-89) ≤ γ(t) ≤ deg2rad(89), (γ_con)
         # control constraints
         deg2rad(-89) ≤ β(t) ≤ deg2rad(1), (β_con)
@@ -120,7 +120,7 @@ function space_shuttle()
     end
 
     # initial guess (NB. t0 = 0)
-    tf_init = 2000
+    tf_init = 1000
     x_init = t -> [ h_s + t / tf_init * (h_t - h_s) ,
     ϕ_s,
     θ_s,
@@ -129,5 +129,5 @@ function space_shuttle()
     ψ_s]
     init = (state=x_init, control=[α_s, β_s], variable=[tf_init])
 
-    return ((ocp=ocp, obj=nothing, name="space_shuttle", init=init))
+    return ((ocp=ocp, obj=deg2rad(34.18), name="space_shuttle", init=init))
 end
