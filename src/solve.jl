@@ -93,6 +93,7 @@ function solve(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
+    adnlp_backend=__adnlp_backend(),
     kwargs...,
 )
 
@@ -144,6 +145,7 @@ function direct_transcription(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
+    adnlp_backend=__adnlp_backend(),
     kwargs...,
 )
 
@@ -174,6 +176,7 @@ function direct_transcription(
     docp, 
     x0; 
     nlp_solver=nlp_solver, 
+    adnlp_backend=adnlp_backend, # for adnlpmodel
     grid_size=grid_size, disc_method=disc_method, # for examodel
     kwargs...)
 
