@@ -15,8 +15,7 @@ Solve a discretized optimal control problem DOCP
 """
 function CTDirect.solve_docp(
     solver_backend::CTDirect.MadNLPBackend,
-    docp::CTDirect.DOCP,
-    nlp;
+    docp::CTDirect.DOCP;
     display::Bool=CTDirect.__display(),
     max_iter::Integer=CTDirect.__max_iterations(),
     tol::Real=CTDirect.__tolerance(),
@@ -28,6 +27,9 @@ function CTDirect.solve_docp(
 
     # disable output if needed
     print_level = display ? MadNLP.INFO : MadNLP.ERROR
+
+    # retrieve NLP
+    nlp = CTDirect.nlp(docp)
 
     # preallocate solver (NB. need to pass printlevel here)
     solver = MadNLPSolver(nlp, print_level=print_level, tol=tol, max_iter=max_iter)

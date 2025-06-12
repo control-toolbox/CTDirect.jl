@@ -18,6 +18,52 @@ function available_methods()
     return algorithms
 end
 
+# NLP solver extensions (see ext/CTSolveExt***)
+abstract type AbstractNLPSolverBackend end
+struct IpoptBackend <: AbstractNLPSolverBackend end
+struct MadNLPBackend <: AbstractNLPSolverBackend end
+struct KnitroBackend <: AbstractNLPSolverBackend end
+
+weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP, KnitroBackend => :NLPModelsKnitro)
+
+function solve_docp(nlp_solver::T, args...; kwargs...) where {T<:AbstractNLPSolverBackend}
+    throw(CTBase.ExtensionError(weakdeps[T]))
+end
+
+# NLP model (future) extensions
+abstract type AbstractNLPModelBackend end
+struct ADNLPBackend <: AbstractNLPModelBackend end
+struct ExaBackend <: AbstractNLPModelBackend end
+
+function parse_description(description)
+
+    # default: Ipopt, ADNLPModels
+    method = CTBase.complete(description; descriptions=available_methods())
+
+    # get NLP solver choice
+    if :ipopt ∈ method
+        nlp_solver = CTDirect.IpoptBackend()
+    elseif :madnlp ∈ method
+        nlp_solver = CTDirect.MadNLPBackend()
+    elseif :knitro ∈ method
+        nlp_solver = CTDirect.KnitroBackend()
+    else
+        error("no known solver (:ipopt, :madnlp, :knitro) in method", method)
+    end
+
+    # get NLP model choice
+    if :adnlp ∈ method
+        nlp_model = CTDirect.ADNLPBackend()
+    elseif :exa ∈ method
+        nlp_model = CTDirect.ExaBackend()
+    else
+        error("no known model (:adnlp, :exa) in method", method)
+    end 
+
+    return nlp_solver, nlp_model
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -47,40 +93,24 @@ function solve(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
-    nlp_model=__nlp_model(),         # -> description instead
-    adnlp_backend=__adnlp_backend(), # -> kwargs
-    exa_backend=__exa_backend(), # -> move down
     kwargs...,
 )
 
-    # get solver choice (put below direct_transcription which als has the description for solver info)
-    method = CTBase.complete(description; descriptions=available_methods())
-    if :ipopt ∈ method
-        solver_backend = CTDirect.IpoptBackend()
-    elseif :madnlp ∈ method
-        solver_backend = CTDirect.MadNLPBackend()
-    elseif :knitro ∈ method
-        solver_backend = CTDirect.KnitroBackend()
-    else
-        error("no known solver in method", method)
-    end
-
-    # build discretized OCP, including initial guess
+    # build discretized optimal control problem (DOCP)
+    # NB. this includes the initial guess for the resulting NLP
     docp = direct_transcription(
         ocp,
-        description;
+        description...;
         init=init,
         grid_size=grid_size,
         time_grid=time_grid,
         disc_method=disc_method,
-        nlp_model=nlp_model, # -> description instead
-        adnlp_backend=adnlp_backend, # -> kwargs
-        solver_backend=solver_backend, # -> description
-        exa_backend=exa_backend # -> move down
+        kwargs...,
     )
 
-    # solve DOCP
-    docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp(docp); display=display, kwargs...)
+    # get NLP solver choice and solve DOCP
+    nlp_solver, nlp_model = parse_description(description)
+    docp_solution = CTDirect.solve_docp(nlp_solver, docp; display=display, kwargs...)
 
     # build and return OCP solution
     return build_OCP_solution(docp, docp_solution)
@@ -114,17 +144,13 @@ function direct_transcription(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
-    nlp_model=__nlp_model(),
-    adnlp_backend=__adnlp_backend(),
-    exa_backend=__exa_backend(),
-    solver_backend=nothing,
-    show_time=false,
-    matrix_free=false
+    kwargs...,
 )
 
+    nlp_solver, nlp_model = parse_description(description)
+
     # build DOCP
-    # +++ for examodel disable the lagrange to mayer conversion ?
-    if nlp_model == :exa
+    if nlp_model isa ExaBackend
         docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, lagrange_to_mayer=false)
     else
         docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
@@ -144,92 +170,126 @@ function direct_transcription(
     x0 = DOCP_initial_guess(docp, docp_init)
 
     # build nlp
-    # +++ add here sub function with dispatch on nlp_backend (exa/adnlp) ?
-    if nlp_model == :exa
-
-        # debug: (time_grid != __time_grid()) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
-        build_exa = CTModels.get_build_examodel(ocp)
-        nlp = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method) # debug: add init (ignored, here)
-
-    else # adnlp (default)
-
-        # redeclare objective and constraints functions
-        f = x -> DOCP_objective(x, docp)
-        c! = (c, x) -> DOCP_constraints!(c, x, docp)
-    
-        # call NLP problem constructor
-        if adnlp_backend == :manual
-    
-            # build sparsity pattern
-            J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
-            H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
-    
-            # build NLP with given patterns; disable unused backends according to solver info
-            if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
-                nlp = ADNLPModel!(
-                    f,
-                    x0,
-                    docp.bounds.var_l, docp.bounds.var_u,
-                    c!,
-                    docp.bounds.con_l, docp.bounds.con_u,
-                    gradient_backend=ADNLPModels.ReverseDiffADGradient,
-                    jacobian_backend=J_backend,
-                    hessian_backend=H_backend,
-                    hprod_backend=ADNLPModels.EmptyADbackend,
-                    jtprod_backend=ADNLPModels.EmptyADbackend,
-                    jprod_backend=ADNLPModels.EmptyADbackend,
-                    ghjvprod_backend=ADNLPModels.EmptyADbackend,
-                    show_time=show_time,
-                    #excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend]
-                )
-            else
-                nlp = ADNLPModel!(
-                    f,
-                    x0,
-                    docp.bounds.var_l, docp.bounds.var_u,
-                    c!,
-                    docp.bounds.con_l, docp.bounds.con_u,
-                    gradient_backend=ADNLPModels.ReverseDiffADGradient,
-                    jacobian_backend=J_backend,
-                    hessian_backend=H_backend,
-                    show_time=show_time,
-                )
-            end
-        else
-            # build NLP; disable unused backends according to solver info
-            if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
-                nlp = ADNLPModel!(
-                    f,
-                    x0,
-                    docp.bounds.var_l, docp.bounds.var_u,
-                    c!,
-                    docp.bounds.con_l, docp.bounds.con_u,
-                    backend=adnlp_backend,
-                    hprod_backend=ADNLPModels.EmptyADbackend,
-                    jtprod_backend=ADNLPModels.EmptyADbackend,
-                    jprod_backend=ADNLPModels.EmptyADbackend,
-                    ghjvprod_backend=ADNLPModels.EmptyADbackend,
-                    show_time=show_time,
-                )
-            else
-                nlp = ADNLPModel!(
-                    f,
-                    x0,
-                    docp.bounds.var_l, docp.bounds.var_u,
-                    c!,
-                    docp.bounds.con_l, docp.bounds.con_u,
-                    backend=adnlp_backend,
-                    show_time=show_time,
-                    matrix_free=matrix_free
-                )
-            end
-        end
-    end
-
-    docp.nlp = nlp
+    docp.nlp = build_nlp(nlp_model, 
+    docp, 
+    x0; 
+    nlp_solver=nlp_solver, 
+    grid_size=grid_size, disc_method=disc_method, # for examodel
+    kwargs...)
 
     return docp
 end
+
+
+function build_nlp(
+    nlp_model::ADNLPBackend,
+    docp::CTDirect.DOCP,
+    x0;
+    adnlp_backend=__adnlp_backend(),
+    show_time=false, #+default
+    matrix_free=false, #+default
+    nlp_solver=nothing,
+    kwargs...
+)
+
+    # redeclare objective and constraints functions
+    f = x -> DOCP_objective(x, docp)
+    c! = (c, x) -> DOCP_constraints!(c, x, docp)
+
+    # call NLP problem constructor
+    if adnlp_backend == :manual
+
+        # build sparsity pattern
+        J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
+        H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
+
+        # build NLP with given patterns; disable unused backends according to solver info
+        if (nlp_solver isa IpoptBackend || nlp_solver isa MadNLPBackend || nlp_solver isa KnitroBackend)
+            nlp = ADNLPModel!(
+                f,
+                x0,
+                docp.bounds.var_l, docp.bounds.var_u,
+                c!,
+                docp.bounds.con_l, docp.bounds.con_u,
+                gradient_backend=ADNLPModels.ReverseDiffADGradient,
+                jacobian_backend=J_backend,
+                hessian_backend=H_backend,
+                hprod_backend=ADNLPModels.EmptyADbackend,
+                jtprod_backend=ADNLPModels.EmptyADbackend,
+                jprod_backend=ADNLPModels.EmptyADbackend,
+                ghjvprod_backend=ADNLPModels.EmptyADbackend,
+                show_time=show_time,
+                #excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend]
+            )
+        else
+            nlp = ADNLPModel!(
+                f,
+                x0,
+                docp.bounds.var_l, docp.bounds.var_u,
+                c!,
+                docp.bounds.con_l, docp.bounds.con_u,
+                gradient_backend=ADNLPModels.ReverseDiffADGradient,
+                jacobian_backend=J_backend,
+                hessian_backend=H_backend,
+                show_time=show_time,
+            )
+        end
+    else
+        # build NLP; disable unused backends according to solver info
+        if (nlp_solver isa IpoptBackend || nlp_solver isa MadNLPBackend || nlp_solver isa KnitroBackend)
+            nlp = ADNLPModel!(
+                f,
+                x0,
+                docp.bounds.var_l, docp.bounds.var_u,
+                c!,
+                docp.bounds.con_l, docp.bounds.con_u,
+                backend=adnlp_backend,
+                hprod_backend=ADNLPModels.EmptyADbackend,
+                jtprod_backend=ADNLPModels.EmptyADbackend,
+                jprod_backend=ADNLPModels.EmptyADbackend,
+                ghjvprod_backend=ADNLPModels.EmptyADbackend,
+                show_time=show_time,
+            )
+        else
+            # use manual settings including matrix_free
+            nlp = ADNLPModel!(
+                f,
+                x0,
+                docp.bounds.var_l, docp.bounds.var_u,
+                c!,
+                docp.bounds.con_l, docp.bounds.con_u,
+                backend=adnlp_backend,
+                show_time=show_time,
+                matrix_free=matrix_free
+            )
+        end
+    end
+
+    return nlp
+end
+
+
+function build_nlp(
+    nlp_model::CTDirect.ExaBackend,
+    docp::CTDirect.DOCP,
+    x0;
+    grid_size=__grid_size(),
+    disc_method=__disc_method(),
+    exa_backend=__exa_backend(),
+    kwargs...,
+)
+
+    # build nlp
+    # debug: (time_grid != __time_grid()) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
+    build_exa = CTModels.get_build_examodel(docp.ocp)
+    nlp = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method) 
+    
+    # set initial guess
+    nlp.meta.x0 = x0
+
+    return nlp
+end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -245,17 +305,4 @@ function set_initial_guess(docp::DOCP, init)
         variable_dim=CTModels.variable_dimension(ocp),
     )
     docp.nlp.meta.x0 .= DOCP_initial_guess(docp, docp_init)
-end
-
-
-# placeholders (see CTSolveExt*** extensions)
-abstract type AbstractSolverBackend end
-struct IpoptBackend <: AbstractSolverBackend end
-struct MadNLPBackend <: AbstractSolverBackend end
-struct KnitroBackend <: AbstractSolverBackend end
-
-weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP, KnitroBackend => :NLPModelsKnitro)
-
-function solve_docp(solver_backend::T, args...; kwargs...) where {T<:AbstractSolverBackend}
-    throw(CTBase.ExtensionError(weakdeps[T]))
 end

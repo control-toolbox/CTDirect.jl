@@ -15,11 +15,20 @@ end
 if !isdefined(Main, :beam2)
     include("../problems/beam2.jl")
 end
+# cpu case
 @testset verbose = true showtiming = true ":examodel :cpu :beam2" begin
     prob = beam2()
     sol = solve(prob.ocp, :madnlp; nlp_model = :exa, disc_method = :euler, display=false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
+@testset verbose = true showtiming = true ":examodel :cpu :beam2 :init" begin
+    prob = beam2()
+    sol = solve(prob.ocp, :madnlp; nlp_model = :exa, disc_method = :euler, display=false, init=(control=0.0,), max_iter = 0)
+    # default init would be 0.1
+    @test control(sol)(1) == 0e0
+end
+
+# gpu case
 if !isnothing(exa_backend) 
 @testset verbose = true showtiming = true ":examodel :GPU :beam2" begin
     prob = beam2()
