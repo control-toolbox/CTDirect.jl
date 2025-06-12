@@ -18,15 +18,15 @@ end
 # cpu case
 @testset verbose = true showtiming = true ":examodel :cpu :beam2" begin
     prob = beam2()
-    sol = solve(prob.ocp, :madnlp, :exa; disc_method = :euler, display=true)
+    sol = solve(prob.ocp, :madnlp, :exa; disc_method = :euler, display=false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
-#=@testset verbose = true showtiming = true ":examodel :cpu :beam2 :init" begin
+@testset verbose = true showtiming = true ":examodel :cpu :beam2 :init" begin
     prob = beam2()
-    sol = solve(prob.ocp, :madnlp, :exa; disc_method = :euler, display=true, init=(control=0.0,), max_iter = 0)
+    sol = solve(prob.ocp, :madnlp, :exa; disc_method = :euler, display=false, init=(control=0.0,), max_iter = 0)
     # default init would be 0.1
     @test control(sol)(1) == 0e0
-end=#
+end
 
 # gpu case
 if !isnothing(exa_backend) 
