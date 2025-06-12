@@ -288,7 +288,9 @@ function build_nlp(
     nlp = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method) 
     
     # set initial guess
-    nlp.meta.x0 = x0
+    println(size(nlp.meta.x0))
+    println(size(x0))
+    #nlp.meta.x0 .= x0
 
     return nlp
 end
