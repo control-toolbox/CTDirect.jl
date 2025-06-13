@@ -4,6 +4,7 @@ using CTModels: CTModels, objective, state, control, variable, costate, time_gri
 using CTParser: CTParser, @def, prefix!
 prefix!(:CTModels) # tell CTParser def macro to use CTModels instead of OptimalControl
 
+using ADNLPModels
 using NLPModelsIpopt
 
 using LinearAlgebra
