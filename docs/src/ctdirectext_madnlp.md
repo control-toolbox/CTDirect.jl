@@ -1,17 +1,17 @@
-# CTSolveExtKnitro
+# CTDirectExtMadNLP
 
 ## Index
 
 ```@index
-Pages   = ["ctsolveext_knitro.md"]
-Modules = [CTDirect, CTSolveExtKnitro]
+Pages   = ["ctdirectext_madnlp.md"]
+Modules = [CTDirect, CTDirectExtMadNLP]
 Order = [:module, :constant, :type, :function, :macro]
 ```
 
 ## Documentation
 
 ```@autodocs
-Pages = ["CTSolveExtKnitro.jl"]
-Modules = [CTSolveExtKnitro]
+Pages = ["CTDirectExtMadNLP.jl"]
+Modules = [CTDirectExtMadNLP]
 Order = [:module, :constant, :type, :function, :macro]
 ```

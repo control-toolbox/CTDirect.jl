@@ -1,4 +1,4 @@
-module CTSolveExtMadNLP
+module CTDirectExtMadNLP
 
 using CTDirect
 

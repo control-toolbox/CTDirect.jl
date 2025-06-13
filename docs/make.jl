@@ -6,13 +6,13 @@ using NLPModelsKnitro
 using MadNLP
 
 # to add docstrings from external packages
-const CTSolveExtIpopt = Base.get_extension(CTDirect, :CTSolveExtIpopt)
-const CTSolveExtKnitro = Base.get_extension(CTDirect, :CTSolveExtKnitro)
-const CTSolveExtMadNLP = Base.get_extension(CTDirect, :CTSolveExtMadNLP)
+const CTDirectExtIpopt = Base.get_extension(CTDirect, :CTDirectExtIpopt)
+const CTDirectExtKnitro = Base.get_extension(CTDirect, :CTDirectExtKnitro)
+const CTDirectExtMadNLP = Base.get_extension(CTDirect, :CTDirectExtMadNLP)
 Modules = [
-    CTSolveExtIpopt,
-    CTSolveExtKnitro,
-    CTSolveExtMadNLP,
+    CTDirectExtIpopt,
+    CTDirectExtKnitro,
+    CTDirectExtMadNLP,
 ]
 for Module in Modules
     isnothing(DocMeta.getdocmeta(Module, :DocTestSetup)) &&
@@ -23,9 +23,9 @@ repo_url = "github.com/control-toolbox/CTDirect.jl"
 
 API_PAGES = [
     "common.md",
-    "ctsolveext_ipopt.md",
-    "ctsolveext_knitro.md",
-    "ctsolveext_madnlp.md",
+    "ctdirectext_ipopt.md",
+    "ctdirectext_knitro.md",
+    "ctdirectext_madnlp.md",
     "default.md",
     "docp.md",
     "euler.md",

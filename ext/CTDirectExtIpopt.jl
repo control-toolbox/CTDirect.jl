@@ -1,4 +1,4 @@
-module CTSolveExtIpopt
+module CTDirectExtIpopt
 
 using CTDirect
 
