@@ -43,10 +43,24 @@ __time_grid() = nothing
 
 """
 $(TYPEDSIGNATURES)
+Used to set the default backend for optimisation modelling.
+The default value is `:adnlp`.
+"""
+__nlp_model() = :adnlp
+
+"""
+$(TYPEDSIGNATURES)
 Used to set the default backend for AD in ADNLPModels.
 The default value is `:optimized`.
 """
 __adnlp_backend() = :optimized
+
+"""
+$(TYPEDSIGNATURES)
+Backend for ExaModels.
+The default value is `nothing`.
+"""
+__exa_backend() = nothing
 
 """
 $(TYPEDSIGNATURES)

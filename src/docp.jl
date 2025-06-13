@@ -9,9 +9,10 @@ struct DOCPFlags
     freetf::Bool
     lagrange::Bool
     mayer::Bool
+    lagrange_to_mayer::Bool
     max::Bool
 end
-function DOCPFlags(ocp::CTModels.Model)
+function DOCPFlags(ocp::CTModels.Model, lagrange_to_mayer::Bool)
 
     has_free_initial_time = CTModels.has_free_initial_time(ocp)
     has_free_final_time = CTModels.has_free_final_time(ocp)
@@ -19,7 +20,7 @@ function DOCPFlags(ocp::CTModels.Model)
     has_mayer = CTModels.has_mayer_cost(ocp)
     is_maximization = CTModels.criterion(ocp) == :max
 
-    return DOCPFlags(has_free_initial_time, has_free_final_time, has_lagrange, has_mayer, is_maximization)
+    return DOCPFlags(has_free_initial_time, has_free_final_time, has_lagrange, has_mayer, lagrange_to_mayer, is_maximization)
 end
 
 struct DOCPdims
@@ -30,9 +31,9 @@ struct DOCPdims
     path_cons::Int
     boundary_cons::Int
 end
-function DOCPdims(ocp::CTModels.Model)
+function DOCPdims(ocp::CTModels.Model, lagrange_to_mayer::Bool)
 
-    if CTModels.has_lagrange_cost(ocp)
+    if CTModels.has_lagrange_cost(ocp) && lagrange_to_mayer
         dim_NLP_x = CTModels.state_dimension(ocp) + 1
     else
         dim_NLP_x = CTModels.state_dimension(ocp)
@@ -97,7 +98,6 @@ struct DOCPbounds
 end
 
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -105,23 +105,27 @@ Struct for discretized optimal control problem DOCP
 
 Contains:
 - a copy of the original OCP
+- the discretized DOCP as a NLP problem
 - data required to link the OCP with the discretized DOCP
 """
-struct DOCP{T<:Discretization,O<:CTModels.Model}
+mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
 
     # discretization scheme
-    discretization::T
+    discretization::D
 
-    ## OCP
+    # OCP
     ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
 
-    # OCP boolean flags
+    # NLP
+    nlp
+
+    # boolean flags
     flags::DOCPFlags
 
-    # OCP dimensions
+    # dimensions
     dims::DOCPdims
 
-    # NLP time grid
+    # time grid
     time::DOCPtime
 
     # lower and upper bounds for variables and constraints
@@ -132,13 +136,13 @@ struct DOCP{T<:Discretization,O<:CTModels.Model}
     dim_NLP_constraints::Int
 
     # constructor
-    function DOCP(ocp::CTModels.Model; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method())
+    function DOCP(ocp::CTModels.Model; grid_size=__grid_size(), time_grid=__time_grid(), disc_method=__disc_method(), lagrange_to_mayer=true)
 
         # boolean flags
-        flags = DOCPFlags(ocp)
+        flags = DOCPFlags(ocp, lagrange_to_mayer)
 
         # dimensions
-        dims = DOCPdims(ocp)
+        dims = DOCPdims(ocp, lagrange_to_mayer)
 
         # time grid
         time = DOCPtime(ocp, grid_size, time_grid)
@@ -161,7 +165,7 @@ struct DOCP{T<:Discretization,O<:CTModels.Model}
         end
 
         # add initial condition for lagrange state
-        if flags.lagrange
+        if flags.lagrange && flags.lagrange_to_mayer
             dim_NLP_constraints += 1
         end
 
@@ -175,6 +179,7 @@ struct DOCP{T<:Discretization,O<:CTModels.Model}
         docp = new{typeof(discretization),typeof(ocp)}(
             discretization,
             ocp,
+            nothing,
             flags,
             dims,
             time,
@@ -186,6 +191,18 @@ struct DOCP{T<:Discretization,O<:CTModels.Model}
         return docp
     end
 end
+
+# getters
+discretization(docp::DOCP) = docp.discretization
+ocp(docp::DOCP) = docp.ocp
+nlp(docp::DOCP) = docp.nlp
+flags(docp::DOCP) = docp.flags # dictionary / named tuple instead ?
+dims(docp::DOCP) = docp.dims # dict / named tuple ?
+time(docp::DOCP) = docp.time #idem
+bounds(docp::DOCP) = docp.bounds # idem
+dim_NLP_variables(docp::DOCP) = docp.dim_NLP_variables
+dim_NLP_constraints(docp::DOCP) = docp.dim_NLP_constraints
+
 
 """
 $(TYPEDSIGNATURES)
@@ -228,7 +245,7 @@ function constraints_bounds!(docp::DOCP)
     end
 
     # null initial condition for lagrangian cost state
-    if docp.flags.lagrange
+    if docp.flags.lagrange && docp.flags.lagrange_to_mayer
         lb[offset+1] = 0.0
         ub[offset+1] = 0.0
         offset = offset + 1
@@ -290,10 +307,12 @@ function DOCP_objective(xu, docp::DOCP)
     end
 
     # lagrange cost
-    if docp.flags.lagrange
+    if !docp.flags.lagrange
+        obj_lagrange = 0.0
+    elseif docp.flags.lagrange_to_mayer
         obj_lagrange = get_lagrange_state_at_time_step(xu, docp, docp.time.steps+1)
     else
-        obj_lagrange = 0.0
+        error("Lagrange cost without Mayer conversion is not supported in DOCP_Objective")
     end
 
     # total cost
@@ -358,7 +377,7 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
     end
 
     # null initial condition for lagrangian cost state
-    if docp.flags.lagrange
+    if docp.flags.lagrange && docp.flags.lagrange_to_mayer
         c[offset+1] = get_lagrange_state_at_time_step(xu, docp, 1)
     end
 end
