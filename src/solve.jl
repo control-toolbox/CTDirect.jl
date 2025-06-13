@@ -18,7 +18,7 @@ function available_methods()
     return algorithms
 end
 
-# NLP solver extensions (see ext/CTSolveExt***)
+# NLP solver extensions (see ext/CTDirectExt***)
 abstract type AbstractNLPSolverBackend end
 struct IpoptBackend <: AbstractNLPSolverBackend end
 struct MadNLPBackend <: AbstractNLPSolverBackend end

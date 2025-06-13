@@ -20,9 +20,9 @@ NLPModelsKnitro = "bec4dd0d-7755-52d5-9a02-22f0ffc7efcb"
 MadNLP = "2621e9c9-9eb4-46b1-8089-e8c72242dfb6"
 
 [extensions]
-CTSolveExtIpopt = ["NLPModelsIpopt"]
-CTSolveExtKnitro = ["NLPModelsKnitro"]
-CTSolveExtMadNLP = ["MadNLP"]
+CTDirectExtIpopt = ["NLPModelsIpopt"]
+CTDirectExtKnitro = ["NLPModelsKnitro"]
+CTDirectExtMadNLP = ["MadNLP"]
 
 [compat]
 ADNLPModels = "0.8"

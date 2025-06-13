@@ -1,4 +1,4 @@
-module CTSolveExtKnitro
+module CTDirectExtKnitro
 
 using CTDirect
 
