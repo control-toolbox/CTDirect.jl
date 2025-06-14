@@ -48,6 +48,9 @@ julia> ]
 pkg> add CTDirect
 ```
 
+> [!TIP]
+> If you are new to Julia, please follow this [guidelines](https://github.com/orgs/control-toolbox/discussions/64).
+
 ## Contributing
 
 [issue-url]: https://github.com/control-toolbox/CTDirect.jl/issues
