@@ -23,7 +23,7 @@ function CTDirect.build_nlp(
     nlp = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method) 
     
     # set initial guess
-    nlp.meta.x0[1:docp.dim_NLP_variables] .= x0 # NB we currently have an unused final control in examodel
+    nlp.meta.x0[1:docp.dim_NLP_variables] = x0 # no broadcast (fails for array on GPU) - NB we currently have an unused final control in examodel
 
     return nlp
 end
