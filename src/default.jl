@@ -4,9 +4,9 @@
 $(TYPEDSIGNATURES)
 
 Used to set the default discretization method.
-The default value is `trapeze`.
+The default value is `midpoint`.
 """
-__disc_method() = :trapeze
+__disc_method() = :midpoint
 
 """
 $(TYPEDSIGNATURES)
