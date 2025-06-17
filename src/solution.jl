@@ -8,14 +8,14 @@ Build OCP functional solution from DOCP discrete solution (given as a SolverCore
 function build_OCP_solution(docp, docp_solution)
 
     ocp = docp.ocp
-    solution = docp_solution.solution
+    solution = Array(docp_solution.solution) # debug: conversion from GPU array to CPU array
     iterations, constraints_violation, message, stopping, success = SolverInfos(docp_solution)
 
     # time grid
     T = get_time_grid(solution, docp)
 
     # primal variables X, U, v and box multipliers
-    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=docp_solution.multipliers_L, mult_UB=docp_solution.multipliers_U)
+    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=Array(docp_solution.multipliers_L), mult_UB=Array(docp_solution.multipliers_U)) # debug: conversion from GPU array to CPU array
 
     # objective from solution
     if docp.flags.max
@@ -30,7 +30,7 @@ function build_OCP_solution(docp, docp_solution)
     #end
 
     # costate and constraints multipliers
-    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers)
+    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, Array(docp_solution.multipliers)) # debug: conversion from GPU array to CPU array
 
     return CTModels.build_solution(
         ocp,
