@@ -1,4 +1,4 @@
-module CTSolveExtKnitro
+module CTDirectExtKnitro
 
 using CTDirect
 
@@ -15,8 +15,7 @@ Solve a discretized optimal control problem with Ipopt
 """
 function CTDirect.solve_docp(
     solver_backend::CTDirect.KnitroBackend,
-    docp::CTDirect.DOCP,
-    nlp;
+    docp::CTDirect.DOCP;
     display::Bool=CTDirect.__display(),
     max_iter::Integer=CTDirect.__max_iterations(),
     tol::Real=CTDirect.__tolerance(),
@@ -28,6 +27,9 @@ function CTDirect.solve_docp(
 
     # disable output if needed
     print_level = display ? print_level : 0
+
+    # retrieve NLP
+    nlp = CTDirect.nlp(docp)
 
     # preallocate solver (cannot seem to pass kwargs to solve! ...)
     solver = KnitroSolver(nlp; outlev=print_level, maxit=max_iter, feastol_abs=tol, opttol_abs=tol)

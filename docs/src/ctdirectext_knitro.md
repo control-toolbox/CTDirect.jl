@@ -1,17 +1,17 @@
-# CTSolveExtIpopt
+# CTDirectExtKnitro
 
 ## Index
 
 ```@index
-Pages   = ["ctsolveext_ipopt.md"]
-Modules = [CTDirect, CTSolveExtIpopt]
+Pages   = ["ctdirectext_knitro.md"]
+Modules = [CTDirect, CTDirectExtKnitro]
 Order = [:module, :constant, :type, :function, :macro]
 ```
 
 ## Documentation
 
 ```@autodocs
-Pages = ["CTSolveExtIpopt.jl"]
-Modules = [CTSolveExtIpopt]
+Pages = ["CTDirectExtKnitro.jl"]
+Modules = [CTDirectExtKnitro]
 Order = [:module, :constant, :type, :function, :macro]
 ```
