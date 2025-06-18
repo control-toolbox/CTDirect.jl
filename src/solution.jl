@@ -7,15 +7,18 @@ Build OCP functional solution from DOCP discrete solution (given as a SolverCore
 """
 function build_OCP_solution(docp, docp_solution)
 
+    # OCP and solver specific infos
     ocp = docp.ocp
-    solution = Array(docp_solution.solution) # debug: conversion from GPU array to CPU array
     iterations, constraints_violation, message, stopping, success = SolverInfos(docp_solution)
+
+    # convert GPU arrays if needed (done in parsing functions too)
+    solution = Array(docp_solution.solution)
 
     # time grid
     T = get_time_grid(solution, docp)
 
     # primal variables X, U, v and box multipliers
-    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=Array(docp_solution.multipliers_L), mult_UB=Array(docp_solution.multipliers_U)) # debug: conversion from GPU array to CPU array
+    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=docp_solution.multipliers_L, mult_UB=docp_solution.multipliers_U)
 
     # objective from solution
     if docp.flags.max
@@ -30,7 +33,7 @@ function build_OCP_solution(docp, docp_solution)
     #end
 
     # costate and constraints multipliers
-    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, Array(docp_solution.multipliers)) # debug: conversion from GPU array to CPU array
+    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers)
 
     return CTModels.build_solution(
         ocp,
@@ -133,13 +136,6 @@ Recover OCP primal variables from DOCP solution
 """
 function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=nothing)
 
-    #= + debug
-    println("discretization", docp.discretization)
-    println("steps", docp.time.steps)
-    println("dim x", docp.dims.OCP_x, "/", docp.dims.NLP_x, "dim u", docp.dims.NLP_u)
-    println("NLP unknown size", docp.dim_NLP_variables)
-    println("solution size", size(solution)) =#
-
     # state and control variables
     N = docp.time.steps
     X = zeros(N + 1, docp.dims.OCP_x)
@@ -159,6 +155,11 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=not
     mult_control_box_upper = zeros(size(U))
     mult_variable_box_lower = zeros(size(v))
     mult_variable_box_upper = zeros(size(v))
+
+    # convert GPU arrays if needed
+    solution = Array(solution)
+    mult_LB = Array(mult_LB)
+    mult_UB = Array(mult_UB)
 
     # retrieve optimization variables
     if docp.dims.NLP_v > 0
@@ -197,9 +198,10 @@ Recover OCP costate and constraints multipliers from DOCP multipliers
 function parse_DOCP_solution_dual(docp, multipliers)
 
     # if called with multipliers = nothing, fill with zeros
-    if isnothing(multipliers)
-        multipliers = zeros(docp.dim_NLP_constraints)
-    end
+    isnothing(multipliers) && (multipliers = zeros(docp.dim_NLP_constraints))
+
+    # convert GPU arrays if needed
+    multipliers = Array(multipliers)
 
     # costate
     N = docp.time.steps

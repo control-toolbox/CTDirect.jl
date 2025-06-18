@@ -16,27 +16,32 @@ if !isdefined(Main, :beam2)
     include("../problems/beam2.jl")
 end
 
-@testset verbose = true showtiming = true ":examodel :cpu :beam2" begin
+@testset verbose = true showtiming = true ":examodel :cpu :trapeze" begin
     prob = beam2()
-    sol = solve(prob.ocp, :madnlp, :exa; disc_method = :trapeze, display = true)
+    sol = solve(prob.ocp, :madnlp, :exa; disc_method = :trapeze, display = false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
-@testset verbose = true showtiming = true ":examodel :cpu :beam2 :init" begin
+@testset verbose = true showtiming = true ":examodel :cpu :euler :init" begin
     prob = beam2()
     sol = solve(prob.ocp, :madnlp, :exa; disc_method = :euler, display=false, init=(control=6.66,), max_iter = 0)
     @test control(sol)(0.5) == 6.66
 end
  
-if !isnothing(exa_backend) 
-@testset verbose = true showtiming = true ":examodel :GPU :beam2" begin
-    println("try GPU test")
+if !isnothing(exa_backend)
+println("GPU tests with ", exa_backend)
+@testset verbose = true showtiming = true ":examodel :GPU :euler" begin
     prob = beam2()
-    sol = solve(prob.ocp, :madnlp, :exa; disc_method = :trapeze, exa_backend = exa_backend, display = true)
+    sol = solve(prob.ocp, :madnlp, :exa; disc_method = :euler, exa_backend = exa_backend, display = false)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
+@testset verbose = true showtiming = true ":examodel :GPU :trapeze :init" begin
+    prob = beam2()
+    sol = solve(prob.ocp, :madnlp, :exa; disc_method = :trapeze, exa_backend = exa_backend, display = false, init=(control=6.66,), max_iter = 0)
+    @test control(sol)(0.5) == 6.66
+end
 else
-    println("skip GPU test")
+    println("skipping GPU tests")
 end
 
 @ignore begin # debug
