@@ -19,35 +19,37 @@ function available_methods()
 end
 
 ## Extensions and weak dependencies (see ext/CTDirectExt***)
-weakdeps = Dict{Type, Any}()
+weakdeps = Dict{Type, Any}() # use Any to allow lists as well as single values
 
 # NLP solver extensions 
 abstract type AbstractNLPSolverBackend end
 struct IpoptBackend <: AbstractNLPSolverBackend end
 struct MadNLPBackend <: AbstractNLPSolverBackend end
 struct KnitroBackend <: AbstractNLPSolverBackend end
-
 weakdeps[IpoptBackend] = :NLPModelsIpopt
 weakdeps[MadNLPBackend] = :MadNLP
 weakdeps[KnitroBackend] = :NLPModelsKnitro
-
 function solve_docp(nlp_solver::T, args...; kwargs...) where {T<:AbstractNLPSolverBackend}
     throw(CTBase.ExtensionError(weakdeps[T]))
 end
 
-# NLP model (future) extensions
+# NLP model extensions
 abstract type AbstractNLPModelBackend end
 struct ADNLPBackend <: AbstractNLPModelBackend end
 struct ExaBackend <: AbstractNLPModelBackend end
-
 weakdeps[ADNLPBackend] = :ADNLPModels
-weakdeps[ExaBackend] = [:ExaModels, :MadNLPGPU, :CUDA]
-
+weakdeps[ExaBackend] = :ExaModels
 function build_nlp(nlp_model::T, args...; kwargs...) where {T<:AbstractNLPModelBackend}
     throw(CTBase.ExtensionError(weakdeps[T]))
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Parse problem description to retrieve NLP model and solver choice
+- NLP solver: `ipopt`, `madnlp` or `knitro` 
+- NLP model: `:adnlp` or `:exa`
+"""
 function parse_description(description)
 
     # default: Ipopt, ADNLPModels
@@ -83,8 +85,8 @@ $(TYPEDSIGNATURES)
 Solve an OCP with a direct method
 
 # Arguments
-* ocp: optimal control problem as defined in `CTBase`
-* [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
+* ocp: optimal control problem as defined in `CTModels`
+* [description]: set the NLP model ([`:adnlp`] or `exa`) and / or solver ([`:ipopt`], :madnlp or :knitro)
 
 # Keyword arguments (optional)
 * `display`: ([true], false) will disable output if set to false
@@ -92,11 +94,8 @@ Solve an OCP with a direct method
 * `disc_method`: discretization method ([`:trapeze`], `:midpoint`, `gauss_legendre_2`)
 * `time_grid`: explicit time grid (can be non uniform)
 * `init`: info for the starting guess (values or existing solution)
-* `nlp_model`: modeller used for optimisation ([`:adnlp`], `:exa`)
-* `adnlp_backend`: backend for automatic differentiation in ADNLPModels ([`:optimized`], `:manual`, `:default`)
-* `exa_backend`: backend for ExaModels ([`nothing`])
 
-All further keywords are passed to the inner call of `solve_docp`
+Other keywords are passed down to the NLP modeler and solver.
 """
 function solve(
     ocp::CTModels.Model,
@@ -107,6 +106,7 @@ function solve(
     time_grid=__time_grid(),
     init=__ocp_init(),
     adnlp_backend=__adnlp_backend(),
+    exa_backend=__exa_backend(),
     kwargs...,
 )
 
@@ -119,6 +119,8 @@ function solve(
         grid_size=grid_size,
         time_grid=time_grid,
         disc_method=disc_method,
+        adnlp_backend=adnlp_backend,
+        exa_backend=exa_backend,
         kwargs...,
     )
 
@@ -134,22 +136,19 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Discretize an optimal control problem into a nonlinear optimization problem (ie direct transcription)
+Discretize an optimal control problem into a nonlinear optimization problem.
 
 # Arguments
 * ocp: optimal control problem as defined in `CTModels`
-* [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
+* [description]: set the NLP model ([`:adnlp`] or `exa`) and / or solver ([`:ipopt`], :madnlp or :knitro)
 
 # Keyword arguments (optional)
 * `grid_size`: number of time steps for the discretized problem ([250])
 * `disc_method`: discretization method ([`:trapeze`], `:euler`, `:euler_implicit`, `:midpoint`, `gauss_legendre_2`, `gauss_legendre_3`)
 * `time_grid`: explicit time grid (can be non uniform)
 * `init`: info for the starting guess (values as named tuple or existing solution)
-* `nlp_model`: modeller used for optimisation ([`:adnlp`], `:exa`)
-* `adnlp_backend`: backend for automatic differentiation in ADNLPModels ([`:optimized`], `:manual`, `:default`)
-* `exa_backend`: tries to solve on GPU whenever possible ([`false`], `true`)
-* `show_time`: (:true, [:false]) show timing details from ADNLPModels
 
+Other kewwords arguments are passed down to the NLP modeler
 """
 function direct_transcription(
     ocp::CTModels.Model,
@@ -157,8 +156,7 @@ function direct_transcription(
     grid_size=__grid_size(),
     disc_method=__disc_method(),
     time_grid=__time_grid(),
-    init=__ocp_init(),
-    adnlp_backend=__adnlp_backend(),
+    init=__ocp_init(),  
     kwargs...,
 )
 
@@ -188,9 +186,7 @@ function direct_transcription(
     docp.nlp = build_nlp(nlp_model, 
     docp, 
     x0;
-    nlp_solver=nlp_solver, 
-    adnlp_backend=adnlp_backend, # for adnlpmodel
-    grid_size=grid_size, disc_method=disc_method, # for examodel
+    nlp_solver=nlp_solver,
     kwargs...)
 
     return docp

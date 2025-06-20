@@ -3,7 +3,8 @@
 """
 $(TYPEDSIGNATURES)
    
-Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
+Build OCP functional solution from DOCP discrete solution 
+(given as a SolverCore.GenericExecutionStats)
 """
 function build_OCP_solution(docp, docp_solution)
 
@@ -84,7 +85,8 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
+Build OCP functional solution from DOCP discrete solution 
+(given as array for primal variables, optionally dual variables and bounds multipliers)
 """
 function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB=nothing)
 
@@ -132,7 +134,8 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Recover OCP primal variables from DOCP solution
+Recover OCP state, control and optimization variables from DOCP primal variables.
+Bounds multipliers will be parsed as well if present.
 """
 function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=nothing)
 
@@ -193,7 +196,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Recover OCP costate and constraints multipliers from DOCP multipliers
+Recover OCP costate and constraints multipliers from DOCP dual variables.
 """
 function parse_DOCP_solution_dual(docp, multipliers)
 

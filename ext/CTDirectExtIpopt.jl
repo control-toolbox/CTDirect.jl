@@ -11,7 +11,7 @@ using MKL
 """
 $(TYPEDSIGNATURES)
 
-Solve a discretized optimal control problem with Ipopt
+Solve a discretized optimal control problem (Ipopt version).
 """
 function CTDirect.solve_docp(
     solver_backend::CTDirect.IpoptBackend,

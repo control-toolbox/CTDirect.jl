@@ -6,6 +6,15 @@ using DocStringExtensions
 
 using ADNLPModels
 
+"""
+$(TYPEDSIGNATURES)
+
+Build the NLP model for the DOCP (ADNLPModels version)
+
+# Keyword arguments (optional)
+* `show_time`: (:true, [:false]) show timing details from ADNLPModels
+* `adnlp_backend`: backend for ADNLPModels ([`:optimized`], `:manual`, `:default`)
+"""
 function CTDirect.build_nlp(
     nlp_model::CTDirect.ADNLPBackend,
     docp::CTDirect.DOCP,
@@ -25,8 +34,8 @@ function CTDirect.build_nlp(
     if adnlp_backend == :manual
 
         # build sparsity pattern
-        J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
-        H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
+        J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, CTDirect.DOCP_Jacobian_pattern(docp))
+        H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, CTDirect.DOCP_Hessian_pattern(docp))
 
         # build NLP with given patterns; disable unused backends according to solver info
         if (nlp_solver isa CTDirect.IpoptBackend || nlp_solver isa CTDirect.MadNLPBackend || nlp_solver isa CTDirect.KnitroBackend)
