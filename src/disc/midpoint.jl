@@ -256,8 +256,17 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
     # -> 2nd order term is zero
 
     # build and return sparse matrix
-    nnzj = length(Is)
-    Vs = ones(Bool, nnzj)
-    return sparse(Is, Js, Vs, docp.dim_NLP_variables, docp.dim_NLP_variables)
+    nnzh = length(Is)
+    Vs = ones(Bool, nnzh)
+    H = sparse(Is, Js, Vs, docp.dim_NLP_variables, docp.dim_NLP_variables)
+
+    # check symmetry
+    if H == transpose(H)
+        println("H symmetry OK")
+    else
+        error("H is not symmetric", H, transpose(H))
+    end
+
+    return H
 
 end
