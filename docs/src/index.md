@@ -3,35 +3,20 @@
 ```@meta
 CurrentModule =  CTDirect
 ```
+The `CTDirect.jl` package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
 
-The [CTDirect.jl](control-toolbox.org/CTDirect.jl) package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
+The root package is [OptimalControl.jl](https://github.com/control-toolbox/OptimalControl.jl) which aims to provide tools to model and solve optimal control problems with ordinary differential equations by direct and indirect methods.
 
-```mermaid
-flowchart TD
-B(<a href='https://control-toolbox.org/OptimalControl.jl/stable/api-ctbase.html'>CTBase</a>)
-M(<a href='https://control-toolbox.org/OptimalControl.jl/stable/api-ctmodels.html'>CTModels</a>)
-P(<a href='https://control-toolbox.org/OptimalControl.jl/stable/api-ctparser.html'>CTParser</a>)
-O(<a href='https://control-toolbox.org/OptimalControl.jl/stable/api-optimalcontrol.html'>OptimalControl</a>)
-D(<a href='https://control-toolbox.org/OptimalControl.jl/stable/api-ctdirect.html'>CTDirect</a>)
-F(<a href='https://control-toolbox.org/OptimalControl.jl/stable/api-ctflows.html'>CTFlows</a>)
-O --> D
-O --> M
-O --> F
-O --> P
-F --> M
-O --> B
-F --> B
-D --> B
-D --> M
-P --> B
-M --> B
-style D fill:#FBF275
+To install a package from the control-toolbox ecosystem, please visit the [installation page](https://github.com/control-toolbox#installation).
+
+## API Documentation
+
+```@contents
+Pages = Main.API_PAGES
+Depth = 1
 ```
 
-!!! note "Install"
-
-    To install a package from the control-toolbox ecosystem, 
-    please visit the [installation page](https://github.com/control-toolbox#installation).
+## Brief Overview
 
 An optimal control problem with fixed initial and final times, denoted (OCP), can be described as minimising the cost functional
 
@@ -94,7 +79,7 @@ LB \le C(X) \le UB
 
 Solving the (NLP) problem is done using packages from [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers), with Ipopt as the default solver.
 
-On the input side of this package, we use an [`OptimalControlModel`](@ref) structure from CTModels to define the (OCP).
+On the input side of this package, we use a `Model` structure from CTModels to define the (OCP).
 
 The direct transcription to build the (NLP) can use discretization schemes such as trapeze (default), midpoint, or Gauss-Legendre collocations.
 

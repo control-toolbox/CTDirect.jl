@@ -12,20 +12,21 @@ using CliqueTrees
 
 # load examples library
 problem_path = pwd() * "/test/problems"
-for problem_file in filter(contains(r".jl$"), readdir(problem_path; join = true))
+for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
+
 function get_patterns(ocp; grid_size=CTDirect.__grid_size(), disc_method=CTDirect.__disc_method(), adnlp_backend=CTDirect.__adnlp_backend())
 
-    docp, nlp = direct_transcription(ocp; grid_size=grid_size, disc_method=disc_method, adnlp_backend=adnlp_backend)
+    docp = direct_transcription(ocp; grid_size=grid_size, disc_method=disc_method, adnlp_backend=adnlp_backend)
+    nlp = docp.nlp
     J = get_sparsity_pattern(nlp, :jacobian)
     H = get_sparsity_pattern(nlp, :hessian) + transpose(get_sparsity_pattern(nlp, :hessian))
    
     return J, H 
 end
 
-# coloring test functions
 function test_Jacobian_coloring(J, order)
 
     problem_J = ColoringProblem(; structure=:nonsymmetric, partition=:column)
@@ -49,6 +50,7 @@ function test_Hessian_coloring(H, order)
 end
 
 # batch testing
+
 # possible orders: NaturalOrder(), RandomOrder(), LargestFirst(), SmallestLast(), IncidenceDegree(), DynamicLargestFirst(), PerfectEliminationOrder() (for Hessian with substitution decomposition)
 function batch_coloring_test(; order = NaturalOrder(), target_list = :default, verbose = 1, grid_size = CTDirect.__grid_size(), disc_method = CTDirect.__disc_method(), adnlp_backend = CTDirect.__adnlp_backend())
 
@@ -75,4 +77,3 @@ function batch_coloring_test(; order = NaturalOrder(), target_list = :default, v
     end
     return sum(num_J_list), sum(num_H_list)
 end
-

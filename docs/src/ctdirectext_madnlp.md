@@ -1,17 +1,17 @@
-# CTDirect API
+# CTDirectExtMadNLP
 
 ## Index
 
 ```@index
-Pages   = ["api.md"]
-Modules = [CTDirect]
+Pages   = ["ctdirectext_madnlp.md"]
+Modules = [CTDirect, CTDirectExtMadNLP]
 Order = [:module, :constant, :type, :function, :macro]
 ```
 
 ## Documentation
 
 ```@autodocs
-Modules = [CTDirect]
+Pages = ["CTDirectExtMadNLP.jl"]
+Modules = [CTDirectExtMadNLP]
 Order = [:module, :constant, :type, :function, :macro]
-Private = false
 ```
