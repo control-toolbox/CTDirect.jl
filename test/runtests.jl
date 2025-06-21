@@ -5,7 +5,7 @@ using Test
 using CTBase
 using CTParser: CTParser, @def, prefix!, e_prefix!
 using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
-using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution, nlp
+using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
 prefix!(:CTModels) # set CTParser def macro to use CTModels instead of OptimalControl
 e_prefix!(:CTBase) # set CTParser def macro to use CTBase instead of OptimalControl (errors)
 

@@ -29,7 +29,7 @@ function CTDirect.solve_docp(
     print_level = display ? MadNLP.INFO : MadNLP.ERROR
 
     # retrieve NLP
-    nlp = CTDirect.nlp(docp)
+    nlp = CTDirect.model(docp)
 
     # preallocate solver (NB. need to pass printlevel here)
     solver = MadNLPSolver(nlp, print_level=print_level, tol=tol, max_iter=max_iter)
@@ -43,13 +43,13 @@ end
 
 function CTDirect.SolverInfos(docp_solution::MadNLP.MadNLPExecutionStats)
 
+    # info from SolverCore.GenericExecutionStats
     iterations = docp_solution.iter
     constraints_violation = docp_solution.primal_feas
-    message = "MadNLP"
-    status = :undefined
-    successful = true
+    status = Symbol(docp_solution.status)
+    successful = (status == :SOLVE_SUCCEEDED) || (status == :SOLVED_TO_ACCEPTABLE_LEVEL)
 
-    return iterations, constraints_violation, message, status, successful
+    return iterations, constraints_violation, "MadNLP", status, successful
 end
 
 end
