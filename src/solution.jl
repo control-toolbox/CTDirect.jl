@@ -10,7 +10,7 @@ function build_OCP_solution(docp, docp_solution)
 
     # OCP and solver specific infos
     ocp = docp.ocp
-    iterations, constraints_violation, message, stopping, success = SolverInfos(docp_solution)
+    iterations, constraints_violation, message, status, successful = SolverInfos(docp_solution)
 
     # convert GPU arrays if needed (done in parsing functions too)
     solution = Array(docp_solution.solution)
@@ -40,7 +40,7 @@ function build_OCP_solution(docp, docp_solution)
         ocp,
         T, X, U, v, P;
         objective=objective, iterations=iterations, constraints_violation=constraints_violation,
-        message=message, stopping=stopping, success=success,
+        message=message, status=status, successful=successful,
         path_constraints_dual=path_constraints_dual,
         boundary_constraints_dual=boundary_constraints_dual,
         state_constraints_lb_dual=box_multipliers[1],
@@ -66,8 +66,8 @@ function SolverInfos(docp_solution)
     # try to detect solver here for specific fields !
     iterations = docp_solution.iter
     constraints_violation = docp_solution.primal_feas
-    stopping = :undefined
-    success = true
+    status = :undefined
+    successful = true
     message = "undefined"
     try
         solver_specific = docp_solution.solver_specific
@@ -78,7 +78,7 @@ function SolverInfos(docp_solution)
     catch e # missing field solve_specific
     end
 
-    return iterations, constraints_violation, message, stopping, success
+    return iterations, constraints_violation, message, status, successful
 end
 
 
@@ -92,7 +92,7 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
 
     ocp = docp.ocp
     solution = primal
-    iterations, constraints_violation, message, stopping, success = SolverInfos()
+    iterations, constraints_violation, message, status, successful = SolverInfos()
 
     # time grid
     T = get_time_grid(solution, docp)
@@ -118,7 +118,7 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
         ocp,
         T, X, U, v, P;
         objective=objective, iterations=iterations, constraints_violation=constraints_violation,
-        message=message, stopping=stopping, success=success,
+        message=message, status=status, successful=successful,
         path_constraints_dual=path_constraints_dual,
         boundary_constraints_dual=boundary_constraints_dual,
         state_constraints_lb_dual=box_multipliers[1],

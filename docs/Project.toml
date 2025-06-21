@@ -8,3 +8,6 @@ NLPModelsKnitro = "bec4dd0d-7755-52d5-9a02-22f0ffc7efcb"
 [compat]
 Documenter = "1"
 DocumenterMermaid = "0.2"
+MadNLP = "0.8"
+NLPModelsIpopt = "0.10"
+NLPModelsKnitro = "0.9"
