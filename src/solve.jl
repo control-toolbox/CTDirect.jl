@@ -104,7 +104,7 @@ Other keywords are passed down to the NLP modeler and solver.
 * `successful(sol)`: boolean indicating successful convergence of the NLP solver
 * `status(sol)`: integer for the return code of the NLP solver
 * `message(sol)`: string returned by the NLP solver, if any
-* `constraints_violation(sol)`: primal infeasibility from the NLP solver
+* `constraints_violation(sol)`: primal feasibility from the NLP solver
 * `iterations(sol)`: number of iterations from the NLP solver
 """
 function solve(

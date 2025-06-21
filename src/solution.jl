@@ -63,22 +63,13 @@ function SolverInfos()
 end
 function SolverInfos(docp_solution)
 
-    # try to detect solver here for specific fields !
+    # info from SolverCore.GenericExecutionStats
     iterations = docp_solution.iter
     constraints_violation = docp_solution.primal_feas
-    status = :undefined
-    successful = true
-    message = "undefined"
-    try
-        solver_specific = docp_solution.solver_specific
-        if haskey(solver_specific, :internal_msg)
-            # Ipopt solver
-            message = string(solver_specific[:internal_msg][1])
-        end
-    catch e # missing field solve_specific
-    end
+    status = docp_solution.status
+    successful = (status == :first_order) || (status == :acceptable)
 
-    return iterations, constraints_violation, message, status, successful
+    return iterations, constraints_violation, "generic", status, successful
 end
 
 
