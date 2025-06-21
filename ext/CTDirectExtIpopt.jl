@@ -48,7 +48,7 @@ function CTDirect.solve_docp(
     print_level = display ? print_level : 0
 
     # retrieve NLP
-    nlp = CTDirect.nlp(docp)
+    nlp = CTDirect.model(docp)
 
     # preallocate solver
     solver = IpoptSolver(nlp)

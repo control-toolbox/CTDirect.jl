@@ -231,15 +231,7 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
 end
 
 # getters
-discretization(docp::DOCP) = docp.discretization
-ocp(docp::DOCP) = docp.ocp
-nlp(docp::DOCP) = docp.nlp
-flags(docp::DOCP) = docp.flags # dictionary / named tuple instead ?
-dims(docp::DOCP) = docp.dims # dict / named tuple ?
-time(docp::DOCP) = docp.time #idem
-bounds(docp::DOCP) = docp.bounds # idem
-dim_NLP_variables(docp::DOCP) = docp.dim_NLP_variables
-dim_NLP_constraints(docp::DOCP) = docp.dim_NLP_constraints
+model(docp::DOCP) = docp.nlp
 
 
 """

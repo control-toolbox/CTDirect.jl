@@ -29,7 +29,7 @@ function CTDirect.solve_docp(
     print_level = display ? MadNLP.INFO : MadNLP.ERROR
 
     # retrieve NLP
-    nlp = CTDirect.nlp(docp)
+    nlp = CTDirect.model(docp)
 
     # preallocate solver (NB. need to pass printlevel here)
     solver = MadNLPSolver(nlp, print_level=print_level, tol=tol, max_iter=max_iter)
