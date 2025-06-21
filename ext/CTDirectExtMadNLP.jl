@@ -46,10 +46,10 @@ function CTDirect.SolverInfos(docp_solution::MadNLP.MadNLPExecutionStats)
     iterations = docp_solution.iter
     constraints_violation = docp_solution.primal_feas
     message = "MadNLP"
-    stopping = :undefined
-    success = true
+    status = :undefined
+    successful = true
 
-    return iterations, constraints_violation, message, stopping, success
+    return iterations, constraints_violation, message, status, successful
 end
 
 end

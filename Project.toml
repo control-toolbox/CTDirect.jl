@@ -27,7 +27,7 @@ CTDirectExtMadNLP = ["MadNLP"]
 
 [compat]
 CTBase = "0.16"
-CTModels = "0.5"
+CTModels = "0.6"
 CTParser = "0.4"
 CUDA = "5.8"
 DocStringExtensions = "0.9"
