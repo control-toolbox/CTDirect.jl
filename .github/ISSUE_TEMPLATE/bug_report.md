@@ -1,9 +1,9 @@
 ---
 name: Bug report
 about: Create a bug report to help us improve
-title: "[Bug] title"
+title: "[Bug] "
 labels: bug
-assignees: joseph-gergaud, PierreMartinon
+assignees: PierreMartinon
 
 ---
 
