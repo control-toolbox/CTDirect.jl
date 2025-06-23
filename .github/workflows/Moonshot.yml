@@ -12,6 +12,7 @@ on:
 
 jobs:
   test-moonshot:
+    if: contains(github.event.pull_request.labels.*.name, 'run moonshot')
     env:
       CUDA_VISIBLE_DEVICES: 1
       JULIA_DEPOT_PATH: /scratch/github-actions/julia_depot_oc
