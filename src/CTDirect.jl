@@ -8,6 +8,7 @@ using DocStringExtensions
 using SparseArrays
 
 # includes
+include("utils.jl")
 include("default.jl")
 include("docp.jl")
 include("disc/common.jl")

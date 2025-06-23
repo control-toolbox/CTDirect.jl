@@ -55,7 +55,7 @@ end
 function DOCPtime(ocp::CTModels.Model, grid_size::Int, time_grid)
 
     # 1. build/recover normalized time grid
-    if time_grid == nothing
+    if time_grid === nothing
         NLP_normalized_time_grid = convert(Vector{Float64}, collect(LinRange(0, 1, grid_size + 1)))
         dim_NLP_steps = grid_size
     else

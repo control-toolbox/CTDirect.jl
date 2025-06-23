@@ -18,35 +18,53 @@ function available_methods()
     return algorithms
 end
 
-## Extensions and weak dependencies (see ext/CTDirectExt***)
-weakdeps = Dict{Type, Any}()
+# ----------------------------------------------------------------------
+# Packages associated to Symbols: used for display
+const PACKAGES = Dict(
+    # NLP solver
+    :ipopt  => :NLPModelsIpopt,
+    :madnlp => :MadNLP,
+    :knitro => :NLPModelsKnitro,
+    # NLP modeller
+    :adnlp  => :ADNLPModels,
+    :exa    => :ExaModels,
+)
 
-# NLP solver extensions 
+# ----------------------------------------------------------------------
+# EXTENSIONS
+
+# NLP solver backend extensions 
 abstract type AbstractNLPSolverBackend end
 struct IpoptBackend <: AbstractNLPSolverBackend end
 struct MadNLPBackend <: AbstractNLPSolverBackend end
 struct KnitroBackend <: AbstractNLPSolverBackend end
 
-weakdeps[IpoptBackend] = :NLPModelsIpopt
-weakdeps[MadNLPBackend] = :MadNLP
-weakdeps[KnitroBackend] = :NLPModelsKnitro
-
-function solve_docp(nlp_solver::T, args...; kwargs...) where {T<:AbstractNLPSolverBackend}
-    throw(CTBase.ExtensionError(weakdeps[T]))
-end
-
-# NLP model (future) extensions
+# NLP model (future) backend extensions
 abstract type AbstractNLPModelBackend end
 struct ADNLPBackend <: AbstractNLPModelBackend end
 struct ExaBackend <: AbstractNLPModelBackend end
 
-weakdeps[ADNLPBackend] = :ADNLPModels
-weakdeps[ExaBackend] = [:ExaModels, :MadNLPGPU, :CUDA]
+## Extensions and weak dependencies (see ext/CTDirectExt***)
+const WEAKDEPS = Dict{Type, Any}(
+    # NLP solver
+    IpoptBackend  => [:NLPModelsIpopt],
+    MadNLPBackend => [:MadNLP],
+    KnitroBackend => [:NLPModelsKnitro],
+    # NLP modeller
+    ADNLPBackend  => [:ADNLPModels],
+    ExaBackend    => [:ExaModels, :MadNLPGPU, :CUDA],
+)
 
-function build_nlp(nlp_model::T, args...; kwargs...) where {T<:AbstractNLPModelBackend}
-    throw(CTBase.ExtensionError(weakdeps[T]))
+# solver
+function solve_docp(nlp_solver::T, args...; kwargs...) where {T<:AbstractNLPSolverBackend}
+    throw(CTBase.ExtensionError(WEAKDEPS[T]...))
 end
 
+# modeller
+function build_nlp(nlp_model::T, args...; kwargs...) where {T<:AbstractNLPModelBackend}
+    throw(CTBase.ExtensionError(WEAKDEPS[T]...))
+end
+# ----------------------------------------------------------------------
 
 function parse_description(description)
 
@@ -110,6 +128,13 @@ function solve(
     kwargs...,
 )
 
+    # display infos about the chosen method
+    display && display_method(ocp, description...; 
+        grid_size=grid_size,
+        time_grid=time_grid,
+        disc_method=disc_method,
+        kwargs...)
+
     # build discretized optimal control problem (DOCP)
     # NB. this includes the initial guess for the resulting NLP
     docp = direct_transcription(
@@ -119,6 +144,7 @@ function solve(
         grid_size=grid_size,
         time_grid=time_grid,
         disc_method=disc_method,
+        adnlp_backend=adnlp_backend,
         kwargs...,
     )
 
@@ -130,6 +156,36 @@ function solve(
     return build_OCP_solution(docp, docp_solution)
 end
 
+function display_method(ocp, description::Symbol...; grid_size, disc_method, time_grid, kwargs...,)
+
+    # complete description
+    method = CTBase.complete(description; descriptions=available_methods())
+
+    #
+    print("▫ The optimal control problem is solved with ")
+    printstyled("CTDirect", color = :black, bold = true)
+    print(" version v$(version()).", "\n\n", "   ┌─ The discretised problem is modelled with ")
+    printstyled(PACKAGES[method[1]], color = :black, bold = true)
+    print(" and solved with ")
+    printstyled(PACKAGES[method[2]], color = :black, bold = true)
+    println(".")
+    println("   │")
+
+    #
+    time = DOCPtime(ocp, grid_size, time_grid)
+    N = time.steps
+
+    println("   ├─ Number of time steps⋅: ", N)
+    println("   └─ Discretisation scheme: ", disc_method)
+	println("")
+
+    # for ipopt
+    if !(:print_level ∈ keys(kwargs) && kwargs[:print_level] != 5)
+        print("▫ ")
+    end
+
+    return nothing
+end
 
 """
 $(TYPEDSIGNATURES)
