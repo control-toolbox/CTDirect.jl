@@ -9,6 +9,7 @@ Build OCP functional solution from DOCP discrete solution
 function build_OCP_solution(docp, docp_solution)
 
     # OCP and solver specific infos
+    # +++ we could pass an optional arg to build_OCP_solution to indicate the NLP solver used when we call this one from solve_docp !
     ocp = docp.ocp
     iterations, constraints_violation, message, status, successful = SolverInfos(docp_solution)
 
@@ -56,12 +57,19 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve convergence information (Ipopt version)
+Retrieve convergence information from NLP solution
+- iterations [Integer]: number of iterations
+- constraints_violations [Real]: primal feasibility
+- status [Symbol]: termination status from the NLP solver
+- successful [Boolean]: indicates successful convergence (first order)
+- message [String]: optional solver dependent message
 """
 function SolverInfos()
     return 0, 0., "undefined", :undefined, true
 end
 function SolverInfos(docp_solution)
+
+    # +++ we could pass an optional arg for the NLP solver used, down from build_OCP_solution
 
     # info from SolverCore.GenericExecutionStats
     iterations = docp_solution.iter
