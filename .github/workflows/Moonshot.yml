@@ -39,8 +39,10 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-buildpkg@v1        
+        with:
+          workflow-status: success()
       - uses: julia-actions/julia-runtest@v1
       - name: finally
         if: ${{ failure() }}
-        run: echo "Moonshot test has failed" && exit 0
+        run: echo "Moonshot test has failed"
