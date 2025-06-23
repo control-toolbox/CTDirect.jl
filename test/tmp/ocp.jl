@@ -10,7 +10,7 @@ prefix!(:CTModels) # set CTParser def macro to use CTModels instead of OptimalCo
 e_prefix!(:CTBase) # set CTParser def macro to use CTBase instead of OptimalControl (errors)
 
 # activate NLP modelers
-using ADNLPModels
+#using ADNLPModels
 # + using ExaModels (in test_exa for now)
 
 # activate NLP solvers

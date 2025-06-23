@@ -26,6 +26,7 @@ CTDirectExtKnitro = ["NLPModelsKnitro"]
 CTDirectExtMadNLP = ["MadNLP"]
 
 [compat]
+ADNLPModels = "0.8"
 CTBase = "0.16"
 CTModels = "0.6"
 CTParser = "0.4"
@@ -33,12 +34,13 @@ CUDA = "5.8"
 DocStringExtensions = "0.9"
 ExaModels = "0.8"
 HSL = "0.5"
-MKL = "0.8"
+MKL = "0.9"
 MadNLP = "0.8"
 MadNLPGPU = "0.7"
 NLPModelsIpopt = "0.10"
 NLPModelsKnitro = "0.9"
 SparseArrays = "1.10"
+SplitApplyCombine = "1.2"
 julia = "1.10"
 
 [extras]

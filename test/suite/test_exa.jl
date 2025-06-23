@@ -1,15 +1,4 @@
 import ExaModels
-using MadNLPGPU
-using CUDA
-
-println("testing: OCP definitions (:exa)")
-
-if CUDA.functional()
-    exa_backend = CUDA.functional() ? CUDABackend() : nothing
-else
-    println("********** CUDA not available")
-    exa_backend = nothing 
-end
 
 # beam2
 if !isdefined(Main, :beam2)
@@ -17,6 +6,10 @@ if !isdefined(Main, :beam2)
 end
 
 display = false # during optim solves
+
+# Test on CPU
+
+println("testing: OCP definitions (:exa CPU)")
 
 @testset verbose = true showtiming = true ":examodel :cpu :trapeze" begin
     prob = beam2()
@@ -28,6 +21,19 @@ end
     prob = beam2()
     sol = solve(prob.ocp, :madnlp, :exa; disc_method = :euler, display = display, init=(control=6.66,), max_iter = 0)
     @test control(sol)(0.5) == 6.66
+end
+
+# Test on GPU
+using MadNLPGPU
+using CUDA
+
+println("testing: OCP definitions (:exa GPU)")
+
+if CUDA.functional()
+    exa_backend = CUDA.functional() ? CUDABackend() : nothing
+else
+    println("********** CUDA not available")
+    exa_backend = nothing 
 end
  
 if !isnothing(exa_backend)
