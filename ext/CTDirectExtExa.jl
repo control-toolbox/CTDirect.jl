@@ -7,6 +7,16 @@ using DocStringExtensions
 
 using ExaModels
 
+"""
+$(TYPEDSIGNATURES)
+
+Build the NLP model for the DOCP (ExaModels version)
+
+# Keyword arguments (optional)
+* `grid_size`: number of time steps for the discretized problem ([250])
+* `disc_method`: discretization method ([`:trapeze`], `:euler`)
+* `exa_backend`: backend for ExaModels ([`nothing`])
+"""
 function CTDirect.build_nlp(
     nlp_model::CTDirect.ExaBackend,
     docp::CTDirect.DOCP,

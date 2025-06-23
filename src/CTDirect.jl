@@ -1,8 +1,6 @@
 module CTDirect
 
 import CTModels
-#using ADNLPModels
-#import ExaModels
 
 using DocStringExtensions
 using SparseArrays
@@ -18,11 +16,5 @@ include("disc/midpoint.jl")
 include("disc/trapeze.jl")
 include("solution.jl")
 include("solve.jl")
-
-# exports
-#export solve
-#export direct_transcription
-#export set_initial_guess
-#export build_OCP_solution
 
 end
