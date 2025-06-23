@@ -33,3 +33,6 @@ Manifest.toml
 
 # Notebooks checkpoints
 */.ipynb_checkpoints
+
+# Mac
+.DS_Store

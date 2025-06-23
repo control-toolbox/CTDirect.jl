@@ -52,7 +52,7 @@ const WEAKDEPS = Dict{Type, Any}(
     KnitroBackend => [:NLPModelsKnitro],
     # NLP modeller
     ADNLPBackend  => [:ADNLPModels],
-    ExaBackend    => [:ExaModels, :MadNLPGPU, :CUDA],
+    ExaBackend    => [:ExaModels] #, :MadNLPGPU, :CUDA],
 )
 
 # solver
