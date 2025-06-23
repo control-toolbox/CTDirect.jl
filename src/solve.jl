@@ -180,7 +180,7 @@ function display_method(ocp, description::Symbol...; grid_size, disc_method, tim
     #
     print("▫ The optimal control problem is solved with ")
     printstyled("CTDirect", color = :black, bold = true)
-    print(" version v$(version()).", "\n\n", "   ┌─ The discretised problem is modelled with ")
+    print(" version v$(version()).", "\n\n", "   ┌─ The NLP is modelled with ")
     printstyled(PACKAGES[method[1]], color = :black, bold = true)
     print(" and solved with ")
     printstyled(PACKAGES[method[2]], color = :black, bold = true)
