@@ -42,5 +42,5 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - name: finally
-        if: ${{ failure() && steps.demo.conclusion == 'failure' }}
+        if: ${{ failure() }}
         run: echo "Moonshot test has failed" && exit 0
