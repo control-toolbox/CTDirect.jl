@@ -9,7 +9,6 @@ CTModels = "34c4fa32-2049-4079-8329-de33c2a22e2d"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 HSL = "34c5aeac-e683-54a6-a0e9-6e0fdc586c50"
 MKL = "33e6dc65-8f57-5167-99aa-e5a354878fb2"
-MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [weakdeps]
