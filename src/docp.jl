@@ -3,7 +3,17 @@
 # generic discretization
 abstract type Discretization end
 
-# internal structs for DOCP
+"""
+$(TYPEDSIGNATURES)
+
+Internal struct for DOCP boolean flags
+- freet0: OCP has free initial time
+- freetf: OCP has free final time
+- lagrange: OCP has a lagrange cost
+- mayer: OCP has a mayer cost
+- lagrange_to_mayer: convert lagrange cost to mayer form
+- max: OCP is a maximization problem
+"""
 struct DOCPFlags
     freet0::Bool
     freetf::Bool
@@ -23,11 +33,22 @@ function DOCPFlags(ocp::CTModels.Model, lagrange_to_mayer::Bool)
     return DOCPFlags(has_free_initial_time, has_free_final_time, has_lagrange, has_mayer, lagrange_to_mayer, is_maximization)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Internal struct for DOCP dimensions
+- NLP_x: state dimension including additional component for reformulated lagrange cost
+- NLP_u: control dimension
+- NLP_v: variable dimension
+- OCP_x: state dimension for the original OCP
+- path_cons: path constraints dimension
+- boundary_cons: boundary constraints dimension
+"""
 struct DOCPdims
-    NLP_x::Int  # possible lagrange cost
+    NLP_x::Int
     NLP_u::Int
     NLP_v::Int
-    OCP_x::Int  # original OCP state
+    OCP_x::Int
     path_cons::Int
     boundary_cons::Int
 end
@@ -47,6 +68,14 @@ function DOCPdims(ocp::CTModels.Model, lagrange_to_mayer::Bool)
     return DOCPdims(dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_OCP_x, dim_path_cons, dim_boundary_cons)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Internal struct for DOCP time grid
+- steps: number of time steps
+- normalized_grid: time grid rescaled to [0,1]
+- fixed_grid: fixed time grid [t0,tf]
+"""
 struct DOCPtime
     steps::Int
     normalized_grid::Vector{Float64}
@@ -55,7 +84,7 @@ end
 function DOCPtime(ocp::CTModels.Model, grid_size::Int, time_grid)
 
     # 1. build/recover normalized time grid
-    if time_grid == nothing
+    if time_grid === nothing
         NLP_normalized_time_grid = convert(Vector{Float64}, collect(LinRange(0, 1, grid_size + 1)))
         dim_NLP_steps = grid_size
     else
@@ -90,6 +119,15 @@ function DOCPtime(ocp::CTModels.Model, grid_size::Int, time_grid)
     return DOCPtime(dim_NLP_steps, NLP_normalized_time_grid, NLP_fixed_time_grid)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Internal struct for DOCP bounds
+- var_l: lower bounds for the NLP variables
+- var_u: upper bounds for the NLP variables
+- con_l: lower bounds for the NLP constraints
+- con_u: upper bounds for the NLP constraints
+"""
 struct DOCPbounds
     var_l::Vector{Float64}
     var_u::Vector{Float64}
@@ -193,15 +231,7 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
 end
 
 # getters
-discretization(docp::DOCP) = docp.discretization
-ocp(docp::DOCP) = docp.ocp
-nlp(docp::DOCP) = docp.nlp
-flags(docp::DOCP) = docp.flags # dictionary / named tuple instead ?
-dims(docp::DOCP) = docp.dims # dict / named tuple ?
-time(docp::DOCP) = docp.time #idem
-bounds(docp::DOCP) = docp.bounds # idem
-dim_NLP_variables(docp::DOCP) = docp.dim_NLP_variables
-dim_NLP_constraints(docp::DOCP) = docp.dim_NLP_constraints
+model(docp::DOCP) = docp.nlp
 
 
 """
