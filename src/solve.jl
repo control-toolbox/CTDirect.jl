@@ -52,7 +52,7 @@ const WEAKDEPS = Dict{Type, Any}(
     KnitroBackend => [:NLPModelsKnitro],
     # NLP modeller
     ADNLPBackend  => [:ADNLPModels],
-    ExaBackend    => [:ExaModels, :MadNLPGPU, :CUDA],
+    ExaBackend    => [:ExaModels],
 )
 
 # solver
@@ -125,10 +125,10 @@ Other keywords are passed down to the NLP modeler and solver.
 * `state(sol)`, `control(sol)`: functions for state and control variables (trajectory)
 * `variable(sol)`: optimization variables if any (e.g. free final time)
 * `successful(sol)`: boolean indicating successful convergence of the NLP solver
-* `status(sol)`: integer for the return code of the NLP solver
-* `message(sol)`: string returned by the NLP solver, if any
-* `constraints_violation(sol)`: primal feasibility from the NLP solver
-* `iterations(sol)`: number of iterations from the NLP solver
+* `status(sol)`: symbol for the return code of the NLP solver
+* `message(sol)`: string with specific info from the NLP solver, if any
+* `constraints_violation(sol)`: primal feasibility at the solution
+* `iterations(sol)`: number of iterations 
 """
 function solve(
     ocp::CTModels.Model,
