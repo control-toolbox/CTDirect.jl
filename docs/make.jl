@@ -1,15 +1,21 @@
 using Documenter
 using DocumenterMermaid
 using CTDirect
+using ADNLPModels
+using ExaModels
 using NLPModelsIpopt
 using NLPModelsKnitro
 using MadNLP
 
 # to add docstrings from external packages
+const CTDirectExtADNLP = Base.get_extension(CTDirect, :CTDirectExtADNLP)
+const CTDirectExtExa = Base.get_extension(CTDirect, :CTDirectExtExa)
 const CTDirectExtIpopt = Base.get_extension(CTDirect, :CTDirectExtIpopt)
 const CTDirectExtKnitro = Base.get_extension(CTDirect, :CTDirectExtKnitro)
 const CTDirectExtMadNLP = Base.get_extension(CTDirect, :CTDirectExtMadNLP)
 Modules = [
+    CTDirectExtADNLP,
+    CTDirectExtExa,
     CTDirectExtIpopt,
     CTDirectExtKnitro,
     CTDirectExtMadNLP,
