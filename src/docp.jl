@@ -230,9 +230,22 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
     end
 end
 
-# getters
-model(docp::DOCP) = docp.nlp
+"""
+$(TYPEDSIGNATURES)
 
+Extracts the NLP model from a DOCP object.
+
+# Arguments
+
+- `docp::DOCP`: The DOCP object containing the NLP model.
+
+# Returns
+
+The NLP model stored in the DOCP object.
+"""
+function model(docp::DOCP) 
+    return docp.nlp
+end
 
 """
 $(TYPEDSIGNATURES)
