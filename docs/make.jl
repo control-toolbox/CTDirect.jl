@@ -30,7 +30,7 @@ repo_url = "github.com/control-toolbox/CTDirect.jl"
 API_PAGES = [
     "common.md",
     "ctdirectext_adnlp.md",
-    "ctdirectext_exa.md"
+    "ctdirectext_exa.md",
     "ctdirectext_ipopt.md",
     "ctdirectext_knitro.md",
     "ctdirectext_madnlp.md",
