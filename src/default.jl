@@ -83,12 +83,12 @@ Default value for Ipopt linear solver: `mumps`
 """
 __ipopt_linear_solver() = "mumps"
 
-"""
+#="""
 $(TYPEDSIGNATURES)
 
 Default value for MadNLP linear solver: `umfpack`
 """
-__madnlp_linear_solver() = "umfpack"
+__madnlp_linear_solver() = "umfpack"=#
 
 """
 $(TYPEDSIGNATURES)
