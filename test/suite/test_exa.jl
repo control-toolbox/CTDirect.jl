@@ -5,7 +5,7 @@ if !isdefined(Main, :beam2)
     include("../problems/beam2.jl")
 end
 
-display = false # during optim solves
+display = true # during optim solves
 
 # Test on CPU
 
