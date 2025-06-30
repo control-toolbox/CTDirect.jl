@@ -1,4 +1,4 @@
-name: moonshot
+name: GPU
 
 on:
   push:
@@ -11,11 +11,9 @@ on:
     - cron: '0 0 * * 0'
 
 jobs:
-  test-moonshot:
+  test-cuda:
     if: contains(github.event.pull_request.labels.*.name, 'run moonshot')
-    env:
-      CUDA_VISIBLE_DEVICES: 1
-      JULIA_DEPOT_PATH: /scratch/github-actions/julia_depot_oc
+
     runs-on: self-hosted
     continue-on-error: true
     strategy:
