@@ -21,7 +21,9 @@ using MadNLP
 using SplitApplyCombine # for flatten in some tests
 
 # check local test suite
-macro ignore(e) :() end
+macro ignore(e)
+    :()
+end
 
 @testset verbose = true showtiming = true "Test suite" begin
     # run all scripts in subfolder suite/

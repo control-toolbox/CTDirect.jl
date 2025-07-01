@@ -243,7 +243,7 @@ Extracts the NLP model from a DOCP object.
 
 The NLP model stored in the DOCP object.
 """
-function model(docp::DOCP) 
+function model(docp::DOCP)
     return docp.nlp
 end
 
