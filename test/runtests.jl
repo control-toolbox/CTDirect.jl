@@ -25,7 +25,14 @@ macro ignore(e) :() end
 
 # +++ run either usual test suite on CPU or GPU tests (moonshot workflow) 
 @testset verbose = true showtiming = true "Test suite" begin
-    # run all scripts in subfolder suite/
-    #include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
-    include("suite/test_gpu.jl")
+    if "GPU" in ARGS
+        # GPU tests only
+        println("gpu tests only")
+        include("suite/test_gpu.jl")
+    else
+        # CPU: run all scripts in subfolder suite/
+        println("cpu test suite")
+        include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
+    end
+
 end
