@@ -6,7 +6,7 @@ using CUDA
 
 # beam2
 if !isdefined(Main, :beam2)
-    include("../problems/beam2.jl")
+    include("./problems/beam2.jl")
 end
 
 println("testing: GPU with ExaModels / MadNLPGPU / CUDA")
