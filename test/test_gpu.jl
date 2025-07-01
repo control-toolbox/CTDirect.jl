@@ -10,6 +10,7 @@ if !isdefined(Main, :beam2)
 end
 
 println("testing: GPU with ExaModels / MadNLPGPU / CUDA")
+display = true
 
 CUDA.functional()
 
