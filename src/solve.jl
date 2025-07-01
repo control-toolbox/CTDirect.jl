@@ -56,12 +56,12 @@ const WEAKDEPS = Dict{Type, Any}(
 )
 
 # solver
-function solve_docp(nlp_solver::T, args...; kwargs...) where {T<:AbstractNLPSolverBackend}
+function solve_docp(solver_backend::T, docp::CTDirect.DOCP; kwargs...) where {T<:AbstractNLPSolverBackend}
     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
 end
 
 # modeller
-function build_nlp(nlp_model::T, args...; kwargs...) where {T<:AbstractNLPModelBackend}
+function build_nlp(nlp_model::T, docp::CTDirect.DOCP, x0; kwargs...) where {T<:AbstractNLPModelBackend}
     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
 end
 # ----------------------------------------------------------------------
@@ -253,11 +253,7 @@ function direct_transcription(
     x0 = DOCP_initial_guess(docp, docp_init)
 
     # build nlp
-    docp.nlp = build_nlp(nlp_model, 
-    docp, 
-    x0;
-    nlp_solver=nlp_solver,
-    kwargs...)
+    docp.nlp = build_nlp(nlp_model, docp, x0; nlp_solver=nlp_solver, kwargs...)
 
     return docp
 end
