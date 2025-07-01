@@ -28,7 +28,7 @@ macro ignore(e) :() end
     if "GPU" in ARGS
         # GPU tests only
         println("gpu tests only")
-        include("suite/test_gpu.jl")
+        include("test_gpu.jl")
     else
         # CPU: run all scripts in subfolder suite/
         println("cpu test suite")
