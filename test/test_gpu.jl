@@ -1,7 +1,6 @@
-# Test on GPU +++ split to test_gpu separate script
-
+# GPU tests
 import ExaModels
-using MadNLPGPU
+using MadNLP #GPU
 using CUDA
 
 # beam2
@@ -11,8 +10,6 @@ end
 
 println("testing: GPU with ExaModels / MadNLPGPU / CUDA")
 display = true
-
-CUDA.functional()
 
 if CUDA.functional()
     println("********** CUDA is available")
