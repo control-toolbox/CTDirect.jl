@@ -14,7 +14,7 @@ jobs:
   test-cuda:
     if: contains(github.event.pull_request.labels.*.name, 'run moonshot')
 
-    runs-on: self-hosted
+    runs-on: gpu
     continue-on-error: true
     strategy:
       matrix:
