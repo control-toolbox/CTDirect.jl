@@ -1,6 +1,6 @@
 # GPU tests
 import ExaModels
-using MadNLP #GPU
+#using MadNLPGPU
 using CUDA
 
 # beam2
