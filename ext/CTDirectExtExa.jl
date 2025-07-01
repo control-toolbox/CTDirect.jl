@@ -27,6 +27,11 @@ function CTDirect.build_nlp(
     kwargs...,
 )
 
+    # check if MadNLPGPU is loaded when using GPU backend
+    if !isnothing(exa_backend) && !CTDirect.package_loaded("MadNLPGPU")
+        error("Please load MadNLPGU for ExaModels with CUDA: julia> using MadNLPGPU")
+    end
+
     # build nlp
     # debug: (time_grid != __time_grid()) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
     build_exa = CTModels.get_build_examodel(docp.ocp)

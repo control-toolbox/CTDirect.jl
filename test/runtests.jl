@@ -23,8 +23,13 @@ using SplitApplyCombine # for flatten in some tests
 # check local test suite
 macro ignore(e) :() end
 
-@testset verbose = true showtiming = true "Test suite" begin
-    # run all scripts in subfolder suite/
-    include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
-    #include("suite/test_exa.jl")
+# run either usual test suite on CPU, or GPU tests only 
+@testset verbose = true showtiming = true "Test CTDirect" begin
+    if "GPU" in ARGS
+        # GPU tests only (moonshot workflow)
+        include("test_gpu.jl")
+    else
+        # CPU: run all scripts in subfolder suite/
+        include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
+    end
 end
