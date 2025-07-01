@@ -29,8 +29,7 @@ function CTDirect.build_nlp(
 
     # check if MadNLPGPU is loaded when using GPU backend
     if exa_backend isa CUDABackend && !CTDirect.package_loaded("MadNLPGPU")
-            error("Please load MadNLPGU for ExaModels with CUDA: julia> using MadNLPGPU")
-        end
+        error("Please load MadNLPGU for ExaModels with CUDA: julia> using MadNLPGPU")
     end
 
     # build nlp
