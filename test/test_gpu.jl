@@ -1,6 +1,6 @@
 # GPU tests
 import ExaModels
-#using MadNLPGPU
+using MadNLPGPU
 using CUDA
 
 # beam2
@@ -15,7 +15,7 @@ if CUDA.functional()
     println("********** CUDA is available")
     exa_backend = CUDA.functional() ? CUDABackend() : nothing
 else
-    println("********** CUDA is not available")
+    error("********** CUDA is not available")
     exa_backend = nothing 
 end
  
