@@ -23,8 +23,9 @@ using SplitApplyCombine # for flatten in some tests
 # check local test suite
 macro ignore(e) :() end
 
+# +++ run either usual test suite on CPU or GPU tests (moonshot workflow) 
 @testset verbose = true showtiming = true "Test suite" begin
     # run all scripts in subfolder suite/
     #include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
-    include("suite/test_pgu.jl")
+    include("suite/test_gpu.jl")
 end
