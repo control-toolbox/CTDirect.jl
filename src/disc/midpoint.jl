@@ -53,12 +53,35 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
         # OCP dynamics
         CTModels.dynamics(docp.ocp)((@view work[(offset+1):(offset+docp.dims.OCP_x)]), ts, xs, ui, v)
         # lagrange cost
-        if docp.flags.lagrange
+        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
             work[offset+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(ts, xs, ui, v)
         end
     end
 
     return work
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Compute the running cost
+"""
+function runningCost(docp::DOCP{Midpoint}, xu, v, time_grid)
+    
+    obj_lagrange = 0.
+
+    # loop over time steps
+    for i = 1:docp.time.steps
+        offset = (i-1) * docp.dims.NLP_x
+        hi = time_grid[i+1] - time_grid[i]
+        ts = 0.5 * (time_grid[i] + time_grid[i+1])
+        xs = 0.5 * (get_OCP_state_at_time_step(xu, docp, i) + get_OCP_state_at_time_step(xu, docp, i+1))
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        obj_lagrange = obj_lagrange + hi * CTModels.lagrange(docp.ocp)(ts, xs, ui, v)
+    end
+
+    return obj_lagrange
 end
 
 
@@ -87,7 +110,7 @@ function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
 
         # state equation: midpoint rule
         @views @. c[(offset+1):(offset+docp.dims.OCP_x)] = xip1 - (xi + hi * work[(offset_dyn_i+1):(offset_dyn_i+docp.dims.OCP_x)])
-        if docp.flags.lagrange
+        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
             c[offset+docp.dims.NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[offset_dyn_i+docp.dims.NLP_x])
         end
         offset += docp.dims.NLP_x

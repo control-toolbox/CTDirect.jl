@@ -213,6 +213,8 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
             zeros(dim_NLP_constraints),
             zeros(dim_NLP_constraints))
 
+        println(dim_NLP_variables, " ", dim_NLP_constraints)
+
         # call constructor with const fields
         docp = new{typeof(discretization),typeof(ocp)}(
             discretization,
@@ -339,9 +341,16 @@ Compute the objective for the DOCP problem.
 """
 function DOCP_objective(xu, docp::DOCP)
 
+    # initialization
+    if docp.flags.freet0 || docp.flags.freetf
+        time_grid = get_time_grid(xu, docp)
+    else
+        time_grid = docp.time.fixed_grid
+    end
+    v = get_OCP_variable(xu, docp)
+
     # mayer cost
     if docp.flags.mayer
-        v = get_OCP_variable(xu, docp)
         x0 = get_OCP_state_at_time_step(xu, docp, 1)
         xf = get_OCP_state_at_time_step(xu, docp, docp.time.steps+1)
         obj_mayer = CTModels.mayer(docp.ocp)(x0, xf, v)
@@ -350,12 +359,14 @@ function DOCP_objective(xu, docp::DOCP)
     end
 
     # lagrange cost
-    if !docp.flags.lagrange
-        obj_lagrange = 0.0
-    elseif docp.flags.lagrange_to_mayer
-        obj_lagrange = get_lagrange_state_at_time_step(xu, docp, docp.time.steps+1)
+    if docp.flags.lagrange
+        if docp.flags.lagrange_to_mayer
+            obj_lagrange = get_lagrange_state_at_time_step(xu, docp, docp.time.steps+1)
+        else
+            obj_lagrange = runningCost(docp, xu, v, time_grid)
+        end
     else
-        error("Lagrange cost without Mayer conversion is not supported in DOCP_Objective")
+        obj_lagrange = 0.0
     end
 
     # total cost
@@ -406,22 +417,19 @@ Set the boundary and variable constraints
 """
 function setPointConstraints!(docp::DOCP, c, xu, v)
 
-    offset = docp.dim_NLP_constraints - docp.dims.boundary_cons
-    docp.flags.lagrange && (offset = offset - 1)
-
-    # variables
-    x0 = get_OCP_state_at_time_step(xu, docp, 1)
-    xf = get_OCP_state_at_time_step(xu, docp, docp.time.steps+1)
+    # add lagrange state null initial condition at the end
+    if docp.flags.lagrange && docp.flags.lagrange_to_mayer 
+        c[docp.dim_NLP_constraints] = get_lagrange_state_at_time_step(xu, docp, 1)
+        offset = docp.dim_NLP_constraints - docp.dims.boundary_cons - 1
+    else
+        offset = docp.dim_NLP_constraints - docp.dims.boundary_cons
+    end
 
     # boundary constraints
     if docp.dims.boundary_cons > 0
+        x0 = get_OCP_state_at_time_step(xu, docp, 1)
+        xf = get_OCP_state_at_time_step(xu, docp, docp.time.steps+1)
         CTModels.boundary_constraints_nl(docp.ocp)[2]((@view c[(offset+1):(offset+docp.dims.boundary_cons)]), x0, xf, v)
-        offset = offset + docp.dims.boundary_cons
-    end
-
-    # null initial condition for lagrangian cost state
-    if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-        c[offset+1] = get_lagrange_state_at_time_step(xu, docp, 1)
     end
 end
 

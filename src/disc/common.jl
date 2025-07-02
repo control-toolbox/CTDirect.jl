@@ -120,6 +120,15 @@ function setWorkArray(docp::DOCP{<: Discretization}, xu, time_grid, v)
     return nothing
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Compute the running cost
+"""
+function runningCost(docp::DOCP{D}, xu, v, time_grid) where (D<:Discretization)
+    error("running_cost not implemented for discretization ", D)
+end
+
 
 """
 $(TYPEDSIGNATURES)

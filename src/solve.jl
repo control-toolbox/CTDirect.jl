@@ -226,7 +226,8 @@ function direct_transcription(
     grid_size=__grid_size(),
     disc_method=__disc_method(),
     time_grid=__time_grid(),
-    init=__ocp_init(),  
+    init=__ocp_init(),
+    lagrange_to_mayer=true,  
     kwargs...,
 )
 
@@ -236,7 +237,7 @@ function direct_transcription(
     if nlp_model isa ExaBackend
         docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, lagrange_to_mayer=false)
     else
-        docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
+        docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, lagrange_to_mayer=lagrange_to_mayer)
     end
 
     # set bounds in DOCP

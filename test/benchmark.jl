@@ -60,8 +60,18 @@ function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_sol
     # Note that problems may vary significantly in convergence times...  
     if target_list == :default
         target_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
-    elseif target_list == :quick
-        target_list = ["beam", "double_integrator_mintf", "fuller", "jackson", "simple_integrator", "vanderpol"]
+    elseif target_list == :lagrange
+        target_list = ["beam", 
+        "bioreactor_1day", 
+        "bioreactor_Ndays", 
+        "bolza_freetf",  
+        "double_integrator_minenergy", 
+        "fuller", 
+        #"insurance", 
+        "parametric", 
+        "robbins", 
+        "simple_integrator", 
+        "vanderpol"]
     elseif target_list == :all
         target_list = ["algal_bacterial", "beam", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "insurance", "jackson", "parametric", "robbins", "simple_integrator", "swimmer", "vanderpol"]
     elseif target_list == :hard

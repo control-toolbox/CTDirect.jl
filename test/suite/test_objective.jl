@@ -29,6 +29,8 @@ prob = bolza_freetf()
     @test objective(sol) ≈ prob.obj rtol = 1e-2
 end
 
+# +++ add here original lagrange cost (not transformed into mayer)
+
 #= +++retry with :default AD backend ?
 @def ocp begin
     v = (t0, tf) ∈ R^2, variable
@@ -45,9 +47,9 @@ end
 @testset verbose = true showtiming = true ":bolza :t0_tf_in_dyn_and_cost" begin
     sol = solve(ocp, print_level=5)
     @test sol.variable[1] ≈ 1.107 rtol=1e-2
-end
+end=#
 
-# :default backend ?
+#= :default backend ?
 @def ocp2 begin
     s ∈ [0, 1], time
     y ∈ R^2, state
