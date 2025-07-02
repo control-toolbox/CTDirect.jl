@@ -140,6 +140,7 @@ function solve(
     init=__ocp_init(),
     adnlp_backend=__adnlp_backend(),
     exa_backend=__exa_backend(),
+    lagrange_to_mayer=true,
     kwargs...,
 )
 
@@ -161,6 +162,7 @@ function solve(
         disc_method=disc_method,
         adnlp_backend=adnlp_backend,
         exa_backend=exa_backend,
+        lagrange_to_mayer=lagrange_to_mayer,
         kwargs...,
     )
 
@@ -172,6 +174,12 @@ function solve(
     return build_OCP_solution(docp, docp_solution)
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Display the details of the solving method (NLP modeller, solver, discretization...)
+"""
 function display_method(ocp, description::Symbol...; grid_size, disc_method, time_grid, kwargs...,)
 
     # complete description
