@@ -62,9 +62,9 @@ function bench(; grid_size_list=[250, 500, 1000, 2500, 5000], verbose=1, nlp_sol
         target_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
     elseif target_list == :lagrange
         target_list = ["beam", 
-        "bioreactor_1day", 
-        "bioreactor_Ndays", 
-        "bolza_freetf",  
+        #"bioreactor_1day", 
+        #"bioreactor_Ndays", 
+        #"bolza_freetf",  
         "double_integrator_minenergy", 
         "fuller", 
         #"insurance", 

@@ -213,8 +213,6 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
             zeros(dim_NLP_constraints),
             zeros(dim_NLP_constraints))
 
-        println(dim_NLP_variables, " ", dim_NLP_constraints)
-
         # call constructor with const fields
         docp = new{typeof(discretization),typeof(ocp)}(
             discretization,
