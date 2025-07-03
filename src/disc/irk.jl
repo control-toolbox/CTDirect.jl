@@ -151,6 +151,55 @@ function setWorkArray(docp::DOCP{<: GenericIRK}, xu, time_grid, v)
     return work
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Compute the running cost
+"""
+function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
+    
+    obj_lagrange = 0.
+    work_xij = similar(xu, docp.dims.OCP_x)
+    work_sumbk = similar(xu, 1)
+
+    # loop over time steps
+    for i=1:docp.time.steps
+
+        ti = time_grid[i]
+        xi = get_OCP_state_at_time_step(xu, docp, i)
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        hi = time_grid[i+1] - ti
+        work_sumbk[1] = 0.
+
+        # loop over stages
+        for j=1:docp.discretization.stage
+
+            # time at stage: t_i^j = t_i + c[j] h_i
+            cj = docp.discretization.butcher_c[j]
+            tij = ti + cj * hi
+
+            # state at stage: x_i^j = x_i + h_i sum a_jl k_i^l
+            # +++ still some allocations here
+            @views @. work_xij[1:docp.dims.OCP_x] = xi
+            for l = 1:docp.discretization.stage
+                kil = get_stagevars_at_time_step(xu, docp, i, l)
+                @views @. work_xij[1:docp.dims.OCP_x] = work_xij[1:docp.dims.OCP_x] + hi * docp.discretization.butcher_a[j, l] * kil[1:docp.dims.OCP_x]
+            end
+
+            # update sum b_j k_i^j (lagrange term)
+            work_sumbk[1] = work_sumbk[1] + docp.discretization.butcher_b[j] * CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
+
+        end
+
+        # update lagrange cost
+        obj_lagrange = obj_lagrange + hi * work_sumbk[1]
+    end
+
+    return obj_lagrange
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -207,7 +256,7 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
             # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f
             # NB. we skip the state equation here, which will be set below
             CTModels.dynamics(docp.ocp)((@view c[(offset+offset_stage_eqs+1):(offset+offset_stage_eqs+docp.dims.OCP_x)]), tij, work_xij, ui, v)
-            if docp.flags.lagrange
+            if docp.flags.lagrange && docp.flags.lagrange_to_mayer
                 c[offset+offset_stage_eqs+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
             end
             @views @. c[(offset+offset_stage_eqs+1):(offset+offset_stage_eqs+docp.dims.NLP_x)] = kij - c[(offset+offset_stage_eqs+1):(offset+offset_stage_eqs+docp.dims.NLP_x)]
@@ -217,7 +266,7 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
 
         # state equation x_i+1 = x_i + h_i sum b_j k_i^j
         @views @. c[(offset+1):(offset+docp.dims.OCP_x)] = xip1 - (xi + hi * work_sumbk[1:docp.dims.OCP_x])
-        if docp.flags.lagrange
+        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
             c[offset+docp.dims.NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work_sumbk[docp.dims.NLP_x])
         end
 
