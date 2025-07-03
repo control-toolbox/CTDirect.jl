@@ -170,7 +170,6 @@ function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
         xi = get_OCP_state_at_time_step(xu, docp, i)
         ui = get_OCP_control_at_time_step(xu, docp, i)
         hi = time_grid[i+1] - ti
-        work_sumbk[1] = 0.
 
         # loop over stages
         for j=1:docp.discretization.stage
@@ -187,8 +186,13 @@ function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
                 @views @. work_xij[1:docp.dims.OCP_x] = work_xij[1:docp.dims.OCP_x] + hi * docp.discretization.butcher_a[j, l] * kil[1:docp.dims.OCP_x]
             end
 
-            # update sum b_j k_i^j (lagrange term)
-            work_sumbk[1] = work_sumbk[1] + docp.discretization.butcher_b[j] * CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
+            # update sum b_j k_i^j (lagrange term) 
+            # split to avoid dual tag ordering error in AD
+            if j == 1
+                work_sumbk[1] = docp.discretization.butcher_b[j] * CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)            
+            else
+                work_sumbk[1] = work_sumbk[1] + docp.discretization.butcher_b[j] * CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
+            end
 
         end
 
@@ -239,6 +243,7 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
             kij = get_stagevars_at_time_step(xu, docp, i, j)
 
             # update sum b_j k_i^j (w/ lagrange term) for state equation after loop
+            # split to avoid dual tag ordering error in AD
             if j == 1
                 @views @. work_sumbk[1:docp.dims.NLP_x] = docp.discretization.butcher_b[j] * kij[1:docp.dims.NLP_x]
             else
