@@ -89,11 +89,40 @@ function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
         # OCP dynamics
         CTModels.dynamics(docp.ocp)((@view work[(offset+1):(offset+docp.dims.OCP_x)]), t, x, u, v)
         # lagrange cost
-        if docp.flags.lagrange
+        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
             work[offset+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(t, x, u, v)
         end
     end
     return work
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Compute the running cost
+"""
+function runningCost(docp::DOCP{Euler}, xu, v, time_grid)
+    
+    obj_lagrange = 0.
+
+    # loop over time steps
+    for i = 1:docp.time.steps
+        offset = (i-1) * docp.dims.NLP_x
+        # get variables at t_i or t_i+1
+        if docp.discretization._explicit
+            index = i
+        else
+            index = i+1
+        end
+        ti = time_grid[index]
+        xi = get_OCP_state_at_time_step(xu, docp, index)
+        ui = get_OCP_control_at_time_step(xu, docp, index)
+        hi = time_grid[i+1] - time_grid[i]
+        obj_lagrange = obj_lagrange + hi * CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
+    end
+
+    return obj_lagrange
 end
 
 
@@ -122,7 +151,7 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
 
         # state equation: euler rule
         @views @. c[(offset+1):(offset+docp.dims.OCP_x)] = xip1 - (xi + hi * work[(offset_dyn_i+1):(offset_dyn_i+docp.dims.OCP_x)])
-        if docp.flags.lagrange
+        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
             c[offset+docp.dims.NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[offset_dyn_i+docp.dims.NLP_x])
         end
         offset += docp.dims.NLP_x
