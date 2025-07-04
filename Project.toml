@@ -1,7 +1,7 @@
 name = "CTDirect"
 uuid = "790bbbee-bee9-49ee-8912-a9de031322d5"
 authors = ["Pierre Martinon <pierrecmartinon@gmail.com>"]
-version = "0.15.0"
+version = "0.15.1"
 
 [deps]
 CTBase = "54762871-cc72-4466-b8e8-f6c8b58076cd"
@@ -29,7 +29,7 @@ CTDirectExtMadNLP = ["MadNLP"]
 ADNLPModels = "0.8"
 CTBase = "0.16"
 CTModels = "0.6"
-CTParser = "0.4"
+CTParser = "0.5"
 CUDA = "5.8"
 DocStringExtensions = "0.9"
 ExaModels = "0.8"
