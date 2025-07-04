@@ -96,24 +96,18 @@ function bench(;verbose=1,
 
     # solve problem list for all grid sizes
     verbose > 2 && println("\nGrid size list: ", grid_size_list)
-    t_bench = []
-    i_bench = []
-    s_bench = []
+    t_bench = zeros(Float64, (length(problem_list), length(grid_size_list)))
+    i_bench = zeros(Int, (length(problem_list), length(grid_size_list)))
+    s_bench = zeros(Bool, (length(problem_list), length(grid_size_list)))
+    i = 1
     for problem in problem_list
         verbose > 1 && @printf("\nTesting problem %-20s for grid size ", problem[:name])
-        t_list = []
-        i_list = []
-        s_list = []
+        j = 1
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
             time, iter, success = bench_problem(problem; grid_size=grid_size, verbose=verbose-1, nlp_solver=nlp_solver, kwargs...)
-            append!(t_list, time)
-            append!(i_list, iter)
-            append!(s_list, success)
+            t_bench[i][j] = time
         end
-        push!(t_bench, t_list)
-        push!(i_bench, i_list)
-        push!(s_bench, s_list)
     end
 
     # display: 1 row per problem with (t,i,s) for each grid size in columns
