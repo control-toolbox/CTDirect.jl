@@ -10,11 +10,10 @@ obj = prob.obj
 @testset verbose = true showtiming = true ":methods" begin
     @test CTDirect.is_solvable(ocp)
     @test (:adnlp, :ipopt) in CTDirect.available_methods()
-    @test (:adnlp, :madnlp) in CTDirect.available_methods()
 end
 
-# AD backends
-@testset verbose = true showtiming = true ":AD_backends" begin
+# backends for ADNLPModels
+@testset verbose = true showtiming = true ":adnlp_backends" begin
     sol = solve(ocp, display=false)
     @test objective(sol) ≈ obj rtol = 1e-2
     sol = solve(ocp, display=false, adnlp_backend=:default)

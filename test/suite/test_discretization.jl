@@ -73,9 +73,9 @@ end
     @test objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display=false, disc_method=:euler_implicit)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_2)
+    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_2, grid_size=100)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_3)
+    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_3, grid_size=100)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
 end
 
@@ -89,9 +89,9 @@ end
     @test objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display=false, disc_method=:euler_implicit)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_2)
+    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_2, grid_size=100)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_3)
+    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_3, grid_size=100)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
 end
 
@@ -105,8 +105,8 @@ end
     @test objective(sol) ≈ prob.obj rtol = 1e-2
     sol = solve(prob.ocp, display=false, disc_method=:euler_implicit)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_2)
+    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_2, grid_size=100)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_3)
+    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_3, grid_size=100)
     @test objective(sol) ≈ prob.obj rtol = 1e-2
 end
