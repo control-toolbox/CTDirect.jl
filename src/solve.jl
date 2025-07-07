@@ -262,7 +262,7 @@ function direct_transcription(
     x0 = DOCP_initial_guess(docp, docp_init)
 
     # build nlp
-    docp.nlp = build_nlp(nlp_model, docp, x0; nlp_solver=nlp_solver, kwargs...)
+    docp.nlp = build_nlp(nlp_model, docp, x0; nlp_solver=nlp_solver, grid_size=grid_size, disc_method=disc_method, kwargs...)
 
     return docp
 end

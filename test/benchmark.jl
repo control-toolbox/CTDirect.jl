@@ -1,8 +1,8 @@
 # Benchmark and profiling
+using CTBase
 using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
 using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
-using CTParser: CTParser, @def, prefix!
-prefix!(:CTModels) # tell CTParser def macro to use CTModels instead of OptimalControl
+using CTParser: CTParser, @def
 
 using ADNLPModels
 using NLPModelsIpopt
@@ -101,15 +101,14 @@ function bench_problem(problem; verbose=1, nlp_solver, kwargs...)
 
     # check (will also precompile)
     time = @elapsed sol = solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, kwargs...)
-    +++ should test sol.success too !
-    if !isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj], rtol=5e-2)
-        verbose > 1 && println("\nObjective mismatch for ", problem[:name], ": ", objective(sol), " instead of ", problem[:obj])
+    if CTModels.successful(sol) && !isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj], rtol=5e-2)
         success = false
-        iter = iterations(sol)     
+        iter = iterations(sol)
+        verbose > 1 && println("\nFailed for ", problem[:name], ": ", objective(sol), " vs ", problem[:obj], " iter ", iter)
     else
-        verbose > 1 && @printf("\n%-20s: %4d iter %5.2f obj ", problem[:name], iterations(sol), objective(sol))
         success = true
         iter = iterations(sol)
+        verbose > 1 && @printf("\n%-20s: %4d iter %5.2f obj ", problem[:name], iterations(sol), objective(sol))
         # time
         time = @belapsed solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, $kwargs...)
         verbose > 1 && @printf("%7.2f s\n", time)
@@ -188,17 +187,47 @@ function bench(;verbose=1,
                 if s_bench[i,j]
                     @printf("%6.2f(%3d) ", t_bench[i,j], i_bench[i,j])
                 else
-                    @printf("  FAILED(%3d) ", i_bench[i,j])
+                    @printf("  FAIL(%3d) ", i_bench[i,j])
                 end
             end
             i = i + 1
         end
     end
-    #+++total, quid des fail ?
-
-    @printf("\nBENCHMARK           ")
+    
+    # summary
+    @printf("\nSUCCESS %2d/%2d       \n", sum(s_bench), length(s_bench))
     for j=1:length(grid_size_list)
         @printf("%6.2f(%3d) ", sum(t_bench[:,j]), sum(i_bench[:,j]))
     end
     return
+end
+
+# custom bench calls
+function bench_custom()
+    disc_list = [
+        :euler,
+        :euler_implicit,
+        :trapeze,
+        :midpoint,
+        #:gauss_legendre_2,
+        #:gauss_legendre_3
+    ]
+
+    target_list = :lagrange_hard
+    grid_size_list=[250, 500, 1000, 2500]
+
+    for disc in disc_list
+        lagrange_to_mayer=true
+        @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
+        println(lagrange_to_mayer, " Grid ", grid_size_list)
+        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=1, lagrange_to_mayer=lagrange_to_mayer)
+    end
+
+    for disc in disc_list
+        lagrange_to_mayer=false
+        @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
+        println(lagrange_to_mayer, " Grid ", grid_size_list)
+        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=1, lagrange_to_mayer=lagrange_to_mayer)
+    end
+
 end
