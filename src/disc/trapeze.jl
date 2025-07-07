@@ -54,11 +54,52 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
         # OCP dynamics
         CTModels.dynamics(docp.ocp)((@view work[(offset+1):(offset+docp.dims.OCP_x)]), ti, xi, ui, v)
         # lagrange cost
-        if docp.flags.lagrange
+        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
             work[offset+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
         end
     end
     return work
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Compute the running cost
+"""
+function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
+    
+    obj_lagrange = 0.
+
+    # sum_i=1..N h_i * (l_i + l_i+1) / 2 = (h_1 / 2) l_1 + sum_i=2..N (h_i-1+h_i)/2 * l_i + (h_N / 2) l_N+1 
+
+    # first term
+    i = 1
+    ti = time_grid[i]
+    xi = get_OCP_state_at_time_step(xu, docp, i)
+    ui = get_OCP_control_at_time_step(xu, docp, i)
+    h = time_grid[i+1] - time_grid[i]
+    obj_lagrange = obj_lagrange + h / 2. * CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
+
+    # loop over time steps
+    for i = 2:docp.time.steps
+        offset = (i-1) * docp.dims.NLP_x
+        ti = time_grid[i]
+        xi = get_OCP_state_at_time_step(xu, docp, i)
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        h2 = time_grid[i+1] - time_grid[i-1]
+        obj_lagrange = obj_lagrange + h2 / 2. * CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
+    end
+
+    # last term
+    i = docp.time.steps+1
+    ti = time_grid[i]
+    xi = get_OCP_state_at_time_step(xu, docp, i)
+    ui = get_OCP_control_at_time_step(xu, docp, i)
+    h = time_grid[i] - time_grid[i-1]
+    obj_lagrange = obj_lagrange + h / 2. * CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
+
+    return obj_lagrange
 end
 
 
@@ -91,7 +132,7 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         # trapeze rule (no allocations ^^)
         @views @. c[(offset+1):(offset+docp.dims.OCP_x)] = xip1 - (xi + half_hi * (work[(offset_dyn_i+1):(offset_dyn_i+docp.dims.OCP_x)] + work[(offset_dyn_ip1+1):(offset_dyn_ip1+docp.dims.OCP_x)]))
 
-        if docp.flags.lagrange
+        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
             c[offset+docp.dims.NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + half_hi * (work[offset_dyn_i+docp.dims.NLP_x] + work[offset_dyn_ip1+docp.dims.NLP_x]))
         end
         offset += docp.dims.NLP_x
