@@ -101,9 +101,9 @@ function bench_problem(problem; verbose=1, nlp_solver, kwargs...)
 
     # check (will also precompile)
     time = @elapsed sol = solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, kwargs...)
-    if CTModels.successful(sol) && !isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj], rtol=5e-2)
+    if !CTModels.successful(sol) || (!isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj], rtol=5e-2))
         success = false
-        iter = iterations(sol)
+        iter = min(iterations(sol), 999) # to fit 3-digit print 
         verbose > 1 && println("\nFailed for ", problem[:name], ": ", objective(sol), " vs ", problem[:obj], " iter ", iter)
     else
         success = true
@@ -163,7 +163,7 @@ function bench(;verbose=1,
     s_bench = zeros(Bool, (length(problem_list), length(grid_size_list)))
     i = 1
     for problem in problem_list
-        verbose > 1 && @printf("\nTesting problem %-20s for grid size ", problem[:name])
+        verbose > 1 && @printf("\nTesting problem %-15s for grid size ", problem[:name])
         j = 1
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
@@ -182,7 +182,7 @@ function bench(;verbose=1,
     if verbose > 0
         i = 1
         for problem in problem_list
-            @printf("\n%-20s", problem[:name])
+            @printf("\n%-15s", problem[:name])
             for j=1:length(grid_size_list)
                 if s_bench[i,j]
                     @printf("%6.2f(%3d) ", t_bench[i,j], i_bench[i,j])
@@ -195,10 +195,11 @@ function bench(;verbose=1,
     end
     
     # summary
-    @printf("\nSUCCESS %2d/%2d       \n", sum(s_bench), length(s_bench))
+    @printf("\nSUCCESS %2d/%2d  ", sum(s_bench), length(s_bench))
     for j=1:length(grid_size_list)
         @printf("%6.2f(%3d) ", sum(t_bench[:,j]), sum(i_bench[:,j]))
     end
+    println("\n")
     return
 end
 
@@ -209,25 +210,26 @@ function bench_custom()
         :euler_implicit,
         :trapeze,
         :midpoint,
-        #:gauss_legendre_2,
-        #:gauss_legendre_3
+        :gauss_legendre_2,
+        :gauss_legendre_3
     ]
 
     target_list = :lagrange_hard
-    grid_size_list=[250, 500, 1000, 2500]
+    grid_size_list=[250, 500, 1000, 2500, 5000]
+
 
     for disc in disc_list
         lagrange_to_mayer=true
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
         bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=1, lagrange_to_mayer=lagrange_to_mayer)
-    end
+        flush(stdout)
 
-    for disc in disc_list
         lagrange_to_mayer=false
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
         bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=1, lagrange_to_mayer=lagrange_to_mayer)
+        flush(stdout)
     end
 
 end
