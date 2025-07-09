@@ -163,7 +163,7 @@ function bench(;verbose=1,
     s_bench = zeros(Bool, (length(problem_list), length(grid_size_list)))
     i = 1
     for problem in problem_list
-        verbose > 1 && @printf("\nTesting problem %-15s for grid size ", problem[:name])
+        verbose > 1 && @printf("\nTesting problem %-17s for grid size ", problem[:name])
         j = 1
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
@@ -182,7 +182,7 @@ function bench(;verbose=1,
     if verbose > 0
         i = 1
         for problem in problem_list
-            @printf("\n%-15s", problem[:name])
+            @printf("\n%-17s", problem[:name])
             for j=1:length(grid_size_list)
                 if s_bench[i,j]
                     @printf("%6.2f(%3d) ", t_bench[i,j], i_bench[i,j])
@@ -195,7 +195,7 @@ function bench(;verbose=1,
     end
     
     # summary
-    @printf("\nSUCCESS %2d/%2d  ", sum(s_bench), length(s_bench))
+    @printf("\nSUCCESS %2d/%2d    ", sum(s_bench), length(s_bench))
     for j=1:length(grid_size_list)
         @printf("%6.2f(%3d) ", sum(t_bench[:,j]), sum(i_bench[:,j]))
     end

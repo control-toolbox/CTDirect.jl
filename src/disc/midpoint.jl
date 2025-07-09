@@ -22,7 +22,7 @@ struct Midpoint <: Discretization
         state_stage_eqs_block = dim_NLP_x
         step_pathcons_block = dim_path_cons
 
-        # NLP variables size ([state, control, stage]_1..N, final state, variable)
+        # NLP variables size ([state, control]_1..N, final state, variable)
         dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
 
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
