@@ -141,7 +141,7 @@ function bench(;verbose=1,
         "bioreactor_1day", 
         "bioreactor_Ndays", 
         "bolza_freetf",  
-        "insurance", 
+        #"insurance", only converge when final control is present (mixed path constraint) 
         "parametric", 
         "robbins"]
     elseif target_list == :all
@@ -215,20 +215,20 @@ function bench_custom()
     ]
 
     target_list = :lagrange_hard
-    grid_size_list=[250, 500, 1000, 2500, 5000]
-
+    grid_size_list=[250, 500, 1000, 2500]
+    verbose = 0
 
     for disc in disc_list
         lagrange_to_mayer=true
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
-        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=1, lagrange_to_mayer=lagrange_to_mayer)
+        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
         flush(stdout)
 
         lagrange_to_mayer=false
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
-        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=1, lagrange_to_mayer=lagrange_to_mayer)
+        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
         flush(stdout)
     end
 
