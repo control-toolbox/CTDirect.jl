@@ -91,7 +91,7 @@ end
 # verbose <= 1: no output
 # verbose > 1: print summary (iter, obj, time)
 # verbose > 2: print NLP iterations also
-function bench_problem(problem; verbose=1, nlp_solver, kwargs...)
+function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
 
     if verbose > 2
         display = true
@@ -100,17 +100,17 @@ function bench_problem(problem; verbose=1, nlp_solver, kwargs...)
     end
 
     # check (will also precompile)
-    time = @elapsed sol = solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, kwargs...)
-    if CTModels.successful(sol) && !isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj], rtol=5e-2)
+    time = @elapsed sol = solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, grid_size=grid_size, kwargs...)
+    if !CTModels.successful(sol) || (!isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj], rtol=5e-2))
         success = false
-        iter = iterations(sol)
-        verbose > 1 && println("\nFailed for ", problem[:name], ": ", objective(sol), " vs ", problem[:obj], " iter ", iter)
+        iter = min(iterations(sol), 999) # to fit 3-digit print 
+        println("Failed ", problem[:name], " for grid size ", grid_size, " at iter ", iter, " obj ", objective(sol), " vs ", problem[:obj])
     else
         success = true
         iter = iterations(sol)
-        verbose > 1 && @printf("\n%-20s: %4d iter %5.2f obj ", problem[:name], iterations(sol), objective(sol))
+        verbose > 1 && @printf("%-20s: %4d iter %5.2f obj ", problem[:name], iterations(sol), objective(sol))
         # time
-        time = @belapsed solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, $kwargs...)
+        time = @belapsed solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, grid_size=$grid_size, $kwargs...)
         verbose > 1 && @printf("%7.2f s\n", time)
     end
 
@@ -141,15 +141,28 @@ function bench(;verbose=1,
         "bioreactor_1day", 
         "bioreactor_Ndays", 
         "bolza_freetf",  
-        "insurance", 
+        #"insurance", only converge when final control is present (mixed path constraint) 
         "parametric", 
         "robbins"]
+    elseif target_list == :lagrange_all
+        target_list = [
+        "beam",
+        "bioreactor_1day", 
+        "bioreactor_Ndays", 
+        "bolza_freetf",  
+        "double_integrator_e", 
+        "fuller",
+        "parametric", 
+        "robbins", 
+        "simple_integrator", 
+        "vanderpol"]
+
     elseif target_list == :all
         target_list = ["algal_bacterial", "beam", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "insurance", "jackson", "parametric", "robbins", "simple_integrator", "swimmer", "vanderpol"]
     elseif target_list == :hard
         target_list = ["algal_bacterial", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "insurance", "swimmer"]
     end
-    verbose > 2 && println("\nProblem list: ", target_list)
+    verbose > 2 && println("Problem list: ", target_list)
     problem_list = []
     for problem_name in target_list
         ocp_data = getfield(Main, Symbol(problem_name))()
@@ -157,13 +170,13 @@ function bench(;verbose=1,
     end
 
     # solve problem list for all grid sizes
-    verbose > 2 && println("\nGrid size list: ", grid_size_list)
+    verbose > 2 && println("Grid size list: ", grid_size_list)
     t_bench = zeros(Float64, (length(problem_list), length(grid_size_list)))
     i_bench = zeros(Int, (length(problem_list), length(grid_size_list)))
     s_bench = zeros(Bool, (length(problem_list), length(grid_size_list)))
     i = 1
     for problem in problem_list
-        verbose > 1 && @printf("\nTesting problem %-20s for grid size ", problem[:name])
+        verbose > 1 && @printf("Testing problem %-17s for grid size ", problem[:name])
         j = 1
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
@@ -174,6 +187,7 @@ function bench(;verbose=1,
             s_bench[i,j] = success
             j = j + 1
         end
+        verbose > 1 && println("")
         i = i + 1
     end
 
@@ -182,7 +196,7 @@ function bench(;verbose=1,
     if verbose > 0
         i = 1
         for problem in problem_list
-            @printf("\n%-20s", problem[:name])
+            @printf("%-17s", problem[:name])
             for j=1:length(grid_size_list)
                 if s_bench[i,j]
                     @printf("%6.2f(%3d) ", t_bench[i,j], i_bench[i,j])
@@ -190,15 +204,17 @@ function bench(;verbose=1,
                     @printf("  FAIL(%3d) ", i_bench[i,j])
                 end
             end
+            println("")
             i = i + 1
         end
     end
     
     # summary
-    @printf("\nSUCCESS %2d/%2d       \n", sum(s_bench), length(s_bench))
+    @printf("SUCCESS %2d/%2d    ", sum(s_bench), length(s_bench))
     for j=1:length(grid_size_list)
         @printf("%6.2f(%3d) ", sum(t_bench[:,j]), sum(i_bench[:,j]))
     end
+    println("")
     return
 end
 
@@ -209,25 +225,28 @@ function bench_custom()
         :euler_implicit,
         :trapeze,
         :midpoint,
-        #:gauss_legendre_2,
-        #:gauss_legendre_3
+        :gauss_legendre_2,
+        :gauss_legendre_3
     ]
 
     target_list = :lagrange_hard
     grid_size_list=[250, 500, 1000, 2500]
+    verbose = 0
 
     for disc in disc_list
         lagrange_to_mayer=true
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
-        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=1, lagrange_to_mayer=lagrange_to_mayer)
-    end
+        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
+        flush(stdout)
+        println("")
 
-    for disc in disc_list
         lagrange_to_mayer=false
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
-        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=1, lagrange_to_mayer=lagrange_to_mayer)
+        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
+        flush(stdout)
+        println("")
     end
 
 end

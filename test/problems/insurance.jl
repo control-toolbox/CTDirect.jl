@@ -1,4 +1,8 @@
 # Insurance (non audit) example from Bocop
+# NB. Only seems to converge with trapeze discretization...
+# could it be because we have a distinct final control u(tf) ?
+# try to add final control to midpoint for instance ? >>> DOES CHANGE CV
+# problem indeed seems linked to the mixed constraint evaluation at tf
 
 function insurance()
     @def insurance begin
@@ -26,13 +30,13 @@ function insurance()
         U = u[4] # Utility
         dUdR = u[5]
 
-        0 ≤ I(t) ≤ 1.5
-        0 ≤ m(t) ≤ 1.5
+        0 ≤ I(t) ≤ 1.1
+        0 ≤ m(t) ≤ 1.1
         0 ≤ h(t) ≤ 25
         0 ≤ R(t) ≤ Inf
         0 ≤ H(t) ≤ Inf
         0 ≤ U(t) ≤ Inf
-        0.001 ≤ dUdR(t) ≤ Inf
+        1e-8 ≤ dUdR(t) ≤ Inf
         0 ≤ P ≤ Inf
 
         x(0) == [0, 0.001, 0]
