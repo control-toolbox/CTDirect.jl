@@ -141,7 +141,7 @@ function bench(;verbose=1,
         "bioreactor_1day", 
         "bioreactor_Ndays", 
         "bolza_freetf",  
-        #"insurance", only converge when final control is present (mixed path constraint) 
+        "insurance", #only converge when final control is present (mixed path constraint) 
         "parametric", 
         "robbins"]
     elseif target_list == :lagrange_all
@@ -221,17 +221,17 @@ end
 # custom bench calls
 function bench_custom()
     disc_list = [
-        :euler,
-        :euler_implicit,
-        :trapeze,
+        #:euler,
+        #:euler_implicit,
+        #:trapeze,
         :midpoint,
-        :gauss_legendre_2,
-        :gauss_legendre_3
+        #:gauss_legendre_2,
+        #:gauss_legendre_3
     ]
 
     target_list = :lagrange_hard
     grid_size_list=[250, 500, 1000, 2500]
-    verbose = 0
+    verbose = 1
 
     for disc in disc_list
         lagrange_to_mayer=true

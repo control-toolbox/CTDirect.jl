@@ -23,12 +23,12 @@ struct Midpoint <: Discretization
         step_pathcons_block = dim_path_cons
 
         # NLP variables size ([state, control]_1..N, final state, variable)
-        dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
+        dim_NLP_variables = (dim_NLP_steps + 1) * step_variables_block + dim_NLP_v
 
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons
 
-        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", step_variables_block, state_stage_eqs_block, step_pathcons_block, false)
+        disc = new("Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic", step_variables_block, state_stage_eqs_block, step_pathcons_block, true)
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
@@ -49,12 +49,12 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
         offset = (i-1) * docp.dims.NLP_x
         ts = 0.5 * (time_grid[i] + time_grid[i+1])
         xs = 0.5 * (get_OCP_state_at_time_step(xu, docp, i) + get_OCP_state_at_time_step(xu, docp, i+1))
-        ui = get_OCP_control_at_time_step(xu, docp, i)
+        us = 0.5 * (get_OCP_control_at_time_step(xu, docp, i) + get_OCP_control_at_time_step(xu, docp, i+1))
         # OCP dynamics
-        CTModels.dynamics(docp.ocp)((@view work[(offset+1):(offset+docp.dims.OCP_x)]), ts, xs, ui, v)
+        CTModels.dynamics(docp.ocp)((@view work[(offset+1):(offset+docp.dims.OCP_x)]), ts, xs, us, v)
         # lagrange cost
         if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-            work[offset+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(ts, xs, ui, v)
+            work[offset+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(ts, xs, us, v)
         end
     end
 
@@ -77,8 +77,8 @@ function runningCost(docp::DOCP{Midpoint}, xu, v, time_grid)
         hi = time_grid[i+1] - time_grid[i]
         ts = 0.5 * (time_grid[i] + time_grid[i+1])
         xs = 0.5 * (get_OCP_state_at_time_step(xu, docp, i) + get_OCP_state_at_time_step(xu, docp, i+1))
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        obj_lagrange = obj_lagrange + hi * CTModels.lagrange(docp.ocp)(ts, xs, ui, v)
+        us = 0.5 * (get_OCP_control_at_time_step(xu, docp, i) + get_OCP_control_at_time_step(xu, docp, i+1))
+        obj_lagrange = obj_lagrange + hi * CTModels.lagrange(docp.ocp)(ts, xs, us, v)
     end
 
     return obj_lagrange
