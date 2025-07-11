@@ -1,9 +1,9 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: "[Feature] title"
+title: "[Feature] "
 labels: enhancement
-assignees: joseph-gergaud, PierreMartinon
+assignees: PierreMartinon
 
 ---
 

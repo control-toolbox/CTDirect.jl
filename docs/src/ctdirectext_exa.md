@@ -1,17 +1,17 @@
-# CTDirect API
+# CTDirectExtExa
 
 ## Index
 
 ```@index
-Pages   = ["api.md"]
-Modules = [CTDirect]
+Pages   = ["ctdirectext_exa.md"]
+Modules = [CTDirect, CTDirectExtExa]
 Order = [:module, :constant, :type, :function, :macro]
 ```
 
 ## Documentation
 
 ```@autodocs
-Modules = [CTDirect]
+Pages = ["CTDirectExtExa.jl"]
+Modules = [CTDirectExtExa]
 Order = [:module, :constant, :type, :function, :macro]
-Private = false
 ```

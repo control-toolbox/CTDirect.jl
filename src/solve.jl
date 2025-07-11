@@ -12,7 +12,93 @@ function available_methods()
     algorithms = CTBase.add(algorithms, (:adnlp, :ipopt))
     algorithms = CTBase.add(algorithms, (:adnlp, :madnlp))
     algorithms = CTBase.add(algorithms, (:adnlp, :knitro))
+    algorithms = CTBase.add(algorithms, (:exa, :ipopt))
+    algorithms = CTBase.add(algorithms, (:exa, :madnlp))
+    algorithms = CTBase.add(algorithms, (:exa, :knitro))
     return algorithms
+end
+
+# ----------------------------------------------------------------------
+# Packages associated to Symbols: used for display
+const PACKAGES = Dict(
+    # NLP solver
+    :ipopt  => :NLPModelsIpopt,
+    :madnlp => :MadNLP,
+    :knitro => :NLPModelsKnitro,
+    # NLP modeller
+    :adnlp  => :ADNLPModels,
+    :exa    => :ExaModels,
+)
+
+# ----------------------------------------------------------------------
+# EXTENSIONS
+
+# NLP solver backend extensions 
+abstract type AbstractNLPSolverBackend end
+struct IpoptBackend <: AbstractNLPSolverBackend end
+struct MadNLPBackend <: AbstractNLPSolverBackend end
+struct KnitroBackend <: AbstractNLPSolverBackend end
+
+# NLP model backend extensions
+abstract type AbstractNLPModelBackend end
+struct ADNLPBackend <: AbstractNLPModelBackend end
+struct ExaBackend <: AbstractNLPModelBackend end
+
+## Extensions and weak dependencies (see ext/CTDirectExt***)
+const WEAKDEPS = Dict{Type, Any}(
+    # NLP solver
+    IpoptBackend  => [:NLPModelsIpopt],
+    MadNLPBackend => [:MadNLP],
+    KnitroBackend => [:NLPModelsKnitro],
+    # NLP modeller
+    ADNLPBackend  => [:ADNLPModels],
+    ExaBackend    => [:ExaModels],
+)
+
+# solver
+function solve_docp(solver_backend::T, docp::CTDirect.DOCP; kwargs...) where {T<:AbstractNLPSolverBackend}
+    throw(CTBase.ExtensionError(WEAKDEPS[T]...))
+end
+
+# modeller
+function build_nlp(nlp_model::T, docp::CTDirect.DOCP, x0; kwargs...) where {T<:AbstractNLPModelBackend}
+    throw(CTBase.ExtensionError(WEAKDEPS[T]...))
+end
+# ----------------------------------------------------------------------
+
+"""
+$(TYPEDSIGNATURES)
+
+Parse problem description to retrieve NLP model and solver choice
+- NLP solver: `ipopt`, `madnlp` or `knitro` 
+- NLP model: `:adnlp` or `:exa`
+"""
+function parse_description(description)
+
+    # default: Ipopt, ADNLPModels
+    method = CTBase.complete(description; descriptions=available_methods())
+
+    # get NLP solver choice
+    if :ipopt ∈ method
+        nlp_solver = CTDirect.IpoptBackend()
+    elseif :madnlp ∈ method
+        nlp_solver = CTDirect.MadNLPBackend()
+    elseif :knitro ∈ method
+        nlp_solver = CTDirect.KnitroBackend()
+    else
+        error("no known solver (:ipopt, :madnlp, :knitro) in method", method)
+    end
+
+    # get NLP model choice
+    if :adnlp ∈ method
+        nlp_model = CTDirect.ADNLPBackend()
+    elseif :exa ∈ method
+        nlp_model = CTDirect.ExaBackend()
+    else
+        error("no known model (:adnlp, :exa) in method", method)
+    end 
+
+    return nlp_solver, nlp_model
 end
 
 
@@ -22,8 +108,8 @@ $(TYPEDSIGNATURES)
 Solve an OCP with a direct method
 
 # Arguments
-* ocp: optimal control problem as defined in `CTBase`
-* [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
+* ocp: optimal control problem as defined in `CTModels`
+* [description]: set the NLP model ([`:adnlp`] or `exa`) and / or solver ([`:ipopt`], :madnlp or :knitro)
 
 # Keyword arguments (optional)
 * `display`: ([true], false) will disable output if set to false
@@ -31,9 +117,18 @@ Solve an OCP with a direct method
 * `disc_method`: discretization method ([`:trapeze`], `:midpoint`, `gauss_legendre_2`)
 * `time_grid`: explicit time grid (can be non uniform)
 * `init`: info for the starting guess (values or existing solution)
-* `adnlp_backend`: backend for automatic differentiation in ADNLPModels ([`:optimized`], `:manual`, `:default`)
 
-All further keywords are passed to the inner call of `solve_docp`
+Other keywords are passed down to the NLP modeler and solver.
+
+# Result: a continuous solution of the original OCP, with main features
+* `objective(sol)`: value of the objective
+* `state(sol)`, `control(sol)`: functions for state and control variables (trajectory)
+* `variable(sol)`: optimization variables if any (e.g. free final time)
+* `successful(sol)`: boolean indicating successful convergence of the NLP solver
+* `status(sol)`: symbol for the return code of the NLP solver
+* `message(sol)`: string with specific info from the NLP solver, if any
+* `constraints_violation(sol)`: primal feasibility at the solution
+* `iterations(sol)`: number of iterations 
 """
 function solve(
     ocp::CTModels.Model,
@@ -44,35 +139,36 @@ function solve(
     time_grid=__time_grid(),
     init=__ocp_init(),
     adnlp_backend=__adnlp_backend(),
+    exa_backend=__exa_backend(),
+    lagrange_to_mayer=true,
     kwargs...,
 )
 
-    # get solver choice
-    method = CTBase.complete(description; descriptions=available_methods())
-    if :ipopt ∈ method
-        solver_backend = CTDirect.IpoptBackend()
-    elseif :madnlp ∈ method
-        solver_backend = CTDirect.MadNLPBackend()
-    elseif :knitro ∈ method
-        solver_backend = CTDirect.KnitroBackend()
-    else
-        error("no known solver in method", method)
-    end
+    # display infos about the chosen method
+    display && display_method(ocp, description...; 
+        grid_size=grid_size,
+        time_grid=time_grid,
+        disc_method=disc_method,
+        kwargs...)
 
-    # build discretized OCP, including initial guess
-    docp, nlp = direct_transcription(
+    # build discretized optimal control problem (DOCP)
+    # NB. this includes the initial guess for the resulting NLP
+    docp = direct_transcription(
         ocp,
-        description;
+        description...;
         init=init,
         grid_size=grid_size,
         time_grid=time_grid,
         disc_method=disc_method,
         adnlp_backend=adnlp_backend,
-        solver_backend=solver_backend
+        exa_backend=exa_backend,
+        lagrange_to_mayer=lagrange_to_mayer,
+        kwargs...,
     )
 
-    # solve DOCP
-    docp_solution = CTDirect.solve_docp(solver_backend, docp, nlp; display=display, kwargs...)
+    # get NLP solver choice and solve DOCP
+    nlp_solver, nlp_model = parse_description(description)
+    docp_solution = CTDirect.solve_docp(nlp_solver, docp; display=display, kwargs...)
 
     # build and return OCP solution
     return build_OCP_solution(docp, docp_solution)
@@ -82,20 +178,55 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Discretize an optimal control problem into a nonlinear optimization problem (ie direct transcription)
+Display the details of the solving method (NLP modeller, solver, discretization...)
+"""
+function display_method(ocp, description::Symbol...; grid_size, disc_method, time_grid, kwargs...,)
+
+    # complete description
+    method = CTBase.complete(description; descriptions=available_methods())
+
+    #
+    print("▫ The optimal control problem is solved with ")
+    printstyled("CTDirect", color = :black, bold = true)
+    print(" version v$(version()).", "\n\n", "   ┌─ The NLP is modelled with ")
+    printstyled(PACKAGES[method[1]], color = :black, bold = true)
+    print(" and solved with ")
+    printstyled(PACKAGES[method[2]], color = :black, bold = true)
+    println(".")
+    println("   │")
+
+    #
+    time = DOCPtime(ocp, grid_size, time_grid)
+    N = time.steps
+
+    println("   ├─ Number of time steps⋅: ", N)
+    println("   └─ Discretisation scheme: ", disc_method)
+	println("")
+
+    # for ipopt
+    if !(:print_level ∈ keys(kwargs) && kwargs[:print_level] != 5)
+        print("▫ ")
+    end
+
+    return nothing
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Discretize an optimal control problem into a nonlinear optimization problem.
 
 # Arguments
 * ocp: optimal control problem as defined in `CTModels`
-* [description]: can specifiy for instance the NLP model and / or solver (:ipopt, :madnlp or :knitro)
+* [description]: set the NLP model ([`:adnlp`] or `exa`) and / or solver ([`:ipopt`], :madnlp or :knitro)
 
 # Keyword arguments (optional)
 * `grid_size`: number of time steps for the discretized problem ([250])
 * `disc_method`: discretization method ([`:trapeze`], `:euler`, `:euler_implicit`, `:midpoint`, `gauss_legendre_2`, `gauss_legendre_3`)
 * `time_grid`: explicit time grid (can be non uniform)
 * `init`: info for the starting guess (values as named tuple or existing solution)
-* `adnlp_backend`: backend for automatic differentiation in ADNLPModels ([`:optimized`], `:manual`, `:default`)
-* show_time: (:true, [:false]) show timing details from ADNLPModels
 
+Other kewwords arguments are passed down to the NLP modeler
 """
 function direct_transcription(
     ocp::CTModels.Model,
@@ -104,14 +235,18 @@ function direct_transcription(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
-    adnlp_backend=__adnlp_backend(),
-    solver_backend=nothing,
-    show_time=false,
-    matrix_free=false
+    lagrange_to_mayer=true,  
+    kwargs...,
 )
 
+    nlp_solver, nlp_model = parse_description(description)
+
     # build DOCP
-    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
+    if nlp_model isa ExaBackend
+        docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, lagrange_to_mayer=false)
+    else
+        docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, lagrange_to_mayer=lagrange_to_mayer)
+    end
 
     # set bounds in DOCP
     variables_bounds!(docp)
@@ -126,79 +261,10 @@ function direct_transcription(
     )
     x0 = DOCP_initial_guess(docp, docp_init)
 
-    # redeclare objective and constraints functions
-    f = x -> DOCP_objective(x, docp)
-    c! = (c, x) -> DOCP_constraints!(c, x, docp)
+    # build nlp
+    docp.nlp = build_nlp(nlp_model, docp, x0; nlp_solver=nlp_solver, grid_size=grid_size, disc_method=disc_method, kwargs...)
 
-    # call NLP problem constructor
-    if adnlp_backend == :manual
-
-        # build sparsity pattern
-        J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Jacobian_pattern(docp))
-        H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, DOCP_Hessian_pattern(docp))
-
-        # build NLP with given patterns; disable unused backends according to solver info
-        if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
-            nlp = ADNLPModel!(
-                f,
-                x0,
-                docp.bounds.var_l, docp.bounds.var_u,
-                c!,
-                docp.bounds.con_l, docp.bounds.con_u,
-                gradient_backend=ADNLPModels.ReverseDiffADGradient,
-                jacobian_backend=J_backend,
-                hessian_backend=H_backend,
-                hprod_backend=ADNLPModels.EmptyADbackend,
-                jtprod_backend=ADNLPModels.EmptyADbackend,
-                jprod_backend=ADNLPModels.EmptyADbackend,
-                ghjvprod_backend=ADNLPModels.EmptyADbackend,
-                show_time=show_time,
-                #excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend]
-            )
-        else
-            nlp = ADNLPModel!(
-                f,
-                x0,
-                docp.bounds.var_l, docp.bounds.var_u,
-                c!,
-                docp.bounds.con_l, docp.bounds.con_u,
-                gradient_backend=ADNLPModels.ReverseDiffADGradient,
-                jacobian_backend=J_backend,
-                hessian_backend=H_backend,
-                show_time=show_time,
-            )
-        end
-    else
-        # build NLP; disable unused backends according to solver info
-        if (solver_backend isa IpoptBackend || solver_backend isa MadNLPBackend || solver_backend isa KnitroBackend)
-            nlp = ADNLPModel!(
-                f,
-                x0,
-                docp.bounds.var_l, docp.bounds.var_u,
-                c!,
-                docp.bounds.con_l, docp.bounds.con_u,
-                backend=adnlp_backend,
-                hprod_backend=ADNLPModels.EmptyADbackend,
-                jtprod_backend=ADNLPModels.EmptyADbackend,
-                jprod_backend=ADNLPModels.EmptyADbackend,
-                ghjvprod_backend=ADNLPModels.EmptyADbackend,
-                show_time=show_time,
-            )
-        else
-            nlp = ADNLPModel!(
-                f,
-                x0,
-                docp.bounds.var_l, docp.bounds.var_u,
-                c!,
-                docp.bounds.con_l, docp.bounds.con_u,
-                backend=adnlp_backend,
-                show_time=show_time,
-                matrix_free=matrix_free
-            )
-        end
-    end
-
-    return docp, nlp
+    return docp
 end
 
 
@@ -207,7 +273,7 @@ $(TYPEDSIGNATURES)
 
 Set initial guess in the DOCP
 """
-function set_initial_guess(docp::DOCP, nlp, init)
+function set_initial_guess(docp::DOCP, init)
     ocp = docp.ocp
     docp_init = CTModels.Init(
         init;
@@ -215,18 +281,5 @@ function set_initial_guess(docp::DOCP, nlp, init)
         control_dim=CTModels.control_dimension(ocp),
         variable_dim=CTModels.variable_dimension(ocp),
     )
-    nlp.meta.x0 .= DOCP_initial_guess(docp, docp_init)
-end
-
-
-# placeholders (see CTSolveExt*** extensions)
-abstract type AbstractSolverBackend end
-struct IpoptBackend <: AbstractSolverBackend end
-struct MadNLPBackend <: AbstractSolverBackend end
-struct KnitroBackend <: AbstractSolverBackend end
-
-weakdeps = Dict(IpoptBackend => :NLPModelsIpopt, MadNLPBackend => :MadNLP, KnitroBackend => :NLPModelsKnitro)
-
-function solve_docp(solver_backend::T, args...; kwargs...) where {T<:AbstractSolverBackend}
-    throw(CTBase.ExtensionError(weakdeps[T]))
+    docp.nlp.meta.x0 .= DOCP_initial_guess(docp, docp_init)
 end

@@ -3,13 +3,18 @@
 """
 $(TYPEDSIGNATURES)
    
-Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
+Build OCP functional solution from DOCP discrete solution 
+(given as a SolverCore.GenericExecutionStats)
 """
 function build_OCP_solution(docp, docp_solution)
 
+    # OCP and solver specific infos
+    # +++ we could pass an optional arg to build_OCP_solution to indicate the NLP solver used when we call this one from solve_docp !
     ocp = docp.ocp
-    solution = docp_solution.solution
-    iterations, constraints_violation, message, stopping, success = SolverInfos(docp_solution)
+    iterations, constraints_violation, message, status, successful = SolverInfos(docp_solution)
+
+    # convert GPU arrays if needed (done in parsing functions too)
+    solution = Array(docp_solution.solution)
 
     # time grid
     T = get_time_grid(solution, docp)
@@ -17,23 +22,17 @@ function build_OCP_solution(docp, docp_solution)
     # primal variables X, U, v and box multipliers
     X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=docp_solution.multipliers_L, mult_UB=docp_solution.multipliers_U)
 
-    # recompute / check objective
-    objective_r = DOCP_objective(solution, docp)
+    # objective from solution
     if docp.flags.max
         objective = -docp_solution.objective
-        objective_r = -objective_r
     else
         objective = docp_solution.objective
     end
-    if isnothing(objective)
-        objective = objective_r
-    elseif abs((objective - objective_r) / objective) > 1e-2
-        println("WARNING: recomputed objective mismatch ", objective, objective_r)
-    end
 
-    # recompute constraints
-    constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraints!(constraints, solution, docp)
+    # recompute and check objective
+    #if abs((objective - objective_r) / objective) > 1e-2
+    #    println("WARNING: recomputed objective mismatch ", objective, objective_r)
+    #end
 
     # costate and constraints multipliers
     P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers)
@@ -42,7 +41,7 @@ function build_OCP_solution(docp, docp_solution)
         ocp,
         T, X, U, v, P;
         objective=objective, iterations=iterations, constraints_violation=constraints_violation,
-        message=message, stopping=stopping, success=success,
+        message=message, status=status, successful=successful,
         path_constraints_dual=path_constraints_dual,
         boundary_constraints_dual=boundary_constraints_dual,
         state_constraints_lb_dual=box_multipliers[1],
@@ -58,42 +57,41 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve convergence information (Ipopt version)
+Retrieve convergence information from NLP solution
+- iterations [Integer]: number of iterations
+- constraints_violations [Real]: primal feasibility
+- status [Symbol]: termination status from the NLP solver
+- successful [Boolean]: indicates successful convergence (first order)
+- message [String]: optional solver dependent message
 """
 function SolverInfos()
     return 0, 0., "undefined", :undefined, true
 end
 function SolverInfos(docp_solution)
 
-    # try to detect solver here for specific fields !
+    # +++ we could pass an optional arg for the NLP solver used, down from build_OCP_solution
+
+    # info from SolverCore.GenericExecutionStats
     iterations = docp_solution.iter
     constraints_violation = docp_solution.primal_feas
-    stopping = :undefined
-    success = true
-    message = "undefined"
-    try
-        solver_specific = docp_solution.solver_specific
-        if haskey(solver_specific, :internal_msg)
-            # Ipopt solver
-            message = string(solver_specific[:internal_msg][1])
-        end
-    catch e # missing field solve_specific
-    end
+    status = docp_solution.status
+    successful = (status == :first_order) || (status == :acceptable)
 
-    return iterations, constraints_violation, message, stopping, success
+    return iterations, constraints_violation, "generic", status, successful
 end
 
 
 """
 $(TYPEDSIGNATURES)
 
-Build OCP functional solution from DOCP discrete solution (given as a SolverCore.GenericExecutionStats)
+Build OCP functional solution from DOCP discrete solution 
+(given as array for primal variables, optionally dual variables and bounds multipliers)
 """
 function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB=nothing)
 
     ocp = docp.ocp
     solution = primal
-    iterations, constraints_violation, message, stopping, success = SolverInfos()
+    iterations, constraints_violation, message, status, successful = SolverInfos()
 
     # time grid
     T = get_time_grid(solution, docp)
@@ -101,15 +99,16 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
     # primal variables X, U, v and box multipliers
     X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=mult_LB, mult_UB=mult_UB)
 
-    # recompute objective
-    objective = DOCP_objective(solution, docp)
+    # recompute objective (NB lagrange without conversion not supported)
+    if docp.flags.lagrange_to_mayer
+        objective = DOCP_objective(solution, docp)
+    else
+        println("Warning: cannot recompute objective (lagrange to mayer disabled)")
+        objective = 0.0
+    end
     if docp.flags.max
         objective = -objective
     end
-
-    # recompute constraints
-    constraints = zeros(docp.dim_NLP_constraints)
-    DOCP_constraints!(constraints, solution, docp)
 
     # costate and constraints multipliers
     P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, dual)
@@ -118,7 +117,7 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
         ocp,
         T, X, U, v, P;
         objective=objective, iterations=iterations, constraints_violation=constraints_violation,
-        message=message, stopping=stopping, success=success,
+        message=message, status=status, successful=successful,
         path_constraints_dual=path_constraints_dual,
         boundary_constraints_dual=boundary_constraints_dual,
         state_constraints_lb_dual=box_multipliers[1],
@@ -134,7 +133,8 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Recover OCP primal variables from DOCP solution
+Recover OCP state, control and optimization variables from DOCP primal variables.
+Bounds multipliers will be parsed as well if present.
 """
 function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=nothing)
 
@@ -157,6 +157,11 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=not
     mult_control_box_upper = zeros(size(U))
     mult_variable_box_lower = zeros(size(v))
     mult_variable_box_upper = zeros(size(v))
+
+    # convert GPU arrays if needed
+    solution = Array(solution)
+    mult_LB = Array(mult_LB)
+    mult_UB = Array(mult_UB)
 
     # retrieve optimization variables
     if docp.dims.NLP_v > 0
@@ -190,14 +195,15 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Recover OCP costate and constraints multipliers from DOCP multipliers
+Recover OCP costate and constraints multipliers from DOCP dual variables.
 """
 function parse_DOCP_solution_dual(docp, multipliers)
 
     # if called with multipliers = nothing, fill with zeros
-    if isnothing(multipliers)
-        multipliers = zeros(docp.dim_NLP_constraints)
-    end
+    isnothing(multipliers) && (multipliers = zeros(docp.dim_NLP_constraints))
+
+    # convert GPU arrays if needed
+    multipliers = Array(multipliers)
 
     # costate
     N = docp.time.steps

@@ -1,4 +1,4 @@
-module CTSolveExtIpopt
+module CTDirectExtIpopt
 
 using CTDirect
 
@@ -11,12 +11,11 @@ using MKL
 """
 $(TYPEDSIGNATURES)
 
-Solve a discretized optimal control problem with Ipopt
+Solve a discretized optimal control problem (Ipopt version).
 """
 function CTDirect.solve_docp(
     solver_backend::CTDirect.IpoptBackend,
-    docp::CTDirect.DOCP,
-    nlp;
+    docp::CTDirect.DOCP;
     display::Bool=CTDirect.__display(),
     max_iter::Integer=CTDirect.__max_iterations(),
     tol::Real=CTDirect.__tolerance(),
@@ -47,6 +46,9 @@ function CTDirect.solve_docp(
 
     # disable output if needed
     print_level = display ? print_level : 0
+
+    # retrieve NLP
+    nlp = CTDirect.model(docp)
 
     # preallocate solver
     solver = IpoptSolver(nlp)
