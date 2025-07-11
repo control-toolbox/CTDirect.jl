@@ -96,24 +96,11 @@ function bioreactor_Ndays(;N=30)
     end
 
     if N == 30
-<<<<<<< HEAD
-        objective = 19.0745
-    else
-        objective = nothing
-    end
-
-    return ((
-        ocp=bioreactor_N,
-        obj=objective,
-        init=(state=[50, 50, 50],),
-        name="bioreactor_Ndays",
-=======
         obj = 19.0745
     else
         obj = nothing
     end
 
     return ((ocp=bioreactor_N, obj=obj, init=(state=[50, 50, 50],), name="bioreactor_Ndays",
->>>>>>> main
     ))
 end

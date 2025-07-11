@@ -5,19 +5,24 @@ if !isdefined(Main, :beam)
     include("../problems/beam.jl")
 end
 @testset verbose = true showtiming = true ":beam" begin
-    prob = beam()
-    sol = solve(prob.ocp, display=false)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    check_problem(beam(), display=false)
 end
 
-# double integrator min tf
+# bolza, non-autonomous mayer term, tf in dynamics
+if !isdefined(Main, :bolza_freetf)
+    include("../problems/bolza.jl")
+end
+@testset verbose = true showtiming = true ":bolza :tf_in_dyn_and_cost" begin
+    check_problem(bolza_freetf(), display=false)
+end
+
+# double integrator min tf / max t0 (free t0 and tf)
 if !isdefined(Main, :double_integrator_mintf)
     include("../problems/double_integrator.jl")
 end
 @testset verbose = true showtiming = true ":double_integrator :min_tf" begin
-    prob = double_integrator_mintf()
-    sol = solve(prob.ocp, display=false)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    check_problem(double_integrator_mintf(), display=false)
+    check_problem(double_integrator_freet0tf(), display=false)
 end
 
 # fuller
@@ -25,9 +30,7 @@ if !isdefined(Main, :fuller)
     include("../problems/fuller.jl")
 end
 @testset verbose = true showtiming = true ":fuller" begin
-    prob = fuller()
-    sol = solve(prob.ocp, display=false)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    check_problem(fuller() , display=false)
 end
 
 # glider
@@ -35,19 +38,24 @@ if !isdefined(Main, :glider)
     include("../problems/glider.jl")
 end
 @testset verbose = true showtiming = true ":glider" begin
-    prob = glider()
-    sol = solve(prob.ocp, display=false, init=prob.init)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    check_problem(glider(), display=false)
 end
 
-# goddard max rf
+# goddard max rf (with all constraints version)
 if !isdefined(Main, :goddard)
     include("../problems/goddard.jl")
 end
 @testset verbose = true showtiming = true ":goddard :max_rf" begin
-    prob = goddard()
-    sol = solve(prob.ocp, display=false)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    check_problem(goddard(), display=false)
+    check_problem(goddard_all() , display=false)
+end
+
+# insurance (nb. requires final control for CV, mixed constraints)
+if !isdefined(Main, :insurance)
+    include("../problems/insurance.jl")
+end
+@testset verbose = true showtiming = true ":insurance" begin
+    check_problem(insurance() , display=false, disc_method=:trapeze)
 end
 
 # jackson
@@ -55,9 +63,7 @@ if !isdefined(Main, :jackson)
     include("../problems/jackson.jl")
 end
 @testset verbose = true showtiming = true ":jackson" begin
-    prob = jackson()
-    sol = solve(prob.ocp, display=false)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    check_problem(jackson(), display=false)
 end
 
 # moonlander
@@ -65,9 +71,7 @@ if !isdefined(Main, :moonlander)
     include("../problems/moonlander.jl")
 end
 @testset verbose = true showtiming = true ":moonlander" begin
-    prob = moonlander()
-    sol = solve(prob.ocp, display=false, disc_method=:midpoint)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    check_problem(moonlander(), display=false)
 end
 
 #= quadrotor
@@ -85,9 +89,7 @@ if !isdefined(Main, :robbins)
     include("../problems/robbins.jl")
 end
 @testset verbose = true showtiming = true ":robbins" begin
-    prob = robbins()
-    sol = solve(prob.ocp, display=false)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    check_problem(robbins(), display=false)
 end
 
 # simple integrator
@@ -95,9 +97,7 @@ if !isdefined(Main, :simple_integrator)
     include("../problems/simple_integrator.jl")
 end
 @testset verbose = true showtiming = true ":simple_integrator" begin
-    prob = simple_integrator()
-    sol = solve(prob.ocp, display=false)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    check_problem(simple_integrator(), display=false)
 end
 
 # space shuttle
@@ -109,7 +109,5 @@ if !isdefined(Main, :vanderpol)
     include("../problems/vanderpol.jl")
 end
 @testset verbose = true showtiming = true ":vanderpol" begin
-    prob = vanderpol()
-    sol = solve(prob.ocp, display=false)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
+    check_problem(vanderpol(), display=false)
 end

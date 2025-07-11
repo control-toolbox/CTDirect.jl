@@ -24,6 +24,11 @@ for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
+# check a specific example
+function check_problem(prob; kwargs...)
+    sol = solve(prob.ocp; init=prob.init, kwargs...)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end
 
 # tests to check allocations in particular
 function init(ocp; grid_size, disc_method)
@@ -160,6 +165,7 @@ function bench(;verbose=1,
         ]
     elseif target_list == :hard
         target_list = [
+        "action",
         "glider",
         "moonlander",
         "quadrotor",
@@ -240,9 +246,9 @@ function bench_custom()
         :gauss_legendre_3
     ]
 
-    target_list = :lagrange_hard
-    grid_size_list=[250, 500, 1000, 2500]
-    verbose = 0
+    target_list = :hard
+    grid_size_list=[250, 500, 1000]
+    verbose = 1
 
     for disc in disc_list
         lagrange_to_mayer=true
