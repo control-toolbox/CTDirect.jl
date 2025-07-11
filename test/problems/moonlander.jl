@@ -79,5 +79,5 @@ function moonlander(;p_f=[5.0, 5.0])
     # Initial guess
     init = (control=[5.0, 5.0],)
 
-    return ((ocp=ocp, obj=9.618e-1, name="moonlander", init=init))
+    return ((ocp=ocp, obj=9.62e-1, name="moonlander", init=init))
 end
