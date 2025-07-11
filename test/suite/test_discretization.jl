@@ -58,55 +58,16 @@ end
     @test time_grid(sol) ≈ grid
 end
 
-# discretization methods
-if !isdefined(Main, :goddard_all)
-    include("../problems/goddard.jl")
+# discretization methods: lagrange with constraint
+@testset verbose = true showtiming = true ":beam :disc_method" begin
+    for disc_method in [:trapeze, :midpoint, :euler, :euler_implicit, :gauss_legendre_2, :gauss_legendre_3]
+        check_problem(beam(), display=false, disc_method=disc_method)
+    end
 end
 
-@testset verbose = true showtiming = true ":simple_integrator :disc_method" begin
-    prob = simple_integrator()
-    sol = solve(prob.ocp, display=false, disc_method=:trapeze)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:midpoint)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:euler)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:euler_implicit)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_2, grid_size=100)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_3, grid_size=100)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-end
-
+# discretization methods: mayer with free t0 and tf
 @testset verbose = true showtiming = true ":double_integrator :disc_method" begin
-    prob = double_integrator_freet0tf()
-    sol = solve(prob.ocp, display=false, disc_method=:trapeze)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:midpoint)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:euler)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:euler_implicit)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_2, grid_size=100)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_3, grid_size=100)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-end
-
-@testset verbose = true showtiming = true ":goddard :disc_method" begin
-    prob = goddard_all()
-    sol = solve(prob.ocp, display=false, disc_method=:trapeze)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:midpoint)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:euler)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:euler_implicit)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_2, grid_size=100)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
-    sol = solve(prob.ocp, display=false, disc_method=:gauss_legendre_3, grid_size=100)
-    @test objective(sol) ≈ prob.obj rtol = 1e-2
+    for disc_method in [:trapeze, :midpoint, :euler, :euler_implicit, :gauss_legendre_2, :gauss_legendre_3]
+        check_problem(double_integrator_freet0tf(), display=false, disc_method=disc_method, grid_size=50)
+    end
 end

@@ -190,16 +190,16 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(time.steps, dims.NLP_x, dims.NLP_u, dims.NLP_v, dims.path_cons, dims.boundary_cons)
         elseif disc_method == :midpoint
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(time.steps, dims.NLP_x, dims.NLP_u, dims.NLP_v, dims.path_cons, dims.boundary_cons)
-        elseif disc_method == :euler
+        elseif disc_method == :euler || disc_method == :euler_explicit || disc_method == :euler_forward
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler(time.steps, dims.NLP_x, dims.NLP_u, dims.NLP_v, dims.path_cons, dims.boundary_cons)
-        elseif disc_method == :euler_implicit
+        elseif disc_method == :euler_implicit || disc_method == :euler_backward
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler(time.steps, dims.NLP_x, dims.NLP_u, dims.NLP_v, dims.path_cons, dims.boundary_cons; explicit=false)
         elseif disc_method == :gauss_legendre_2
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(time.steps, dims.NLP_x, dims.NLP_u, dims.NLP_v, dims.path_cons, dims.boundary_cons)
         elseif disc_method == :gauss_legendre_3
             discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(time.steps, dims.NLP_x, dims.NLP_u, dims.NLP_v, dims.path_cons, dims.boundary_cons)
         else
-            error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :euler, :euler_implicit, :gauss_legendre_2, :gauss_legendre_3}\n", typeof(disc_method))
+            error("Unknown discretization method: ", disc_method, "\nValid options are disc_method={:trapeze, :midpoint, :euler | :euler_explicit | :euler_forward, :euler_implicit | :euler_backward, :gauss_legendre_2, :gauss_legendre_3}\n", typeof(disc_method))
         end
 
         # add initial condition for lagrange state

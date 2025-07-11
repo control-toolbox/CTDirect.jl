@@ -18,6 +18,12 @@ using MadNLP
 # misc
 using SplitApplyCombine # for flatten in some tests
 
+# check a specific example
+function check_problem(prob; kwargs...)
+    sol = solve(prob.ocp; init=prob.init, kwargs...)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end
+
 # check local test suite
 macro ignore(e) :() end
 
