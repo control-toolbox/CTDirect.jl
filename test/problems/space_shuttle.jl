@@ -1,10 +1,12 @@
 """
 Space Shuttle Reentry Trajectory Problem:
     We want to find the optimal trajectory of a space shuttle reentry.
-    The objective is to minimize the final latitude (?)
-    The problem is formulated as an OptimalControl model.
+    The objective is to maximize the latitude (cross range) at the terminal point.
+    The original problem formulated as a JuMP model can be found [here](https://jump.dev/JuMP.jl/stable/tutorials/nonlinear/space_shuttle_reentry_trajectory/)
+    Note: no heating limit
 """
 function space_shuttle()
+    
     ## Global variables
     w = 203000.0  # weight (lb)
     g₀ = 32.174    # acceleration (ft/sec^2)
@@ -21,10 +23,10 @@ function space_shuttle()
     b₀ = 0.07854
     b₁ = -0.61592e-2
     b₂ = 0.621408e-3
-    c₀ = 1.0672181
-    c₁ = -0.19213774e-1
-    c₂ = 0.21286289e-3
-    c₃ = -0.10117249e-5
+    #c₀ = 1.0672181
+    #c₁ = -0.19213774e-1
+    #c₂ = 0.21286289e-3
+    #c₃ = -0.10117249e-5
 
     ## Initial conditions
     h_s = 2.6          # altitude (ft) / 1e5
@@ -90,15 +92,15 @@ function space_shuttle()
         β = u₂
 
         ## constraints
-        500 ≤ tf ≤ 10000
+        1000 ≤ tf ≤ 3000 # NB jump with 503 steps between 3.5 and 4.5
         # state constraints
-        h_t*0.9 ≤ scaled_h(t) ≤ h_s*1.1, (scaled_h_con)
+        0 ≤ scaled_h(t) ≤ h_s*1.1, (scaled_h_con)
         deg2rad(-89) ≤ θ(t) ≤ deg2rad(89), (θ_con)
-        v_t*0.9 ≤ scaled_v(t) ≤ v_s*1.1, (scaled_v_con)
+        0 ≤ scaled_v(t) ≤ v_s*1.1, (scaled_v_con)
         deg2rad(-89) ≤ γ(t) ≤ deg2rad(89), (γ_con)
         # control constraints
-        deg2rad(-89) ≤ β(t) ≤ deg2rad(1), (β_con)
         deg2rad(-90) ≤ α(t) ≤ deg2rad(90), (α_con)
+        deg2rad(-89) ≤ β(t) ≤ deg2rad(1), (β_con)
 
         # initial conditions
         scaled_h(0) == h_s, (scaled_h0_con)
@@ -120,7 +122,7 @@ function space_shuttle()
     end
 
     # initial guess (NB. t0 = 0)
-    tf_init = 1000
+    tf_init = 2000
     x_init = t -> [ h_s + t / tf_init * (h_t - h_s) ,
     ϕ_s,
     θ_s,
