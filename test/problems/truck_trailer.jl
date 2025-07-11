@@ -74,16 +74,21 @@ function truck_trailer(;data=[0.4 0.1 0.2; 1.1 0.2 0.2; 0.8 0.1 0.2])
 
         ## constraints
         1.0 ≤ tf ≤ 1000
+        
         # state constraints
         -pi / 2 ≤ theta0(t) ≤ pi / 2, (theta0_con)
         -pi / 2 ≤ theta1(t) ≤ pi / 2, (theta1_con)
+
         # control constraints
         -0.2 * speedf ≤ v0(t) ≤ 0.2 * speedf, (v0_con)
         -pi / 6 ≤ delta0(t) ≤ pi / 6, (delta0_con)
+
+        # path constraints
         -1 ≤ d_v0(t) ≤ 1, (v0_dot_con)
         -pi / 10 ≤ d_delta0(t) ≤ pi / 10, (delta0_dot_con)
         -pi / 2 ≤ beta01(t) ≤ pi / 2, (beta01_con)
         -pi / 2 ≤ beta12(t) ≤ pi / 2, (beta12_con)
+
         # initial conditions
         x_2(0) == x2_t0, (x2_t0_con)
         y_2(0) == y2_t0, (y2_t0_con)
@@ -108,5 +113,6 @@ function truck_trailer(;data=[0.4 0.1 0.2; 1.1 0.2 0.2; 0.8 0.1 0.2])
     tf_init = 10
     init = (variable=[tf_init],)
 
-    return ((ocp=ocp, obj=nothing, name="truck_trailer", init=init))
+    return ((ocp=ocp, obj=59.28, name="truck_trailer", init=init))
+    # jump finds 59.18 with trapeze / 200
 end
