@@ -74,15 +74,13 @@ end
     check_problem(moonlander(), display=false, adnlp_backend=:manual)
 end
 
-#= quadrotor
+# quadrotor
 if !isdefined(Main, :quadrotor)
     include("../problems/quadrotor.jl")
 end
 @testset verbose = true showtiming = true ":quadrotor" begin
-    prob = moonlander()
-    sol = solve(prob.ocp, display=false, disc_method=:midpoint, adnlp_backend=:manual)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
-end=#
+    check_problem(moonlander(), display=false, adnlp_backend=:manual, disc_method=:midpoint)
+end
 
 # robbins
 if !isdefined(Main, :robbins)
