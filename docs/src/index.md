@@ -5,7 +5,7 @@ CurrentModule =  CTDirect
 ```
 The `CTDirect.jl` package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
 
-The root package is [OptimalControl.jl](https://github.com/control-toolbox/OptimalControl.jl) which aims to provide tools to model and solve optimal control problems with ordinary differential equations by direct and indirect methods.
+The root package is [OptimalControl.jl](https://github.com/control-toolbox/OptimalControl.jl) which aims to provide tools to model and solve optimal control problems with ordinary differential equations by direct and indirect methods, both on CPU and GPU.
 
 To install a package from the control-toolbox ecosystem, please visit the [installation page](https://github.com/control-toolbox#installation).
 
