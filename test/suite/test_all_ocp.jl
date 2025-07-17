@@ -99,8 +99,20 @@ end
 end
 
 # space shuttle
+if !isdefined(Main, :space_shuttle)
+    include("../problems/space_shuttle.jl")
+end
+@testset verbose = true showtiming = true ":space_shuttle" begin
+    check_problem(space_shuttle(), display=false)
+end
 
 # truck trailer
+if !isdefined(Main, :truck_trailer)
+    include("../problems/truck_trailer.jl")
+end
+@testset verbose = true showtiming = true ":truck_trailer" begin
+    check_problem(truck_trailer(), display=false)
+end
 
 # vanderpol
 if !isdefined(Main, :vanderpol)

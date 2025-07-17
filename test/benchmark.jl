@@ -9,6 +9,7 @@ using NLPModelsIpopt
 
 using LinearAlgebra
 using Printf
+using Plots
 
 using BenchmarkTools
 using JET

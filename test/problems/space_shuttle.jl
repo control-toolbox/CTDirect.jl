@@ -3,7 +3,7 @@ Space Shuttle Reentry Trajectory Problem:
     We want to find the optimal trajectory of a space shuttle reentry.
     The objective is to maximize the latitude (cross range) at the terminal point.
     The original problem formulated as a JuMP model can be found [here](https://jump.dev/JuMP.jl/stable/tutorials/nonlinear/space_shuttle_reentry_trajectory/)
-    Note: no heating limit
+    Note: no heating limit path constraint
 """
 function space_shuttle()
     
@@ -23,10 +23,6 @@ function space_shuttle()
     b₀ = 0.07854
     b₁ = -0.61592e-2
     b₂ = 0.621408e-3
-    #c₀ = 1.0672181
-    #c₁ = -0.19213774e-1
-    #c₂ = 0.21286289e-3
-    #c₃ = -0.10117249e-5
 
     ## Initial conditions
     h_s = 2.6          # altitude (ft) / 1e5
@@ -68,13 +64,13 @@ function space_shuttle()
             (1 / (m * v * cos(γ))) * L * sin(β) +
             (v / (r * cos(θ))) * cos(γ) * sin(ψ) * sin(θ)
 
-        return [h_dot, ϕ_dot, θ_dot, v_dot, γ_dot, ψ_dot]
+        return [h_dot / 1e5, ϕ_dot, θ_dot, v_dot / 1e4, γ_dot, ψ_dot]
     end
 
     ocp = @def begin
   
         ## define the problem
-        tf ∈ R¹, variable
+        tf ∈ R¹, variable 
         t ∈ [0, tf], time
         x ∈ R⁶, state
         u ∈ R², control
@@ -92,11 +88,11 @@ function space_shuttle()
         β = u₂
 
         ## constraints
-        1000 ≤ tf ≤ 3000 # NB jump with 503 steps between 3.5 and 4.5
+        1750 ≤ tf ≤ 2250 # NB jump with 503 steps between 3.5 and 4.5
         # state constraints
-        0 ≤ scaled_h(t) ≤ h_s*1.1, (scaled_h_con)
+        0 ≤ scaled_h(t) ≤ Inf, (scaled_h_con)
         deg2rad(-89) ≤ θ(t) ≤ deg2rad(89), (θ_con)
-        0 ≤ scaled_v(t) ≤ v_s*1.1, (scaled_v_con)
+        0 ≤ scaled_v(t) ≤ Inf, (scaled_v_con)
         deg2rad(-89) ≤ γ(t) ≤ deg2rad(89), (γ_con)
         # control constraints
         deg2rad(-90) ≤ α(t) ≤ deg2rad(90), (α_con)
@@ -121,8 +117,10 @@ function space_shuttle()
         θ(tf) → max
     end
 
-    # initial guess (NB. t0 = 0)
-    tf_init = 2000
+    # initial guess: linear interpolation for h, v, gamma (NB. t0 = 0), constant for the rest
+    # variable time step seems to be initialized at 1 in jump
+    # note that ipopt will project the initial guess inside the bounds anyway.
+    tf_init = 500
     x_init = t -> [ h_s + t / tf_init * (h_t - h_s) ,
     ϕ_s,
     θ_s,
@@ -131,5 +129,6 @@ function space_shuttle()
     ψ_s]
     init = (state=x_init, control=[α_s, β_s], variable=[tf_init])
 
+    # objective should be 34.18deg (0.5966rad) with tf = 2009
     return ((ocp=ocp, obj=deg2rad(34.18), name="space_shuttle", init=init))
 end
