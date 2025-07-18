@@ -9,6 +9,7 @@ using NLPModelsIpopt
 
 using LinearAlgebra
 using Printf
+using Plots
 
 using BenchmarkTools
 using JET
@@ -24,6 +25,11 @@ for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
+# check a specific example
+function check_problem(prob; kwargs...)
+    sol = solve(prob.ocp; init=prob.init, kwargs...)
+    @test sol.objective ≈ prob.obj rtol = 1e-2
+end
 
 # tests to check allocations in particular
 function init(ocp; grid_size, disc_method)
@@ -141,9 +147,10 @@ function bench(;verbose=1,
         "bioreactor_1day", 
         "bioreactor_Ndays", 
         "bolza_freetf",  
-        #"insurance", only converge when final control is present (mixed path constraint) 
+        "insurance", #only converge when final control is present (mixed path constraint) 
         "parametric", 
-        "robbins"]
+        "robbins",
+        ]
     elseif target_list == :lagrange_all
         target_list = [
         "beam",
@@ -155,7 +162,18 @@ function bench(;verbose=1,
         "parametric", 
         "robbins", 
         "simple_integrator", 
-        "vanderpol"]
+        "vanderpol",
+        ]
+    elseif target_list == :hard
+        target_list = [
+        "action",
+        "glider",
+        "moonlander",
+        "quadrotor",
+        "schlogl",
+        "space_shuttle",
+        "truck_trailer",
+        ]
 
     elseif target_list == :all
         target_list = ["algal_bacterial", "beam", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "insurance", "jackson", "parametric", "robbins", "simple_integrator", "swimmer", "vanderpol"]
@@ -229,9 +247,9 @@ function bench_custom()
         :gauss_legendre_3
     ]
 
-    target_list = :lagrange_hard
-    grid_size_list=[250, 500, 1000, 2500]
-    verbose = 0
+    target_list = :hard
+    grid_size_list=[250, 500, 1000]
+    verbose = 1
 
     for disc in disc_list
         lagrange_to_mayer=true

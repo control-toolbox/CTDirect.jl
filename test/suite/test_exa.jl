@@ -9,7 +9,7 @@ display = false # during optim solves
 
 # Test on CPU
 
-println("testing: ExaModels (CPU)")
+println("testing: examodels (cpu)")
 
 @testset verbose = true showtiming = true ":examodel :cpu :trapeze" begin
     prob = beam2()
