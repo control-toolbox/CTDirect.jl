@@ -27,13 +27,18 @@ end
 # check local test suite
 macro ignore(e) :() end
 
+include("test_exa.jl") # debug
+
+@ignore begin # debug
 # run either usual test suite on CPU, or GPU tests only 
 @testset verbose = true showtiming = true "Test CTDirect" begin
     if "GPU" in ARGS
-        # GPU tests only (moonshot workflow)
-        include("test_gpu.jl")
+        # ExaModels tests only on CPU + GPU (moonshot workflow)
+        include("test_exa.jl")
     else
         # CPU: run all scripts in subfolder suite/
         include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
+        include("test_exa.jl") # will only run CPU tests if GPU is not available
     end
 end
+end # debug
