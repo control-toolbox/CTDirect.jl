@@ -27,9 +27,6 @@ end
 # check local test suite
 macro ignore(e) :() end
 
-include("test_exa.jl") # debug
-
-@ignore begin # debug
 # run either usual test suite on CPU, or GPU tests only 
 @testset verbose = true showtiming = true "Test CTDirect" begin
     if "GPU" in ARGS
@@ -41,4 +38,3 @@ include("test_exa.jl") # debug
         include("test_exa.jl") # will only run CPU tests if GPU is not available
     end
 end
-end # debug
