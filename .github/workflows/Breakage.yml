@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  break:
+  call:
     strategy:
       fail-fast: false
       matrix:
