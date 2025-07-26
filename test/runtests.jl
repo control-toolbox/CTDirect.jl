@@ -4,7 +4,8 @@ using Test
 # OptimalControl
 using CTBase
 using CTParser: CTParser, @def
-using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
+using CTModels:
+    CTModels, objective, state, control, variable, costate, time_grid, iterations
 using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
 
 # activate NLP modelers
@@ -25,7 +26,9 @@ function check_problem(prob; kwargs...)
 end
 
 # check local test suite
-macro ignore(e) :() end
+macro ignore(e)
+    :()
+end
 
 # run either usual test suite on CPU, or GPU tests only 
 @testset verbose = true showtiming = true "Test CTDirect" begin

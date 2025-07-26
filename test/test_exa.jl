@@ -1,5 +1,5 @@
 # ExaModels tests, CPU + GPU (when available)
-import ExaModels
+using ExaModels: ExaModels
 using MadNLP
 using MadNLPGPU
 using CUDA
@@ -22,25 +22,56 @@ function test_exa(exa_backend)
 
     @testset verbose = true showtiming = true "beam2 :examodel :euler" begin
         prob = beam2()
-        sol = solve(prob.ocp, :madnlp, :exa; disc_method = :euler, exa_backend = exa_backend, display = display)
+        sol = solve(
+            prob.ocp,
+            :madnlp,
+            :exa;
+            disc_method=:euler,
+            exa_backend=exa_backend,
+            display=display,
+        )
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze" begin
         prob = beam2()
-        sol = solve(prob.ocp, :madnlp, :exa; disc_method = :trapeze, exa_backend = exa_backend, display = display)
+        sol = solve(
+            prob.ocp,
+            :madnlp,
+            :exa;
+            disc_method=:trapeze,
+            exa_backend=exa_backend,
+            display=display,
+        )
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :grid_size" begin
         prob = beam2()
-        sol = solve(prob.ocp, :madnlp, :exa; disc_method = :trapeze, exa_backend = exa_backend, display = display, grid_size = 1000)
+        sol = solve(
+            prob.ocp,
+            :madnlp,
+            :exa;
+            disc_method=:trapeze,
+            exa_backend=exa_backend,
+            display=display,
+            grid_size=1000,
+        )
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :init" begin
         prob = beam2()
-        sol = solve(prob.ocp, :madnlp, :exa; disc_method = :trapeze, exa_backend = exa_backend, display = display, init=(control=6.66,), max_iter = 0)
+        sol = solve(
+            prob.ocp,
+            :madnlp,
+            :exa;
+            disc_method=:trapeze,
+            exa_backend=exa_backend,
+            display=display,
+            init=(control=6.66,),
+            max_iter=0,
+        )
         @test control(sol)(0.5) == 6.66
     end
 
@@ -48,10 +79,17 @@ function test_exa(exa_backend)
 
     @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :grid_size" begin
         prob = goddard2()
-        sol = solve(prob.ocp, :madnlp, :exa; disc_method = :trapeze, exa_backend = exa_backend, display = display, grid_size = 1000)
+        sol = solve(
+            prob.ocp,
+            :madnlp,
+            :exa;
+            disc_method=:trapeze,
+            exa_backend=exa_backend,
+            display=display,
+            grid_size=1000,
+        )
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
-    
 end
 
 # CPU tests

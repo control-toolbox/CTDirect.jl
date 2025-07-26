@@ -1,6 +1,6 @@
 module CTDirect
 
-import CTModels
+using CTModels: CTModels
 
 using DocStringExtensions
 using SparseArrays

@@ -28,10 +28,9 @@ function schlogl()
         ẋ(t) == u0(t) - u1(t) + u2(t) - u3(t)
 
         ∫(
-            u0(t)*log(abs(u0(t)/k0)) - (u0(t)-k0) +
-            u1(t)*log(abs(u1(t)/(k1*x(t)))) - (u1(t)-k1*x(t)) +
-            u2(t)*log(abs(u2(t)/(k2*x(t)^2))) - (u0(t)-k2*x(t)^2) +
-            u3(t)*log(abs(u3(t)/(k3*x(t)^3))) - (u3(t)-k3*x(t)^3)
+            u0(t)*log(abs(u0(t)/k0)) - (u0(t)-k0) + u1(t)*log(abs(u1(t)/(k1*x(t)))) -
+            (u1(t)-k1*x(t)) + u2(t)*log(abs(u2(t)/(k2*x(t)^2))) - (u0(t)-k2*x(t)^2) +
+            u3(t)*log(abs(u3(t)/(k3*x(t)^3))) - (u3(t)-k3*x(t)^3),
         ) → min
     end
 
