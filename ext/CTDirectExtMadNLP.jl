@@ -29,7 +29,9 @@ function CTDirect.solve_docp(
     nlp = CTDirect.model(docp)
 
     # preallocate solver (NB. need to pass printlevel here)
-    solver = MadNLPSolver(nlp; print_level=print_level, tol=tol, max_iter=max_iter, kwargs...)
+    solver = MadNLPSolver(
+        nlp; print_level=print_level, tol=tol, max_iter=max_iter, kwargs...
+    )
 
     # solve discretized problem with NLP solver
     docp_solution = solve!(solver)

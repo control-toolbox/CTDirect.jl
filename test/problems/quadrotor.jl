@@ -98,8 +98,8 @@ function quadrotor()
     end
 
     # Initial guess
-    x_init = t -> [p0 + (pf - p0) * t;  v0 + (vf - v0) * t; u0[2:3]]
-    init = (state=x_init, control=[10.0,0,0,0], variable=[1.0])
-    
+    x_init = t -> [p0 + (pf - p0) * t; v0 + (vf - v0) * t; u0[2:3]]
+    init = (state=x_init, control=[10.0, 0, 0, 0], variable=[1.0])
+
     return ((ocp=ocp, obj=1.492, name="quadrotor", init=init))
 end

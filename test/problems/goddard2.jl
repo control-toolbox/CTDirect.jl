@@ -27,16 +27,12 @@ function goddard2(; vmax=0.1, Tmax=3.5)
         0 ≤ u(t) ≤ 1
 
         ∂(r)(t) == v(t)
-        ∂(v)(t) == -Cd * v(t)^2 * exp(-β * (r(t) - 1)) / m(t) - 1 / r(t)^2 + u(t) * Tmax / m(t)
+        ∂(v)(t) ==
+        -Cd * v(t)^2 * exp(-β * (r(t) - 1)) / m(t) - 1 / r(t)^2 + u(t) * Tmax / m(t)
         ∂(m)(t) == -b * Tmax * u(t)
 
         r(tf) → max
     end
 
-    return ((
-        ocp=goddard2,
-        obj=1.01257,
-        name="goddard2",
-        init=(state=[1.01, 0.05, 0.8],),
-    ))
+    return ((ocp=goddard2, obj=1.01257, name="goddard2", init=(state=[1.01, 0.05, 0.8],)))
 end

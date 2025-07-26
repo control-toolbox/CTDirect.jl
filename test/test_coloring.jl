@@ -1,5 +1,6 @@
 using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
-using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
+using CTModels:
+    CTModels, objective, state, control, variable, costate, time_grid, iterations
 using CTParser: CTParser, @def, prefix!
 prefix!(:CTModels) # tell CTParser def macro to use CTModels instead of OptimalControl
 
@@ -15,11 +16,18 @@ for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
 end
 
 # coloring test function
-function coloring_test(ocp; order=NaturalOrder(), grid_size=CTDirect.__grid_size(), disc_method=CTDirect.__disc_method())
+function coloring_test(
+    ocp;
+    order=NaturalOrder(),
+    grid_size=CTDirect.__grid_size(),
+    disc_method=CTDirect.__disc_method(),
+)
 
     # build DOCP
     time_grid = CTDirect.__time_grid()
-    docp = CTDirect.DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method)
+    docp = CTDirect.DOCP(
+        ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method
+    )
 
     # build sparsity pattern
     J = CTDirect.DOCP_Jacobian_pattern(docp)
@@ -35,7 +43,9 @@ function coloring_test(ocp; order=NaturalOrder(), grid_size=CTDirect.__grid_size
     ## Coloring for Hessians
     problem_H = ColoringProblem(; structure=:symmetric, partition=:column)
     order_H = order
-    algo_H = GreedyColoringAlgorithm(order_H; decompression=:substitution, postprocessing=true)
+    algo_H = GreedyColoringAlgorithm(
+        order_H; decompression=:substitution, postprocessing=true
+    )
     result_H = coloring(H, problem_H, algo_H)
     num_colors_H = ncolors(result_H)
 
@@ -43,10 +53,25 @@ function coloring_test(ocp; order=NaturalOrder(), grid_size=CTDirect.__grid_size
 end
 
 # batch testing
-function batch_coloring_test(; order=NaturalOrder(), target_list=:default, verbose=1, grid_size=CTDirect.__grid_size(), disc_method=CTDirect.__disc_method())
-
+function batch_coloring_test(;
+    order=NaturalOrder(),
+    target_list=:default,
+    verbose=1,
+    grid_size=CTDirect.__grid_size(),
+    disc_method=CTDirect.__disc_method(),
+)
     if target_list == :default
-        target_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
+        target_list = [
+            "beam",
+            "double_integrator_mintf",
+            "double_integrator_minenergy",
+            "fuller",
+            "goddard",
+            "goddard_all",
+            "jackson",
+            "simple_integrator",
+            "vanderpol",
+        ]
     end
 
     verbose > 1 && println("\nProblem list: ", target_list)
@@ -59,10 +84,13 @@ function batch_coloring_test(; order=NaturalOrder(), target_list=:default, verbo
     num_J_list = []
     num_H_list = []
     for problem in problem_list
-        (num_J, num_H) = coloring_test(problem.ocp; order=order, grid_size=grid_size, disc_method=disc_method)
+        (num_J, num_H) = coloring_test(
+            problem.ocp; order=order, grid_size=grid_size, disc_method=disc_method
+        )
         push!(num_J_list, num_J)
         push!(num_H_list, num_H)
-        verbose > 1 && @printf("%-30s J colors %2d    H colors %2d\n", problem.name, num_J, num_H)
+        verbose > 1 &&
+            @printf("%-30s J colors %2d    H colors %2d\n", problem.name, num_J, num_H)
     end
     return sum(num_J_list), sum(num_H_list)
 end

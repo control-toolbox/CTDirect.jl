@@ -35,7 +35,6 @@ Default (non uniform) time grid: `nothing`
 """
 __time_grid() = nothing
 
-
 """
 $(TYPEDSIGNATURES)
 Default backend for ADNLPModels: `:optimized`

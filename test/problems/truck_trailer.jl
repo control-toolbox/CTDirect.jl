@@ -4,8 +4,8 @@ The Truck Trailer Problem:
     The objective is to minimize the time taken to park the truck and the trailers aligned vertically at a given target location.
     The problem is formulated as an OptimalControl model.
 """
-function truck_trailer(;data=[0.4 0.1 0.2; 1.1 0.2 0.2; 0.8 0.1 0.2])
-    
+function truck_trailer(; data=[0.4 0.1 0.2; 1.1 0.2 0.2; 0.8 0.1 0.2])
+
     # parameters
     L0 = data[1, 1]
     M0 = data[1, 2]
@@ -74,7 +74,7 @@ function truck_trailer(;data=[0.4 0.1 0.2; 1.1 0.2 0.2; 0.8 0.1 0.2])
 
         ## constraints
         1.0 ≤ tf ≤ 1000
-        
+
         # state constraints
         -pi / 2 ≤ theta0(t) ≤ pi / 2, (theta0_con)
         -pi / 2 ≤ theta1(t) ≤ pi / 2, (theta1_con)

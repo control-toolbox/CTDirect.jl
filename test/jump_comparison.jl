@@ -1,5 +1,6 @@
 using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
-using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
+using CTModels:
+    CTModels, objective, state, control, variable, costate, time_grid, iterations
 using CTParser: CTParser, @def, prefix!
 prefix!(:CTModels) # tell CTParser def macro to use CTModels instead of OptimalControl
 
@@ -25,7 +26,9 @@ if jump
     for disc_method in disc_method_list
         for grid_size in grid_size_list
             @printf("Jump %s %d:", disc_method, grid_size)
-            @btime algal_bacterial_jump(grid_size=($grid_size), disc_method=($disc_method), print_level=0)
+            @btime algal_bacterial_jump(
+                grid_size=($grid_size), disc_method=($disc_method), print_level=0
+            )
         end
     end
 end
@@ -37,7 +40,14 @@ if ctdirect
         for disc_method in disc_method_list
             for grid_size in grid_size_list
                 @printf("CTDirect (%s) %s %d:", backend, disc_method, grid_size)
-                @btime solve(algal_bacterial().ocp, tol=1e-8, grid_size=($grid_size), disc_method=($disc_method), print_level=0, adnlp_backend=($backend))
+                @btime solve(
+                    algal_bacterial().ocp,
+                    tol=1e-8,
+                    grid_size=($grid_size),
+                    disc_method=($disc_method),
+                    print_level=0,
+                    adnlp_backend=($backend),
+                )
             end
         end
     end

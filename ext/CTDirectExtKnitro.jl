@@ -32,7 +32,9 @@ function CTDirect.solve_docp(
     nlp = CTDirect.model(docp)
 
     # preallocate solver (cannot seem to pass kwargs to solve! ...)
-    solver = KnitroSolver(nlp; outlev=print_level, maxit=max_iter, feastol_abs=tol, opttol_abs=tol)
+    solver = KnitroSolver(
+        nlp; outlev=print_level, maxit=max_iter, feastol_abs=tol, opttol_abs=tol
+    )
 
     # solve discretized problem with NLP solver
     docp_solution = solve!(solver, nlp)

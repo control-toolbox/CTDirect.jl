@@ -37,7 +37,7 @@ function CTDirect.solve_docp(
 
     # check SPRAL requirements
     if linear_solver == "spral" &&
-       (!haskey(ENV, "OMP_CANCELLATION") || !haskey(ENV, "OMP_PROC_BIND"))
+        (!haskey(ENV, "OMP_CANCELLATION") || !haskey(ENV, "OMP_PROC_BIND"))
         println(
             "WARNING: missing required environment variables for SPRAL (OMP_CANCELLATION=TRUE and OMP_PROC_BIND=TRUE), defaulting to MUMPS",
         )
@@ -56,14 +56,14 @@ function CTDirect.solve_docp(
     # solve discretized problem with NLP solver
     docp_solution = solve!(
         solver,
-        nlp,
+        nlp;
         print_level=print_level,
         mu_strategy=mu_strategy,
         tol=tol,
         max_iter=max_iter,
         sb="yes",
         #check_derivatives_for_naninf = "yes",
-        linear_solver=linear_solver;
+        linear_solver=linear_solver,
         kwargs...,
     )
 

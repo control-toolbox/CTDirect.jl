@@ -23,7 +23,7 @@ function CTDirect.build_nlp(
     show_time=false, #+default
     matrix_free=false, #+default
     nlp_solver=nothing,
-    kwargs...
+    kwargs...,
 )
 
     # redeclare objective and constraints functions
@@ -34,17 +34,35 @@ function CTDirect.build_nlp(
     if adnlp_backend == :manual
 
         # build sparsity pattern
-        J_backend = ADNLPModels.SparseADJacobian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, CTDirect.DOCP_Jacobian_pattern(docp))
-        H_backend = ADNLPModels.SparseReverseADHessian(docp.dim_NLP_variables, f, docp.dim_NLP_constraints, c!, CTDirect.DOCP_Hessian_pattern(docp))
+        J_backend = ADNLPModels.SparseADJacobian(
+            docp.dim_NLP_variables,
+            f,
+            docp.dim_NLP_constraints,
+            c!,
+            CTDirect.DOCP_Jacobian_pattern(docp),
+        )
+        H_backend = ADNLPModels.SparseReverseADHessian(
+            docp.dim_NLP_variables,
+            f,
+            docp.dim_NLP_constraints,
+            c!,
+            CTDirect.DOCP_Hessian_pattern(docp),
+        )
 
         # build NLP with given patterns; disable unused backends according to solver info
-        if (nlp_solver isa CTDirect.IpoptBackend || nlp_solver isa CTDirect.MadNLPBackend || nlp_solver isa CTDirect.KnitroBackend)
+        if (
+            nlp_solver isa CTDirect.IpoptBackend ||
+            nlp_solver isa CTDirect.MadNLPBackend ||
+            nlp_solver isa CTDirect.KnitroBackend
+        )
             nlp = ADNLPModel!(
                 f,
                 x0,
-                docp.bounds.var_l, docp.bounds.var_u,
+                docp.bounds.var_l,
+                docp.bounds.var_u,
                 c!,
-                docp.bounds.con_l, docp.bounds.con_u,
+                docp.bounds.con_l,
+                docp.bounds.con_u;
                 gradient_backend=ADNLPModels.ReverseDiffADGradient,
                 jacobian_backend=J_backend,
                 hessian_backend=H_backend,
@@ -59,9 +77,11 @@ function CTDirect.build_nlp(
             nlp = ADNLPModel!(
                 f,
                 x0,
-                docp.bounds.var_l, docp.bounds.var_u,
+                docp.bounds.var_l,
+                docp.bounds.var_u,
                 c!,
-                docp.bounds.con_l, docp.bounds.con_u,
+                docp.bounds.con_l,
+                docp.bounds.con_u;
                 gradient_backend=ADNLPModels.ReverseDiffADGradient,
                 jacobian_backend=J_backend,
                 hessian_backend=H_backend,
@@ -70,13 +90,19 @@ function CTDirect.build_nlp(
         end
     else
         # build NLP; disable unused backends according to solver info
-        if (nlp_solver isa CTDirect.IpoptBackend || nlp_solver isa CTDirect.MadNLPBackend || nlp_solver isa CTDirect.KnitroBackend)
+        if (
+            nlp_solver isa CTDirect.IpoptBackend ||
+            nlp_solver isa CTDirect.MadNLPBackend ||
+            nlp_solver isa CTDirect.KnitroBackend
+        )
             nlp = ADNLPModel!(
                 f,
                 x0,
-                docp.bounds.var_l, docp.bounds.var_u,
+                docp.bounds.var_l,
+                docp.bounds.var_u,
                 c!,
-                docp.bounds.con_l, docp.bounds.con_u,
+                docp.bounds.con_l,
+                docp.bounds.con_u;
                 backend=adnlp_backend,
                 hprod_backend=ADNLPModels.EmptyADbackend,
                 jtprod_backend=ADNLPModels.EmptyADbackend,
@@ -89,18 +115,19 @@ function CTDirect.build_nlp(
             nlp = ADNLPModel!(
                 f,
                 x0,
-                docp.bounds.var_l, docp.bounds.var_u,
+                docp.bounds.var_l,
+                docp.bounds.var_u,
                 c!,
-                docp.bounds.con_l, docp.bounds.con_u,
+                docp.bounds.con_l,
+                docp.bounds.con_u;
                 backend=adnlp_backend,
                 show_time=show_time,
-                matrix_free=matrix_free
+                matrix_free=matrix_free,
             )
         end
     end
 
     return nlp
 end
-
 
 end

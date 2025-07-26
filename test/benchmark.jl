@@ -1,7 +1,8 @@
 # Benchmark and profiling
 using CTBase
 using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
-using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
+using CTModels:
+    CTModels, objective, state, control, variable, costate, time_grid, iterations
 using CTParser: CTParser, @def
 
 using ADNLPModels
@@ -16,7 +17,6 @@ using JET
 using Profile
 using PProf
 using Test # to run individual test scripts if needed
-
 
 #######################################################
 # load examples library
@@ -33,19 +33,31 @@ end
 
 # tests to check allocations in particular
 function init(ocp; grid_size, disc_method)
-    docp = CTDirect.DOCP(ocp, grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=disc_method)
+    docp = CTDirect.DOCP(
+        ocp; grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=disc_method
+    )
     xu = CTDirect.DOCP_initial_guess(docp)
     return docp, xu
 end
 
-function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_solve=true, warntype=false, jet=false, profile=false, grid_size=100, disc_method=:trapeze)
-
+function test_unit(
+    ocp;
+    test_obj=true,
+    test_cons=true,
+    test_trans=true,
+    test_solve=true,
+    warntype=false,
+    jet=false,
+    profile=false,
+    grid_size=100,
+    disc_method=:trapeze,
+)
     if profile
         Profile.Allocs.clear()
     end
 
     # define problem and variables
-    docp, xu = init(ocp, grid_size=grid_size, disc_method=disc_method)
+    docp, xu = init(ocp; grid_size=grid_size, disc_method=disc_method)
     disc = docp.discretization
     c = fill(666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dims.NLP_x)
@@ -80,25 +92,27 @@ function test_unit(ocp; test_obj=true, test_cons=true, test_trans=true, test_sol
     # transcription
     if test_trans
         print("Transcription");
-        @btime direct_transcription($ocp, grid_size=($grid_size), disc_method=($disc_method))
+        @btime direct_transcription(
+            $ocp, grid_size=($grid_size), disc_method=($disc_method)
+        )
     end
 
     # solve
     if test_solve
         print("Solve");
-        @btime solve($ocp, display=false, grid_size=($grid_size), disc_method=($disc_method))
+        @btime solve(
+            $ocp, display=false, grid_size=($grid_size), disc_method=($disc_method)
+        )
     end
 
     return nothing
 end
-
 
 # solve list of problems, for a given grid size and other options
 # verbose <= 1: no output
 # verbose > 1: print summary (iter, obj, time)
 # verbose > 2: print NLP iterations also
 function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
-
     if verbose > 2
         display = true
     else
@@ -106,79 +120,148 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
     end
 
     # check (will also precompile)
-    time = @elapsed sol = solve(problem[:ocp], nlp_solver; init=problem[:init], display=display, grid_size=grid_size, kwargs...)
-    if !CTModels.successful(sol) || (!isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj], rtol=5e-2))
+    time = @elapsed sol = solve(
+        problem[:ocp],
+        nlp_solver;
+        init=problem[:init],
+        display=display,
+        grid_size=grid_size,
+        kwargs...,
+    )
+    if !CTModels.successful(sol) ||
+        (!isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj]; rtol=5e-2))
         success = false
         iter = min(iterations(sol), 999) # to fit 3-digit print 
-        println("Failed ", problem[:name], " for grid size ", grid_size, " at iter ", iter, " obj ", objective(sol), " vs ", problem[:obj])
+        println(
+            "Failed ",
+            problem[:name],
+            " for grid size ",
+            grid_size,
+            " at iter ",
+            iter,
+            " obj ",
+            objective(sol),
+            " vs ",
+            problem[:obj],
+        )
     else
         success = true
         iter = iterations(sol)
-        verbose > 1 && @printf("%-20s: %4d iter %5.2f obj ", problem[:name], iterations(sol), objective(sol))
+        verbose > 1 && @printf(
+            "%-20s: %4d iter %5.2f obj ",
+            problem[:name],
+            iterations(sol),
+            objective(sol)
+        )
         # time
-        time = @belapsed solve($problem[:ocp], $nlp_solver; init=$problem[:init], display=false, grid_size=$grid_size, $kwargs...)
+        time = @belapsed solve(
+            $problem[:ocp],
+            $nlp_solver;
+            init=$problem[:init],
+            display=false,
+            grid_size=($grid_size),
+            $kwargs...,
+        )
         verbose > 1 && @printf("%7.2f s\n", time)
     end
 
     return time, iter, success
 end
 
-
 # perform benchmark
-function bench(;verbose=1, 
+function bench(;
+    verbose=1,
     target_list=:default,
     grid_size_list=[250, 500, 1000, 2500, 5000],
-    nlp_solver=:ipopt, 
-    kwargs...)
+    nlp_solver=:ipopt,
+    kwargs...,
+)
 
     # load problems for benchmark
     # Note that problems may vary significantly in convergence times...  
     if target_list == :default
-        target_list = ["beam", "double_integrator_mintf", "double_integrator_minenergy", "fuller", "goddard", "goddard_all", "jackson", "simple_integrator", "vanderpol"]
+        target_list = [
+            "beam",
+            "double_integrator_mintf",
+            "double_integrator_minenergy",
+            "fuller",
+            "goddard",
+            "goddard_all",
+            "jackson",
+            "simple_integrator",
+            "vanderpol",
+        ]
     elseif target_list == :lagrange_easy
         target_list = [
-        "beam",  
-        "double_integrator_minenergy", 
-        "fuller", 
-        "simple_integrator", 
-        "vanderpol"]
+            "beam",
+            "double_integrator_minenergy",
+            "fuller",
+            "simple_integrator",
+            "vanderpol",
+        ]
     elseif target_list == :lagrange_hard
-        target_list = [ 
-        "bioreactor_1day", 
-        "bioreactor_Ndays", 
-        "bolza_freetf",  
-        "insurance", #only converge when final control is present (mixed path constraint) 
-        "parametric", 
-        "robbins",
+        target_list = [
+            "bioreactor_1day",
+            "bioreactor_Ndays",
+            "bolza_freetf",
+            "insurance", #only converge when final control is present (mixed path constraint) 
+            "parametric",
+            "robbins",
         ]
     elseif target_list == :lagrange_all
         target_list = [
-        "beam",
-        "bioreactor_1day", 
-        "bioreactor_Ndays", 
-        "bolza_freetf",  
-        "double_integrator_e", 
-        "fuller",
-        "parametric", 
-        "robbins", 
-        "simple_integrator", 
-        "vanderpol",
+            "beam",
+            "bioreactor_1day",
+            "bioreactor_Ndays",
+            "bolza_freetf",
+            "double_integrator_e",
+            "fuller",
+            "parametric",
+            "robbins",
+            "simple_integrator",
+            "vanderpol",
         ]
     elseif target_list == :hard
         target_list = [
-        "action",
-        "glider",
-        "moonlander",
-        "quadrotor",
-        "schlogl",
-        "space_shuttle",
-        "truck_trailer",
+            "action",
+            "glider",
+            "moonlander",
+            "quadrotor",
+            "schlogl",
+            "space_shuttle",
+            "truck_trailer",
         ]
 
     elseif target_list == :all
-        target_list = ["algal_bacterial", "beam", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "double_integrator_mintf", "double_integrator_minenergy", "double_integrator_freet0tf", "fuller", "goddard", "goddard_all", "insurance", "jackson", "parametric", "robbins", "simple_integrator", "swimmer", "vanderpol"]
+        target_list = [
+            "algal_bacterial",
+            "beam",
+            "bioreactor_1day",
+            "bioreactor_Ndays",
+            "bolza_freetf",
+            "double_integrator_mintf",
+            "double_integrator_minenergy",
+            "double_integrator_freet0tf",
+            "fuller",
+            "goddard",
+            "goddard_all",
+            "insurance",
+            "jackson",
+            "parametric",
+            "robbins",
+            "simple_integrator",
+            "swimmer",
+            "vanderpol",
+        ]
     elseif target_list == :hard
-        target_list = ["algal_bacterial", "bioreactor_1day", "bioreactor_Ndays", "bolza_freetf", "insurance", "swimmer"]
+        target_list = [
+            "algal_bacterial",
+            "bioreactor_1day",
+            "bioreactor_Ndays",
+            "bolza_freetf",
+            "insurance",
+            "swimmer",
+        ]
     end
     verbose > 2 && println("Problem list: ", target_list)
     problem_list = []
@@ -199,10 +282,16 @@ function bench(;verbose=1,
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
             flush(stdout)
-            time, iter, success = bench_problem(problem; grid_size=grid_size, verbose=verbose-1, nlp_solver=nlp_solver, kwargs...)
-            t_bench[i,j] = time
-            i_bench[i,j] = iter
-            s_bench[i,j] = success
+            time, iter, success = bench_problem(
+                problem;
+                grid_size=grid_size,
+                verbose=verbose-1,
+                nlp_solver=nlp_solver,
+                kwargs...,
+            )
+            t_bench[i, j] = time
+            i_bench[i, j] = iter
+            s_bench[i, j] = success
             j = j + 1
         end
         verbose > 1 && println("")
@@ -215,36 +304,31 @@ function bench(;verbose=1,
         i = 1
         for problem in problem_list
             @printf("%-17s", problem[:name])
-            for j=1:length(grid_size_list)
-                if s_bench[i,j]
-                    @printf("%6.2f(%3d) ", t_bench[i,j], i_bench[i,j])
+            for j in 1:length(grid_size_list)
+                if s_bench[i, j]
+                    @printf("%6.2f(%3d) ", t_bench[i, j], i_bench[i, j])
                 else
-                    @printf("  FAIL(%3d) ", i_bench[i,j])
+                    @printf("  FAIL(%3d) ", i_bench[i, j])
                 end
             end
             println("")
             i = i + 1
         end
     end
-    
+
     # summary
     @printf("SUCCESS %2d/%2d    ", sum(s_bench), length(s_bench))
-    for j=1:length(grid_size_list)
-        @printf("%6.2f(%3d) ", sum(t_bench[:,j]), sum(i_bench[:,j]))
+    for j in 1:length(grid_size_list)
+        @printf("%6.2f(%3d) ", sum(t_bench[:, j]), sum(i_bench[:, j]))
     end
     println("")
-    return
+    return nothing
 end
 
 # custom bench calls
 function bench_custom()
     disc_list = [
-        :euler,
-        :euler_implicit,
-        :trapeze,
-        :midpoint,
-        :gauss_legendre_2,
-        :gauss_legendre_3
+        :euler, :euler_implicit, :trapeze, :midpoint, :gauss_legendre_2, :gauss_legendre_3
     ]
 
     target_list = :hard
@@ -255,16 +339,27 @@ function bench_custom()
         lagrange_to_mayer=true
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
-        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
+        bench(;
+            target_list=target_list,
+            grid_size_list=grid_size_list,
+            disc_method=disc,
+            verbose=verbose,
+            lagrange_to_mayer=lagrange_to_mayer,
+        )
         flush(stdout)
         println("")
 
         lagrange_to_mayer=false
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
-        bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
+        bench(;
+            target_list=target_list,
+            grid_size_list=grid_size_list,
+            disc_method=disc,
+            verbose=verbose,
+            lagrange_to_mayer=lagrange_to_mayer,
+        )
         flush(stdout)
         println("")
     end
-
 end

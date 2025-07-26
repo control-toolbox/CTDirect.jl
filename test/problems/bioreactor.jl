@@ -19,7 +19,6 @@ function light(time, halfperiod)
     return max(0, sin(tau))^2
 end
 
-
 # 1 day periodic problem
 function bioreactor_1day()
     @def bioreactor_1 begin
@@ -60,7 +59,7 @@ function bioreactor_1day()
 end
 
 # N days (non periodic)
-function bioreactor_Ndays(;N=30)
+function bioreactor_Ndays(; N=30)
     @def bioreactor_N begin
         # constants
         beta = 1
@@ -101,6 +100,7 @@ function bioreactor_Ndays(;N=30)
         obj = nothing
     end
 
-    return ((ocp=bioreactor_N, obj=obj, init=(state=[50, 50, 50],), name="bioreactor_Ndays",
+    return ((
+        ocp=bioreactor_N, obj=obj, init=(state=[50, 50, 50],), name="bioreactor_Ndays"
     ))
 end
