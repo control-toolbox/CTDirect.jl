@@ -39,7 +39,7 @@ MadNLP = "0.8"
 MadNLPGPU = "0.7"
 NLPModelsIpopt = "0.10"
 NLPModelsKnitro = "0.9"
-SparseArrays = "1.10"
+SparseArrays = "1"
 SplitApplyCombine = "1.2"
 julia = "1.10"
 
