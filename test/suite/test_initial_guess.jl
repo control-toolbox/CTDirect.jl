@@ -6,7 +6,7 @@ maxiter = 0
 # reference solution
 prob = double_integrator_mintf()
 ocp = prob.ocp
-sol0 = solve(ocp, display=false)
+sol0 = solve(ocp; display=false)
 
 # constant initial guess
 x_const = [0.5, 0.2]
@@ -64,22 +64,14 @@ end
     @test variable(sol) == v_const
 end
 @testset verbose = true showtiming = true ":constant_xu" begin
-    sol = solve(
-        ocp,
-        display=false,
-        init=(state=x_const, control=u_const),
-        max_iter=maxiter,
-    )
+    sol = solve(ocp, display=false, init=(state=x_const, control=u_const), max_iter=maxiter)
     T = time_grid(sol)
     @test isapprox(state(sol).(T), (t -> x_const).(T), rtol=1e-2)
     @test isapprox(control(sol).(T), (t -> u_const).(T), rtol=1e-2)
 end
 @testset verbose = true showtiming = true ":constant_xv" begin
     sol = solve(
-        ocp,
-        display=false,
-        init=(state=x_const, variable=v_const),
-        max_iter=maxiter,
+        ocp, display=false, init=(state=x_const, variable=v_const), max_iter=maxiter
     )
     T = time_grid(sol)
     @test isapprox(state(sol).(T), (t -> x_const).(T), rtol=1e-2)
@@ -87,10 +79,7 @@ end
 end
 @testset verbose = true showtiming = true ":constant_uv" begin
     sol = solve(
-        ocp,
-        display=false,
-        init=(control=u_const, variable=v_const),
-        max_iter=maxiter,
+        ocp, display=false, init=(control=u_const, variable=v_const), max_iter=maxiter
     )
     T = time_grid(sol)
     @test isapprox(control(sol).(T), (t -> u_const).(T), rtol=1e-2)
@@ -121,12 +110,7 @@ end
     @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)
 end
 @testset verbose = true showtiming = true ":functional_xu" begin
-    sol = solve(
-        ocp,
-        display=false,
-        init=(state=x_func, control=u_func),
-        max_iter=maxiter,
-    )
+    sol = solve(ocp, display=false, init=(state=x_func, control=u_func), max_iter=maxiter)
     T = time_grid(sol)
     @test isapprox(state(sol).(T), x_func.(T), rtol=1e-2)
     @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)

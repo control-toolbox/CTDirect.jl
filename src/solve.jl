@@ -22,12 +22,12 @@ end
 # Packages associated to Symbols: used for display
 const PACKAGES = Dict(
     # NLP solver
-    :ipopt  => :NLPModelsIpopt,
+    :ipopt => :NLPModelsIpopt,
     :madnlp => :MadNLP,
     :knitro => :NLPModelsKnitro,
     # NLP modeller
-    :adnlp  => :ADNLPModels,
-    :exa    => :ExaModels,
+    :adnlp => :ADNLPModels,
+    :exa => :ExaModels,
 )
 
 # ----------------------------------------------------------------------
@@ -45,23 +45,27 @@ struct ADNLPBackend <: AbstractNLPModelBackend end
 struct ExaBackend <: AbstractNLPModelBackend end
 
 ## Extensions and weak dependencies (see ext/CTDirectExt***)
-const WEAKDEPS = Dict{Type, Any}(
+const WEAKDEPS = Dict{Type,Any}(
     # NLP solver
-    IpoptBackend  => [:NLPModelsIpopt],
+    IpoptBackend => [:NLPModelsIpopt],
     MadNLPBackend => [:MadNLP],
     KnitroBackend => [:NLPModelsKnitro],
     # NLP modeller
-    ADNLPBackend  => [:ADNLPModels],
-    ExaBackend    => [:ExaModels],
+    ADNLPBackend => [:ADNLPModels],
+    ExaBackend => [:ExaModels],
 )
 
 # solver
-function solve_docp(solver_backend::T, docp::CTDirect.DOCP; kwargs...) where {T<:AbstractNLPSolverBackend}
+function solve_docp(
+    solver_backend::T, docp::CTDirect.DOCP; kwargs...
+) where {T<:AbstractNLPSolverBackend}
     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
 end
 
 # modeller
-function build_nlp(nlp_model::T, docp::CTDirect.DOCP, x0; kwargs...) where {T<:AbstractNLPModelBackend}
+function build_nlp(
+    nlp_model::T, docp::CTDirect.DOCP, x0; kwargs...
+) where {T<:AbstractNLPModelBackend}
     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
 end
 # ----------------------------------------------------------------------
@@ -96,11 +100,10 @@ function parse_description(description)
         nlp_model = CTDirect.ExaBackend()
     else
         error("no known model (:adnlp, :exa) in method", method)
-    end 
+    end
 
     return nlp_solver, nlp_model
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -145,11 +148,14 @@ function solve(
 )
 
     # display infos about the chosen method
-    display && display_method(ocp, description...; 
+    display && display_method(
+        ocp,
+        description...;
         grid_size=grid_size,
         time_grid=time_grid,
         disc_method=disc_method,
-        kwargs...)
+        kwargs...,
+    )
 
     # build discretized optimal control problem (DOCP)
     # NB. this includes the initial guess for the resulting NLP
@@ -174,24 +180,25 @@ function solve(
     return build_OCP_solution(docp, docp_solution)
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
 Display the details of the solving method (NLP modeller, solver, discretization...)
 """
-function display_method(ocp, description::Symbol...; grid_size, disc_method, time_grid, kwargs...,)
+function display_method(
+    ocp, description::Symbol...; grid_size, disc_method, time_grid, kwargs...
+)
 
     # complete description
     method = CTBase.complete(description; descriptions=available_methods())
 
     #
     print("▫ The optimal control problem is solved with ")
-    printstyled("CTDirect", color = :black, bold = true)
+    printstyled("CTDirect"; color=:black, bold=true)
     print(" version v$(version()).", "\n\n", "   ┌─ The NLP is modelled with ")
-    printstyled(PACKAGES[method[1]], color = :black, bold = true)
+    printstyled(PACKAGES[method[1]]; color=:black, bold=true)
     print(" and solved with ")
-    printstyled(PACKAGES[method[2]], color = :black, bold = true)
+    printstyled(PACKAGES[method[2]]; color=:black, bold=true)
     println(".")
     println("   │")
 
@@ -201,7 +208,7 @@ function display_method(ocp, description::Symbol...; grid_size, disc_method, tim
 
     println("   ├─ Number of time steps⋅: ", N)
     println("   └─ Discretisation scheme: ", disc_method)
-	println("")
+    println("")
 
     # for ipopt
     if !(:print_level ∈ keys(kwargs) && kwargs[:print_level] != 5)
@@ -235,17 +242,28 @@ function direct_transcription(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
-    lagrange_to_mayer=true,  
+    lagrange_to_mayer=true,
     kwargs...,
 )
-
     nlp_solver, nlp_model = parse_description(description)
 
     # build DOCP
     if nlp_model isa ExaBackend
-        docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, lagrange_to_mayer=false)
+        docp = DOCP(
+            ocp;
+            grid_size=grid_size,
+            time_grid=time_grid,
+            disc_method=disc_method,
+            lagrange_to_mayer=false,
+        )
     else
-        docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, disc_method=disc_method, lagrange_to_mayer=lagrange_to_mayer)
+        docp = DOCP(
+            ocp;
+            grid_size=grid_size,
+            time_grid=time_grid,
+            disc_method=disc_method,
+            lagrange_to_mayer=lagrange_to_mayer,
+        )
     end
 
     # set bounds in DOCP
@@ -262,11 +280,18 @@ function direct_transcription(
     x0 = DOCP_initial_guess(docp, docp_init)
 
     # build nlp
-    docp.nlp = build_nlp(nlp_model, docp, x0; nlp_solver=nlp_solver, grid_size=grid_size, disc_method=disc_method, kwargs...)
+    docp.nlp = build_nlp(
+        nlp_model,
+        docp,
+        x0;
+        nlp_solver=nlp_solver,
+        grid_size=grid_size,
+        disc_method=disc_method,
+        kwargs...,
+    )
 
     return docp
 end
-
 
 """
 $(TYPEDSIGNATURES)

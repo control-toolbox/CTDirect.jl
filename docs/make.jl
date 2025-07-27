@@ -14,11 +14,7 @@ const CTDirectExtIpopt = Base.get_extension(CTDirect, :CTDirectExtIpopt)
 const CTDirectExtKnitro = Base.get_extension(CTDirect, :CTDirectExtKnitro)
 const CTDirectExtMadNLP = Base.get_extension(CTDirect, :CTDirectExtMadNLP)
 Modules = [
-    CTDirectExtADNLP,
-    CTDirectExtExa,
-    CTDirectExtIpopt,
-    CTDirectExtKnitro,
-    CTDirectExtMadNLP,
+    CTDirectExtADNLP, CTDirectExtExa, CTDirectExtIpopt, CTDirectExtKnitro, CTDirectExtMadNLP
 ]
 for Module in Modules
     isnothing(DocMeta.getdocmeta(Module, :DocTestSetup)) &&
@@ -47,7 +43,7 @@ API_PAGES = [
 makedocs(;
     warnonly=[:cross_references, :autodocs_block],
     sitename="CTDirect.jl",
-    format=Documenter.HTML(
+    format=Documenter.HTML(;
         repolink="https://" * repo_url,
         prettyurls=false,
         assets=[
@@ -58,6 +54,4 @@ makedocs(;
     pages=["Introduction" => "index.md", "API" => API_PAGES],
 )
 
-deploydocs(;
-    repo=repo_url * ".git", devbranch="main"
-)
+deploydocs(; repo=repo_url * ".git", devbranch="main")

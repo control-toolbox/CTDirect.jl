@@ -4,7 +4,7 @@ The Moonlander Problem:
     The objective is to minimize the time taken to land on the moon.
     The problem is formulated as an OptimalControl model.
 """
-function moonlander(;p_f=[5.0, 5.0])
+function moonlander(; p_f=[5.0, 5.0])
 
     ## parameters
     m = 1.0

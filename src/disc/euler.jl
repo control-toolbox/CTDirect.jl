@@ -8,7 +8,6 @@ Note that both the explicit and implicit versions therefore use the same variabl
 =#
 
 struct Euler <: Discretization
-
     info::String
     _step_variables_block::Int
     _state_stage_eqs_block::Int
@@ -17,7 +16,15 @@ struct Euler <: Discretization
     _explicit::Bool
 
     # constructor
-    function Euler(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons; explicit=true)
+    function Euler(
+        dim_NLP_steps,
+        dim_NLP_x,
+        dim_NLP_u,
+        dim_NLP_v,
+        dim_path_cons,
+        dim_boundary_cons;
+        explicit=true,
+    )
 
         # aux variables
         step_variables_block = dim_NLP_x + dim_NLP_u
@@ -28,19 +35,28 @@ struct Euler <: Discretization
         dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
 
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
-        dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons
+        dim_NLP_constraints =
+            dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) +
+            step_pathcons_block +
+            dim_boundary_cons
 
         if explicit
             info = "Euler (explicit), 1st order"
         else
             info = "Euler (implicit), 1st order"
         end
-        disc = new(info, step_variables_block, state_stage_eqs_block, step_pathcons_block, false, explicit)
+        disc = new(
+            info,
+            step_variables_block,
+            state_stage_eqs_block,
+            step_pathcons_block,
+            false,
+            explicit,
+        )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
     end
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -59,9 +75,8 @@ function get_OCP_control_at_time_step(xu, docp::DOCP{Euler}, i)
         (i == 1) && (i = 2)
         offset = (i-2) * docp.discretization._step_variables_block + docp.dims.NLP_x
     end
-    return @view xu[(offset+1):(offset+docp.dims.NLP_u)]
+    return @view xu[(offset + 1):(offset + docp.dims.NLP_u)]
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -69,11 +84,10 @@ $(TYPEDSIGNATURES)
 Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
-
     work = similar(xu, docp.dims.NLP_x * docp.time.steps)
 
     # loop over time steps
-    for i = 1:docp.time.steps
+    for i in 1:docp.time.steps
         offset = (i-1) * docp.dims.NLP_x
 
         # get variables at t_i or t_i+1
@@ -87,15 +101,16 @@ function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
         u = get_OCP_control_at_time_step(xu, docp, index)
 
         # OCP dynamics
-        CTModels.dynamics(docp.ocp)((@view work[(offset+1):(offset+docp.dims.OCP_x)]), t, x, u, v)
+        CTModels.dynamics(docp.ocp)(
+            (@view work[(offset + 1):(offset + docp.dims.OCP_x)]), t, x, u, v
+        )
         # lagrange cost
         if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-            work[offset+docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(t, x, u, v)
+            work[offset + docp.dims.NLP_x] = CTModels.lagrange(docp.ocp)(t, x, u, v)
         end
     end
     return work
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -103,11 +118,10 @@ $(TYPEDSIGNATURES)
 Compute the running cost
 """
 function runningCost(docp::DOCP{Euler}, xu, v, time_grid)
-    
-    obj_lagrange = 0.
+    obj_lagrange = 0.0
 
     # loop over time steps
-    for i = 1:docp.time.steps
+    for i in 1:docp.time.steps
         offset = (i-1) * docp.dims.NLP_x
         # get variables at t_i or t_i+1
         if docp.discretization._explicit
@@ -118,13 +132,12 @@ function runningCost(docp::DOCP{Euler}, xu, v, time_grid)
         ti = time_grid[index]
         xi = get_OCP_state_at_time_step(xu, docp, index)
         ui = get_OCP_control_at_time_step(xu, docp, index)
-        hi = time_grid[i+1] - time_grid[i]
+        hi = time_grid[i + 1] - time_grid[i]
         obj_lagrange = obj_lagrange + hi * CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
     end
 
     return obj_lagrange
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -135,7 +148,13 @@ Convention: 1 <= i <= dim_NLP_steps+1
 function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
 
     # offset for previous steps
-    offset = (i-1)*(docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
+    offset =
+        (
+            i-1
+        )*(
+            docp.discretization._state_stage_eqs_block +
+            docp.discretization._step_pathcons_block
+        )
 
     # 0. variables
     ti = time_grid[i]
@@ -144,28 +163,32 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
     # 1. state equation
     if i <= docp.time.steps
         # more variables
-        tip1 = time_grid[i+1]
+        tip1 = time_grid[i + 1]
         xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
         hi = tip1 - ti
         offset_dyn_i = (i-1)*docp.dims.NLP_x
 
         # state equation: euler rule
-        @views @. c[(offset+1):(offset+docp.dims.OCP_x)] = xip1 - (xi + hi * work[(offset_dyn_i+1):(offset_dyn_i+docp.dims.OCP_x)])
+        @views @. c[(offset + 1):(offset + docp.dims.OCP_x)] =
+            xip1 - (xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + docp.dims.OCP_x)])
         if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-            c[offset+docp.dims.NLP_x] = get_lagrange_state_at_time_step(xu, docp, i+1) - (get_lagrange_state_at_time_step(xu, docp, i) + hi * work[offset_dyn_i+docp.dims.NLP_x])
+            c[offset + docp.dims.NLP_x] =
+                get_lagrange_state_at_time_step(xu, docp, i+1) - (
+                    get_lagrange_state_at_time_step(xu, docp, i) +
+                    hi * work[offset_dyn_i + docp.dims.NLP_x]
+                )
         end
         offset += docp.dims.NLP_x
-
     end
 
     # 2. path constraints
     if docp.discretization._step_pathcons_block > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(docp.ocp)[2]((@view c[(offset+1):(offset+docp.dims.path_cons)]), ti, xi, ui, v)
+        CTModels.path_constraints_nl(docp.ocp)[2](
+            (@view c[(offset + 1):(offset + docp.dims.path_cons)]), ti, xi, ui, v
+        )
     end
-
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -185,10 +208,12 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
     v_end = docp.dim_NLP_variables
 
     # 1. main loop over steps
-    for i = 1:docp.time.steps
+    for i in 1:docp.time.steps
 
         # constraints block and offset: state equation, path constraints
-        c_block = docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block
+        c_block =
+            docp.discretization._state_stage_eqs_block +
+            docp.discretization._step_pathcons_block
         c_offset = (i-1)*c_block
 
         # contiguous variables blocks will be used when possible
@@ -215,38 +240,66 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
         if docp.flags.lagrange
             if docp.discretization._explicit
                 # [x_i, l_i, u_i]
-                add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, xi_start, ui_end)
+                add_nonzero_block!(
+                    Is,
+                    Js,
+                    c_offset+docp.dims.NLP_x,
+                    c_offset+docp.dims.NLP_x,
+                    xi_start,
+                    ui_end,
+                )
                 # l_i+1
                 add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, lip1)
             else
                 # [l_i, u_i, x_i+1, l_i+1]
-                add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, li, lip1)
+                add_nonzero_block!(
+                    Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, li, lip1
+                )
             end
             # v
-            add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, v_start, v_end)
+            add_nonzero_block!(
+                Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, v_start, v_end
+            )
         end
 
         # 1.3 path constraint g(t_i, x_i, u_i, v)
         # depends on x_i, u_i, v; skip l_i
-        add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, xi_start, xi_end)
-        add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, ui_start, ui_end)
-        add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, v_start, v_end)
+        add_nonzero_block!(
+            Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, xi_start, xi_end
+        )
+        add_nonzero_block!(
+            Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, ui_start, ui_end
+        )
+        add_nonzero_block!(
+            Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, v_start, v_end
+        )
     end
 
     # 2. final path constraints (xf, uf, v)
-    c_offset = docp.time.steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block)
+    c_offset =
+        docp.time.steps * (
+            docp.discretization._state_stage_eqs_block +
+            docp.discretization._step_pathcons_block
+        )
     c_block = docp.discretization._step_pathcons_block
     var_offset = docp.time.steps*docp.discretization._step_variables_block
     xf_start = var_offset + 1
     xf_end = var_offset + docp.dims.OCP_x
     uf_start = var_offset-docp.discretization._step_variables_block + docp.dims.NLP_x + 1
-    uf_end = var_offset-docp.discretization._step_variables_block + docp.dims.NLP_x + docp.dims.NLP_u
+    uf_end =
+        var_offset-docp.discretization._step_variables_block +
+        docp.dims.NLP_x +
+        docp.dims.NLP_u
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, uf_start, uf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
 
     # 3. boundary constraints (x0, xf, v)
-    c_offset = docp.time.steps * (docp.discretization._state_stage_eqs_block + docp.discretization._step_pathcons_block) + docp.discretization._step_pathcons_block
+    c_offset =
+        docp.time.steps * (
+            docp.discretization._state_stage_eqs_block +
+            docp.discretization._step_pathcons_block
+        ) + docp.discretization._step_pathcons_block
     c_block = docp.dims.boundary_cons
     x0_start = 1
     x0_end = docp.dims.OCP_x
@@ -263,7 +316,6 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
     Vs = ones(Bool, nnzj)
     return sparse(Is, Js, Vs, docp.dim_NLP_constraints, docp.dim_NLP_variables)
 end
-
 
 """
 $(TYPEDSIGNATURES)
@@ -292,7 +344,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Euler})
     # 1.0 v / v term
     add_nonzero_block!(Is, Js, v_start, v_end, v_start, v_end)
 
-    for i = 1:docp.time.steps
+    for i in 1:docp.time.steps
 
         # contiguous variables blocks will be used when possible
         # x_i (l_i) u_i x_i+1 (l_i+1)
@@ -351,5 +403,4 @@ function DOCP_Hessian_pattern(docp::DOCP{Euler})
     nnzj = length(Is)
     Vs = ones(Bool, nnzj)
     return sparse(Is, Js, Vs, docp.dim_NLP_variables, docp.dim_NLP_variables)
-
 end
