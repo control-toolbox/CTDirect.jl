@@ -1,7 +1,6 @@
 # minimum action problem
 
 function action()
-
     T = 50
 
     # Define the vector field
@@ -19,7 +18,6 @@ function action()
         return asqrt(unorm2 * fnorm2) - dotuf
     end
 
-
     @def action begin
         t ∈ [0, T], time
         x ∈ R², state
@@ -30,7 +28,6 @@ function action()
         #∫(asqrt(dot(u(t),u(t))*dot(f(x(t)),f(x(t)))) - dot(u(t),f(x(t)))) → min
         ∫(lag(x(t), u(t))) → min
     end
-
 
     # Init: Linear interpolation for x₁, Parabolic guess for x₂
     x1(t) = -(1 - t/T) + t/T
