@@ -51,7 +51,7 @@ SplitApplyCombine = "03a91e81-4c3e-53e1-a0a4-9c0c8f19dd66"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "SplitApplyCombine", "CTParser", "MadNLPGPU", "CUDA"]
+test = ["Test", "SplitApplyCombine", "CTParser", "ADNLPModels", "ExaModels", "NLPModelsIpopt", "MadNLP", "MadNLPGPU", "CUDA"]
 
 [workspace]
 projects = ["test", "docs"]
