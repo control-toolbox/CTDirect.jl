@@ -171,7 +171,7 @@ function solve(
     docp_solution = CTDirect.solve_docp(nlp_solver, docp; display=display, kwargs...)
 
     # build and return OCP solution
-    return build_OCP_solution(docp, docp_solution)
+    return build_OCP_solution(docp, docp_solution; nlp_model = nlp_model)
 end
 
 
