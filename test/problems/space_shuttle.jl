@@ -6,7 +6,7 @@ Space Shuttle Reentry Trajectory Problem:
     Note: no heating limit path constraint
 """
 function space_shuttle()
-    
+
     ## Global variables
     w = 203000.0  # weight (lb)
     g₀ = 32.174    # acceleration (ft/sec^2)
@@ -68,9 +68,9 @@ function space_shuttle()
     end
 
     ocp = @def begin
-  
+
         ## define the problem
-        tf ∈ R¹, variable 
+        tf ∈ R¹, variable
         t ∈ [0, tf], time
         x ∈ R⁶, state
         u ∈ R², control
@@ -121,12 +121,15 @@ function space_shuttle()
     # variable time step seems to be initialized at 1 in jump
     # note that ipopt will project the initial guess inside the bounds anyway.
     tf_init = 500
-    x_init = t -> [ h_s + t / tf_init * (h_t - h_s) ,
-    ϕ_s,
-    θ_s,
-    v_s + t / tf_init * (v_t - v_s),
-    γ_s + t / tf_init * (γ_t - γ_s),
-    ψ_s]
+    x_init =
+        t -> [
+            h_s + t / tf_init * (h_t - h_s),
+            ϕ_s,
+            θ_s,
+            v_s + t / tf_init * (v_t - v_s),
+            γ_s + t / tf_init * (γ_t - γ_s),
+            ψ_s,
+        ]
     init = (state=x_init, control=[α_s, β_s], variable=[tf_init])
 
     # objective should be 34.18deg (0.5966rad) with tf = 2009

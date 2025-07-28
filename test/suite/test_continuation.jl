@@ -13,7 +13,7 @@ if test1
     @testset verbose = true showtiming = true ":continuation :double_integrator" begin
         init = nothing
         obj_list = []
-        for T = 1:5
+        for T in 1:5
             ocp = double_integrator_minenergy(T).ocp
             sol = solve(ocp, display=false, init=init, grid_size=100)
             init = sol
@@ -47,13 +47,13 @@ if test3
     if !isdefined(Main, :goddard)
         include("../problems/goddard.jl")
     end
-    sol0 = solve(goddard().ocp, display=false)
+    sol0 = solve(goddard().ocp; display=false)
 
     @testset verbose = true showtiming = true ":continuation :goddard" begin
         sol = sol0
         Tmax_list = []
         obj_list = []
-        for Tmax = 3.5:-0.5:1
+        for Tmax in 3.5:-0.5:1
             sol = solve(goddard(Tmax=Tmax).ocp, display=false, init=sol)
             push!(Tmax_list, Tmax)
             push!(obj_list, objective(sol))
