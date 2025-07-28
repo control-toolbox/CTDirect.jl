@@ -164,6 +164,7 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
 
     # NLP
     nlp
+    exa_getter::Union{Nothing,Function} # getter for ExaModels (if used)
 
     # boolean flags
     flags::DOCPFlags
@@ -283,7 +284,8 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
         docp = new{typeof(discretization),typeof(ocp)}(
             discretization,
             ocp,
-            nothing,
+            nothing, # nlp
+            nothing, # exa_getter
             flags,
             dims,
             time,

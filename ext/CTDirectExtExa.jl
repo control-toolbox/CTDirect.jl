@@ -17,9 +17,9 @@ Build the NLP model for the DOCP (ExaModels version)
 * `disc_method`: discretization method ([`:trapeze`], `:euler`)
 * `exa_backend`: backend for ExaModels ([`nothing`])
 """
-function CTDirect.build_nlp(
-    nlp_model::CTDirect.ExaBackend,
+function CTDirect.build_nlp!(
     docp::CTDirect.DOCP,
+    nlp_model::CTDirect.ExaBackend,
     x0;
     grid_size=CTDirect.__grid_size(),
     disc_method=CTDirect.__disc_method(),
@@ -36,13 +36,12 @@ function CTDirect.build_nlp(
     # debug: (time_grid != __time_grid()) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
     build_exa = CTModels.get_build_examodel(docp.ocp)
     # note: arg #4 is init (currently set manually below), arg #5 is precision (float64 etc)
-    nlp, _ = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method)  # debug (retrieve getter and store in docp)
+    docp.nlp, docp.exa_getter = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method)
     
     # set initial guess (NB. do not broadcast, apparently fails on GPU arrays)
     # NB unused final control in examodel / euler, hence the different x0 sizes
-    nlp.meta.x0[1:docp.dim_NLP_variables] = x0
-
-    return nlp
+    docp.nlp.meta.x0[1:docp.dim_NLP_variables] = x0
+    return nothing
 end
 
 end

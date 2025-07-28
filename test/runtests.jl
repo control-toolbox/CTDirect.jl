@@ -37,7 +37,7 @@ end
         include("test_exa.jl")
     else
         # CPU: run all scripts in subfolder suite/
-        #include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
-        include.("suite/test_exa.jl") # debug
+        include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
+        #include.("suite/test_exa.jl") # debug
     end
 end
