@@ -38,7 +38,7 @@ if !isdefined(Main, :fuller)
     include("../problems/fuller.jl")
 end
 @testset verbose = true showtiming = true ":fuller" begin
-    check_problem(fuller() , display=false)
+    check_problem(fuller(), display=false)
 end
 
 # glider
@@ -55,7 +55,7 @@ if !isdefined(Main, :goddard)
 end
 @testset verbose = true showtiming = true ":goddard :max_rf" begin
     check_problem(goddard(), display=false)
-    check_problem(goddard_all() , display=false)
+    check_problem(goddard_all(), display=false)
 end
 
 # insurance (nb. requires final control for CV, mixed constraints)
@@ -63,7 +63,7 @@ if !isdefined(Main, :insurance)
     include("../problems/insurance.jl")
 end
 @testset verbose = true showtiming = true ":insurance" begin
-    check_problem(insurance() , display=false, disc_method=:trapeze)
+    check_problem(insurance(), display=false, disc_method=:trapeze)
 end
 
 # jackson

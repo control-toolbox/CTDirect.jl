@@ -28,7 +28,7 @@ function algal_bacterial()
             α * β * ϕ(x[1]) * x[2] - ρ(x[3])*x[5] - d*x[3],   # v
             ρ(x[3]) - μ(x[4])*x[4],                     # q
             (μ(x[4]) - d) * x[5],                         # c
-            d * x[5]                                    # obj = d*c
+            d * x[5],                                    # obj = d*c
         ]
     end
 
