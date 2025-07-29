@@ -34,11 +34,10 @@ end
 @testset verbose = true showtiming = true "Test CTDirect" begin
     if "GPU" in ARGS
         # ExaModels tests only on CPU + GPU (moonshot workflow)
-        include("test_exa.jl")
+        include("test_gpu.jl")
     else
         # CPU: run all scripts in subfolder suite/
         include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
-        #include("suite/test_exa.jl") # debug
-        #include("suite/test_nlp.jl") # debug
+        include("test_gpu.jl") # will only test ExaModels on CPU
     end
 end
