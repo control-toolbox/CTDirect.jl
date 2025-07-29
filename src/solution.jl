@@ -39,15 +39,6 @@ function build_OCP_solution(docp, docp_solution; nlp_model=ADNLPBackend())
 
     # costate and constraints multipliers
     P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, multipliers; nlp_model=nlp_model, docp_solution=docp_solution)
-    # debug
-    println("**** typeof(X): ", typeof(X))
-    println("**** typeof(U): ", typeof(U))
-    println("**** typeof(v): ", typeof(v))
-    println("**** typeof(P): ", typeof(P))
-    println("**** X = ", X)
-    println("**** U = ", U)
-    println("**** v = ", v)
-    println("**** P = ", P)
 
     return CTModels.build_solution(
         ocp,

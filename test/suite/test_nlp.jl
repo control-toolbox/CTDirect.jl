@@ -105,6 +105,7 @@ t_vec = [0, 0.1, v_const]
 x_vec = [[0, 0], [1, 2], [5, -1]]
 u_func = t -> (cos(10 * t) + 1) * 0.5
 # mixed init
+maxiter = 0
 @testset verbose = true showtiming = true ":docp_mixed_init" begin
     set_initial_guess(docp, (time=t_vec, state=x_vec, control=u_func, variable=v_const))
     dsol = CTDirect.solve_docp(solver_backend, docp, display=false, max_iter=maxiter)
