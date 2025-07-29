@@ -35,6 +35,7 @@ function CTDirect.build_nlp!(
     # build nlp
     # debug: (time_grid != __time_grid()) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
     build_exa = CTModels.get_build_examodel(docp.ocp)
+    # build_exa is in CTParser and exported via CTModels (?)
     # note: arg #4 is init (currently set manually below), arg #5 is precision (float64 etc)
     docp.nlp, docp.exa_getter = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method)
     

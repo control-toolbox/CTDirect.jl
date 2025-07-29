@@ -1,9 +1,8 @@
 # Benchmark and profiling
 using CTBase
-using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
-using CTModels:
-    CTModels, objective, state, control, variable, costate, time_grid, iterations
 using CTParser: CTParser, @def
+using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
+using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
 
 using ADNLPModels
 using NLPModelsIpopt
@@ -108,7 +107,8 @@ function test_unit(
     return nothing
 end
 
-# solve list of problems, for a given grid size and other options
+
+# solve given problem, return convergence data and solution
 # verbose <= 1: no output
 # verbose > 1: print summary (iter, obj, time)
 # verbose > 2: print NLP iterations also
@@ -165,7 +165,7 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
         verbose > 1 && @printf("%7.2f s\n", time)
     end
 
-    return time, iter, success
+    return time, iter, success, sol
 end
 
 # perform benchmark
@@ -275,6 +275,7 @@ function bench(;
     t_bench = zeros(Float64, (length(problem_list), length(grid_size_list)))
     i_bench = zeros(Int, (length(problem_list), length(grid_size_list)))
     s_bench = zeros(Bool, (length(problem_list), length(grid_size_list)))
+    solutions = Array{Any}(undef, (length(problem_list), length(grid_size_list)))
     i = 1
     for problem in problem_list
         verbose > 1 && @printf("Testing problem %-17s for grid size ", problem[:name])
@@ -282,16 +283,11 @@ function bench(;
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
             flush(stdout)
-            time, iter, success = bench_problem(
-                problem;
-                grid_size=grid_size,
-                verbose=verbose-1,
-                nlp_solver=nlp_solver,
-                kwargs...,
-            )
-            t_bench[i, j] = time
-            i_bench[i, j] = iter
-            s_bench[i, j] = success
+            time, iter, success, sol = bench_problem(problem; grid_size=grid_size, verbose=verbose-1, nlp_solver=nlp_solver, kwargs...)
+            t_bench[i,j] = time
+            i_bench[i,j] = iter
+            s_bench[i,j] = success
+            solutions[i,j] = sol
             j = j + 1
         end
         verbose > 1 && println("")
@@ -322,44 +318,52 @@ function bench(;
         @printf("%6.2f(%3d) ", sum(t_bench[:, j]), sum(i_bench[:, j]))
     end
     println("")
-    return nothing
+    return solutions
+    
 end
+
 
 # custom bench calls
 function bench_custom()
     disc_list = [
-        :euler, :euler_implicit, :trapeze, :midpoint, :gauss_legendre_2, :gauss_legendre_3
+        #:euler,
+        #:euler_implicit,
+        :trapeze,
+        :midpoint,
+        #:gauss_legendre_2,
+        #:gauss_legendre_3
     ]
 
-    target_list = :hard
-    grid_size_list=[250, 500, 1000]
+    target_list = ["goddard"] #:hard
+    grid_size_list=[250] #, 500, 1000]
     verbose = 1
+
+    solutions = Dict{Symbol, Any}()
 
     for disc in disc_list
         lagrange_to_mayer=true
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
-        bench(;
-            target_list=target_list,
-            grid_size_list=grid_size_list,
-            disc_method=disc,
-            verbose=verbose,
-            lagrange_to_mayer=lagrange_to_mayer,
-        )
+        solutions[disc] = bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
         flush(stdout)
         println("")
 
+        # plot
+        if disc == disc_list[1]
+            p = plot(solutions[disc][1,1], :control, label=String(disc))
+        else
+            p = plot!(solutions[disc][1,1], :control, label=String(disc))
+        end
+        display(p)
+
+        #=
         lagrange_to_mayer=false
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
-        bench(;
-            target_list=target_list,
-            grid_size_list=grid_size_list,
-            disc_method=disc,
-            verbose=verbose,
-            lagrange_to_mayer=lagrange_to_mayer,
-        )
+        sol2 = bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
         flush(stdout)
         println("")
+        =#
     end
+
 end
