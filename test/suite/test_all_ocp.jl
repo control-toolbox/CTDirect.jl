@@ -25,6 +25,14 @@ end
     check_problem(double_integrator_freet0tf(), display=false)
 end
 
+# electric vehicle
+if !isdefined(Main, :electric_vehicle)
+    include("../problems/electric_vehicle.jl")
+end
+@testset verbose = true showtiming = true ":electric_vehicle" begin
+    check_problem(electric_vehicle() , display=false)
+end
+
 # fuller
 if !isdefined(Main, :fuller)
     include("../problems/fuller.jl")

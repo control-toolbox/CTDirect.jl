@@ -8,8 +8,8 @@ Ref: [PS2011] Nicolas Petit and Antonio Sciarretta. "Optimal drive of electric v
 function electric_vehicle()
 
     # parameters
-    D = 10.0
     tf = 1.0
+    D = 10.0
     b1 = 1e3
     b2 = 1e3
     h0 = 0.1
@@ -39,6 +39,7 @@ function electric_vehicle()
         v = x₂
 
         ## constraints
+        0 <= pos(t) <= Inf        
         0 <= v(t) <= Inf
 
         # initial constraints
@@ -55,5 +56,8 @@ function electric_vehicle()
         ∫(b1 * u(t) * v(t) + b2 * u(t)^2) → min
     end
 
-    return ((ocp=ocp, obj=nothing, name="electric_vehicle", init=nothing))
+    state_init = t -> (tf-t)*[0., 1.] + t*[D, 1.]
+    init = (state=state_init, control=0.5)
+
+    return ((ocp=ocp, obj=1.23e6, name="electric_vehicle", init=init))
 end
