@@ -6,7 +6,7 @@ $(TYPEDSIGNATURES)
 Build OCP functional solution from DOCP discrete solution 
 (given as a SolverCore.GenericExecutionStats)
 """
-function build_OCP_solution(docp, docp_solution; nlp_model = ADNLPBackend())
+function build_OCP_solution(docp, docp_solution; nlp_model=ADNLPBackend())
 
     # OCP and solver specific infos
     # +++ we could pass an optional arg to build_OCP_solution to indicate the NLP solver used when we call this one from solve_docp !
@@ -17,12 +17,13 @@ function build_OCP_solution(docp, docp_solution; nlp_model = ADNLPBackend())
 
     # convert GPU arrays if needed (done in parsing functions too)
     solution = Array(docp_solution.solution)
+    multipliers = Array(docp_solution.multipliers)
 
     # time grid
     T = get_time_grid(solution, docp)
 
     # primal variables X, U, v and box multipliers
-    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=docp_solution.multipliers_L, mult_UB=docp_solution.multipliers_U, nlp_model = nlp_model)
+    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=docp_solution.multipliers_L, mult_UB=docp_solution.multipliers_U, nlp_model=nlp_model, docp_solution=docp_solution)
 
     # objective from solution
     if docp.flags.max
@@ -37,7 +38,16 @@ function build_OCP_solution(docp, docp_solution; nlp_model = ADNLPBackend())
     #end
 
     # costate and constraints multipliers
-    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, docp_solution.multipliers; nlp_model = nlp_model)
+    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, multipliers; nlp_model=nlp_model, docp_solution=docp_solution)
+    # debug
+    println("**** typeof(X): ", typeof(X))
+    println("**** typeof(U): ", typeof(U))
+    println("**** typeof(v): ", typeof(v))
+    println("**** typeof(P): ", typeof(P))
+    println("**** X = ", X)
+    println("**** U = ", U)
+    println("**** v = ", v)
+    println("**** P = ", P)
 
     return CTModels.build_solution(
         ocp,
@@ -95,7 +105,7 @@ $(TYPEDSIGNATURES)
 Build OCP functional solution from DOCP discrete solution 
 (given as array for primal variables, optionally dual variables and bounds multipliers)
 """
-function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB=nothing, nlp_model = ADNLPBackend())
+function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB=nothing, nlp_model=ADNLPBackend(), docp_solution)
 
     ocp = docp.ocp
     solution = primal
@@ -105,7 +115,7 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
     T = get_time_grid(solution, docp)
 
     # primal variables X, U, v and box multipliers
-    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=mult_LB, mult_UB=mult_UB, nlp_model = nlp_model)
+    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; mult_LB=mult_LB, mult_UB=mult_UB, nlp_model=nlp_model, docp_solution=docp_solution)
 
     # recompute objective (NB lagrange without conversion not supported)
     if docp.flags.lagrange_to_mayer
@@ -119,7 +129,7 @@ function build_OCP_solution(docp; primal, dual=nothing, mult_LB=nothing, mult_UB
     end
 
     # costate and constraints multipliers
-    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, dual; nlp_model = nlp_model)
+    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, dual; nlp_model=nlp_model, docp_solution=docp_solution)
 
     return CTModels.build_solution(
         ocp,
@@ -151,31 +161,43 @@ $(TYPEDSIGNATURES)
 Recover OCP state, control and optimization variables from DOCP primal variables.
 Bounds multipliers will be parsed as well if present.
 """
-function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=nothing, nlp_model = ADNLPBackend())
+function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=nothing, nlp_model=ADNLPBackend(), docp_solution)
 
-    #if nlp_model isa ExaBackend # Exa
-        # debug
-    #else # ADNLP
+    # state and control variables
+    N = docp.time.steps
+    X = zeros(N + 1, docp.dims.OCP_x)
+    U = zeros(N + 1, docp.dims.NLP_u)
+    v = zeros(docp.dims.NLP_v)
 
-        # state and control variables
-        N = docp.time.steps
-        X = zeros(N + 1, docp.dims.OCP_x)
-        U = zeros(N + 1, docp.dims.NLP_u)
-        v = zeros(docp.dims.NLP_v)
-    
-        # multipliers for box constraints
+    # multipliers for box constraints
+    mult_state_box_lower = zeros(size(X))
+    mult_state_box_upper = zeros(size(X))
+    mult_control_box_lower = zeros(size(U))
+    mult_control_box_upper = zeros(size(U))
+    mult_variable_box_lower = zeros(size(v))
+    mult_variable_box_upper = zeros(size(v))
+
+    if nlp_model isa ExaBackend # Exa
+
+        getter = docp.exa_getter
+        X[:] = getter(docp_solution; val=:state)' # transpose to match choice below for ADNLP
+        U[:] = getter(docp_solution; val=:control)'
+        v[:] = getter(docp_solution; val=:variable)
+        mult_state_box_lower[:] = getter(docp_solution; val=:state_l)'
+        mult_state_box_upper[:] = getter(docp_solution; val=:state_u)'
+        mult_control_box_lower[:] = getter(docp_solution; val=:control_l)'
+        mult_control_box_upper[:] = getter(docp_solution; val=:control_u)'
+        mult_variable_box_lower[:] = getter(docp_solution; val=:variable_l)
+        mult_variable_box_upper[:] = getter(docp_solution; val=:variable_u)
+
+    else # ADNLP
+
         if isnothing(mult_LB) || length(mult_LB) == 0
             mult_LB = zeros(docp.dim_NLP_variables)
         end
         if isnothing(mult_UB) || length(mult_UB) == 0
             mult_UB = zeros(docp.dim_NLP_variables)
         end
-        mult_state_box_lower = zeros(size(X))
-        mult_state_box_upper = zeros(size(X))
-        mult_control_box_lower = zeros(size(U))
-        mult_control_box_upper = zeros(size(U))
-        mult_variable_box_lower = zeros(size(v))
-        mult_variable_box_upper = zeros(size(v))
     
         # convert GPU arrays if needed
         solution = Array(solution)
@@ -202,7 +224,7 @@ function parse_DOCP_solution_primal(docp, solution; mult_LB=nothing, mult_UB=not
             mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(mult_UB, docp, i)
         end
 
-    #end debug
+    end
     
     box_multipliers = (
         mult_state_box_lower,
@@ -221,49 +243,63 @@ $(TYPEDSIGNATURES)
 
 Recover OCP costate and constraints multipliers from DOCP dual variables.
 """
-function parse_DOCP_solution_dual(docp, multipliers; nlp_model = ADNLPBackend())
-
-    # if called with multipliers = nothing, fill with zeros
-    isnothing(multipliers) && (multipliers = zeros(docp.dim_NLP_constraints))
-
-    # convert GPU arrays if needed
-    multipliers = Array(multipliers)
+function parse_DOCP_solution_dual(docp, multipliers; nlp_model=ADNLPBackend(), docp_solution)
 
     # costate
     N = docp.time.steps
     P = zeros(N, docp.dims.NLP_x)
 
-    # dimensions
-    dpc = docp.dims.path_cons
-    dbc = docp.dims.boundary_cons
+    if nlp_model isa ExaBackend # Exa
 
-    # constraints multipliers
-    mul_path_constraints = zeros(N + 1, dpc)
-    mul_boundary_constraints = zeros(dbc)
+        getter = docp.exa_getter
+        P[:] = getter(docp_solution; val=:costate)' # transpose to match choice below for ADNLP
+        dpc = docp.dims.path_cons
+        dbc = docp.dims.boundary_cons
+        mul_path_constraints = zeros(N + 1, dpc) # todo: add getters for path constraints for :exa in CTParser
+        mul_boundary_constraints = zeros(dbc) # todo: add getters for boundary constraints for :exa in CTParser
 
-    # loop over time steps
-    i_m = 1
-    for i in 1:(N + 1)
+    else # ADNLP
 
-        # state equation multiplier for costate
-        if i <= N
-            P[i, :] = multipliers[i_m:(i_m + docp.dims.NLP_x - 1)]
-            # skip state / stage constraints
-            i_m += docp.discretization._state_stage_eqs_block
+        # if called with multipliers = nothing, fill with zeros
+        isnothing(multipliers) && (multipliers = zeros(docp.dim_NLP_constraints))
+    
+        # convert GPU arrays if needed
+        multipliers = Array(multipliers)
+    
+        # dimensions
+        dpc = docp.dims.path_cons
+        dbc = docp.dims.boundary_cons
+    
+        # constraints multipliers
+        mul_path_constraints = zeros(N + 1, dpc)
+        mul_boundary_constraints = zeros(dbc)
+    
+        # loop over time steps
+        i_m = 1
+        for i in 1:(N + 1)
+    
+            # state equation multiplier for costate
+            if i <= N
+                P[i, :] = multipliers[i_m:(i_m + docp.dims.NLP_x - 1)]
+                # skip state / stage constraints
+                i_m += docp.discretization._state_stage_eqs_block
+            end
+    
+            # path constraints and multipliers
+            if dpc > 0
+                mul_path_constraints[i, :] = multipliers[i_m:(i_m + dpc - 1)]
+                i_m += dpc
+            end
         end
-
-        # path constraints and multipliers
-        if dpc > 0
-            mul_path_constraints[i, :] = multipliers[i_m:(i_m + dpc - 1)]
-            i_m += dpc
+    
+        # pointwise constraints: boundary then variables
+        if dbc > 0
+            mul_boundary_constraints[:] = multipliers[i_m:(i_m + dbc - 1)]
+            i_m += dbc
         end
-    end
-
-    # pointwise constraints: boundary then variables
-    if dbc > 0
-        mul_boundary_constraints[:] = multipliers[i_m:(i_m + dbc - 1)]
-        i_m += dbc
+    
     end
 
     return P, mul_path_constraints, mul_boundary_constraints
+
 end

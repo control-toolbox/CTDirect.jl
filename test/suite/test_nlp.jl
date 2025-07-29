@@ -33,16 +33,17 @@ end
     dsol = CTDirect.solve_docp(solver_backend, docp, display=false)
     sol = CTDirect.build_OCP_solution(docp, dsol)
     @test objective(sol) ≈ obj rtol = 1e-2
-    sol = CTDirect.build_OCP_solution(docp, primal=dsol.solution)
+    sol = CTDirect.build_OCP_solution(docp; primal=dsol.solution, docp_solution=dsol)
     @test objective(sol) ≈ obj rtol = 1e-2
-    sol = CTDirect.build_OCP_solution(docp, primal=dsol.solution, dual=dsol.multipliers)
+    sol = CTDirect.build_OCP_solution(docp; primal=dsol.solution, dual=dsol.multipliers, docp_solution=dsol)
     @test objective(sol) ≈ obj rtol = 1e-2
     sol = CTDirect.build_OCP_solution(
-        docp,
+        docp;
         primal=dsol.solution,
         dual=dsol.multipliers,
         mult_LB=dsol.multipliers_L,
         mult_UB=dsol.multipliers_U,
+        docp_solution=dsol,
     )
     @test objective(sol) ≈ obj rtol = 1e-2
 end
@@ -53,9 +54,9 @@ end
     dsol = CTDirect.solve_docp(solver_backend, docp, display=false)
     sol = CTDirect.build_OCP_solution(docp, dsol)
     @test objective(sol) ≈ obj rtol = 1e-2
-    sol = CTDirect.build_OCP_solution(docp, primal=dsol.solution)
+    sol = CTDirect.build_OCP_solution(docp; primal=dsol.solution, docp_solution=dsol)
     @test objective(sol) ≈ obj rtol = 1e-2
-    sol = CTDirect.build_OCP_solution(docp, primal=dsol.solution, dual=dsol.multipliers)
+    sol = CTDirect.build_OCP_solution(docp; primal=dsol.solution, dual=dsol.multipliers, docp_solution=dsol)
     @test objective(sol) ≈ obj rtol = 1e-2
     sol = CTDirect.build_OCP_solution(
         docp,
@@ -63,6 +64,7 @@ end
         dual=dsol.multipliers,
         mult_LB=dsol.multipliers_L,
         mult_UB=dsol.multipliers_U,
+        docp_solution=dsol,
     )
     @test objective(sol) ≈ obj rtol = 1e-2
 end
