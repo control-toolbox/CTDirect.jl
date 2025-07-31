@@ -24,6 +24,51 @@ for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
+# predefined problem lists
+target_dict = Dict{Symbol, Vector{String}}()
+target_dict[:default] = [
+    "beam",
+    "double_integrator_mintf",
+    "double_integrator_minenergy",
+    "fuller",
+    "goddard",
+    "goddard_all",
+    "jackson",
+    "simple_integrator",
+    "vanderpol",
+]
+
+target_dict[:lagrange_easy] = [
+    "beam",
+    "double_integrator_minenergy",
+    "fuller",
+    "simple_integrator",
+    "vanderpol",
+]
+
+target_dict[:lagrange_hard] = [
+    "bioreactor_1day",
+    "bioreactor_Ndays",
+    "bolza_freetf",
+    "insurance", #only converge when final control is present (mixed path constraint) 
+    "parametric",
+    "robbins",
+]
+
+target_dict[:hard] = [
+    "algal_bacterial",
+    "bioreactor_1day",
+    "bioreactor_Ndays",
+    "bolza_freetf",
+    "glider",
+    "insurance",
+    "moonlander",
+    "quadrotor",
+    "space_shuttle",
+    "swimmer",
+    "truck_trailer"
+]
+
 # check a specific example
 function check_problem(prob; kwargs...)
     sol = solve(prob.ocp; init=prob.init, kwargs...)
@@ -112,7 +157,7 @@ end
 # verbose <= 1: no output
 # verbose > 1: print summary (iter, obj, time)
 # verbose > 2: print NLP iterations also
-function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
+function bench_problem(problem; timer=true, verbose=1, nlp_solver, grid_size, kwargs...)
     if verbose > 2
         display = true
     else
@@ -133,7 +178,7 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
         success = false
         iter = min(iterations(sol), 999) # to fit 3-digit print 
         println(
-            "Failed ",
+            "\nFailed: ",
             problem[:name],
             " for grid size ",
             grid_size,
@@ -154,14 +199,16 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
             objective(sol)
         )
         # time
-        time = @belapsed solve(
-            $problem[:ocp],
-            $nlp_solver;
-            init=$problem[:init],
-            display=false,
-            grid_size=($grid_size),
-            $kwargs...,
-        )
+        if timer
+            time = @belapsed solve(
+                $problem[:ocp],
+                $nlp_solver;
+                init=$problem[:init],
+                display=false,
+                grid_size=($grid_size),
+                $kwargs...,
+            )
+        end
         verbose > 1 && @printf("%7.2f s\n", time)
     end
 
@@ -171,99 +218,19 @@ end
 # perform benchmark
 function bench(;
     verbose=1,
+    timer=true,
     target_list=:default,
-    grid_size_list=[250, 500, 1000, 2500, 5000],
+    grid_size_list=[100, 250, 500, 1000, 2000],
     nlp_solver=:ipopt,
     kwargs...,
 )
 
     # load problems for benchmark
-    # Note that problems may vary significantly in convergence times...  
-    if target_list == :default
-        target_list = [
-            "beam",
-            "double_integrator_mintf",
-            "double_integrator_minenergy",
-            "fuller",
-            "goddard",
-            "goddard_all",
-            "jackson",
-            "simple_integrator",
-            "vanderpol",
-        ]
-    elseif target_list == :lagrange_easy
-        target_list = [
-            "beam",
-            "double_integrator_minenergy",
-            "fuller",
-            "simple_integrator",
-            "vanderpol",
-        ]
-    elseif target_list == :lagrange_hard
-        target_list = [
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "insurance", #only converge when final control is present (mixed path constraint) 
-            "parametric",
-            "robbins",
-        ]
-    elseif target_list == :lagrange_all
-        target_list = [
-            "beam",
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "double_integrator_e",
-            "fuller",
-            "parametric",
-            "robbins",
-            "simple_integrator",
-            "vanderpol",
-        ]
-    elseif target_list == :hard
-        target_list = [
-            "action",
-            "glider",
-            "moonlander",
-            "quadrotor",
-            "schlogl",
-            "space_shuttle",
-            "truck_trailer",
-        ]
-
-    elseif target_list == :all
-        target_list = [
-            "algal_bacterial",
-            "beam",
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "double_integrator_mintf",
-            "double_integrator_minenergy",
-            "double_integrator_freet0tf",
-            "fuller",
-            "goddard",
-            "goddard_all",
-            "insurance",
-            "jackson",
-            "parametric",
-            "robbins",
-            "simple_integrator",
-            "swimmer",
-            "vanderpol",
-        ]
-    elseif target_list == :hard
-        target_list = [
-            "algal_bacterial",
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "insurance",
-            "swimmer",
-        ]
+    if target_list isa Symbol
+        target_list = target_dict[target_list]
     end
-    verbose > 2 && println("Problem list: ", target_list)
+
+    verbose > 1 && println("Problem list: ", target_list)
     problem_list = []
     for problem_name in target_list
         ocp_data = getfield(Main, Symbol(problem_name))()
@@ -271,19 +238,19 @@ function bench(;
     end
 
     # solve problem list for all grid sizes
-    verbose > 2 && println("Grid size list: ", grid_size_list)
+    verbose > 1 && println("Grid size list: ", grid_size_list)
     t_bench = zeros(Float64, (length(problem_list), length(grid_size_list)))
     i_bench = zeros(Int, (length(problem_list), length(grid_size_list)))
     s_bench = zeros(Bool, (length(problem_list), length(grid_size_list)))
     solutions = Array{Any}(undef, (length(problem_list), length(grid_size_list)))
     i = 1
     for problem in problem_list
-        verbose > 1 && @printf("Testing problem %-17s for grid size ", problem[:name])
+        verbose > 1 && @printf("Testing problem %-20s: grid ", problem[:name])
         j = 1
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
             flush(stdout)
-            time, iter, success, sol = bench_problem(problem; grid_size=grid_size, verbose=verbose-1, nlp_solver=nlp_solver, kwargs...)
+            time, iter, success, sol = bench_problem(problem; grid_size=grid_size, timer=timer, verbose=verbose-1, nlp_solver=nlp_solver, kwargs...)
             t_bench[i,j] = time
             i_bench[i,j] = iter
             s_bench[i,j] = success
@@ -299,7 +266,7 @@ function bench(;
     if verbose > 0
         i = 1
         for problem in problem_list
-            @printf("%-17s", problem[:name])
+            @printf("%-20s", problem[:name])
             for j in 1:length(grid_size_list)
                 if s_bench[i, j]
                     @printf("%6.2f(%3d) ", t_bench[i, j], i_bench[i, j])
@@ -325,6 +292,7 @@ end
 
 # custom bench calls
 function bench_custom()
+    
     disc_list = [
         #:euler,
         #:euler_implicit,
@@ -334,8 +302,9 @@ function bench_custom()
         #:gauss_legendre_3
     ]
 
-    target_list = ["goddard"] #:hard
-    grid_size_list=[250] #, 500, 1000]
+    target_list = ["algal_bacterial"] #:hard
+    grid_size_list = [250] #, 500, 1000]
+    timer = false
     verbose = 1
 
     solutions = Dict{Symbol, Any}()
@@ -344,7 +313,7 @@ function bench_custom()
         lagrange_to_mayer=true
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
-        solutions[disc] = bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
+        solutions[disc] = bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, timer=timer, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
         flush(stdout)
         println("")
 
