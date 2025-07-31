@@ -15,9 +15,9 @@ Build the NLP model for the DOCP (ADNLPModels version)
 * `show_time`: (:true, [:false]) show timing details from ADNLPModels
 * `adnlp_backend`: backend for ADNLPModels ([`:optimized`], `:manual`, `:default`)
 """
-function CTDirect.build_nlp(
-    nlp_model::CTDirect.ADNLPBackend,
+function CTDirect.build_nlp!(
     docp::CTDirect.DOCP,
+    nlp_model::CTDirect.ADNLPBackend,
     x0;
     adnlp_backend=CTDirect.__adnlp_backend(),
     show_time=false, #+default
@@ -127,7 +127,8 @@ function CTDirect.build_nlp(
         end
     end
 
-    return nlp
+    docp.nlp = nlp
+    return nothing
 end
 
 end
