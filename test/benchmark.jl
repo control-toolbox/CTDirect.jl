@@ -26,16 +26,31 @@ end
 
 # predefined problem lists
 target_dict = Dict{Symbol, Vector{String}}()
-target_dict[:default] = [
+target_dict[:easy] = [
     "beam",
     "double_integrator_mintf",
     "double_integrator_minenergy",
+    "electric_vehicle",
     "fuller",
     "goddard",
     "goddard_all",
     "jackson",
     "simple_integrator",
     "vanderpol",
+]
+
+target_dict[:hard] = [
+    "algal_bacterial",
+    "bioreactor_1day",
+    "bioreactor_Ndays",
+    "bolza_freetf",
+    "glider",
+    #"insurance", # requires distinct u(tf)
+    "moonlander",
+    "quadrotor",
+    "space_shuttle",
+    "swimmer",
+    "truck_trailer"
 ]
 
 target_dict[:lagrange_easy] = [
@@ -50,24 +65,19 @@ target_dict[:lagrange_hard] = [
     "bioreactor_1day",
     "bioreactor_Ndays",
     "bolza_freetf",
-    "insurance", #only converge when final control is present (mixed path constraint) 
+    #"insurance", #only converge when final control is present (mixed path constraint) 
     "parametric",
-    "robbins",
-]
-
-target_dict[:hard] = [
-    "algal_bacterial",
-    "bioreactor_1day",
-    "bioreactor_Ndays",
-    "bolza_freetf",
-    "glider",
-    "insurance",
-    "moonlander",
     "quadrotor",
-    "space_shuttle",
-    "swimmer",
+    "robbins",
     "truck_trailer"
 ]
+
+target_dict[:all] = [ target_dict[:easy] ; target_dict[:hard] ]
+
+target_dict[:lagrange_all] = [ target_dict[:lagrange_easy] ; target_dict[:lagrange_hard] ]
+
+# failing list
+
 
 # check a specific example
 function check_problem(prob; kwargs...)
@@ -177,27 +187,11 @@ function bench_problem(problem; timer=true, verbose=1, nlp_solver, grid_size, kw
         (!isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj]; rtol=5e-2))
         success = false
         iter = min(iterations(sol), 999) # to fit 3-digit print 
-        println(
-            "\nFailed: ",
-            problem[:name],
-            " for grid size ",
-            grid_size,
-            " at iter ",
-            iter,
-            " obj ",
-            objective(sol),
-            " vs ",
-            problem[:obj],
-        )
+        @printf("\nFailed: %-20s for grid %d iter %d (obj %5.2f vs %5.2f ) ", problem[:name], grid_size, iter, objective(sol), problem[:obj])
     else
         success = true
         iter = iterations(sol)
-        verbose > 1 && @printf(
-            "%-20s: %4d iter %5.2f obj ",
-            problem[:name],
-            iterations(sol),
-            objective(sol)
-        )
+        verbose > 1 && @printf("%-20s: %4d iter %5.2f obj ", problem[:name], iterations(sol), objective(sol))
         # time
         if timer
             time = @belapsed solve(
@@ -219,7 +213,7 @@ end
 function bench(;
     verbose=1,
     timer=true,
-    target_list=:default,
+    target_list=:all,
     grid_size_list=[100, 250, 500, 1000, 2000],
     nlp_solver=:ipopt,
     kwargs...,
@@ -266,7 +260,7 @@ function bench(;
     if verbose > 0
         i = 1
         for problem in problem_list
-            @printf("%-20s", problem[:name])
+            @printf("\n%-20s", problem[:name])
             for j in 1:length(grid_size_list)
                 if s_bench[i, j]
                     @printf("%6.2f(%3d) ", t_bench[i, j], i_bench[i, j])
@@ -274,13 +268,12 @@ function bench(;
                     @printf("  FAIL(%3d) ", i_bench[i, j])
                 end
             end
-            println("")
             i = i + 1
         end
     end
 
     # summary
-    @printf("SUCCESS %2d/%2d    ", sum(s_bench), length(s_bench))
+    @printf("\nSUCCESS %2d/%2d    ", sum(s_bench), length(s_bench))
     for j in 1:length(grid_size_list)
         @printf("%6.2f(%3d) ", sum(t_bench[:, j]), sum(i_bench[:, j]))
     end
@@ -291,7 +284,7 @@ end
 
 
 # custom bench calls
-function bench_custom()
+function bench_custom(target_list, grid_size_list)
     
     disc_list = [
         #:euler,
@@ -302,10 +295,9 @@ function bench_custom()
         #:gauss_legendre_3
     ]
 
-    target_list = ["algal_bacterial"] #:hard
-    grid_size_list = [250] #, 500, 1000]
     timer = false
-    verbose = 1
+    verbose = 2
+    draw_plots = true
 
     solutions = Dict{Symbol, Any}()
 
@@ -315,15 +307,17 @@ function bench_custom()
         println(lagrange_to_mayer, " Grid ", grid_size_list)
         solutions[disc] = bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, timer=timer, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
         flush(stdout)
-        println("")
 
-        # plot
-        if disc == disc_list[1]
-            p = plot(solutions[disc][1,1], :control, label=String(disc))
-        else
-            p = plot!(solutions[disc][1,1], :control, label=String(disc))
-        end
-        display(p)
+        #= plot
+        if draw_plots
+            if disc == disc_list[1]
+                p = plot(solutions[disc][1,1], :control, label=String(disc))
+            else
+                p = plot!(solutions[disc][1,1], :control, label=String(disc))
+            end
+            display(p)
+            savefig()
+        end=#
 
         #=
         lagrange_to_mayer=false
@@ -335,4 +329,32 @@ function bench_custom()
         =#
     end
 
+    # plot
+    if target_list isa Symbol
+        problem_list = target_dict[target_list]
+    else
+        problem_list = target_list
+    end
+    if draw_plots
+        i = 1
+        for problem in problem_list
+            j = 1
+            for size in grid_size_list
+                # plot all discretizations for given problem / size
+                for disc in disc_list
+                    if disc == disc_list[1]
+                        plot(solutions[disc][i,j], :control, label=String(disc))
+                    else
+                        plot!(solutions[disc][i,j], :control, label=String(disc))
+                    end
+                end
+                # save figure
+                savefig(string(problem)*"-"*string(size))
+                j = j + 1
+            end
+            i = i + 1
+        end
+    end
+
+    return
 end
