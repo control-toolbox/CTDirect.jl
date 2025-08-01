@@ -60,7 +60,7 @@ function test_exa(exa_backend)
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
 
-    #@ignore begin #debug: to be readded when fixing init
+    @ignore begin #debug: to be added when fixing init
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :init" begin
         xi1 = 1
         xi2 = 2
@@ -79,7 +79,7 @@ function test_exa(exa_backend)
         )
         @test control(sol)(0.5) == ui
     end
-    #end # debug
+    end # debug
 
     # goddard2
 
