@@ -64,7 +64,7 @@ function test_exa(exa_backend)
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :init" begin
         xi1 = 1
         xi2 = 2
-        ui = 30
+        ui = 40
         prob = beam2()
         sol = solve(
             prob.ocp,
