@@ -20,7 +20,6 @@ function test_exa(exa_backend)
 
     # beam2
 
-    @ignore begin # debug
     @testset verbose = true showtiming = true "beam2 :examodel :euler" begin
         prob = beam2()
         sol = solve(
@@ -56,14 +55,16 @@ function test_exa(exa_backend)
             disc_method=:trapeze,
             exa_backend=exa_backend,
             display=display,
-            grid_size=1000,
+            grid_size=1000
         )
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
-    end # debug
 
-    @ignore begin # debug: to be reactivated when fixing init
+    #@ignore begin #debug: to be added when fixing init
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :init" begin
+        xi1 = 1
+        xi2 = 2
+        ui = 30
         prob = beam2()
         sol = solve(
             prob.ocp,
@@ -73,18 +74,15 @@ function test_exa(exa_backend)
             exa_backend=exa_backend,
             grid_size=4,
             display=display,
-            init=(state=[100, 200], control=4000,),
+            init=(state=[xi1, xi2], control=ui,),
             max_iter=0,
         )
-        println("**** state(sol) = ", state(sol)(0.5)) # debug
-        println("**** control(sol) = ", control(sol)(0.5)) # debug
-        @test control(sol)(0.5) == 30
+        @test control(sol)(0.5) == ui
     end
-    end # debug
+    #end # debug
 
     # goddard2
 
-    @ignore begin # debug
     @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :grid_size" begin
         prob = goddard2()
         sol = solve(
@@ -98,7 +96,6 @@ function test_exa(exa_backend)
         )
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
-    end # debug
 end
 
 # CPU tests
