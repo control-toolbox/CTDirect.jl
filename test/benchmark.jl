@@ -1,7 +1,8 @@
 # Benchmark and profiling
 using CTBase
 using CTParser: CTParser, @def
-using CTModels: CTModels, objective, state, control, variable, costate, time_grid, iterations
+using CTModels:
+    CTModels, objective, state, control, variable, costate, time_grid, iterations
 using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
 
 using ADNLPModels
@@ -106,7 +107,6 @@ function test_unit(
 
     return nothing
 end
-
 
 # solve given problem, return convergence data and solution
 # verbose <= 1: no output
@@ -283,11 +283,17 @@ function bench(;
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
             flush(stdout)
-            time, iter, success, sol = bench_problem(problem; grid_size=grid_size, verbose=verbose-1, nlp_solver=nlp_solver, kwargs...)
-            t_bench[i,j] = time
-            i_bench[i,j] = iter
-            s_bench[i,j] = success
-            solutions[i,j] = sol
+            time, iter, success, sol = bench_problem(
+                problem;
+                grid_size=grid_size,
+                verbose=verbose-1,
+                nlp_solver=nlp_solver,
+                kwargs...,
+            )
+            t_bench[i, j] = time
+            i_bench[i, j] = iter
+            s_bench[i, j] = success
+            solutions[i, j] = sol
             j = j + 1
         end
         verbose > 1 && println("")
@@ -319,9 +325,7 @@ function bench(;
     end
     println("")
     return solutions
-    
 end
-
 
 # custom bench calls
 function bench_custom()
@@ -338,21 +342,27 @@ function bench_custom()
     grid_size_list=[250] #, 500, 1000]
     verbose = 1
 
-    solutions = Dict{Symbol, Any}()
+    solutions = Dict{Symbol,Any}()
 
     for disc in disc_list
         lagrange_to_mayer=true
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
-        solutions[disc] = bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
+        solutions[disc] = bench(;
+            target_list=target_list,
+            grid_size_list=grid_size_list,
+            disc_method=disc,
+            verbose=verbose,
+            lagrange_to_mayer=lagrange_to_mayer,
+        )
         flush(stdout)
         println("")
 
         # plot
         if disc == disc_list[1]
-            p = plot(solutions[disc][1,1], :control, label=String(disc))
+            p = plot(solutions[disc][1, 1], :control; label=String(disc))
         else
-            p = plot!(solutions[disc][1,1], :control, label=String(disc))
+            p = plot!(solutions[disc][1, 1], :control; label=String(disc))
         end
         display(p)
 
@@ -365,5 +375,4 @@ function bench_custom()
         println("")
         =#
     end
-
 end

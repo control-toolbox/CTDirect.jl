@@ -1,4 +1,3 @@
-
 #= Common parts for the discretization =#
 
 """

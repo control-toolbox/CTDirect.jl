@@ -28,7 +28,7 @@ function electric_vehicle()
     end
 
     ocp = @def begin
-        
+
         ## define the problem
         t ∈ [0.0, tf], time
         x ∈ R², state
@@ -39,7 +39,7 @@ function electric_vehicle()
         v = x₂
 
         ## constraints
-        0 <= pos(t) <= Inf        
+        0 <= pos(t) <= Inf
         0 <= v(t) <= Inf
 
         # initial constraints
@@ -56,7 +56,7 @@ function electric_vehicle()
         ∫(b1 * u(t) * v(t) + b2 * u(t)^2) → min
     end
 
-    state_init = t -> (tf-t)*[0., 1.] + t*[D, 1.]
+    state_init = t -> (tf-t)*[0.0, 1.0] + t*[D, 1.0]
     init = (state=state_init, control=0.5)
 
     return ((ocp=ocp, obj=1.23e6, name="electric_vehicle", init=init))

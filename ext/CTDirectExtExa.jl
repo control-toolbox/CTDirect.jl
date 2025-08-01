@@ -37,8 +37,10 @@ function CTDirect.build_nlp!(
     build_exa = CTModels.get_build_examodel(docp.ocp)
     # build_exa is in CTParser and exported via CTModels (?)
     # note: arg #4 is init (currently set manually below), arg #5 is precision (float64 etc)
-    docp.nlp, docp.exa_getter = build_exa(; grid_size = grid_size, backend = exa_backend, scheme = disc_method)
-    
+    docp.nlp, docp.exa_getter = build_exa(;
+        grid_size=grid_size, backend=exa_backend, scheme=disc_method
+    )
+
     # set initial guess (NB. do not broadcast, apparently fails on GPU arrays)
     # NB unused final control in examodel / euler, hence the different x0 sizes
     docp.nlp.meta.x0[1:docp.dim_NLP_variables] = x0
