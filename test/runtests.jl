@@ -37,7 +37,7 @@ end
         include("test_gpu.jl")
     else
         # CPU: run all scripts in subfolder suite/
-        #include.(filter(contains(r".jl$"), readdir("./suite"; join=true))) #debug
+        include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
         include("test_gpu.jl") # will only test ExaModels on CPU
     end
 end
