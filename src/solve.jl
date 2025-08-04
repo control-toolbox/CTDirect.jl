@@ -63,7 +63,8 @@ function solve_docp(
 end
 
 # modeller
-function build_nlp!(docp::CTDirect.DOCP, nlp_model::T, x0; kwargs...
+function build_nlp!(
+    docp::CTDirect.DOCP, nlp_model::T, x0; kwargs...
 ) where {T<:AbstractNLPModelBackend}
     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
 end
@@ -176,7 +177,7 @@ function solve(
     docp_solution = CTDirect.solve_docp(nlp_solver, docp; display=display, kwargs...)
 
     # build and return OCP solution
-    return build_OCP_solution(docp, docp_solution; nlp_model = nlp_model)
+    return build_OCP_solution(docp, docp_solution; nlp_model=nlp_model)
 end
 
 """
