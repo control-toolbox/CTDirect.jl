@@ -60,11 +60,10 @@ function test_exa(exa_backend)
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
 
-    #@ignore begin #debug: to be readded when fixing init
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :init" begin
-        xi1 = 1
+        xi1 = 0.05
         xi2 = 2
-        ui = 30
+        ui = 5
         prob = beam2()
         sol = solve(
             prob.ocp,
@@ -79,7 +78,6 @@ function test_exa(exa_backend)
         )
         @test control(sol)(0.5) == ui
     end
-    #end # debug
 
     # goddard2
 
@@ -96,6 +94,13 @@ function test_exa(exa_backend)
         )
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
+
+    @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size" begin
+        prob = beam2()
+        docp = direct_transcription(prob.ocp, :madnlp, :exa; display=display, grid_size=100)
+        @test docp.dim_NLP_variables == 303
+    end
+
 end
 
 # CPU tests

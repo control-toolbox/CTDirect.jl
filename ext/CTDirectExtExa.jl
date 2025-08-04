@@ -41,8 +41,9 @@ function CTDirect.build_nlp!(
     n = CTModels.state_dimension(ocp)
     m = CTModels.control_dimension(ocp)
     q = CTModels.variable_dimension(ocp)
-    state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] for i in 0:grid_size]...)
-    control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] for i in 0:grid_size]...) # grid_size + 1 controls
+    state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] for i in 0:grid_size]...) # grid_size + 1 states
+    control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] for i in 0:(grid_size - 1)]...) # grid_size controls...
+    control = [control control[:, end]] # ... todo: pass indeed to grid_size only for euler(_b), trapeze and midpoint
     variable = x0[end - q + 1:end]
     docp.nlp, docp.exa_getter = build_exa(; grid_size=grid_size, backend=exa_backend, scheme=disc_method, init=(variable, state, control)) 
     # remark: docp.nlp.meta.x0[1:docp.dim_NLP_variables] = -vcat(state..., control..., variable) # also work, and supersedes previous init via ExaModels start (itself overridden by init in solve)

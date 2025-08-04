@@ -147,7 +147,6 @@ function solve(
 )
 
     # display infos about the chosen method
-    println("**** develop") # debug
     display && display_method(
         ocp,
         description...;
