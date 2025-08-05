@@ -55,27 +55,29 @@ function test_exa(exa_backend)
             disc_method=:trapeze,
             exa_backend=exa_backend,
             display=display,
-            grid_size=1000,
+            grid_size=1000
         )
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
 
-    @ignore begin # debug: to be reactivated when fixing init
-        @testset verbose = true showtiming = true "beam2 :examodel :trapeze :init" begin
-            prob = beam2()
-            sol = solve(
-                prob.ocp,
-                :madnlp,
-                :exa;
-                disc_method=:trapeze,
-                exa_backend=exa_backend,
-                display=display,
-                init=(control=6.66,),
-                max_iter=0,
-            )
-            @test control(sol)(0.5) == 6.66
-        end
-    end # debug
+    @testset verbose = true showtiming = true "beam2 :examodel :trapeze :init" begin
+        xi1 = 0.05
+        xi2 = 2
+        ui = 5
+        prob = beam2()
+        sol = solve(
+            prob.ocp,
+            :madnlp,
+            :exa;
+            disc_method=:trapeze,
+            exa_backend=exa_backend,
+            grid_size=4,
+            display=display,
+            init=(state=[xi1, xi2], control=ui,),
+            max_iter=0,
+        )
+        @test control(sol)(0.5) == ui
+    end
 
     # goddard2
 
@@ -92,6 +94,13 @@ function test_exa(exa_backend)
         )
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
+
+    @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size" begin
+        prob = beam2()
+        docp = direct_transcription(prob.ocp, :madnlp, :exa; display=display, grid_size=100)
+        @test docp.dim_NLP_variables == 303
+    end
+
 end
 
 # CPU tests
