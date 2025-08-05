@@ -6,10 +6,10 @@ using CUDA
 
 # beam and goddard problem for Exa
 if !isdefined(Main, :beam2)
-    include("./problems/beam.jl")
+    include("../problems/beam.jl")
 end
 if !isdefined(Main, :goddard2)
-    include("./problems/goddard.jl")
+    include("../problems/goddard.jl")
 end
 
 
