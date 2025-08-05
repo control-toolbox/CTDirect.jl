@@ -104,7 +104,7 @@ display = false
 println("testing: ExaModels on CPU (MadNLP)")
 test_exa(nothing, display) # CPU tests
 
-# GPU tests
+# GPU tests (moonshot workflow)
 display = false
 if CUDA.functional()
     println("testing: ExaModels on GPU (MadNLPGPU / CUDA)")
