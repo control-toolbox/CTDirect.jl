@@ -5,6 +5,7 @@ maxiter = 0
 
 # reference solution
 prob = double_integrator_mintf()
+prob2 = double_integrator_minenergy()
 ocp = prob.ocp
 sol0 = solve(ocp; display=false)
 
@@ -69,6 +70,12 @@ end
     @test isapprox(state(sol).(T), (t -> x_const).(T), rtol=1e-2)
     @test isapprox(control(sol).(T), (t -> u_const).(T), rtol=1e-2)
 end
+@testset verbose = true showtiming = true ":constant_xu" begin
+    sol = solve(prob2.ocp, display=false, init=(state=x_const, control=u_const), max_iter=maxiter)
+    T = time_grid(sol)
+    @test isapprox(state(sol).(T), (t -> x_const).(T), rtol=1e-2)
+    @test isapprox(control(sol).(T), (t -> u_const).(T), rtol=1e-2)
+end
 @testset verbose = true showtiming = true ":constant_xv" begin
     sol = solve(
         ocp, display=false, init=(state=x_const, variable=v_const), max_iter=maxiter
@@ -111,6 +118,12 @@ end
 end
 @testset verbose = true showtiming = true ":functional_xu" begin
     sol = solve(ocp, display=false, init=(state=x_func, control=u_func), max_iter=maxiter)
+    T = time_grid(sol)
+    @test isapprox(state(sol).(T), x_func.(T), rtol=1e-2)
+    @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)
+end
+@testset verbose = true showtiming = true ":functional_xu" begin
+    sol = solve(prob2.ocp, display=false, init=(state=x_func, control=u_func), max_iter=maxiter)
     T = time_grid(sol)
     @test isapprox(state(sol).(T), x_func.(T), rtol=1e-2)
     @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)

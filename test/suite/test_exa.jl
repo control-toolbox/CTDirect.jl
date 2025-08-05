@@ -4,22 +4,19 @@ using MadNLP
 using MadNLPGPU
 using CUDA
 
-# beam2
-
+# beam and goddard problem for Exa
 if !isdefined(Main, :beam2)
-    include("./problems/beam2.jl")
+    include("./problems/beam.jl")
+end
+if !isdefined(Main, :goddard2)
+    include("./problems/goddard.jl")
 end
 
-if !isdefined(Main, :goddard2)
-    include("./problems/goddard2.jl")
-end
 
 # test_exa for all backends (CPU + GPU)
-
-function test_exa(exa_backend)
+function test_exa(exa_backend, display)
 
     # beam2
-
     @testset verbose = true showtiming = true "beam2 :examodel :euler" begin
         prob = beam2()
         sol = solve(
@@ -80,7 +77,6 @@ function test_exa(exa_backend)
     end
 
     # goddard2
-
     @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :grid_size" begin
         prob = goddard2()
         sol = solve(
@@ -104,17 +100,15 @@ function test_exa(exa_backend)
 end
 
 # CPU tests
-
-display = true
-println("testing: CPU with ExaModels + MadNLP")
-test_exa(nothing) # CPU tests
+display = false
+println("testing: ExaModels on CPU (MadNLP)")
+test_exa(nothing, display) # CPU tests
 
 # GPU tests
-
-display = true
+display = false
 if CUDA.functional()
-    println("testing: GPU with ExaModels + MadNLPGPU + CUDA")
-    test_exa(CUDABackend()) # GPU tests
+    println("testing: ExaModels on GPU (MadNLPGPU / CUDA)")
+    test_exa(CUDABackend(), display) # GPU tests
 else
-    println("********** CUDA is not available")
+    println("********** CUDA not available, skipping GPU tests")
 end

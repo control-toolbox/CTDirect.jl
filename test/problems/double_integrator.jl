@@ -17,6 +17,25 @@ function double_integrator_mintf()
 
     return ((ocp=ocp, obj=2.0, name="double_integrator_tf", init=nothing))
 end
+# examodel version
+function double_integrator_mintf2()
+    @def ocp begin
+        tf ∈ R, variable
+        t ∈ [0, tf], time
+        x ∈ R², state
+        u ∈ R, control
+        -1 ≤ u(t) ≤ 1
+        x(0) == [0, 0]
+        x(tf) == [1, 0]
+        0.05 ≤ tf ≤ Inf
+        ∂(x₁)(t) == x₂(t)
+        ∂(x₂)(t) == u(t)
+        tf → min
+    end
+
+    return ((ocp=ocp, obj=2.0, name="double_integrator_tf2", init=nothing))
+end
+
 
 # min energy with fixed tf
 function double_integrator_minenergy(T=2)
