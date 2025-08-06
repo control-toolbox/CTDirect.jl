@@ -36,7 +36,6 @@ function double_integrator_mintf2()
     return ((ocp=ocp, obj=2.0, name="double_integrator_tf2", init=nothing))
 end
 
-
 # min energy with fixed tf
 function double_integrator_minenergy(T=2)
     @def ocp begin
