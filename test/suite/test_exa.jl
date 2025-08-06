@@ -12,7 +12,6 @@ if !isdefined(Main, :goddard2)
     include("../problems/goddard.jl")
 end
 
-
 # test_exa for all backends (CPU + GPU)
 function test_exa(exa_backend, display)
 
@@ -52,7 +51,7 @@ function test_exa(exa_backend, display)
             disc_method=:trapeze,
             exa_backend=exa_backend,
             display=display,
-            grid_size=1000
+            grid_size=1000,
         )
         @test sol.objective ≈ prob.obj rtol = 1e-2
     end
@@ -70,7 +69,7 @@ function test_exa(exa_backend, display)
             exa_backend=exa_backend,
             grid_size=4,
             display=display,
-            init=(state=[xi1, xi2], control=ui,),
+            init=(state=[xi1, xi2], control=ui),
             max_iter=0,
         )
         @test control(sol)(0.5) == ui
@@ -96,7 +95,6 @@ function test_exa(exa_backend, display)
         docp = direct_transcription(prob.ocp, :madnlp, :exa; display=display, grid_size=100)
         @test docp.dim_NLP_variables == 303
     end
-
 end
 
 # CPU tests
