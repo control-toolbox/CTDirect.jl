@@ -102,6 +102,12 @@ function parse_description(description)
         error("no known model (:adnlp, :exa) in method", method)
     end
 
+    # patch: replaces ipopt by madnlp for :exa as long as the issue with getters for a posteriori treatment is not fixed
+    if (:exa ∈ method) && (:ipopt ∈ method)
+        nlp_solver = CTDirect.MadNLPBackend()
+        @warn "currently replacing Ipopt with MadNLP for :exa"
+    end
+
     return nlp_solver, nlp_model
 end
 
