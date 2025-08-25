@@ -1,7 +1,7 @@
 name = "CTDirect"
 uuid = "790bbbee-bee9-49ee-8912-a9de031322d5"
 authors = ["Pierre Martinon <pierrecmartinon@gmail.com>"]
-version = "0.16.2"
+version = "0.16.3"
 
 [deps]
 CTBase = "54762871-cc72-4466-b8e8-f6c8b58076cd"
