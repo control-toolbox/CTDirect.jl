@@ -92,7 +92,13 @@ function test_exa(exa_backend, display)
 
     @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size" begin
         prob = beam2()
-        docp = direct_transcription(prob.ocp, :madnlp, :exa; display=display, grid_size=100)
+        docp = direct_transcription(
+            prob.ocp, 
+            :madnlp, 
+            :exa; 
+            display=display,
+            disc_method=:trapeze, 
+            grid_size=100)
         @test docp.dim_NLP_variables == 303
     end
 end

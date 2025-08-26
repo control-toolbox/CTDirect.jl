@@ -188,7 +188,7 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
         grid_size=__grid_size(),
         time_grid=__time_grid(),
         disc_method=__disc_method(),
-        lagrange_to_mayer=true,
+        lagrange_to_mayer=__lagrange_to_mayer(),
     )
 
         # boolean flags
