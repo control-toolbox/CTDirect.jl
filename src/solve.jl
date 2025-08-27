@@ -231,7 +231,7 @@ Discretize an optimal control problem into a nonlinear optimization problem.
 
 # Arguments
 * ocp: optimal control problem as defined in `CTModels`
-* [description]: set the NLP model ([`:adnlp`] or `exa`) and / or solver ([`:ipopt`], :madnlp or :knitro)
+* [description]: set the NLP model ([`:adnlp`] or `:exa`) and / or solver ([`:ipopt`], :madnlp or :knitro)
 
 # Keyword arguments (optional)
 * `grid_size`: number of time steps for the discretized problem ([250])
