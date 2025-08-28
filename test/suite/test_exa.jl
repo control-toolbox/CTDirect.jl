@@ -3,6 +3,7 @@ using ExaModels: ExaModels
 using MadNLP
 using MadNLPGPU
 using CUDA
+using AMDGPU
 
 # beam and goddard problem for Exa
 if !isdefined(Main, :beam2)
@@ -107,6 +108,9 @@ display = false
 if CUDA.functional()
     println("testing: ExaModels on GPU (MadNLPGPU / CUDA)")
     test_exa(CUDABackend(), display) # GPU tests
+elseif AMDGPU.functional()
+    println("testing: ExaModels on GPU (MadNLPGPU / AMDGPU)")
+    test_exa(ROCBackend(), display) # GPU tests
 else
-    println("********** CUDA not available, skipping GPU tests")
+    println("********** No GPU available, skipping GPU tests")
 end
