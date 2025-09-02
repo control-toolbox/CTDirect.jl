@@ -26,6 +26,8 @@ function CTDirect.build_nlp!(
     kwargs...,
 )
 
+    # +++ minimize[=true], set to false if flags max and not max_to_min
+
     # redeclare objective and constraints functions
     f = x -> CTDirect.DOCP_objective(x, docp)
     c! = (c, x) -> CTDirect.DOCP_constraints!(c, x, docp)

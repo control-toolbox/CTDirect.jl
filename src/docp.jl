@@ -457,6 +457,8 @@ function DOCP_objective(xu, docp::DOCP)
     obj = obj_mayer + obj_lagrange
 
     # maximization problem
+    # +++ add a max_to_min flag in DOCP
+    # option minimize[=true] for adnlpmodels
     if docp.flags.max
         obj = -obj
     end

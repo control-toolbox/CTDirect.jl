@@ -33,6 +33,7 @@ function build_OCP_solution(docp, docp_solution; nlp_model=ADNLPBackend())
     )
 
     # objective from solution
+    # +++ add a max_to_min flag in DOCP
     if docp.flags.max
         objective = -docp_solution.objective
     else
@@ -131,13 +132,8 @@ function build_OCP_solution(
         docp_solution=docp_solution,
     )
 
-    # recompute objective (NB lagrange without conversion not supported)
-    if docp.flags.lagrange_to_mayer
-        objective = DOCP_objective(solution, docp)
-    else
-        println("Warning: cannot recompute objective (lagrange to mayer disabled)")
-        objective = 0.0
-    end
+    # recompute objective
+    objective = DOCP_objective(solution, docp)
     if docp.flags.max
         objective = -objective
     end
