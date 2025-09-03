@@ -5,6 +5,7 @@ using CTDirect
 using DocStringExtensions
 
 using MadNLP
+using MadNLPMumps
 using HSL
 using MKL
 
@@ -19,6 +20,7 @@ function CTDirect.solve_docp(
     display::Bool=CTDirect.__display(),
     max_iter::Integer=CTDirect.__max_iterations(),
     tol::Real=CTDirect.__tolerance(),
+    linear_solver=CTDirect.__madnlp_linear_solver(),
     kwargs...,
 )
 
@@ -28,9 +30,15 @@ function CTDirect.solve_docp(
     # retrieve NLP
     nlp = CTDirect.model(docp)
 
+    # set linear solver
+    if linear_solver == "umfpack"
+        linear_solver = MadNLP.UmfpackSolver
+    elseif linear_solver == "mumps"
+        linear_solver = MadNLPMumps.MumpsSolver
+    end
+
     # preallocate solver (NB. need to pass printlevel here)
-    solver = MadNLPSolver(
-        nlp; print_level=print_level, tol=tol, max_iter=max_iter, kwargs...
+    solver = MadNLPSolver(nlp; print_level=print_level, tol=tol, max_iter=max_iter, linear_solver=linear_solver, kwargs...
     )
 
     # solve discretized problem with NLP solver

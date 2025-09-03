@@ -7,6 +7,7 @@ using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_
 
 using ADNLPModels
 using NLPModelsIpopt
+using MadNLP, MadNLPMumps
 
 using LinearAlgebra
 using Printf
@@ -132,27 +133,11 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
         (!isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj]; rtol=5e-2))
         success = false
         iter = min(iterations(sol), 999) # to fit 3-digit print 
-        println(
-            "Failed ",
-            problem[:name],
-            " for grid size ",
-            grid_size,
-            " at iter ",
-            iter,
-            " obj ",
-            objective(sol),
-            " vs ",
-            problem[:obj],
-        )
+        println("\nFailed ", problem[:name], " for grid size ", grid_size, " at iter ", iter, " obj ", objective(sol), " vs ", problem[:obj])
     else
         success = true
         iter = iterations(sol)
-        verbose > 1 && @printf(
-            "%-20s: %4d iter %5.2f obj ",
-            problem[:name],
-            iterations(sol),
-            objective(sol)
-        )
+        verbose > 1 && @printf("%-20s: %4d iter %5.2f obj ", problem[:name], iterations(sol), objective(sol))
         # time
         time = @belapsed solve(
             $problem[:ocp],
@@ -174,6 +159,7 @@ function bench(;
     target_list=:default,
     grid_size_list=[250, 500, 1000, 2500, 5000],
     nlp_solver=:ipopt,
+    return_sols=false,
     kwargs...,
 )
 
@@ -245,12 +231,12 @@ function bench(;
             "fuller",
             "goddard",
             "goddard_all",
-            "insurance",
+            #"insurance", fail unless final control
             "jackson",
             "parametric",
             "robbins",
             "simple_integrator",
-            "swimmer",
+            "swimmer", fail for madnlpmumps
             "vanderpol",
         ]
     elseif target_list == :hard
@@ -278,7 +264,7 @@ function bench(;
     solutions = Array{Any}(undef, (length(problem_list), length(grid_size_list)))
     i = 1
     for problem in problem_list
-        verbose > 1 && @printf("Testing problem %-17s for grid size ", problem[:name])
+        verbose > 1 && @printf("Testing problem %-22s for grid size ", problem[:name])
         j = 1
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
@@ -305,7 +291,7 @@ function bench(;
     if verbose > 0
         i = 1
         for problem in problem_list
-            @printf("%-17s", problem[:name])
+            @printf("%-22s", problem[:name])
             for j in 1:length(grid_size_list)
                 if s_bench[i, j]
                     @printf("%6.2f(%3d) ", t_bench[i, j], i_bench[i, j])
@@ -324,7 +310,12 @@ function bench(;
         @printf("%6.2f(%3d) ", sum(t_bench[:, j]), sum(i_bench[:, j]))
     end
     println("")
-    return solutions
+
+    if return_sols
+        return solutions
+    else
+        return
+    end
 end
 
 # custom bench calls
