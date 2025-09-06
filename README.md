@@ -1,45 +1,48 @@
 # CTDirect.jl
 
-[ci-img]: https://github.com/control-toolbox/CTDirect.jl/actions/workflows/CI.yml/badge.svg?branch=main
-[ci-url]: https://github.com/control-toolbox/CTDirect.jl/actions/workflows/CI.yml?query=branch%3Amain
-
-[co-img]: https://codecov.io/gh/control-toolbox/CTDirect.jl/branch/main/graph/badge.svg?token=6J4SJL2SFG
-[co-url]: https://codecov.io/gh/control-toolbox/CTDirect.jl
-
-[doc-dev-img]: https://img.shields.io/badge/docs-dev-8A2BE2.svg
-[doc-dev-url]: https://control-toolbox.org/CTDirect.jl/dev/
-
-[doc-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[doc-stable-url]: https://control-toolbox.org/CTDirect.jl/stable/
-
-[release-img]: https://juliahub.com/docs/General/CTDirect/stable/version.svg
-[release-url]: https://github.com/control-toolbox/CTDirect.jl/releases
-
-[pkg-eval-img]: https://img.shields.io/badge/Julia-package-purple
-[pkg-eval-url]: https://juliahub.com/ui/Packages/General/CTDirect
-
-[deps-img]: https://juliahub.com/docs/General/CTDirect/stable/deps.svg
-[deps-url]: https://juliahub.com/ui/Packages/General/CTDirect?t=2
-
-[licence-img]: https://img.shields.io/badge/License-MIT-yellow.svg
-[licence-url]: https://github.com/control-toolbox/CTDirect.jl/blob/master/LICENSE
+<!-- 
+For instructions on how to customize this README.template.md and use the centralized workflow,
+please see the user guide: https://github.com/orgs/control-toolbox/discussions/67
+-->
 
 The CTDirect.jl package is part of the [control-toolbox ecosystem](https://github.com/control-toolbox).
-The control-toolbox ecosystem gathers Julia packages for mathematical control and applications. The root package is [OptimalControl.jl](https://github.com/control-toolbox/OptimalControl.jl) which aims to provide tools to modelise and solve optimal control problems with ordinary differential equations by direct and indirect methods, both on CPU and GPU.
 
-[![doc OptimalControl.jl](https://img.shields.io/badge/Documentation-OptimalControl.jl-blue)](http://control-toolbox.org/OptimalControl.jl)
+| **Category** | **Badge** |
+|-----------------------|-----------|
+| **Documentation** | [![Stable Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://control-toolbox.org/CTDirect.jl/stable/) [![Dev Docs](https://img.shields.io/badge/docs-dev-8A2BE2.svg)](https://control-toolbox.org/CTDirect.jl/dev/) |
+| **CI / Build** | [![Build Status](https://github.com/control-toolbox/CTDirect.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/control-toolbox/CTDirect.jl/actions/workflows/CI.yml?query=branch%3Amain) |
+| **Test Coverage** | [![Coverage](https://codecov.io/gh/control-toolbox/CTDirect.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/control-toolbox/CTDirect.jl) |
+| **Package Evaluation** | [![PkgEval](https://img.shields.io/badge/Julia-package-purple)](https://juliahub.com/ui/Packages/General/CTDirect) [![Dependencies](https://juliahub.com/docs/General/CTDirect/stable/deps.svg)](https://juliahub.com/ui/Packages/General/CTDirect?t=2) |
+| **Release / Version** | [![Release](https://juliahub.com/docs/General/CTDirect/stable/version.svg)](https://github.com/control-toolbox/CTDirect.jl/releases) |
+| **License** | [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/control-toolbox/CTDirect.jl/blob/master/LICENSE) |
+| **Code Style / Quality** | [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/JuliaDiff/BlueStyle) [![Aqua.jl](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl) |
 
-| **Name**          | **Badge**         |
-:-------------------|:------------------|
-| Documentation     | [![Documentation][doc-stable-img]][doc-stable-url] [![Documentation][doc-dev-img]][doc-dev-url]                   | 
-| Code Status       | [![Build Status][ci-img]][ci-url] [![Covering Status][co-img]][co-url] [![pkgeval][pkg-eval-img]][pkg-eval-url]  |
-| Dependencies      | [![deps][deps-img]][deps-url] |
-| Licence           | [![License: MIT][licence-img]][licence-url]   |
-| Release           | [![Release][release-img]][release-url]        |
+## About control-toolbox
+
+The **control-toolbox** ecosystem brings together <a href="https://julialang.org" style="display:inline-flex; align-items:center;">
+  <img src="https://raw.githubusercontent.com/JuliaLang/julia-logo-graphics/master/images/julia.ico" width="16em" style="margin-right:0.3em;">
+  Julia
+</a> packages for mathematical control and its applications.  
+
+- The root package, [OptimalControl.jl](https://github.com/control-toolbox/OptimalControl.jl), provides tools to model and solve optimal control problems defined by ordinary differential equations. It supports both direct and indirect methods, and can run on CPU or GPU.  
+
+<p align="right">
+  <a href="http://control-toolbox.org/OptimalControl.jl">
+    <img src="https://img.shields.io/badge/Documentation-OptimalControl.jl-blue" alt="Documentation OptimalControl.jl">
+  </a>
+</p>
+
+- Complementing it, [OptimalControlProblems.jl](https://github.com/control-toolbox/OptimalControlProblems.jl) offers a curated collection of benchmark optimal control problems formulated with ODEs in Julia. Each problem is available both in the **OptimalControl** DSL and in **JuMP**, with discretised versions ready to be solved using the solver of your choice. This makes the package particularly useful for benchmarking and comparing different solution strategies.  
+
+<p align="right">
+  <a href="http://control-toolbox.org/OptimalControlProblems.jl">
+    <img src="https://img.shields.io/badge/Documentation-OptimalControlProblems.jl-blue" alt="Documentation OptimalControlProblems.jl">
+  </a>
+</p>
 
 ## Installation
 
-To install CTDirect.jl please 
+To install CTDirect please 
 <a href="https://docs.julialang.org/en/v1/manual/getting-started/">open Julia's interactive session (known as REPL)</a> 
 and press <kbd>]</kbd> key in the REPL to use the package mode, then add the package:
 
@@ -56,12 +59,10 @@ pkg> add CTDirect
 [issue-url]: https://github.com/control-toolbox/CTDirect.jl/issues
 [first-good-issue-url]: https://github.com/control-toolbox/CTDirect.jl/contribute
 
-If you think you found a bug or if you have a feature request / suggestion, feel free to open an [issue][issue-url].
+If you think you found a bug or if you have a feature request / suggestion, feel free to open an [issue][issue-url].  
 Before opening a pull request, please start an issue or a discussion on the topic. 
 
-Contributions are welcomed, check out [how to contribute to a Github project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project). 
-If it is your first contribution, you can also check [this first contribution tutorial](https://github.com/firstcontributions/first-contributions).
-You can find first good issues (if any 🙂) [here][first-good-issue-url]. You may find other packages to contribute to at the [control-toolbox organization](https://github.com/control-toolbox).
+Contributions are welcomed, check out [how to contribute to a Github project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project). If it is your first contribution, you can also check [this first contribution tutorial](https://github.com/firstcontributions/first-contributions). You can find first good issues (if any 🙂) [here][first-good-issue-url]. You may find other packages to contribute to at the [control-toolbox organization](https://github.com/control-toolbox).
 
 If you want to ask a question, feel free to start a discussion [here](https://github.com/orgs/control-toolbox/discussions). This forum is for general discussion about this repository and the [control-toolbox organization](https://github.com/control-toolbox).
 
