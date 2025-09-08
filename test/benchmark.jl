@@ -236,7 +236,7 @@ function bench(;
             "parametric",
             "robbins",
             "simple_integrator",
-            "swimmer", fail for madnlpmumps
+            "swimmer", #fail for madnlpmumps
             "vanderpol",
         ]
     elseif target_list == :hard

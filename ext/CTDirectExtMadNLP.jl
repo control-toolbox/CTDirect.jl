@@ -48,16 +48,15 @@ function CTDirect.solve_docp(
     return docp_solution
 end
 
-function CTDirect.SolverInfos(docp_solution::MadNLP.MadNLPExecutionStats)
+function CTDirect.SolverInfos(nlp_solution::MadNLP.MadNLPExecutionStats)
 
-    # info from SolverCore.GenericExecutionStats
-    # +++ add objective here ?
-    iterations = docp_solution.iter
-    constraints_violation = docp_solution.primal_feas
-    status = Symbol(docp_solution.status)
+    objective = nlp_solution.objective # NB sign is incorrct for max problems !
+    iterations = nlp_solution.iter
+    constraints_violation = nlp_solution.primal_feas
+    status = Symbol(nlp_solution.status)
     successful = (status == :SOLVE_SUCCEEDED) || (status == :SOLVED_TO_ACCEPTABLE_LEVEL)
 
-    return iterations, constraints_violation, "MadNLP", status, successful
+    return objective, iterations, constraints_violation, "MadNLP", status, successful
 end
 
 end

@@ -87,7 +87,7 @@ function test_exa(exa_backend, display)
             display=display,
             grid_size=1000,
         )
-        @test sol.objective ≈ prob.obj rtol = 1e-2
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
     end
 
     @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size" begin
