@@ -108,14 +108,10 @@ Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
 
+    disc = disc_model(docp)
+
     # offset for previous steps
-    offset =
-        (
-            i-1
-        )*(
-            docp.discretization._state_stage_eqs_block +
-            docp.discretization._step_pathcons_block
-        )
+    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
 
     # 0. variables
     ti = time_grid[i]
@@ -158,7 +154,7 @@ Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
 
-    disc = docp.discretization
+    disc = disc_model(docp)
 
     # vector format for sparse matrix
     Is = Vector{Int}(undef, 0)
@@ -256,7 +252,7 @@ Build sparsity pattern for Hessian of Lagrangian
 """
 function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
 
-    disc = docp.discretization
+    disc = disc_model(docp)
 
     # NB. need to provide full pattern for coloring, not just upper/lower part
     Is = Vector{Int}(undef, 0)

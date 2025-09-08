@@ -305,7 +305,7 @@ $(TYPEDSIGNATURES)
 Set initial guess in the DOCP
 """
 function set_initial_guess(docp::DOCP, init)
-    ocp = docp.ocp
+    ocp = ocp_model(docp)
     docp_init = CTModels.Init(
         init;
         state_dim=CTModels.state_dimension(ocp),

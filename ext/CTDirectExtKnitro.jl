@@ -29,7 +29,7 @@ function CTDirect.solve_docp(
     print_level = display ? print_level : 0
 
     # retrieve NLP
-    nlp = CTDirect.model(docp)
+    nlp = CTDirect.nlp_model(docp)
 
     # preallocate solver (cannot seem to pass kwargs to solve! ...)
     solver = KnitroSolver(

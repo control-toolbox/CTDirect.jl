@@ -32,6 +32,9 @@ function CTDirect.build_nlp!(
     f = x -> CTDirect.DOCP_objective(x, docp)
     c! = (c, x) -> CTDirect.DOCP_constraints!(c, x, docp)
 
+    # +++ todo: use a variable list of kwargs in a single constructor call and splat
+    # backend_options
+
     # call NLP problem constructor
     if adnlp_backend == :manual
 
@@ -65,6 +68,7 @@ function CTDirect.build_nlp!(
                 c!,
                 docp.bounds.con_l,
                 docp.bounds.con_u;
+                minimize=!docp.flags.max,
                 gradient_backend=ADNLPModels.ReverseDiffADGradient,
                 jacobian_backend=J_backend,
                 hessian_backend=H_backend,
@@ -84,6 +88,7 @@ function CTDirect.build_nlp!(
                 c!,
                 docp.bounds.con_l,
                 docp.bounds.con_u;
+                minimize=!docp.flags.max,
                 gradient_backend=ADNLPModels.ReverseDiffADGradient,
                 jacobian_backend=J_backend,
                 hessian_backend=H_backend,
@@ -105,6 +110,7 @@ function CTDirect.build_nlp!(
                 c!,
                 docp.bounds.con_l,
                 docp.bounds.con_u;
+                minimize=!docp.flags.max,
                 backend=adnlp_backend,
                 hprod_backend=ADNLPModels.EmptyADbackend,
                 jtprod_backend=ADNLPModels.EmptyADbackend,
@@ -122,6 +128,7 @@ function CTDirect.build_nlp!(
                 c!,
                 docp.bounds.con_l,
                 docp.bounds.con_u;
+                minimize=!docp.flags.max,
                 backend=adnlp_backend,
                 show_time=show_time,
                 matrix_free=matrix_free,

@@ -10,7 +10,7 @@ function build_OCP_solution(docp, docp_solution; nlp_model=ADNLPBackend())
 
     # OCP and solver specific infos
     # +++ we could pass an optional arg to build_OCP_solution to indicate the NLP solver used when we call this one from solve_docp !
-    ocp = docp.ocp
+    ocp = ocp_model(docp)
     iterations, constraints_violation, message, status, successful = SolverInfos(
         docp_solution
     )
@@ -33,12 +33,13 @@ function build_OCP_solution(docp, docp_solution; nlp_model=ADNLPBackend())
     )
 
     # objective from solution
-    # +++ add a max_to_min flag in DOCP
+    objective = docp_solution.objective
+    #= +++ add a max_to_min flag in DOCP
     if docp.flags.max
         objective = -docp_solution.objective
     else
         objective = docp_solution.objective
-    end
+    end=#
 
     # recompute and check objective
     #if abs((objective - objective_r) / objective) > 1e-2
@@ -90,6 +91,7 @@ end
 function SolverInfos(docp_solution)
 
     # +++ we could pass an optional arg for the NLP solver used, down from build_OCP_solution
+    # +++ add objective here ?
 
     # info from SolverCore.GenericExecutionStats
     iterations = docp_solution.iter
@@ -115,8 +117,9 @@ function build_OCP_solution(
     nlp_model=ADNLPBackend(),
     docp_solution,
 )
-    ocp = docp.ocp
+    ocp = ocp_model(docp)
     solution = primal
+    # +++ add objective here ?
     iterations, constraints_violation, message, status, successful = SolverInfos()
 
     # time grid
@@ -134,9 +137,10 @@ function build_OCP_solution(
 
     # recompute objective
     objective = DOCP_objective(solution, docp)
-    if docp.flags.max
+    println("DOCP objective ", objective, " vs NLP objective ", docp_solution.objective)
+    #=if docp.flags.max
         objective = -objective
-    end
+    end=#
 
     # costate and constraints multipliers
     P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(
@@ -277,6 +281,8 @@ function parse_DOCP_solution_dual(
 
     else # ADNLP
 
+        disc = disc_model(docp)
+
         # if called with multipliers = nothing, fill with zeros
         isnothing(multipliers) && (multipliers = zeros(docp.dim_NLP_constraints))
 
@@ -299,7 +305,7 @@ function parse_DOCP_solution_dual(
             if i <= N
                 P[i, :] = multipliers[i_m:(i_m + docp.dims.NLP_x - 1)]
                 # skip state / stage constraints
-                i_m += docp.discretization._state_stage_eqs_block
+                i_m += disc._state_stage_eqs_block
             end
 
             # path constraints and multipliers

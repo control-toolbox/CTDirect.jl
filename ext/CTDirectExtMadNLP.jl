@@ -28,7 +28,7 @@ function CTDirect.solve_docp(
     print_level = display ? MadNLP.INFO : MadNLP.ERROR
 
     # retrieve NLP
-    nlp = CTDirect.model(docp)
+    nlp = CTDirect.nlp_model(docp)
 
     # set linear solver
     if linear_solver == "umfpack"
@@ -51,6 +51,7 @@ end
 function CTDirect.SolverInfos(docp_solution::MadNLP.MadNLPExecutionStats)
 
     # info from SolverCore.GenericExecutionStats
+    # +++ add objective here ?
     iterations = docp_solution.iter
     constraints_violation = docp_solution.primal_feas
     status = Symbol(docp_solution.status)

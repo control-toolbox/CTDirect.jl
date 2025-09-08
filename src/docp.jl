@@ -301,23 +301,6 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Extracts the NLP model from a DOCP object.
-
-# Arguments
-
-- `docp::DOCP`: The DOCP object containing the NLP model.
-
-# Returns
-
-The NLP model stored in the DOCP object.
-"""
-function model(docp::DOCP)
-    return docp.nlp
-end
-
-"""
-$(TYPEDSIGNATURES)
-
 Check if an OCP is solvable by the method [`solve`](@ref).
 """
 function is_solvable(ocp)
@@ -333,20 +316,21 @@ Build upper and lower bounds vectors for the DOCP nonlinear constraints.
 function constraints_bounds!(docp::DOCP)
     lb = docp.bounds.con_l
     ub = docp.bounds.con_u
+    disc = disc_model(docp)
 
     offset = 0
     for i in 1:(docp.time.steps + 1)
         if i <= docp.time.steps
             # skip (ie leave 0) for state / stage equations 
-            offset = offset + docp.discretization._state_stage_eqs_block
+            offset = offset + disc._state_stage_eqs_block
         end
         # path constraints
         if docp.dims.path_cons > 0
             lb[(offset + 1):(offset + docp.dims.path_cons)] = CTModels.path_constraints_nl(
-                docp.ocp
+                ocp_model(docp)
             )[1]
             ub[(offset + 1):(offset + docp.dims.path_cons)] = CTModels.path_constraints_nl(
-                docp.ocp
+                ocp_model(docp)
             )[3]
             offset = offset + docp.dims.path_cons
         end
@@ -355,10 +339,10 @@ function constraints_bounds!(docp::DOCP)
     # boundary constraints
     if docp.dims.boundary_cons > 0
         lb[(offset + 1):(offset + docp.dims.boundary_cons)] = CTModels.boundary_constraints_nl(
-            docp.ocp
+            ocp_model(docp)
         )[1]
         ub[(offset + 1):(offset + docp.dims.boundary_cons)] = CTModels.boundary_constraints_nl(
-            docp.ocp
+            ocp_model(docp)
         )[3]
         offset = offset + docp.dims.boundary_cons
     end
@@ -382,18 +366,18 @@ function variables_bounds!(docp::DOCP)
     N = docp.time.steps
     var_l = docp.bounds.var_l
     var_u = docp.bounds.var_u
-    ocp = docp.ocp
+    ocp = ocp_model(docp)
 
     # build full ordered sets of bounds
     x_lb, x_ub = build_bounds(
         docp.dims.OCP_x,
         CTModels.dim_state_constraints_box(ocp),
-        CTModels.state_constraints_box(docp.ocp),
+        CTModels.state_constraints_box(ocp),
     )
     u_lb, u_ub = build_bounds(
         docp.dims.NLP_u,
         CTModels.dim_control_constraints_box(ocp),
-        CTModels.control_constraints_box(docp.ocp),
+        CTModels.control_constraints_box(ocp),
     )
 
     # set state / control box along time steps
@@ -409,7 +393,7 @@ function variables_bounds!(docp::DOCP)
         v_lb, v_ub = build_bounds(
             docp.dims.NLP_v,
             CTModels.dim_variable_constraints_box(ocp),
-            CTModels.variable_constraints_box(docp.ocp),
+            CTModels.variable_constraints_box(ocp),
         )
         set_optim_variable!(var_l, v_lb, docp)
         set_optim_variable!(var_u, v_ub, docp)
@@ -432,12 +416,13 @@ function DOCP_objective(xu, docp::DOCP)
         time_grid = docp.time.fixed_grid
     end
     v = get_OCP_variable(xu, docp)
+    ocp = ocp_model(docp)
 
     # mayer cost
     if docp.flags.mayer
         x0 = get_OCP_state_at_time_step(xu, docp, 1)
         xf = get_OCP_state_at_time_step(xu, docp, docp.time.steps+1)
-        obj_mayer = CTModels.mayer(docp.ocp)(x0, xf, v)
+        obj_mayer = CTModels.mayer(ocp)(x0, xf, v)
     else
         obj_mayer = 0.0
     end
@@ -456,12 +441,12 @@ function DOCP_objective(xu, docp::DOCP)
     # total cost
     obj = obj_mayer + obj_lagrange
 
-    # maximization problem
+    #= maximization problem
     # +++ add a max_to_min flag in DOCP
     # option minimize[=true] for adnlpmodels
     if docp.flags.max
         obj = -obj
-    end
+    end=#
 
     return obj
 end
@@ -511,9 +496,10 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
 
     # boundary constraints
     if docp.dims.boundary_cons > 0
+        ocp = ocp_model(docp)
         x0 = get_OCP_state_at_time_step(xu, docp, 1)
         xf = get_OCP_state_at_time_step(xu, docp, docp.time.steps+1)
-        CTModels.boundary_constraints_nl(docp.ocp)[2](
+        CTModels.boundary_constraints_nl(ocp)[2](
             (@view c[(offset + 1):(offset + docp.dims.boundary_cons)]), x0, xf, v
         )
     end
@@ -552,7 +538,7 @@ Return time grid for variable time problems (times are then dependent on NLP var
 """
 function get_time_grid(xu, docp::DOCP)
     grid = similar(xu, docp.time.steps+1)
-    ocp = docp.ocp
+    ocp = ocp_model(docp)
 
     if docp.flags.freet0
         v = get_OCP_variable(xu, docp)
@@ -587,3 +573,8 @@ function build_bounds(dim_var, dim_box, box_triplet)
 
     return x_lb, x_ub
 end
+
+# getters for high level structs
+nlp_model(docp::DOCP) = docp.nlp
+ocp_model(docp::DOCP) = docp.ocp
+disc_model(docp::DOCP) = docp.discretization
