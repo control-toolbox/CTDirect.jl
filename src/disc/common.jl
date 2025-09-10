@@ -44,7 +44,7 @@ Vector output
 """
 function get_OCP_control_at_time_step(xu, docp::DOCP, i)
     disc = disc_model(docp)
-    # final time case  
+    # final time case, pick U_N unless U_N+1 is present  
     if !disc._final_control && i == docp.time.steps + 1
         i = docp.time.steps
     end
@@ -94,7 +94,7 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP, i)
     end
 end
 
-# +++ add here a more toplevel set_variables_at_time_step ? (potentially include stage variables later ?) and call it from docp
+# +++ add here a more toplevel set_variables_at_time_step ? (potentially include stage variables later ?) and call it from docp ?
 """
 $(TYPEDSIGNATURES)
 

@@ -11,9 +11,10 @@ struct Trapeze <: Discretization
     _final_control::Bool
 
     # constructor
-    function Trapeze(
-        dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons
-    )
+    function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
+
+        # Trapeze is better with final control (used in final dynamics)
+        final_control = true #false about 10% slower
 
         # aux variables
         step_variables_block = dim_NLP_x + dim_NLP_u
@@ -21,7 +22,8 @@ struct Trapeze <: Discretization
         step_pathcons_block = dim_path_cons
 
         # NLP variables size ([state, control]_1..N+1, variable)
-        dim_NLP_variables = (dim_NLP_steps + 1) * step_variables_block + dim_NLP_v
+        dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
+        final_control && (dim_NLP_variables += dim_NLP_u)
 
         # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints =
@@ -34,7 +36,7 @@ struct Trapeze <: Discretization
             step_variables_block,
             state_stage_eqs_block,
             step_pathcons_block,
-            true,
+            final_control
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints

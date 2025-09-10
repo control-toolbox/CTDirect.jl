@@ -156,28 +156,17 @@ end
 # perform benchmark
 function bench(;
     verbose=1,
-    target_list=:default,
-    grid_size_list=[250, 500, 1000, 2500, 5000],
+    target_list=:all,
+    grid_size_list=[250, 500, 1000],
     nlp_solver=:ipopt,
     return_sols=false,
+    save_sols=false,
     kwargs...,
 )
 
     # load problems for benchmark
     # Note that problems may vary significantly in convergence times...  
-    if target_list == :default
-        target_list = [
-            "beam",
-            "double_integrator_mintf",
-            "double_integrator_minenergy",
-            "fuller",
-            "goddard",
-            "goddard_all",
-            "jackson",
-            "simple_integrator",
-            "vanderpol",
-        ]
-    elseif target_list == :lagrange_easy
+    if target_list == :lagrange_easy
         target_list = [
             "beam",
             "double_integrator_minenergy",
@@ -236,7 +225,7 @@ function bench(;
             "parametric",
             "robbins",
             "simple_integrator",
-            "swimmer", #fail for madnlpmumps
+            #"swimmer", #much slower then others #fail for madnlpmumps
             "vanderpol",
         ]
     elseif target_list == :hard
@@ -249,7 +238,7 @@ function bench(;
             "swimmer",
         ]
     end
-    verbose > 2 && println("Problem list: ", target_list)
+    verbose > 1 && println("Problem list: ", target_list)
     problem_list = []
     for problem_name in target_list
         ocp_data = getfield(Main, Symbol(problem_name))()
@@ -257,7 +246,7 @@ function bench(;
     end
 
     # solve problem list for all grid sizes
-    verbose > 2 && println("Grid size list: ", grid_size_list)
+    verbose > 1 && println("Grid size list: ", grid_size_list)
     t_bench = zeros(Float64, (length(problem_list), length(grid_size_list)))
     i_bench = zeros(Int, (length(problem_list), length(grid_size_list)))
     s_bench = zeros(Bool, (length(problem_list), length(grid_size_list)))
