@@ -30,31 +30,6 @@ const PACKAGES = Dict(
     :exa => :ExaModels,
 )
 
-# ----------------------------------------------------------------------
-# EXTENSIONS
-
-# NLP solver backend extensions 
-abstract type AbstractNLPSolverBackend end
-struct IpoptBackend <: AbstractNLPSolverBackend end
-struct MadNLPBackend <: AbstractNLPSolverBackend end
-struct KnitroBackend <: AbstractNLPSolverBackend end
-
-# NLP model backend extensions
-abstract type AbstractNLPModelBackend end
-struct ADNLPBackend <: AbstractNLPModelBackend end
-struct ExaBackend <: AbstractNLPModelBackend end
-
-## Extensions and weak dependencies (see ext/CTDirectExt***)
-const WEAKDEPS = Dict{Type,Any}(
-    # NLP solver
-    IpoptBackend => [:NLPModelsIpopt],
-    MadNLPBackend => [:MadNLP],
-    KnitroBackend => [:NLPModelsKnitro],
-    # NLP modeller
-    ADNLPBackend => [:ADNLPModels],
-    ExaBackend => [:ExaModels],
-)
-
 # solver
 function solve_docp(
     solver_backend::T, docp::CTDirect.DOCP; kwargs...
@@ -256,7 +231,8 @@ function direct_transcription(
     # build DOCP
     if nlp_model isa ExaBackend
         docp = DOCP(
-            ocp;
+            ocp,
+            nlp_model;
             grid_size=grid_size,
             time_grid=time_grid,
             disc_method=disc_method,
@@ -264,7 +240,8 @@ function direct_transcription(
         )
     else
         docp = DOCP(
-            ocp;
+            ocp,
+            nlp_model;
             grid_size=grid_size,
             time_grid=time_grid,
             disc_method=disc_method,

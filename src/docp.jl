@@ -154,7 +154,7 @@ Contains:
 - the discretized DOCP as a NLP problem
 - data required to link the OCP with the discretized DOCP
 """
-mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
+mutable struct DOCP{D<:Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPModelBackend}
 
     # discretization scheme
     discretization::D
@@ -163,6 +163,7 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
     ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
 
     # NLP
+    nlp_model::N
     nlp
     exa_getter::Union{Nothing,Function} # getter for ExaModels (if used)
 
@@ -184,11 +185,12 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
 
     # constructor
     function DOCP(
-        ocp::CTModels.Model;
+        ocp::CTModels.Model,
+        nlp_model;
         grid_size=__grid_size(),
         time_grid=__time_grid(),
         disc_method=__disc_method(),
-        lagrange_to_mayer=true,
+        lagrange_to_mayer=true
     )
 
         # boolean flags
@@ -281,9 +283,10 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model}
         )
 
         # call constructor with const fields
-        docp = new{typeof(discretization),typeof(ocp)}(
+        docp = new{typeof(discretization),typeof(ocp),typeof(nlp_model)}(
             discretization,
             ocp,
+            nlp_model,
             nothing, # nlp
             nothing, # exa_getter
             flags,
@@ -552,14 +555,16 @@ function get_time_grid(xu, docp::DOCP)
     grid = similar(xu, docp.time.steps+1)
     ocp = docp.ocp
 
-    if docp.flags.freet0
+    if docp.flags.freet0 || docp.flags.freetf
         v = get_OCP_variable(xu, docp)
+    end
+
+    if docp.flags.freet0
         t0 = CTModels.initial_time(ocp, v)
     else
         t0 = CTModels.initial_time(ocp)
     end
     if docp.flags.freetf
-        v = get_OCP_variable(xu, docp)
         tf = CTModels.final_time(ocp, v)
     else
         tf = CTModels.final_time(ocp)
@@ -567,6 +572,11 @@ function get_time_grid(xu, docp::DOCP)
 
     @. grid = t0 + docp.time.normalized_grid * (tf - t0)
     return grid
+end
+
+function get_time_grid_exa()
+    error("you should not be here")
+    return
 end
 
 """
