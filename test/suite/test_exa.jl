@@ -27,7 +27,7 @@ function test_exa(exa_backend, display)
             exa_backend=exa_backend,
             display=display,
         )
-        @test sol.objective ≈ prob.obj rtol = 1e-2
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
     end
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze" begin
@@ -40,7 +40,7 @@ function test_exa(exa_backend, display)
             exa_backend=exa_backend,
             display=display,
         )
-        @test sol.objective ≈ prob.obj rtol = 1e-2
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
     end
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :grid_size" begin
@@ -54,7 +54,7 @@ function test_exa(exa_backend, display)
             display=display,
             grid_size=1000,
         )
-        @test sol.objective ≈ prob.obj rtol = 1e-2
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
     end
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :init" begin
@@ -88,7 +88,9 @@ function test_exa(exa_backend, display)
             display=display,
             grid_size=1000,
         )
-        @test sol.objective ≈ prob.obj rtol = 1e-2
+        @test time_grid(sol)[end] ≈ 0.201965 rtol = 1e-2  # check time grid
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
+
     end
 
     @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size" begin

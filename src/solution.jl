@@ -20,7 +20,11 @@ function build_OCP_solution(docp, docp_solution; nlp_model=ADNLPBackend())
     multipliers = Array(docp_solution.multipliers)
 
     # time grid
-    T = get_time_grid(solution, docp)
+    if nlp_model isa ADNLPBackend
+        T = get_time_grid(solution, docp)
+    else
+        T = get_time_grid_exa(docp_solution, docp)
+    end
 
     # primal variables X, U, v and box multipliers
     X, U, v, box_multipliers = parse_DOCP_solution_primal(
@@ -119,7 +123,11 @@ function build_OCP_solution(
     iterations, constraints_violation, message, status, successful = SolverInfos()
 
     # time grid
-    T = get_time_grid(solution, docp)
+    if nlp_model isa ADNLPBackend
+        T = get_time_grid(solution, docp)
+    else
+        T = get_time_grid_exa(docp_solution, docp)
+    end
 
     # primal variables X, U, v and box multipliers
     X, U, v, box_multipliers = parse_DOCP_solution_primal(
