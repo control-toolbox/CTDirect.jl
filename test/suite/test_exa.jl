@@ -3,6 +3,7 @@ using ExaModels: ExaModels
 using MadNLP
 using MadNLPGPU
 using CUDA
+using AMDGPU
 
 # beam and goddard problem for Exa
 if !isdefined(Main, :beam2)
@@ -26,7 +27,7 @@ function test_exa(exa_backend, display)
             exa_backend=exa_backend,
             display=display,
         )
-        @test sol.objective ≈ prob.obj rtol = 1e-2
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
     end
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze" begin
@@ -39,7 +40,7 @@ function test_exa(exa_backend, display)
             exa_backend=exa_backend,
             display=display,
         )
-        @test sol.objective ≈ prob.obj rtol = 1e-2
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
     end
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :grid_size" begin
@@ -53,7 +54,7 @@ function test_exa(exa_backend, display)
             display=display,
             grid_size=1000,
         )
-        @test sol.objective ≈ prob.obj rtol = 1e-2
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
     end
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :init" begin
@@ -87,7 +88,9 @@ function test_exa(exa_backend, display)
             display=display,
             grid_size=1000,
         )
+        @test time_grid(sol)[end] ≈ 0.201965 rtol = 1e-2  # check time grid
         @test objective(sol) ≈ prob.obj rtol = 1e-2
+
     end
 
     @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size" begin
@@ -113,6 +116,9 @@ display = false
 if CUDA.functional()
     println("testing: ExaModels on GPU (MadNLPGPU / CUDA)")
     test_exa(CUDABackend(), display) # GPU tests
+elseif AMDGPU.functional()
+    println("testing: ExaModels on GPU (MadNLPGPU / AMDGPU)")
+    test_exa(ROCBackend(), display) # GPU tests
 else
-    println("********** CUDA not available, skipping GPU tests")
+    println("********** No GPU available, skipping GPU tests")
 end
