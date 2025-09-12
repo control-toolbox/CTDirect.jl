@@ -124,7 +124,7 @@ function solve(
     init=__ocp_init(),
     adnlp_backend=__adnlp_backend(),
     exa_backend=__exa_backend(),
-    lagrange_to_mayer=true,
+    lagrange_to_mayer=__lagrange_to_mayer(),
     kwargs...,
 )
 
@@ -158,7 +158,7 @@ function solve(
     docp_solution = CTDirect.solve_docp(nlp_solver, docp; display=display, kwargs...)
 
     # build and return OCP solution
-    return build_OCP_solution(docp, docp_solution; nlp_model=nlp_model)
+    return build_OCP_solution(docp, docp_solution; nlp_model=nlp_model, nlp_solver=nlp_solver)
 end
 
 """
@@ -223,7 +223,7 @@ function direct_transcription(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
-    lagrange_to_mayer=true,
+    lagrange_to_mayer=__lagrange_to_mayer(),
     kwargs...,
 )
     nlp_solver, nlp_model = parse_description(description)
@@ -282,7 +282,7 @@ $(TYPEDSIGNATURES)
 Set initial guess in the DOCP
 """
 function set_initial_guess(docp::DOCP, init)
-    ocp = docp.ocp
+    ocp = ocp_model(docp)
     docp_init = CTModels.Init(
         init;
         state_dim=CTModels.state_dimension(ocp),
