@@ -190,7 +190,7 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPM
         grid_size=__grid_size(),
         time_grid=__time_grid(),
         disc_method=__disc_method(),
-        lagrange_to_mayer=true
+        lagrange_to_mayer=true,
     )
 
         # boolean flags
@@ -576,7 +576,7 @@ end
 
 function get_time_grid_exa()
     error("you should not be here")
-    return
+    return nothing
 end
 
 """
