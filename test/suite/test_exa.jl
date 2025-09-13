@@ -90,7 +90,6 @@ function test_exa(exa_backend, display)
         )
         @test time_grid(sol)[end] ≈ 0.201965 rtol = 1e-2  # check time grid
         @test objective(sol) ≈ prob.obj rtol = 1e-2
-
     end
 
     @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size" begin
