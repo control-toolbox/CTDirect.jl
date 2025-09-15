@@ -52,38 +52,44 @@ Parse problem description to retrieve NLP model and solver choice
 - NLP solver: `ipopt`, `madnlp` or `knitro` 
 - NLP model: `:adnlp` or `:exa`
 """
-function parse_description(description)
+function parse_description(description, info)
 
     # default: Ipopt, ADNLPModels
     method = CTBase.complete(description; descriptions=available_methods())
 
-    # get NLP solver choice
-    if :ipopt ∈ method
-        nlp_solver = CTDirect.IpoptBackend()
-    elseif :madnlp ∈ method
-        nlp_solver = CTDirect.MadNLPBackend()
-    elseif :knitro ∈ method
-        nlp_solver = CTDirect.KnitroBackend()
+    if info == :solver
+        # get NLP solver choice
+        if :ipopt ∈ method
+            nlp_solver = CTDirect.IpoptBackend()
+        elseif :madnlp ∈ method
+            nlp_solver = CTDirect.MadNLPBackend()
+        elseif :knitro ∈ method
+            nlp_solver = CTDirect.KnitroBackend()
+        else
+            error("no known solver (:ipopt, :madnlp, :knitro) in method", method)
+        end
+
+        # patch: replaces ipopt by madnlp for :exa as long as the issue with getters for a posteriori treatment is not fixed
+        if (:exa ∈ method) && (:ipopt ∈ method)
+            nlp_solver = CTDirect.MadNLPBackend()
+            @warn "currently replacing Ipopt with MadNLP for :exa"
+        end
+        return nlp_solver
+
+    elseif info == :model
+        # get NLP model choice
+        if :adnlp ∈ method
+            nlp_model = CTDirect.ADNLPBackend()
+        elseif :exa ∈ method
+            nlp_model = CTDirect.ExaBackend()
+        else
+            error("no known model (:adnlp, :exa) in method", method)
+        end
+        return nlp_model
     else
-        error("no known solver (:ipopt, :madnlp, :knitro) in method", method)
+        error("parse_description info should be :solver or :model, not ", info)
+        return
     end
-
-    # get NLP model choice
-    if :adnlp ∈ method
-        nlp_model = CTDirect.ADNLPBackend()
-    elseif :exa ∈ method
-        nlp_model = CTDirect.ExaBackend()
-    else
-        error("no known model (:adnlp, :exa) in method", method)
-    end
-
-    # patch: replaces ipopt by madnlp for :exa as long as the issue with getters for a posteriori treatment is not fixed
-    if (:exa ∈ method) && (:ipopt ∈ method)
-        nlp_solver = CTDirect.MadNLPBackend()
-        @warn "currently replacing Ipopt with MadNLP for :exa"
-    end
-
-    return nlp_solver, nlp_model
 end
 
 """
@@ -154,7 +160,8 @@ function solve(
     )
 
     # get NLP solver choice and solve DOCP
-    nlp_solver, nlp_model = parse_description(description)
+    nlp_solver = parse_description(description, :solver)
+    nlp_model = parse_description(description, :model)
     docp_solution = CTDirect.solve_docp(nlp_solver, docp; display=display, kwargs...)
 
     # build and return OCP solution
@@ -226,7 +233,9 @@ function direct_transcription(
     lagrange_to_mayer=__lagrange_to_mayer(),
     kwargs...,
 )
-    nlp_solver, nlp_model = parse_description(description)
+
+    #nlp_solver = parse_description(description, :solver)
+    nlp_model = parse_description(description, :model)
 
     # build DOCP
     if nlp_model isa ExaBackend
@@ -265,9 +274,9 @@ function direct_transcription(
     # build nlp
     build_nlp!(
         docp,
-        nlp_model,
+        nlp_model, # is now in docp, can be removed
         x0;
-        nlp_solver=nlp_solver,
+        #nlp_solver=nlp_solver,
         grid_size=grid_size,
         disc_method=disc_method,
         kwargs...,
