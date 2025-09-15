@@ -1,6 +1,7 @@
 # ExaModels tests, CPU + GPU (when available)
+# +++ later move these to runtest with the others
 using ExaModels: ExaModels
-using MadNLP
+using MadNLPMumps
 using MadNLPGPU
 using CUDA
 using AMDGPU
