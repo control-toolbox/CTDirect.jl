@@ -70,10 +70,10 @@ function CTDirect.build_nlp!(
         c!,
         docp.bounds.con_l,
         docp.bounds.con_u;
-        minimize=!docp.flags.max,
+        minimize = !docp.flags.max,
         backend_options...,
         unused_backends...,
-        show_time=show_time,
+        show_time = show_time,
     )
 
     # set NLP in DOCP
