@@ -4,7 +4,6 @@ using CTDirect
 
 using DocStringExtensions
 
-using MadNLP
 using MadNLPMumps
 using HSL
 using MKL

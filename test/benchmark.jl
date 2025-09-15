@@ -7,7 +7,7 @@ using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_
 
 using ADNLPModels
 using NLPModelsIpopt
-using MadNLP, MadNLPMumps
+using MadNLPMumps
 
 using LinearAlgebra
 using Printf
