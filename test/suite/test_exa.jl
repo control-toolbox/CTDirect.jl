@@ -81,7 +81,7 @@ function test_exa(exa_backend, display)
     end
 
     # no bounds
-    @testset verbose = true showtiming = true "nobounds :examodel :madnlp :ipopt" begin
+    @testset verbose = true showtiming = true "nobounds :examodel :madnlp" begin
         prob = double_integrator_nobounds()
         sol = solve(
             prob.ocp,
@@ -92,15 +92,20 @@ function test_exa(exa_backend, display)
             display=display,
         )
         @test objective(sol) ≈ prob.obj rtol = 1e-2
-            sol = solve(
-            prob.ocp,
-            :ipopt,
-            :exa;
-            disc_method=:trapeze,
-            exa_backend=exa_backend,
-            display=display,
-        )
-        @test objective(sol) ≈ prob.obj rtol = 1e-2
+    end
+    # check Exa / Ipopt combo on CPU only
+    if isnothing(exa_backend)
+        @testset verbose = true showtiming = true "nobounds :examodel :ipopt" begin
+                sol = solve(
+                prob.ocp,
+                :ipopt,
+                :exa;
+                disc_method=:trapeze,
+                exa_backend=exa_backend,
+                display=display,
+            )
+            @test objective(sol) ≈ prob.obj rtol = 1e-2
+        end
     end
 
     # goddard2
