@@ -6,12 +6,15 @@ using MadNLPGPU
 using CUDA
 using AMDGPU
 
-# beam and goddard problem for Exa
+# load problems
 if !isdefined(Main, :beam2)
     include("../problems/beam.jl")
 end
 if !isdefined(Main, :goddard2)
     include("../problems/goddard.jl")
+end
+if !isdefined(Main, :double_integrator_nobounds)
+    include("../problems/double_integrator.jl")
 end
 
 # test_exa for all backends (CPU + GPU)
@@ -77,6 +80,29 @@ function test_exa(exa_backend, display)
         @test control(sol)(0.5) == ui
     end
 
+    # no bounds
+    @testset verbose = true showtiming = true "nobounds :examodel :madnlp :ipopt" begin
+        prob = double_integ_nobounds()
+        sol = solve(
+            prob.ocp,
+            :madnlp,
+            :exa;
+            disc_method=:trapeze,
+            exa_backend=exa_backend,
+            display=display,
+        )
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
+            sol = solve(
+            prob.ocp,
+            :ipopt,
+            :exa;
+            disc_method=:trapeze,
+            exa_backend=exa_backend,
+            display=display,
+        )
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
+    end
+
     # goddard2
     @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :grid_size" begin
         prob = goddard2()
@@ -91,7 +117,6 @@ function test_exa(exa_backend, display)
         )
         @test time_grid(sol)[end] ≈ 0.201965 rtol = 1e-2  # check time grid
         @test objective(sol) ≈ prob.obj rtol = 1e-2
-
     end
 
     @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size" begin

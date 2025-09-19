@@ -70,10 +70,10 @@ function parse_description(description, info)
         end
 
         # patch: replaces ipopt by madnlp for :exa as long as the issue with getters for a posteriori treatment is not fixed
-        if (:exa ∈ method) && (:ipopt ∈ method)
+        #=if (:exa ∈ method) && (:ipopt ∈ method)
             nlp_solver = CTDirect.MadNLPBackend()
             @warn "currently replacing Ipopt with MadNLP for :exa"
-        end
+        end=#
         return nlp_solver
 
     elseif info == :model

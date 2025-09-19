@@ -1,5 +1,7 @@
 # Build functional OCP solution from discrete DOCP solution
 
+is_empty(t) = (isnothing(t) || length(t) == 0)
+
 """
 $(TYPEDSIGNATURES)
    
@@ -8,17 +10,21 @@ Build OCP functional solution from DOCP discrete solution
 """
 function build_OCP_solution(docp, nlp_solution; nlp_model=ADNLPBackend(), nlp_solver=IpoptBackend())
 
-    # OCP and solver specific infos
-    # +++ we could pass an optional arg to build_OCP_solution to indicate the NLP solver used when we call this one from solve_docp !
     ocp = ocp_model(docp)
+
+    # retrieve data from NLP solver
     objective, iterations, constraints_violation, message, status, successful = SolverInfos(nlp_solution)
+    # fix objective sign for maximization problems with MadNLP
+    # should be in Solverinfos but needs max info. can we retrieve it from nlp solution ?
     if docp.flags.max && nlp_solver isa MadNLPBackend
         objective = - objective
     end
 
-    # convert GPU arrays if needed (done in parsing functions too)
+    # arrays (explicit conversion for GPU case)
     solution = Array(nlp_solution.solution)
     multipliers = Array(nlp_solution.multipliers)
+    multipliers_L = Array(nlp_solution.multipliers_L)    
+    multipliers_U = Array(nlp_solution.multipliers_U)
 
     # time grid
     if nlp_model isa ADNLPBackend
@@ -27,20 +33,14 @@ function build_OCP_solution(docp, nlp_solution; nlp_model=ADNLPBackend(), nlp_so
         T = get_time_grid_exa(nlp_solution, docp)
     end
 
+    # +++ todo: replace both parsing functions with series of getter calls
+    # unify adnlp / exa cases
+
     # primal variables X, U, v and box multipliers
-    X, U, v, box_multipliers = parse_DOCP_solution_primal(
-        docp,
-        solution;
-        mult_LB=nlp_solution.multipliers_L,
-        mult_UB=nlp_solution.multipliers_U,
-        nlp_model=nlp_model,
-        nlp_solution=nlp_solution,
-    )
+    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; multipliers_L=multipliers_L, multipliers_U=multipliers_U, nlp_model=nlp_model, nlp_solution=nlp_solution)
 
     # costate and constraints multipliers
-    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(
-        docp, multipliers; nlp_model=nlp_model, nlp_solution=nlp_solution
-    )
+    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, multipliers; nlp_model=nlp_model, nlp_solution=nlp_solution)
 
     return CTModels.build_solution(
         ocp,
@@ -77,9 +77,6 @@ Retrieve convergence information from NLP solution (SolverCore.ExecutionStats)
 - successful [Boolean]: indicates successful convergence (first order)
 - message [String]: optional solver dependent message
 """
-function SolverInfos()
-    return 0.0, 0, 0.0, "undefined", :undefined, true
-end
 function SolverInfos(nlp_solution)
 
     objective = nlp_solution.objective
@@ -102,13 +99,15 @@ function build_OCP_solution(
     docp;
     primal,
     dual=nothing,
-    mult_LB=nothing,
-    mult_UB=nothing,
+    multipliers_L=nothing,
+    multipliers_U=nothing,
     nlp_model=ADNLPBackend(),
     nlp_solution,
 )
     ocp = ocp_model(docp)
     solution = primal
+
+    println("build ocp solution (arrays)")
 
     # dummy info
     objective, iterations, constraints_violation, message, status, successful = SolverInfos()
@@ -127,8 +126,8 @@ function build_OCP_solution(
     X, U, v, box_multipliers = parse_DOCP_solution_primal(
         docp,
         solution;
-        mult_LB=mult_LB,
-        mult_UB=mult_UB,
+        multipliers_L=multipliers_L,
+        multipliers_U=multipliers_U,
         nlp_model=nlp_model,
         nlp_solution=nlp_solution,
     )
@@ -171,10 +170,10 @@ Bounds multipliers will be parsed as well if present.
 function parse_DOCP_solution_primal(
     docp,
     solution;
-    mult_LB=nothing,
-    mult_UB=nothing,
-    nlp_model=ADNLPBackend(),
-    nlp_solution,
+    multipliers_L,
+    multipliers_U,
+    nlp_model,
+    nlp_solution
 )
 
     # state and control variables
@@ -196,44 +195,41 @@ function parse_DOCP_solution_primal(
         X[:] = getter(nlp_solution; val=:state)' # transpose to match choice below for ADNLP
         U[:] = getter(nlp_solution; val=:control)'
         v[:] = getter(nlp_solution; val=:variable)
-        mult_state_box_lower[:] = getter(nlp_solution; val=:state_l)'
-        mult_state_box_upper[:] = getter(nlp_solution; val=:state_u)'
-        mult_control_box_lower[:] = getter(nlp_solution; val=:control_l)'
-        mult_control_box_upper[:] = getter(nlp_solution; val=:control_u)'
-        mult_variable_box_lower[:] = getter(nlp_solution; val=:variable_l)
-        mult_variable_box_upper[:] = getter(nlp_solution; val=:variable_u)
+        if !is_empty(multipliers_L)
+            mult_state_box_lower[:] = getter(nlp_solution; val=:state_l)'
+            mult_control_box_lower[:] = getter(nlp_solution; val=:control_l)'
+            mult_variable_box_lower[:] = getter(nlp_solution; val=:variable_l)
+        end
+        if !is_empty(multipliers_U) 
+            mult_state_box_upper[:] = getter(nlp_solution; val=:state_u)'
+            mult_control_box_upper[:] = getter(nlp_solution; val=:control_u)'
+            mult_variable_box_upper[:] = getter(nlp_solution; val=:variable_u)
+        end
 
     else # ADNLP
-        if isnothing(mult_LB) || length(mult_LB) == 0
-            mult_LB = zeros(docp.dim_NLP_variables)
-        end
-        if isnothing(mult_UB) || length(mult_UB) == 0
-            mult_UB = zeros(docp.dim_NLP_variables)
-        end
 
-        # convert GPU arrays if needed
-        solution = Array(solution)
-        mult_LB = Array(mult_LB)
-        mult_UB = Array(mult_UB)
+        # replace ipopt 0-length arrays with full 0 arrays
+        is_empty(multipliers_L) && (multipliers_L = zeros(docp.dim_NLP_variables))
+        is_empty(multipliers_U) && (multipliers_U = zeros(docp.dim_NLP_variables))
 
         # retrieve optimization variables
         if docp.dims.NLP_v > 0
             v .= get_OCP_variable(solution, docp)
-            mult_variable_box_lower .= get_OCP_variable(mult_LB, docp)
-            mult_variable_box_upper .= get_OCP_variable(mult_UB, docp)
+            mult_variable_box_lower .= get_OCP_variable(multipliers_L, docp)
+            mult_variable_box_upper .= get_OCP_variable(multipliers_U, docp)
         end
 
         # state variables and box multipliers
         for i in 1:(N + 1)
             X[i, :] .= get_OCP_state_at_time_step(solution, docp, i)
-            mult_state_box_lower[i, :] .= get_OCP_state_at_time_step(mult_LB, docp, i)
-            mult_state_box_upper[i, :] .= get_OCP_state_at_time_step(mult_UB, docp, i)
+            mult_state_box_lower[i, :] .= get_OCP_state_at_time_step(multipliers_L, docp, i)
+            mult_state_box_upper[i, :] .= get_OCP_state_at_time_step(multipliers_U, docp, i)
         end
         # control variables and box multipliers
         for i in 1:(N + 1)
             U[i, :] .= get_OCP_control_at_time_step(solution, docp, i)
-            mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(mult_LB, docp, i)
-            mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(mult_UB, docp, i)
+            mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(multipliers_L, docp, i)
+            mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(multipliers_U, docp, i)
         end
     end
 
