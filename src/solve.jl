@@ -23,7 +23,7 @@ end
 const PACKAGES = Dict(
     # NLP solver
     :ipopt => :NLPModelsIpopt,
-    :madnlp => :MadNLP,
+    :madnlp => :MadNLPMumps,
     :knitro => :NLPModelsKnitro,
     # NLP modeller
     :adnlp => :ADNLPModels,
@@ -87,7 +87,7 @@ function parse_description(description, info)
         end
         return nlp_model
     else
-        error("parse_description info should be :solver or :model, not ", info)
+        error("parse_description info should be either :solver or :model, got ", info)
         return
     end
 end

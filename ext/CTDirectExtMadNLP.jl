@@ -23,6 +23,7 @@ function CTDirect.solve_docp(
 )
 
     # disable output if needed
+    # Valid values are: MadNLP.{TRACE, DEBUG, INFO, NOTICE, WARN, ERROR}.
     if display
         print_level = MadNLP.INFO
     else
