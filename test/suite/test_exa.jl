@@ -82,7 +82,7 @@ function test_exa(exa_backend, display)
 
     # no bounds
     @testset verbose = true showtiming = true "nobounds :examodel :madnlp :ipopt" begin
-        prob = double_integ_nobounds()
+        prob = double_integrator_nobounds()
         sol = solve(
             prob.ocp,
             :madnlp,
