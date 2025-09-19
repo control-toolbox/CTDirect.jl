@@ -4,7 +4,7 @@ using CTDirect
 
 using DocStringExtensions
 
-using MadNLP
+using MadNLPMumps
 using HSL
 using MKL
 
@@ -23,14 +23,18 @@ function CTDirect.solve_docp(
 )
 
     # disable output if needed
-    print_level = display ? MadNLP.INFO : MadNLP.ERROR
+    # Valid values are: MadNLP.{TRACE, DEBUG, INFO, NOTICE, WARN, ERROR}.
+    if display
+        print_level = MadNLP.INFO
+    else
+        print_level = MadNLP.ERROR
+    end
 
     # retrieve NLP
-    nlp = CTDirect.model(docp)
+    nlp = CTDirect.nlp_model(docp)
 
     # preallocate solver (NB. need to pass printlevel here)
-    solver = MadNLPSolver(
-        nlp; print_level=print_level, tol=tol, max_iter=max_iter, kwargs...
+    solver = MadNLPSolver(nlp; print_level=print_level, tol=tol, max_iter=max_iter, kwargs...
     )
 
     # solve discretized problem with NLP solver
@@ -40,15 +44,16 @@ function CTDirect.solve_docp(
     return docp_solution
 end
 
-function CTDirect.SolverInfos(docp_solution::MadNLP.MadNLPExecutionStats)
 
-    # info from SolverCore.GenericExecutionStats
-    iterations = docp_solution.iter
-    constraints_violation = docp_solution.primal_feas
-    status = Symbol(docp_solution.status)
+function CTDirect.SolverInfos(nlp_solution::MadNLP.MadNLPExecutionStats)
+
+    objective = nlp_solution.objective # NB sign is incorrect for max problems !
+    iterations = nlp_solution.iter
+    constraints_violation = nlp_solution.primal_feas
+    status = Symbol(nlp_solution.status)
     successful = (status == :SOLVE_SUCCEEDED) || (status == :SOLVED_TO_ACCEPTABLE_LEVEL)
 
-    return iterations, constraints_violation, "MadNLP", status, successful
+    return objective, iterations, constraints_violation, "MadNLP", status, successful
 end
 
 end

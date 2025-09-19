@@ -76,3 +76,19 @@ function double_integrator_freet0tf()
 
     return ((ocp=ocp, obj=8.0, name="double_integ_t0tf", init=nothing))
 end
+
+# no variable bounds
+function double_integrator_nobounds()
+    ocp = @def begin
+        t ∈ [0, 1], time
+        x = (q, v) ∈ R², state
+        u ∈ R, control
+        x(0) == [1, -2]
+        x(1) == [0, 0]
+        ∂(q)(t) == v(t)
+        ∂(v)(t) == u(t)
+        0.5∫( u(t)^2 ) → min
+    end
+
+    return ((ocp=ocp, obj=2.0, name="double_integ_nobounds", init=nothing))
+end

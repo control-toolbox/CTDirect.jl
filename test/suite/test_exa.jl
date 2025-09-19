@@ -1,16 +1,20 @@
 # ExaModels tests, CPU + GPU (when available)
+# +++ later move these to runtest with the others
 using ExaModels: ExaModels
-using MadNLP
+using MadNLPMumps
 using MadNLPGPU
 using CUDA
 using AMDGPU
 
-# beam and goddard problem for Exa
+# load problems
 if !isdefined(Main, :beam2)
     include("../problems/beam.jl")
 end
 if !isdefined(Main, :goddard2)
     include("../problems/goddard.jl")
+end
+if !isdefined(Main, :double_integrator_nobounds)
+    include("../problems/double_integrator.jl")
 end
 
 # test_exa for all backends (CPU + GPU)
@@ -76,6 +80,35 @@ function test_exa(exa_backend, display)
         @test control(sol)(0.5) == ui
     end
 
+    # no bounds
+    @testset verbose = true showtiming = true "nobounds :examodel :madnlp" begin
+        prob = double_integrator_nobounds()
+        sol = solve(
+            prob.ocp,
+            :madnlp,
+            :exa;
+            disc_method=:trapeze,
+            exa_backend=exa_backend,
+            display=display,
+        )
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
+    end
+    # check Exa / Ipopt combo on CPU only
+    if isnothing(exa_backend)
+        @testset verbose = true showtiming = true "nobounds :examodel :ipopt" begin
+                prob = double_integrator_nobounds()
+                sol = solve(
+                prob.ocp,
+                :ipopt,
+                :exa;
+                disc_method=:trapeze,
+                exa_backend=exa_backend,
+                display=display,
+            )
+            @test objective(sol) ≈ prob.obj rtol = 1e-2
+        end
+    end
+
     # goddard2
     @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :grid_size" begin
         prob = goddard2()
@@ -90,12 +123,17 @@ function test_exa(exa_backend, display)
         )
         @test time_grid(sol)[end] ≈ 0.201965 rtol = 1e-2  # check time grid
         @test objective(sol) ≈ prob.obj rtol = 1e-2
-
     end
 
     @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size" begin
         prob = beam2()
-        docp = direct_transcription(prob.ocp, :madnlp, :exa; display=display, grid_size=100)
+        docp = direct_transcription(
+            prob.ocp, 
+            :madnlp, 
+            :exa; 
+            display=display,
+            disc_method=:trapeze, 
+            grid_size=100)
         @test docp.dim_NLP_variables == 303
     end
 end

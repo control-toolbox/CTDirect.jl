@@ -3,9 +3,9 @@
 """
 $(TYPEDSIGNATURES)
 
-Default discretization method: `trapeze`.
+Default discretization method: `midpoint`.
 """
-__disc_method() = :trapeze
+__disc_method() = :midpoint
 
 """
 $(TYPEDSIGNATURES)
@@ -37,15 +37,24 @@ __time_grid() = nothing
 
 """
 $(TYPEDSIGNATURES)
+
 Default backend for ADNLPModels: `:optimized`
 """
 __adnlp_backend() = :optimized
 
 """
 $(TYPEDSIGNATURES)
+
 Default backend for ExaModels: `nothing`
 """
 __exa_backend() = nothing
+
+"""
+$(TYPEDSIGNATURES)
+
+Reformulate Lagrange cost as Mayer cost: false
+"""
+__lagrange_to_mayer() = false
 
 """
 $(TYPEDSIGNATURES)
@@ -82,12 +91,6 @@ Default value for Ipopt linear solver: `mumps`
 """
 __ipopt_linear_solver() = "mumps"
 
-#="""
-$(TYPEDSIGNATURES)
-
-Default value for MadNLP linear solver: `umfpack`
-"""
-__madnlp_linear_solver() = "umfpack"=#
 
 """
 $(TYPEDSIGNATURES)

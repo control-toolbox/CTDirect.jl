@@ -7,6 +7,7 @@ using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_
 
 using ADNLPModels
 using NLPModelsIpopt
+using MadNLPMumps
 
 using LinearAlgebra
 using Printf
@@ -132,27 +133,11 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
         (!isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj]; rtol=5e-2))
         success = false
         iter = min(iterations(sol), 999) # to fit 3-digit print 
-        println(
-            "Failed ",
-            problem[:name],
-            " for grid size ",
-            grid_size,
-            " at iter ",
-            iter,
-            " obj ",
-            objective(sol),
-            " vs ",
-            problem[:obj],
-        )
+        println("\nFailed ", problem[:name], " for grid size ", grid_size, " at iter ", iter, " obj ", objective(sol), " vs ", problem[:obj])
     else
         success = true
         iter = iterations(sol)
-        verbose > 1 && @printf(
-            "%-20s: %4d iter %5.2f obj ",
-            problem[:name],
-            iterations(sol),
-            objective(sol)
-        )
+        verbose > 1 && @printf("%-20s: %4d iter %5.2f obj ", problem[:name], iterations(sol), objective(sol))
         # time
         time = @belapsed solve(
             $problem[:ocp],
@@ -171,27 +156,17 @@ end
 # perform benchmark
 function bench(;
     verbose=1,
-    target_list=:default,
-    grid_size_list=[250, 500, 1000, 2500, 5000],
+    target_list=:all,
+    grid_size_list=[250, 500, 1000],
     nlp_solver=:ipopt,
+    return_sols=false,
+    save_sols=false,
     kwargs...,
 )
 
     # load problems for benchmark
     # Note that problems may vary significantly in convergence times...  
-    if target_list == :default
-        target_list = [
-            "beam",
-            "double_integrator_mintf",
-            "double_integrator_minenergy",
-            "fuller",
-            "goddard",
-            "goddard_all",
-            "jackson",
-            "simple_integrator",
-            "vanderpol",
-        ]
-    elseif target_list == :lagrange_easy
+    if target_list == :lagrange_easy
         target_list = [
             "beam",
             "double_integrator_minenergy",
@@ -245,12 +220,12 @@ function bench(;
             "fuller",
             "goddard",
             "goddard_all",
-            "insurance",
+            #"insurance", fail unless final control
             "jackson",
             "parametric",
             "robbins",
             "simple_integrator",
-            "swimmer",
+            #"swimmer", #much slower then others #fail for madnlpmumps
             "vanderpol",
         ]
     elseif target_list == :hard
@@ -263,7 +238,7 @@ function bench(;
             "swimmer",
         ]
     end
-    verbose > 2 && println("Problem list: ", target_list)
+    verbose > 1 && println("Problem list: ", target_list)
     problem_list = []
     for problem_name in target_list
         ocp_data = getfield(Main, Symbol(problem_name))()
@@ -271,14 +246,14 @@ function bench(;
     end
 
     # solve problem list for all grid sizes
-    verbose > 2 && println("Grid size list: ", grid_size_list)
+    verbose > 1 && println("Grid size list: ", grid_size_list)
     t_bench = zeros(Float64, (length(problem_list), length(grid_size_list)))
     i_bench = zeros(Int, (length(problem_list), length(grid_size_list)))
     s_bench = zeros(Bool, (length(problem_list), length(grid_size_list)))
     solutions = Array{Any}(undef, (length(problem_list), length(grid_size_list)))
     i = 1
     for problem in problem_list
-        verbose > 1 && @printf("Testing problem %-17s for grid size ", problem[:name])
+        verbose > 1 && @printf("Testing problem %-22s for grid size ", problem[:name])
         j = 1
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
@@ -305,7 +280,7 @@ function bench(;
     if verbose > 0
         i = 1
         for problem in problem_list
-            @printf("%-17s", problem[:name])
+            @printf("%-22s", problem[:name])
             for j in 1:length(grid_size_list)
                 if s_bench[i, j]
                     @printf("%6.2f(%3d) ", t_bench[i, j], i_bench[i, j])
@@ -324,7 +299,12 @@ function bench(;
         @printf("%6.2f(%3d) ", sum(t_bench[:, j]), sum(i_bench[:, j]))
     end
     println("")
-    return solutions
+
+    if return_sols
+        return solutions
+    else
+        return
+    end
 end
 
 # custom bench calls
