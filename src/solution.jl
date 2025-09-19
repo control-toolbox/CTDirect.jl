@@ -77,6 +77,9 @@ Retrieve convergence information from NLP solution (SolverCore.ExecutionStats)
 - successful [Boolean]: indicates successful convergence (first order)
 - message [String]: optional solver dependent message
 """
+function SolverInfos()
+    return 0., 0, 0., :undefined, true, "undefined"
+end
 function SolverInfos(nlp_solution)
 
     objective = nlp_solution.objective
