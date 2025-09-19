@@ -19,25 +19,21 @@ function CTDirect.solve_docp(
     display::Bool=CTDirect.__display(),
     max_iter::Integer=CTDirect.__max_iterations(),
     tol::Real=CTDirect.__tolerance(),
-    linear_solver=CTDirect.__madnlp_linear_solver(),
     kwargs...,
 )
 
     # disable output if needed
-    print_level = display ? MadNLP.INFO : MadNLP.ERROR
+    if display
+        print_level = MadNLP.INFO
+    else
+        print_level = MadNLP.ERROR
+    end
 
     # retrieve NLP
     nlp = CTDirect.nlp_model(docp)
 
-    # set linear solver
-    if linear_solver == "umfpack"
-        linear_solver = MadNLP.UmfpackSolver
-    elseif linear_solver == "mumps"
-        linear_solver = MadNLPMumps.MumpsSolver
-    end
-
     # preallocate solver (NB. need to pass printlevel here)
-    solver = MadNLPSolver(nlp; print_level=print_level, tol=tol, max_iter=max_iter, linear_solver=linear_solver, kwargs...
+    solver = MadNLPSolver(nlp; print_level=print_level, tol=tol, max_iter=max_iter, kwargs...
     )
 
     # solve discretized problem with NLP solver
@@ -47,9 +43,10 @@ function CTDirect.solve_docp(
     return docp_solution
 end
 
+
 function CTDirect.SolverInfos(nlp_solution::MadNLP.MadNLPExecutionStats)
 
-    objective = nlp_solution.objective # NB sign is incorrct for max problems !
+    objective = nlp_solution.objective # NB sign is incorrect for max problems !
     iterations = nlp_solution.iter
     constraints_violation = nlp_solution.primal_feas
     status = Symbol(nlp_solution.status)
