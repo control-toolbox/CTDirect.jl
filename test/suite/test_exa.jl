@@ -96,6 +96,7 @@ function test_exa(exa_backend, display)
     # check Exa / Ipopt combo on CPU only
     if isnothing(exa_backend)
         @testset verbose = true showtiming = true "nobounds :examodel :ipopt" begin
+                prob = double_integrator_nobounds()
                 sol = solve(
                 prob.ocp,
                 :ipopt,
