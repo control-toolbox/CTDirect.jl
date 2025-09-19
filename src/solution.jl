@@ -73,12 +73,12 @@ Retrieve convergence information from NLP solution (SolverCore.ExecutionStats)
 - objective [Float]: objective value at the solution
 - iterations [Integer]: number of iterations
 - constraints_violations [Real]: primal feasibility
+- message [String]: optional solver dependent message
 - status [Symbol]: termination status from the NLP solver
 - successful [Boolean]: indicates successful convergence (first order)
-- message [String]: optional solver dependent message
 """
 function SolverInfos()
-    return 0., 0, 0., :undefined, true, "undefined"
+    return 0., 0, 0., "undefined", :undefined, true
 end
 function SolverInfos(nlp_solution)
 
@@ -109,8 +109,6 @@ function build_OCP_solution(
 )
     ocp = ocp_model(docp)
     solution = primal
-
-    println("build ocp solution (arrays)")
 
     # dummy info
     objective, iterations, constraints_violation, message, status, successful = SolverInfos()
