@@ -88,7 +88,7 @@ function parse_description(description, info)
         return nlp_model
     else
         error("parse_description info should be either :solver or :model, got ", info)
-        return
+        return nothing
     end
 end
 
@@ -165,7 +165,9 @@ function solve(
     docp_solution = CTDirect.solve_docp(nlp_solver, docp; display=display, kwargs...)
 
     # build and return OCP solution
-    return build_OCP_solution(docp, docp_solution; nlp_model=nlp_model, nlp_solver=nlp_solver)
+    return build_OCP_solution(
+        docp, docp_solution; nlp_model=nlp_model, nlp_solver=nlp_solver
+    )
 end
 
 """

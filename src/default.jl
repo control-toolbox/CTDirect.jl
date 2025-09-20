@@ -91,7 +91,6 @@ Default value for Ipopt linear solver: `mumps`
 """
 __ipopt_linear_solver() = "mumps"
 
-
 """
 $(TYPEDSIGNATURES)
 

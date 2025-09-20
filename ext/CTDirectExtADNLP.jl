@@ -29,10 +29,12 @@ function CTDirect.build_nlp!(
     c! = (c, x) -> CTDirect.DOCP_constraints!(c, x, docp)
 
     # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
-    unused_backends = (hprod_backend=ADNLPModels.EmptyADbackend,
-                jtprod_backend=ADNLPModels.EmptyADbackend,
-                jprod_backend=ADNLPModels.EmptyADbackend,
-                ghjvprod_backend=ADNLPModels.EmptyADbackend)
+    unused_backends = (
+        hprod_backend=ADNLPModels.EmptyADbackend,
+        jtprod_backend=ADNLPModels.EmptyADbackend,
+        jprod_backend=ADNLPModels.EmptyADbackend,
+        ghjvprod_backend=ADNLPModels.EmptyADbackend,
+    )
 
     # call NLP problem constructor
     if adnlp_backend == :manual
@@ -52,9 +54,11 @@ function CTDirect.build_nlp!(
             c!,
             CTDirect.DOCP_Hessian_pattern(docp),
         )
-        backend_options = (gradient_backend=ADNLPModels.ReverseDiffADGradient,
-                jacobian_backend=J_backend,
-                hessian_backend=H_backend)
+        backend_options = (
+            gradient_backend=ADNLPModels.ReverseDiffADGradient,
+            jacobian_backend=J_backend,
+            hessian_backend=H_backend,
+        )
 
     else
         # use backend preset
@@ -70,10 +74,10 @@ function CTDirect.build_nlp!(
         c!,
         docp.bounds.con_l,
         docp.bounds.con_u;
-        minimize = !docp.flags.max,
+        minimize=(!docp.flags.max),
         backend_options...,
         unused_backends...,
-        show_time = show_time,
+        show_time=show_time,
     )
 
     # set NLP in DOCP
