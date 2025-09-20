@@ -11,7 +11,9 @@ struct Trapeze <: Discretization
     _final_control::Bool
 
     # constructor
-    function Trapeze(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
+    function Trapeze(
+        dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons
+    )
 
         # Trapeze is better with final control (used in final dynamics)
         final_control = true #false about 10% slower
@@ -36,7 +38,7 @@ struct Trapeze <: Discretization
             step_variables_block,
             state_stage_eqs_block,
             step_pathcons_block,
-            final_control
+            final_control,
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -80,7 +82,6 @@ $(TYPEDSIGNATURES)
 Compute the running cost
 """
 function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
-    
     dims = docp.dims
     obj_lagrange = 0.0
 
@@ -122,18 +123,11 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
-
     disc = disc_model(docp)
     dims = docp.dims
 
     # offset for previous steps
-    offset =
-        (
-            i-1
-        )*(
-            disc._state_stage_eqs_block +
-            disc._step_pathcons_block
-        )
+    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
     # c block version 
     # offset = 0
 
@@ -164,10 +158,8 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
             c[offset + dims.NLP_x] =
                 get_lagrange_state_at_time_step(xu, docp, i+1) - (
                     get_lagrange_state_at_time_step(xu, docp, i) +
-                    half_hi * (
-                        work[offset_dyn_i + dims.NLP_x] +
-                        work[offset_dyn_ip1 + dims.NLP_x]
-                    )
+                    half_hi *
+                    (work[offset_dyn_i + dims.NLP_x] + work[offset_dyn_ip1 + dims.NLP_x])
                 )
         end
         offset += dims.NLP_x
@@ -262,7 +254,9 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
 
     # 3. boundary constraints (x0, xf, v)
-    c_offset = docp.time.steps * (disc._state_stage_eqs_block + disc._step_pathcons_block) + disc._step_pathcons_block
+    c_offset =
+        docp.time.steps * (disc._state_stage_eqs_block + disc._step_pathcons_block) +
+        disc._step_pathcons_block
     c_block = dims.boundary_cons
     x0_start = 1
     x0_end = dims.OCP_x
@@ -286,7 +280,6 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Hessian of Lagrangian
 """
 function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
-
     disc = disc_model(docp)
     dims = docp.dims
 
@@ -320,8 +313,12 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
         # 1.2 lagrange 0 = l_i+1 - (l_i + h_i/2 (l(t_i,x_i,u_i,v) + l(t_i+1,x_i+1,u_i+1,v)))
         # 2nd order terms depend on x_i, l_i, u_i, x_i+1, l_i+1, u_i+1, and v
         # -> use single block for all step variables
-        add_nonzero_block!(Is, Js, var_offset+1, var_offset+var_block, var_offset+1, var_offset+var_block)
-        add_nonzero_block!(Is, Js, var_offset+1, var_offset+var_block, v_start, v_end; sym=true)
+        add_nonzero_block!(
+            Is, Js, var_offset+1, var_offset+var_block, var_offset+1, var_offset+var_block
+        )
+        add_nonzero_block!(
+            Is, Js, var_offset+1, var_offset+var_block, v_start, v_end; sym=true
+        )
 
         # 1.3 path constraint g(t_i, x_i, u_i, v)
         # -> included in 1.2

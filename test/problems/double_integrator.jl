@@ -87,7 +87,7 @@ function double_integrator_nobounds()
         x(1) == [0, 0]
         ∂(q)(t) == v(t)
         ∂(v)(t) == u(t)
-        0.5∫( u(t)^2 ) → min
+        0.5∫(u(t)^2) → min
     end
 
     return ((ocp=ocp, obj=2.0, name="double_integ_nobounds", init=nothing))

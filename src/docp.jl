@@ -564,7 +564,7 @@ end
 
 function get_time_grid_exa()
     error("you should not be here")
-    return
+    return nothing
 end
 
 """
