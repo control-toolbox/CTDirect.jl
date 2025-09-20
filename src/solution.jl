@@ -1,12 +1,57 @@
 # Build functional OCP solution from discrete DOCP solution
 
+"""
+$(TYPEDSIGNATURES)
+
+Check whether a collection `t` is empty or not defined.
+
+# Arguments
+
+- `t`: Any object that may be `nothing` or support `length`.
+
+# Returns
+
+- `::Bool`: `true` if `t` is `nothing` or has length zero, otherwise `false`.
+
+# Example
+
+```julia-repl
+julia> is_empty([])
+true
+
+julia> is_empty([1, 2, 3])
+false
+
+julia> is_empty(nothing)
+true
+```
+"""
 is_empty(t) = (isnothing(t) || length(t) == 0)
 
 """
 $(TYPEDSIGNATURES)
-   
-Build OCP functional solution from DOCP discrete solution 
-(given as a SolverCore.GenericExecutionStats)
+
+Build an OCP functional solution from a DOCP discrete solution given as
+a `SolverCore.GenericExecutionStats` object.
+
+# Arguments
+
+- `docp`: The discretized optimal control problem (`DOCP`).
+- `nlp_solution`: A solver execution statistics object.
+- `nlp_model`: The NLP model backend (default: `ADNLPBackend()`).
+- `nlp_solver`: The NLP solver backend (default: `IpoptBackend()`).
+
+# Returns
+
+- `solution::CTModels.Solution`: A functional OCP solution containing
+  trajectories, multipliers, and solver information.
+
+# Example
+
+```julia-repl
+julia> build_OCP_solution(docp, nlp_solution)
+CTModels.Solution(...)
+```
 """
 function build_OCP_solution(docp, nlp_solution; nlp_model=ADNLPBackend(), nlp_solver=IpoptBackend())
 
@@ -69,17 +114,46 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Retrieve convergence information from NLP solution (SolverCore.ExecutionStats)
-- objective [Float]: objective value at the solution
-- iterations [Integer]: number of iterations
-- constraints_violations [Real]: primal feasibility
-- message [String]: optional solver dependent message
-- status [Symbol]: termination status from the NLP solver
-- successful [Boolean]: indicates successful convergence (first order)
+Return default convergence information for an NLP solution.
+
+# Returns
+
+- `(objective, iterations, constraints_violation, message, status, successful)`:  
+  Default values representing an undefined solver state.
+
+# Example
+
+```julia-repl
+julia> SolverInfos()
+(0.0, 0, 0.0, "undefined", :undefined, true)
+```
 """
 function SolverInfos()
     return 0., 0, 0., "undefined", :undefined, true
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve convergence information from an NLP solution.
+
+# Arguments
+
+- `nlp_solution`: A solver execution statistics object.
+
+# Returns
+
+- `(objective, iterations, constraints_violation, message, status, successful)`:  
+  A tuple containing the final objective value, iteration count,
+  primal feasibility, solver message, solver status, and success flag.
+
+# Example
+
+```julia-repl
+julia> SolverInfos(nlp_solution)
+(1.23, 15, 1.0e-6, "Ipopt/generic", :first_order, true)
+```
+"""
 function SolverInfos(nlp_solution)
 
     objective = nlp_solution.objective
@@ -91,12 +165,34 @@ function SolverInfos(nlp_solution)
     return objective, iterations, constraints_violation, "Ipopt/generic", status, successful
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
-Build OCP functional solution from DOCP discrete solution 
-(given as array for primal variables, optionally dual variables and bounds multipliers)
+Build an OCP functional solution from a DOCP discrete solution, given
+explicit primal variables, and optionally dual variables and bound
+multipliers.
+
+# Arguments
+
+- `docp`: The discretized optimal control problem (`DOCP`).
+- `primal`: Array of primal decision variables.
+- `dual`: Array of dual variables (default: `nothing`).
+- `multipliers_L`: Lower bound multipliers (default: `nothing`).
+- `multipliers_U`: Upper bound multipliers (default: `nothing`).
+- `nlp_model`: The NLP model backend (default: `ADNLPBackend()`).
+- `nlp_solution`: A solver execution statistics object.
+
+# Returns
+
+- `solution::CTModels.Solution`: A functional OCP solution with
+  trajectories, multipliers, and solver information.
+
+# Example
+
+```julia-repl
+julia> build_OCP_solution(docp; primal=primal_vars, nlp_solution=nlp_solution)
+CTModels.Solution(...)
+```
 """
 function build_OCP_solution(
     docp;
@@ -165,8 +261,33 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Recover OCP state, control and optimization variables from DOCP primal variables.
-Bounds multipliers will be parsed as well if present.
+Recover OCP state, control, and optimization variables from DOCP primal
+variables. Bound multipliers are also parsed if available.
+
+# Arguments
+
+- `docp`: The discretized optimal control problem (`DOCP`).
+- `solution`: Array of primal decision variables.
+- `multipliers_L`: Lower bound multipliers.
+- `multipliers_U`: Upper bound multipliers.
+- `nlp_model`: The NLP model backend.
+- `nlp_solution`: A solver execution statistics object.
+
+# Returns
+
+- `(X, U, v, box_multipliers)`:  
+  - `X`: State trajectory.  
+  - `U`: Control trajectory.  
+  - `v`: Optimization variables.  
+  - `box_multipliers`: Tuple of bound multipliers for states, controls, and variables.
+
+# Example
+
+```julia-repl
+julia> X, U, v, box_mults = parse_DOCP_solution_primal(docp, primal;
+       multipliers_L=mL, multipliers_U=mU, nlp_model=nlp_model, nlp_solution=nlp_solution)
+([...] , [...], [...], (...))
+```
 """
 function parse_DOCP_solution_primal(
     docp,
@@ -249,7 +370,29 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Recover OCP costate and constraints multipliers from DOCP dual variables.
+Recover OCP costates and constraint multipliers from DOCP dual
+variables.
+
+# Arguments
+
+- `docp`: The discretized optimal control problem (`DOCP`).
+- `multipliers`: Array of dual variables (may be `nothing`).
+- `nlp_model`: The NLP model backend (default: `ADNLPBackend()`).
+- `nlp_solution`: A solver execution statistics object.
+
+# Returns
+
+- `(P, path_constraints_dual, boundary_constraints_dual)`:  
+  - `P`: Costate trajectory.  
+  - `path_constraints_dual`: Path constraint multipliers.  
+  - `boundary_constraints_dual`: Boundary constraint multipliers.
+
+# Example
+
+```julia-repl
+julia> P, path_dual, bound_dual = parse_DOCP_solution_dual(docp, duals; nlp_model=nlp_model, nlp_solution=nlp_solution)
+([...] , [...], [...])
+```
 """
 function parse_DOCP_solution_dual(
     docp, multipliers; nlp_model=ADNLPBackend(), nlp_solution

@@ -1,18 +1,45 @@
 # Discretized Optimal Control Problem DOCP
 
-# generic discretization
+"""
+$(TYPEDEF)
+
+Abstract type representing a discretization strategy for an optimal
+control problem.  
+
+Concrete subtypes of `Discretization` define specific schemes for
+transforming a continuous-time problem into a discrete-time
+representation suitable for numerical solution.
+
+# Example
+
+```julia-repl
+julia> struct MyDiscretization <: Discretization end
+MyDiscretization
+```
+"""
 abstract type Discretization end
 
 """
-$(TYPEDSIGNATURES)
+$(TYPEDEF)
 
-Internal struct for DOCP boolean flags
-- freet0: OCP has free initial time
-- freetf: OCP has free final time
-- lagrange: OCP has a lagrange cost
-- mayer: OCP has a mayer cost
-- lagrange_to_mayer: convert lagrange cost to mayer form
-- max: OCP is a maximization problem
+Internal struct holding boolean flags that characterize properties of the 
+discretized optimal control problem (DOCP).
+
+# Fields
+
+- `freet0::Bool`: Whether the OCP has a free initial time.
+- `freetf::Bool`: Whether the OCP has a free final time.
+- `lagrange::Bool`: Whether the OCP includes a Lagrange cost.
+- `mayer::Bool`: Whether the OCP includes a Mayer cost.
+- `lagrange_to_mayer::Bool`: Whether the Lagrange cost is reformulated as a Mayer term.
+- `max::Bool`: Whether the OCP is a maximization problem.
+
+# Example
+
+```julia-repl
+julia> DOCPFlags(true, false, true, true, false, false)
+DOCPFlags(true, false, true, true, false, false)
+```
 """
 struct DOCPFlags
     freet0::Bool
@@ -22,6 +49,28 @@ struct DOCPFlags
     lagrange_to_mayer::Bool
     max::Bool
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Construct a [`DOCPFlags`](@ref) struct from an OCP model.
+
+# Arguments
+
+- `ocp::CTModels.Model`: The optimal control problem model.
+- `lagrange_to_mayer::Bool`: Whether to reformulate the Lagrange cost as a Mayer term.
+
+# Returns
+
+- `DOCPFlags`: A struct encoding the problem’s boolean properties.
+
+# Example
+
+```julia-repl
+julia> DOCPFlags(ocp, true)
+DOCPFlags(false, true, true, false, true, false)
+```
+"""
 function DOCPFlags(ocp::CTModels.Model, lagrange_to_mayer::Bool)
     has_free_initial_time = CTModels.has_free_initial_time(ocp)
     has_free_final_time = CTModels.has_free_final_time(ocp)
@@ -40,15 +89,25 @@ function DOCPFlags(ocp::CTModels.Model, lagrange_to_mayer::Bool)
 end
 
 """
-$(TYPEDSIGNATURES)
+$(TYPEDEF)
 
-Internal struct for DOCP dimensions
-- NLP_x: state dimension including additional component for reformulated lagrange cost
-- NLP_u: control dimension
-- NLP_v: variable dimension
-- OCP_x: state dimension for the original OCP
-- path_cons: path constraints dimension
-- boundary_cons: boundary constraints dimension
+Internal struct holding problem dimensions for a DOCP.
+
+# Fields
+
+- `NLP_x::Int`: State dimension, possibly including an extra variable for Lagrange cost.
+- `NLP_u::Int`: Control dimension.
+- `NLP_v::Int`: Variable dimension.
+- `OCP_x::Int`: State dimension of the original OCP.
+- `path_cons::Int`: Path constraints dimension.
+- `boundary_cons::Int`: Boundary constraints dimension.
+
+# Example
+
+```julia-repl
+julia> DOCPdims(4, 2, 1, 3, 2, 1)
+DOCPdims(4, 2, 1, 3, 2, 1)
+```
 """
 struct DOCPdims
     NLP_x::Int
@@ -58,6 +117,28 @@ struct DOCPdims
     path_cons::Int
     boundary_cons::Int
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Construct a [`DOCPdims`](@ref) struct from an OCP model.
+
+# Arguments
+
+- `ocp::CTModels.Model`: The optimal control problem model.
+- `lagrange_to_mayer::Bool`: Whether the Lagrange cost is reformulated as Mayer.
+
+# Returns
+
+- `DOCPdims`: A struct containing the problem dimensions.
+
+# Example
+
+```julia-repl
+julia> DOCPdims(ocp, true)
+DOCPdims(5, 2, 1, 4, 2, 1)
+```
+"""
 function DOCPdims(ocp::CTModels.Model, lagrange_to_mayer::Bool)
     if CTModels.has_lagrange_cost(ocp) && lagrange_to_mayer
         dim_NLP_x = CTModels.state_dimension(ocp) + 1
@@ -76,18 +157,51 @@ function DOCPdims(ocp::CTModels.Model, lagrange_to_mayer::Bool)
 end
 
 """
-$(TYPEDSIGNATURES)
+$(TYPEDEF)
 
-Internal struct for DOCP time grid
-- steps: number of time steps
-- normalized_grid: time grid rescaled to [0,1]
-- fixed_grid: fixed time grid [t0,tf]
+Internal struct holding time grid information for a DOCP.
+
+# Fields
+
+- `steps::Int`: Number of time steps.
+- `normalized_grid::Vector{Float64}`: Normalized time grid in `[0,1]`.
+- `fixed_grid::Vector{Float64}`: Fixed time grid in `[t0, tf]`.
+
+# Example
+
+```julia-repl
+julia> DOCPtime(10, collect(0:0.1:1), collect(0.0:0.1:1.0))
+DOCPtime(10, [0.0, 0.1, …, 1.0], [0.0, 0.1, …, 1.0])
+```
 """
 struct DOCPtime
     steps::Int
     normalized_grid::Vector{Float64}
     fixed_grid::Vector{Float64}
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Construct a [`DOCPtime`](@ref) struct from an OCP model.
+
+# Arguments
+
+- `ocp::CTModels.Model`: The optimal control problem model.
+- `grid_size::Int`: Number of grid steps if no grid is provided.
+- `time_grid`: Custom time grid (or `nothing` to auto-generate).
+
+# Returns
+
+- `DOCPtime`: A struct encoding the time discretization.
+
+# Example
+
+```julia-repl
+julia> DOCPtime(ocp, 10, nothing)
+DOCPtime(10, [0.0, 0.1, …, 1.0], [0.0, 0.1, …, 1.0])
+```
+"""
 function DOCPtime(ocp::CTModels.Model, grid_size::Int, time_grid)
 
     # 1. build/recover normalized time grid
@@ -129,13 +243,23 @@ function DOCPtime(ocp::CTModels.Model, grid_size::Int, time_grid)
 end
 
 """
-$(TYPEDSIGNATURES)
+$(TYPEDEF)
 
-Internal struct for DOCP bounds
-- var_l: lower bounds for the NLP variables
-- var_u: upper bounds for the NLP variables
-- con_l: lower bounds for the NLP constraints
-- con_u: upper bounds for the NLP constraints
+Internal struct holding variable and constraint bounds for a DOCP.
+
+# Fields
+
+- `var_l::Vector{Float64}`: Lower bounds for NLP variables.
+- `var_u::Vector{Float64}`: Upper bounds for NLP variables.
+- `con_l::Vector{Float64}`: Lower bounds for NLP constraints.
+- `con_u::Vector{Float64}`: Upper bounds for NLP constraints.
+
+# Example
+
+```julia-repl
+julia> DOCPbounds([-1.0, -2.0], [1.0, 2.0], [0.0], [0.0])
+DOCPbounds([-1.0, -2.0], [1.0, 2.0], [0.0], [0.0])
+```
 """
 struct DOCPbounds
     var_l::Vector{Float64}
@@ -145,14 +269,30 @@ struct DOCPbounds
 end
 
 """
-$(TYPEDSIGNATURES)
+$(TYPEDEF)
 
-Struct for discretized optimal control problem DOCP
+Struct representing a discretized optimal control problem (DOCP).
 
-Contains:
-- a copy of the original OCP
-- the discretized DOCP as a NLP problem
-- data required to link the OCP with the discretized DOCP
+# Fields
+
+- `discretization::D`: The discretization scheme.
+- `ocp::O`: The original OCP model.
+- `nlp_model::N`: The NLP model backend.
+- `nlp`: The constructed NLP instance.
+- `exa_getter::Union{Nothing,Function}`: Getter for ExaModels if used.
+- `flags::DOCPFlags`: Boolean flags describing problem structure.
+- `dims::DOCPdims`: Problem dimensions.
+- `time::DOCPtime`: Time discretization.
+- `bounds::DOCPbounds`: Variable and constraint bounds.
+- `dim_NLP_variables::Int`: Number of NLP variables.
+- `dim_NLP_constraints::Int`: Number of NLP constraints.
+
+# Example
+
+```julia-repl
+julia> DOCP(ocp, nlp_model)
+DOCP{...}(...)
+```
 """
 mutable struct DOCP{D<:Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPModelBackend}
 
@@ -304,7 +444,22 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Check if an OCP is solvable by the method [`solve`](@ref).
+Check if an OCP is solvable by [`solve`](@ref).
+
+# Arguments
+
+- `ocp`: The OCP model.
+
+# Returns
+
+- `solvable::Bool`: Always returns `true` in the current implementation.
+
+# Example
+
+```julia-repl
+julia> is_solvable(ocp)
+true
+```
 """
 function is_solvable(ocp)
     solvable = true
@@ -314,7 +469,22 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Build upper and lower bounds vectors for the DOCP nonlinear constraints.
+Build lower and upper bounds vectors for the nonlinear constraints of a DOCP.
+
+# Arguments
+
+- `docp::DOCP`: The discretized OCP.
+
+# Returns
+
+- `(lb, ub)::Tuple{Vector{Float64},Vector{Float64}}`: Lower and upper bounds.
+
+# Example
+
+```julia-repl
+julia> constraints_bounds!(docp)
+([-1.0, …], [1.0, …])
+```
 """
 function constraints_bounds!(docp::DOCP)
     lb = docp.bounds.con_l
@@ -363,7 +533,22 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Build upper and lower bounds vectors for the DOCP variable box constraints.
+Build lower and upper bounds vectors for the variable box constraints of a DOCP.
+
+# Arguments
+
+- `docp::DOCP`: The discretized OCP.
+
+# Returns
+
+- `(var_l, var_u)::Tuple{Vector{Float64},Vector{Float64}}`: Lower and upper bounds for variables.
+
+# Example
+
+```julia-repl
+julia> variables_bounds!(docp)
+([-Inf, …], [Inf, …])
+```
 """
 function variables_bounds!(docp::DOCP)
     N = docp.time.steps
@@ -408,7 +593,23 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Compute the objective for the DOCP problem.
+Compute the objective value of a discretized OCP.
+
+# Arguments
+
+- `xu`: Vector of NLP decision variables.
+- `docp::DOCP`: The discretized OCP.
+
+# Returns
+
+- `obj::Float64`: Objective function value.
+
+# Example
+
+```julia-repl
+julia> DOCP_objective(xu, docp)
+12.34
+```
 """
 function DOCP_objective(xu, docp::DOCP)
 
@@ -457,7 +658,26 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Compute the constraints C for the DOCP problem (modeled as LB <= C(X) <= UB).
+Compute the nonlinear constraints of a DOCP.
+
+The constraints are modeled as `lb <= C(x) <= ub`.
+
+# Arguments
+
+- `c`: Preallocated constraint vector.
+- `xu`: Vector of NLP decision variables.
+- `docp::DOCP`: The discretized OCP.
+
+# Returns
+
+- `c`: The filled constraint vector.
+
+# Example
+
+```julia-repl
+julia> DOCP_constraints!(zeros(docp.dim_NLP_constraints), xu, docp)
+[0.0, 0.1, …]
+```
 """
 function DOCP_constraints!(c, xu, docp::DOCP)
 
@@ -485,7 +705,24 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Set the boundary and variable constraints
+Set boundary and variable point constraints for a DOCP.
+
+# Arguments
+
+- `docp::DOCP`: The discretized OCP.
+- `c`: Constraint vector to modify.
+- `xu`: Vector of NLP decision variables.
+- `v`: Additional OCP variables.
+
+# Returns
+
+- `nothing`: Modifies `c` in place.
+
+# Example
+
+```julia-repl
+julia> setPointConstraints!(docp, c, xu, v)
+```
 """
 function setPointConstraints!(docp::DOCP, c, xu, v)
 
@@ -511,7 +748,23 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Build initial guess for discretized problem
+Build an initial guess vector for the discretized OCP.
+
+# Arguments
+
+- `docp::DOCP`: The discretized OCP.
+- `init::CTModels.Init`: Initialization settings (default: `CTModels.Init()`).
+
+# Returns
+
+- `NLP_X::Vector{Float64}`: Initial guess vector.
+
+# Example
+
+```julia-repl
+julia> DOCP_initial_guess(docp)
+[0.1, 0.1, …]
+```
 """
 function DOCP_initial_guess(docp::DOCP, init::CTModels.Init=CTModels.Init())
 
@@ -537,7 +790,23 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Return time grid for variable time problems (times are then dependent on NLP variables)
+Return the time grid for problems with free initial or final times.
+
+# Arguments
+
+- `xu`: Vector of NLP decision variables.
+- `docp::DOCP`: The discretized OCP.
+
+# Returns
+
+- `grid::Vector{Float64}`: Time grid corresponding to current NLP variables.
+
+# Example
+
+```julia-repl
+julia> get_time_grid(xu, docp)
+[0.0, 0.1, …, 1.0]
+```
 """
 function get_time_grid(xu, docp::DOCP)
     grid = similar(xu, docp.time.steps+1)
@@ -562,6 +831,20 @@ function get_time_grid(xu, docp::DOCP)
     return grid
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Helper for invalid execution paths.
+
+Always throws an error.
+
+# Example
+
+```julia-repl
+julia> get_time_grid_exa()
+ERROR: you should not be here
+```
+"""
 function get_time_grid_exa()
     error("you should not be here")
     return
@@ -570,7 +853,24 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Build full, ordered sets of bounds for state, control or optimization variables
+Build lower and upper bound vectors for state, control, or optimization variables.
+
+# Arguments
+
+- `dim_var::Int`: Variable dimension.
+- `dim_box::Int`: Number of box constraints.
+- `box_triplet`: Triplet defining box constraints.
+
+# Returns
+
+- `(x_lb, x_ub)::Tuple{Vector{Float64},Vector{Float64}}`: Lower and upper bounds.
+
+# Example
+
+```julia-repl
+julia> build_bounds(3, 1, ([0.0], [2], [1.0]))
+([-Inf, 0.0, -Inf], [Inf, 1.0, Inf])
+```
 """
 function build_bounds(dim_var, dim_box, box_triplet)
     x_lb = -Inf * ones(dim_var)
@@ -585,6 +885,71 @@ function build_bounds(dim_var, dim_box, box_triplet)
 end
 
 # getters for high level structs
+"""
+$(TYPEDSIGNATURES)
+
+Return the nonlinear programming (NLP) model associated with a given
+discretized optimal control problem (`DOCP`).
+
+# Arguments
+
+- `docp::DOCP`: The discretized optimal control problem.
+
+# Returns
+
+- `nlp::Any`: The underlying NLP model stored in `docp`.
+
+# Example
+
+```julia-repl
+julia> nlp_model(docp)
+NLPModel(...)
+```
+"""
 nlp_model(docp::DOCP) = docp.nlp
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the continuous-time optimal control problem (OCP) model
+associated with a given discretized optimal control problem (`DOCP`).
+
+# Arguments
+
+- `docp::DOCP`: The discretized optimal control problem.
+
+# Returns
+
+- `ocp::Any`: The underlying OCP model stored in `docp`.
+
+# Example
+
+```julia-repl
+julia> ocp_model(docp)
+OCPModel(...)
+```
+"""
 ocp_model(docp::DOCP) = docp.ocp
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the discretization model associated with a given discretized
+optimal control problem (`DOCP`).
+
+# Arguments
+
+- `docp::DOCP`: The discretized optimal control problem.
+
+# Returns
+
+- `discretization::Any`: The discretization model stored in `docp`.
+
+# Example
+
+```julia-repl
+julia> disc_model(docp)
+DiscretizationModel(...)
+```
+"""
 disc_model(docp::DOCP) = docp.discretization

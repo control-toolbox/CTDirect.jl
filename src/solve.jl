@@ -1,10 +1,20 @@
 # CTDirect interface
-using CTBase
 
 """
 $(TYPEDSIGNATURES)
 
-Return the list of available methods to solve the optimal control problem.
+Return a tuple of available NLP model and solver combinations for solving optimal control problems.
+
+# Returns
+
+- `algorithms::Tuple`: A tuple of symbol pairs representing the available methods.
+
+# Example
+
+```julia-repl
+julia> available_methods()
+((:adnlp, :ipopt), (:adnlp, :madnlp), (:adnlp, :knitro), (:exa, :ipopt), (:exa, :madnlp), (:exa, :knitro))
+```
 """
 function available_methods()
     # available methods by order of preference
@@ -31,6 +41,27 @@ const PACKAGES = Dict(
 )
 
 # solver
+"""
+$(TYPEDSIGNATURES)
+
+Solve a discretized optimal control problem using the specified solver backend.
+
+# Arguments
+
+- `solver_backend::T`: An NLP solver backend (subtype of `AbstractNLPSolverBackend`).
+- `docp::CTDirect.DOCP`: The discretized optimal control problem.
+
+# Returns
+
+- Throws `CTBase.ExtensionError` if the solver backend is unavailable.
+
+# Example
+
+```julia-repl
+julia> solve_docp(IpoptBackend(), docp)
+ERROR: ExtensionError(...)
+```
+"""
 function solve_docp(
     solver_backend::T, docp::CTDirect.DOCP; kwargs...
 ) where {T<:AbstractNLPSolverBackend}
@@ -38,6 +69,28 @@ function solve_docp(
 end
 
 # modeller
+"""
+$(TYPEDSIGNATURES)
+
+Build the NLP model for a discretized optimal control problem using the specified NLP backend.
+
+# Arguments
+
+- `docp::CTDirect.DOCP`: The discretized optimal control problem.
+- `nlp_model::T`: The NLP model backend (subtype of `AbstractNLPModelBackend`).
+- `x0`: Initial guess for decision variables.
+
+# Returns
+
+- Throws `CTBase.ExtensionError` if the NLP model backend is unavailable.
+
+# Example
+
+```julia-repl
+julia> build_nlp!(docp, ADNLPBackend(), x0)
+ERROR: ExtensionError(...)
+```
+"""
 function build_nlp!(
     docp::CTDirect.DOCP, nlp_model::T, x0; kwargs...
 ) where {T<:AbstractNLPModelBackend}
@@ -48,9 +101,28 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Parse problem description to retrieve NLP model and solver choice
-- NLP solver: `ipopt`, `madnlp` or `knitro` 
-- NLP model: `:adnlp` or `:exa`
+Parse the method description to determine the NLP solver or model.
+
+# Arguments
+
+- `description`: A tuple of symbols representing the desired solver and/or model.
+    - NLP solver: `ipopt`, `madnlp` or `knitro` 
+    - NLP model: `:adnlp` or `:exa`
+- `info::Symbol`: Either `:solver` to return the solver backend or `:model` to return the NLP model backend.
+
+# Returns
+
+- `nlp_solver` or `nlp_model`: The corresponding backend instance.
+
+# Example
+
+```julia-repl
+julia> parse_description((:adnlp, :ipopt), :solver)
+CTDirect.IpoptBackend()
+
+julia> parse_description((:exa, :madnlp), :model)
+CTDirect.ExaBackend()
+```
 """
 function parse_description(description, info)
 
@@ -95,30 +167,41 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Solve an OCP with a direct method
+Solve an optimal control problem using a direct transcription method.
 
 # Arguments
-* ocp: optimal control problem as defined in `CTModels`
-* [description]: set the NLP model ([`:adnlp`] or `exa`) and / or solver ([`:ipopt`], :madnlp or :knitro)
 
-# Keyword arguments (optional)
-* `display`: ([true], false) will disable output if set to false
-* `grid_size`: number of time steps for the discretized problem ([250])
-* `disc_method`: discretization method ([`:trapeze`], `:midpoint`, `gauss_legendre_2`)
-* `time_grid`: explicit time grid (can be non uniform)
-* `init`: info for the starting guess (values or existing solution)
+- `ocp::CTModels.Model`: The continuous-time optimal control problem.
+- `description::Symbol...`: Symbols specifying the NLP model (`:adnlp` or `:exa`) and/or solver (`:ipopt`, `:madnlp`, `:knitro`).
 
-Other keywords are passed down to the NLP modeler and solver.
+# Keyword Arguments (optional)
 
-# Result: a continuous solution of the original OCP, with main features
-* `objective(sol)`: value of the objective
-* `state(sol)`, `control(sol)`: functions for state and control variables (trajectory)
-* `variable(sol)`: optimization variables if any (e.g. free final time)
-* `successful(sol)`: boolean indicating successful convergence of the NLP solver
-* `status(sol)`: symbol for the return code of the NLP solver
-* `message(sol)`: string with specific info from the NLP solver, if any
-* `constraints_violation(sol)`: primal feasibility at the solution
-* `iterations(sol)`: number of iterations 
+- `display::Bool`: Display solver output ([`true`], `false`).
+- `grid_size::Int`: Number of discretization steps ([`250`]).
+- `disc_method`: Discretization scheme (`:trapeze`, [`:midpoint`], `:gauss_legendre_2`, etc.).
+- `time_grid`: Explicit time grid, uniform or not.
+- `init`: Initial guess for states, controls, or variables.
+- `adnlp_backend`, `exa_backend`, `lagrange_to_mayer`: Backend and transformation options.
+- `kwargs...`: Additional parameters passed to NLP modelers and solvers.
+
+# Returns
+
+- `solution::CTModels.Solution`: The continuous-time solution with objective, state/control trajectories, solver status, and convergence information. Main features:
+    - `objective(sol)`: value of the objective
+    - `state(sol)`, `control(sol)`: functions for state and control variables (trajectory)
+    - `variable(sol)`: optimization variables if any (e.g. free final time)
+    - `successful(sol)`: boolean indicating successful convergence of the NLP solver
+    - `status(sol)`: symbol for the return code of the NLP solver
+    - `message(sol)`: string with specific info from the NLP solver, if any
+    - `constraints_violation(sol)`: primal feasibility at the solution
+    - `iterations(sol)`: number of iterations 
+
+# Example
+
+```julia-repl
+julia> sol = solve(ocp, :adnlp, :ipopt; grid_size=100)
+CTModels.Solution(...)
+```
 """
 function solve(
     ocp::CTModels.Model,
@@ -171,7 +254,28 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Display the details of the solving method (NLP modeller, solver, discretization...)
+Display information about the chosen NLP model, solver, discretization scheme, and number of steps.
+
+# Arguments
+
+- `ocp`: The continuous-time optimal control problem.
+- `description::Symbol...`: Symbols specifying the solver and model.
+- `grid_size::Int`: Number of time steps.
+- `disc_method`: Discretization scheme.
+- `time_grid`: Optional explicit time grid.
+- `kwargs...`: Additional keyword arguments.
+
+# Returns
+
+- `nothing`
+
+# Example
+
+```julia-repl
+julia> display_method(ocp, :adnlp, :ipopt; grid_size=100, disc_method=:trapeze)
+▫ The optimal control problem is solved with CTDirect version vX.Y.Z.
+...
+```
 """
 function display_method(
     ocp, description::Symbol...; grid_size, disc_method, time_grid, kwargs...
@@ -209,19 +313,32 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Discretize an optimal control problem into a nonlinear optimization problem.
+Convert a continuous-time optimal control problem into a discretized nonlinear programming problem.
 
 # Arguments
-* ocp: optimal control problem as defined in `CTModels`
-* [description]: set the NLP model ([`:adnlp`] or `:exa`) and / or solver ([`:ipopt`], :madnlp or :knitro)
 
-# Keyword arguments (optional)
-* `grid_size`: number of time steps for the discretized problem ([250])
-* `disc_method`: discretization method ([`:trapeze`], `:euler`, `:euler_implicit`, `:midpoint`, `gauss_legendre_2`, `gauss_legendre_3`)
-* `time_grid`: explicit time grid (can be non uniform)
-* `init`: info for the starting guess (values as named tuple or existing solution)
+- `ocp::CTModels.Model`: Continuous-time optimal control problem.
+- `description...`: Symbols specifying the NLP model ([`:adnlp`] or `:exa`) and/or solver ([`:ipopt`], :madnlp or :knitro).
 
-Other kewwords arguments are passed down to the NLP modeler
+# Keyword Arguments (optional)
+
+- `grid_size::Int`: Number of discretization steps ([`250`]).
+- `disc_method`: Discretization scheme (`:trapeze`, `:euler`, `:euler_implicit`, [`:midpoint`], `gauss_legendre_2`, `gauss_legendre_3`).
+- `time_grid`: Explicit time grid (can be non uniform).
+- `init`: Initial guess values or existing solution.
+- `lagrange_to_mayer::Bool`: Convert Lagrange cost to Mayer cost (`true` or `false`).
+- `kwargs...`: Additional arguments passed to the NLP modeler.
+
+# Returns
+
+- `docp::CTDirect.DOCP`: Discretized optimal control problem ready for NLP solving.
+
+# Example
+
+```julia-repl
+julia> docp = direct_transcription(ocp, :adnlp, :ipopt; grid_size=100, disc_method=:trapeze)
+CTDirect.DOCP(...)
+```
 """
 function direct_transcription(
     ocp::CTModels.Model,
@@ -288,7 +405,22 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Set initial guess in the DOCP
+Set the initial guess for the decision variables in a discretized optimal control problem.
+
+# Arguments
+
+- `docp::DOCP`: The discretized optimal control problem.
+- `init`: Initial guess values as a named tuple or existing solution.
+
+# Returns
+
+- `nothing`
+
+# Example
+
+```julia-repl
+julia> set_initial_guess(docp, init)
+```
 """
 function set_initial_guess(docp::DOCP, init)
     ocp = ocp_model(docp)
