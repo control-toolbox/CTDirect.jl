@@ -11,6 +11,13 @@ using MKL
 """
 $(TYPEDSIGNATURES)
 
+Default value for Knitro print level: `3`
+"""
+__knitro_print_level() = 3
+
+"""
+$(TYPEDSIGNATURES)
+
 Solve a discretized optimal control problem with Ipopt
 """
 function CTDirect.solve_docp(
@@ -19,7 +26,7 @@ function CTDirect.solve_docp(
     display::Bool=CTDirect.__display(),
     max_iter::Integer=CTDirect.__max_iterations(),
     tol::Real=CTDirect.__tolerance(),
-    print_level::Integer=CTDirect.__knitro_print_level(),
+    print_level::Integer=__knitro_print_level(),
     kwargs...,
 )
 

@@ -11,6 +11,27 @@ using MKL
 """
 $(TYPEDSIGNATURES)
 
+Default value for Ipopt print level: `5`
+"""
+__ipopt_print_level() = 5
+
+"""
+$(TYPEDSIGNATURES)
+
+Default value for Ipopt mu strategy: `adaptive`
+"""
+__ipopt_mu_strategy() = "adaptive"
+
+"""
+$(TYPEDSIGNATURES)
+
+Default value for Ipopt linear solver: `mumps`
+"""
+__ipopt_linear_solver() = "mumps"
+
+"""
+$(TYPEDSIGNATURES)
+
 Solve a discretized optimal control problem (Ipopt version).
 """
 function CTDirect.solve_docp(
@@ -19,9 +40,9 @@ function CTDirect.solve_docp(
     display::Bool=CTDirect.__display(),
     max_iter::Integer=CTDirect.__max_iterations(),
     tol::Real=CTDirect.__tolerance(),
-    print_level::Integer=CTDirect.__ipopt_print_level(),
-    mu_strategy::String=CTDirect.__ipopt_mu_strategy(),
-    linear_solver::String=CTDirect.__ipopt_linear_solver(),
+    print_level::Integer=__ipopt_print_level(),
+    mu_strategy::String=__ipopt_mu_strategy(),
+    linear_solver::String=__ipopt_linear_solver(),
     kwargs...,
 )
 
