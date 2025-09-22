@@ -38,6 +38,7 @@ API_PAGES = [
     "solution.md",
     "solve.md",
     "trapeze.md",
+    "utils.md",
 ]
 
 makedocs(;

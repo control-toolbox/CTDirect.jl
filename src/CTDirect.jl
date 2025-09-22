@@ -1,7 +1,7 @@
 module CTDirect
 
+using CTBase
 using CTModels: CTModels
-
 using DocStringExtensions
 using SparseArrays
 
