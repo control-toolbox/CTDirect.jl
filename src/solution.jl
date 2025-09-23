@@ -308,8 +308,9 @@ function parse_DOCP_solution_primal(
     # if ... getter=docp.exa_getter else getter=adnlp_getter followed by list of calls
     # later rename docp.exa_getter as docp.getter and set it at creation
 
-    # then update the 2 solution builders: first with nlp_solution for both adnlp/exa
-    # and second with arrays for adnlp only, without nlp_solution
+    # then update the solution builder: instead of parsers call getters directly with nlp_solution for both adnlp/exa
+    # second second builder with arrays: adnlp only, keep two older parsers ?
+    # or just remove it...
 
 
     if nlp_model isa ExaBackend # Exa
