@@ -70,31 +70,4 @@ Default maximum of iterations: `1000`
 """
 __max_iterations() = 1000
 
-"""
-$(TYPEDSIGNATURES)
 
-Default value for Ipopt print level: `5`
-"""
-__ipopt_print_level() = 5
-
-"""
-$(TYPEDSIGNATURES)
-
-Default value for Ipopt mu strategy: `adaptive`
-"""
-__ipopt_mu_strategy() = "adaptive"
-
-"""
-$(TYPEDSIGNATURES)
-
-Default value for Ipopt linear solver: `mumps`
-"""
-__ipopt_linear_solver() = "mumps"
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Default value for Knitro print level: `3`
-"""
-__knitro_print_level() = 3

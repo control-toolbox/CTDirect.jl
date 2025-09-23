@@ -181,7 +181,8 @@ Solve an optimal control problem using a direct transcription method.
 - `disc_method`: Discretization scheme (`:trapeze`, [`:midpoint`], `:gauss_legendre_2`, etc.).
 - `time_grid`: Explicit time grid, uniform or not.
 - `init`: Initial guess for states, controls, or variables.
-- `adnlp_backend`, `exa_backend`, `lagrange_to_mayer`: Backend and transformation options.
+- `adnlp_backend`, `exa_backend`: Backend options for NLP modelers.
+- `lagrange_to_mayer`: Convert Lagrange cost to Mayer cost
 - `kwargs...`: Additional parameters passed to NLP modelers and solvers.
 
 # Returns
@@ -211,9 +212,9 @@ function solve(
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
+    lagrange_to_mayer=__lagrange_to_mayer(),
     adnlp_backend=__adnlp_backend(),
     exa_backend=__exa_backend(),
-    lagrange_to_mayer=__lagrange_to_mayer(),
     kwargs...,
 )
 
@@ -236,9 +237,9 @@ function solve(
         grid_size=grid_size,
         time_grid=time_grid,
         disc_method=disc_method,
+        lagrange_to_mayer=lagrange_to_mayer,
         adnlp_backend=adnlp_backend,
         exa_backend=exa_backend,
-        lagrange_to_mayer=lagrange_to_mayer,
         kwargs...,
     )
 
@@ -351,7 +352,6 @@ function direct_transcription(
     kwargs...,
 )
 
-    #nlp_solver = parse_description(description, :solver)
     nlp_model = parse_description(description, :model)
 
     # build DOCP
@@ -391,9 +391,8 @@ function direct_transcription(
     # build nlp
     build_nlp!(
         docp,
-        nlp_model, # is now in docp, can be removed
+        nlp_model, # +++is now in docp, can be removed
         x0;
-        #nlp_solver=nlp_solver,
         grid_size=grid_size,
         disc_method=disc_method,
         kwargs...,

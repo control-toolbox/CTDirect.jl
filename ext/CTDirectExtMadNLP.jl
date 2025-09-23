@@ -11,6 +11,14 @@ using MKL
 """
 $(TYPEDSIGNATURES)
 
+Default value for MadNLP print level: `MadNLP.INFO`
+Valid values are: MadNLP.{TRACE, DEBUG, INFO, NOTICE, WARN, ERROR}.
+"""
+__madnlp_print_level() = MadNLP.INFO
+
+"""
+$(TYPEDSIGNATURES)
+
 Solve a discretized optimal control problem DOCP
 """
 function CTDirect.solve_docp(
@@ -19,16 +27,12 @@ function CTDirect.solve_docp(
     display::Bool=CTDirect.__display(),
     max_iter::Integer=CTDirect.__max_iterations(),
     tol::Real=CTDirect.__tolerance(),
+    print_level=__madnlp_print_level(),
     kwargs...,
 )
 
     # disable output if needed
-    # Valid values are: MadNLP.{TRACE, DEBUG, INFO, NOTICE, WARN, ERROR}.
-    if display
-        print_level = MadNLP.INFO
-    else
-        print_level = MadNLP.ERROR
-    end
+    print_level = display ? print_level : MadNLP.ERROR
 
     # retrieve NLP
     nlp = CTDirect.nlp_model(docp)
