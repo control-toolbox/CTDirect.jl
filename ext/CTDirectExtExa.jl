@@ -61,7 +61,7 @@ function CTDirect.build_nlp!(
 end
 
 
-function CTDirect.get_time_grid_exa(docp_solution, docp)
+function CTDirect.get_sol_time_grid(docp_solution, docp::CTDirect.DOCP{<:CTDirect.Discretization, <:CTModels.Model, CTDirect.ExaBackend})
     grid = zeros(docp.time.steps+1)
     ocp = docp.ocp
 

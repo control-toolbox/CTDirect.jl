@@ -72,11 +72,7 @@ function build_OCP_solution(docp, nlp_solution; nlp_model=ADNLPBackend(), nlp_so
     multipliers_U = Array(nlp_solution.multipliers_U)
 
     # time grid
-    if nlp_model isa ADNLPBackend
-        T = get_time_grid(solution, docp)
-    else
-        T = get_time_grid_exa(nlp_solution, docp)
-    end
+    T = get_sol_time_grid(nlp_solution, docp)
 
     # +++ todo: replace both parsing functions with series of getter calls
     # unify adnlp / exa cases
@@ -213,11 +209,7 @@ function build_OCP_solution(
     objective = DOCP_objective(solution, docp)
 
     # time grid
-    if nlp_model isa ADNLPBackend
-        T = get_time_grid(solution, docp)
-    else
-        T = get_time_grid_exa(nlp_solution, docp)
-    end
+    T = get_sol_time_grid(nlp_solution, docp)
 
     # primal variables X, U, v and box multipliers
     X, U, v, box_multipliers = parse_DOCP_solution_primal(
@@ -311,6 +303,14 @@ function parse_DOCP_solution_primal(
     mult_control_box_upper = zeros(size(U))
     mult_variable_box_lower = zeros(size(v))
     mult_variable_box_upper = zeros(size(v))
+
+    # add local adnlp_getter function that mimics exa_getter syntax
+    # if ... getter=docp.exa_getter else getter=adnlp_getter followed by list of calls
+    # later rename docp.exa_getter as docp.getter and set it at creation
+
+    # then update the 2 solution builders: first with nlp_solution for both adnlp/exa
+    # and second with arrays for adnlp only, without nlp_solution
+
 
     if nlp_model isa ExaBackend # Exa
         getter = docp.exa_getter

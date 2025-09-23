@@ -808,7 +808,7 @@ julia> get_time_grid(xu, docp)
 [0.0, 0.1, …, 1.0]
 ```
 """
-function get_time_grid(xu, docp::DOCP)
+function get_time_grid(xu, docp)
     grid = similar(xu, docp.time.steps+1)
     ocp = ocp_model(docp)
 
@@ -831,24 +831,10 @@ function get_time_grid(xu, docp::DOCP)
     return grid
 end
 
-"""
-$(TYPEDSIGNATURES)
-
-Helper for invalid execution paths.
-
-Always throws an error.
-
-# Example
-
-```julia-repl
-julia> get_time_grid_exa()
-ERROR: you should not be here
-```
-"""
-function get_time_grid_exa()
-    error("you should not be here")
-    return
+function get_sol_time_grid(nlp_solution, docp::DOCP{<:Discretization, <:CTModels.Model, ADNLPBackend})
+    return get_time_grid(nlp_solution.solution, docp)
 end
+
 
 """
 $(TYPEDSIGNATURES)
