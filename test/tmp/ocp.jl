@@ -1,5 +1,5 @@
 using Pkg
-Pkg.activate("dev-ctdirect", shared=true)
+Pkg.activate("dev-ctdirect"; shared=true)
 
 # OptimalControl
 using CTBase
