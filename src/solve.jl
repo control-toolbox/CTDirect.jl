@@ -28,18 +28,6 @@ function available_methods()
     return algorithms
 end
 
-# ----------------------------------------------------------------------
-# Packages associated to Symbols: used for display
-const PACKAGES = Dict(
-    # NLP solver
-    :ipopt => :NLPModelsIpopt,
-    :madnlp => :MadNLPMumps,
-    :knitro => :NLPModelsKnitro,
-    # NLP modeller
-    :adnlp => :ADNLPModels,
-    :exa => :ExaModels,
-)
-
 # solver
 """
 $(TYPEDSIGNATURES)
@@ -281,6 +269,18 @@ julia> display_method(ocp, :adnlp, :ipopt; grid_size=100, disc_method=:trapeze)
 function display_method(
     ocp, description::Symbol...; grid_size, disc_method, time_grid, kwargs...
 )
+
+    # ----------------------------------------------------------------------
+    # Packages associated to Symbols: used for display
+    PACKAGES = Dict(
+        # NLP solver
+        :ipopt => "NLPModelsIpopt",
+        :madnlp => "MadNLP suite",
+        :knitro => "NLPModelsKnitro",
+        # NLP modeller
+        :adnlp => "ADNLPModels",
+        :exa => "ExaModels",
+    )
 
     # complete description
     method = CTBase.complete(description; descriptions=available_methods())

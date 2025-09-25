@@ -23,7 +23,7 @@ struct ExaBackend <: AbstractNLPModelBackend end
 const WEAKDEPS = Dict{Type,Any}(
     # NLP solver
     IpoptBackend => [:NLPModelsIpopt],
-    MadNLPBackend => [:MadNLPMumps],
+    MadNLPBackend => [:MadNLP],
     KnitroBackend => [:NLPModelsKnitro],
     # NLP modeller
     ADNLPBackend => [:ADNLPModels],
