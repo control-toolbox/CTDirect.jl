@@ -86,7 +86,6 @@ $(TYPEDSIGNATURES)
 Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
-
     ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
@@ -124,7 +123,6 @@ $(TYPEDSIGNATURES)
 Compute the running cost
 """
 function runningCost(docp::DOCP{Euler}, xu, v, time_grid)
-
     ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
@@ -156,9 +154,8 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
-
     disc = disc_model(docp)
-    dims = docp.dims 
+    dims = docp.dims
 
     # offset for previous steps
     offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
@@ -283,7 +280,9 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
 
     # 3. boundary constraints (x0, xf, v)
-    c_offset = docp.time.steps * (disc._state_stage_eqs_block + disc._step_pathcons_block) + disc._step_pathcons_block
+    c_offset =
+        docp.time.steps * (disc._state_stage_eqs_block + disc._step_pathcons_block) +
+        disc._step_pathcons_block
     c_block = dims.boundary_cons
     x0_start = 1
     x0_end = dims.OCP_x
