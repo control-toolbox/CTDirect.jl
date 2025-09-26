@@ -28,10 +28,20 @@ struct Gauss_Legendre_1 <: GenericIRK
     _step_pathcons_block::Int
     _final_control::Bool
 
-    function Gauss_Legendre_1(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons)
+    function Gauss_Legendre_1(
+        dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons
+    )
         stage = 1
 
-        step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, stage)
+        step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(
+            dim_NLP_steps,
+            dim_NLP_x,
+            dim_NLP_u,
+            dim_NLP_v,
+            dim_path_cons,
+            dim_boundary_cons,
+            stage,
+        )
 
         disc = new(
             "[test only] Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable",
@@ -152,7 +162,9 @@ $(TYPEDSIGNATURES)
 
 Return the dimension of the NLP variables and constraints for a generic IRK discretizion, with the control taken constant per step (ie not distinct controls at time stages)
 """
-function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, stage)
+function IRK_dims(
+    dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, stage
+)
 
     # size of variables block for one step: x, u, k
     step_variables_block = dim_NLP_x + dim_NLP_u + dim_NLP_x * stage
@@ -167,9 +179,14 @@ function IRK_dims(dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons,
     dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
 
     # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
-    dim_NLP_constraints = dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) + step_pathcons_block + dim_boundary_cons
+    dim_NLP_constraints =
+        dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) +
+        step_pathcons_block +
+        dim_boundary_cons
 
-    return step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints
+    return step_variables_block,
+    state_stage_eqs_block, step_pathcons_block, dim_NLP_variables,
+    dim_NLP_constraints
 end
 
 """
@@ -179,7 +196,7 @@ Set work array for all dynamics and lagrange cost evaluations
 """
 function setWorkArray(docp::DOCP{<: GenericIRK}, xu, time_grid, v)
     # work array layout: [x_ij ; sum_bk]
-    dims = docp.dims   
+    dims = docp.dims
     work = similar(xu, dims.OCP_x + dims.NLP_x)
     return work
 end
@@ -190,9 +207,8 @@ $(TYPEDSIGNATURES)
 Compute the running cost
 """
 function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
-    
     disc = disc_model(docp)
-    dims = docp.dims  
+    dims = docp.dims
     obj_lagrange = 0.0
 
     # work array layout: [x_ij ; sum_bk]
@@ -219,21 +235,18 @@ function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
             for l in 1:disc.stage
                 kil = get_stagevars_at_time_step(xu, docp, i, l)
                 @views @. work_xij[1:dims.OCP_x] =
-                    work_xij[1:dims.OCP_x] +
-                    hi * disc.butcher_a[j, l] * kil[1:dims.OCP_x]
+                    work_xij[1:dims.OCP_x] + hi * disc.butcher_a[j, l] * kil[1:dims.OCP_x]
             end
 
             # update sum b_j k_i^j (lagrange term) 
             # split to avoid dual tag ordering error in AD
             if j == 1
                 work_sumbk[1] =
-                    disc.butcher_b[j] *
-                    CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
+                    disc.butcher_b[j] * CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
             else
                 work_sumbk[1] =
                     work_sumbk[1] +
-                    disc.butcher_b[j] *
-                    CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
+                    disc.butcher_b[j] * CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
             end
         end
 
@@ -251,11 +264,10 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps (+1)
 """
 function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, work)
-
     ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
-    
+
     # work array layout: [x_ij ; sum_bk]
     work_xij = @view work[1:dims.OCP_x]
     work_sumbk = @view work[(dims.OCP_x + 1):(dims.OCP_x + dims.NLP_x)]
@@ -289,12 +301,10 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
             # update sum b_j k_i^j (w/ lagrange term) for state equation after loop
             # split to avoid dual tag ordering error in AD
             if j == 1
-                @views @. work_sumbk[1:dims.NLP_x] =
-                    disc.butcher_b[j] * kij[1:dims.NLP_x]
+                @views @. work_sumbk[1:dims.NLP_x] = disc.butcher_b[j] * kij[1:dims.NLP_x]
             else
                 @views @. work_sumbk[1:dims.NLP_x] =
-                    work_sumbk[1:dims.NLP_x] +
-                    disc.butcher_b[j] * kij[1:dims.NLP_x]
+                    work_sumbk[1:dims.NLP_x] + disc.butcher_b[j] * kij[1:dims.NLP_x]
             end
 
             # state at stage: x_i^j = x_i + h_i sum a_jl k_i^l
@@ -303,8 +313,7 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
             for l in 1:disc.stage
                 kil = get_stagevars_at_time_step(xu, docp, i, l)
                 @views @. work_xij[1:dims.OCP_x] =
-                    work_xij[1:dims.OCP_x] +
-                    hi * disc.butcher_a[j, l] * kil[1:dims.OCP_x]
+                    work_xij[1:dims.OCP_x] + hi * disc.butcher_a[j, l] * kil[1:dims.OCP_x]
             end
 
             # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f
@@ -332,10 +341,8 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
             xip1 - (xi + hi * work_sumbk[1:dims.OCP_x])
         if docp.flags.lagrange && docp.flags.lagrange_to_mayer
             c[offset + dims.NLP_x] =
-                get_lagrange_state_at_time_step(xu, docp, i+1) - (
-                    get_lagrange_state_at_time_step(xu, docp, i) +
-                    hi * work_sumbk[dims.NLP_x]
-                )
+                get_lagrange_state_at_time_step(xu, docp, i+1) -
+                (get_lagrange_state_at_time_step(xu, docp, i) + hi * work_sumbk[dims.NLP_x])
         end
 
         # update offset for stage and state equations
@@ -356,7 +363,6 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRK})
-
     disc = disc_model(docp)
     dims = docp.dims
 
@@ -443,7 +449,9 @@ function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRK})
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
 
     # 3. boundary constraints (x0, xf, v)
-    c_offset = docp.time.steps * (disc._state_stage_eqs_block + disc._step_pathcons_block) + disc._step_pathcons_block
+    c_offset =
+        docp.time.steps * (disc._state_stage_eqs_block + disc._step_pathcons_block) +
+        disc._step_pathcons_block
     c_block = dims.boundary_cons
     x0_start = 1
     x0_end = dims.OCP_x
@@ -467,7 +475,6 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Hessian of Lagrangian
 """
 function DOCP_Hessian_pattern(docp::DOCP{<: GenericIRK})
-
     disc = disc_model(docp)
     dims = docp.dims
 

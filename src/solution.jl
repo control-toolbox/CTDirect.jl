@@ -53,12 +53,15 @@ julia> build_OCP_solution(docp, nlp_solution)
 CTModels.Solution(...)
 ```
 """
-function build_OCP_solution(docp, nlp_solution; nlp_model=ADNLPBackend(), nlp_solver=IpoptBackend())
-
+function build_OCP_solution(
+    docp, nlp_solution; nlp_model=ADNLPBackend(), nlp_solver=IpoptBackend()
+)
     ocp = ocp_model(docp)
 
     # retrieve data from NLP solver
-    objective, iterations, constraints_violation, message, status, successful = SolverInfos(nlp_solution)
+    objective, iterations, constraints_violation, message, status, successful = SolverInfos(
+        nlp_solution
+    )
     # fix objective sign for maximization problems with MadNLP
     # should be in Solverinfos but needs max info. can we retrieve it from nlp solution ?
     if docp.flags.max && nlp_solver isa MadNLPBackend
@@ -68,7 +71,7 @@ function build_OCP_solution(docp, nlp_solution; nlp_model=ADNLPBackend(), nlp_so
     # arrays (explicit conversion for GPU case)
     solution = Array(nlp_solution.solution)
     multipliers = Array(nlp_solution.multipliers)
-    multipliers_L = Array(nlp_solution.multipliers_L)    
+    multipliers_L = Array(nlp_solution.multipliers_L)
     multipliers_U = Array(nlp_solution.multipliers_U)
 
     # time grid
@@ -82,10 +85,19 @@ function build_OCP_solution(docp, nlp_solution; nlp_model=ADNLPBackend(), nlp_so
     # unify adnlp / exa cases
 
     # primal variables X, U, v and box multipliers
-    X, U, v, box_multipliers = parse_DOCP_solution_primal(docp, solution; multipliers_L=multipliers_L, multipliers_U=multipliers_U, nlp_model=nlp_model, nlp_solution=nlp_solution)
+    X, U, v, box_multipliers = parse_DOCP_solution_primal(
+        docp,
+        solution;
+        multipliers_L=multipliers_L,
+        multipliers_U=multipliers_U,
+        nlp_model=nlp_model,
+        nlp_solution=nlp_solution,
+    )
 
     # costate and constraints multipliers
-    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(docp, multipliers; nlp_model=nlp_model, nlp_solution=nlp_solution)
+    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(
+        docp, multipliers; nlp_model=nlp_model, nlp_solution=nlp_solution
+    )
 
     return CTModels.build_solution(
         ocp,
@@ -129,7 +141,7 @@ julia> SolverInfos()
 ```
 """
 function SolverInfos()
-    return 0., 0, 0., "undefined", :undefined, true
+    return 0.0, 0, 0.0, "undefined", :undefined, true
 end
 
 """
@@ -155,7 +167,6 @@ julia> SolverInfos(nlp_solution)
 ```
 """
 function SolverInfos(nlp_solution)
-
     objective = nlp_solution.objective
     iterations = nlp_solution.iter
     constraints_violation = nlp_solution.primal_feas
@@ -290,12 +301,7 @@ julia> X, U, v, box_mults = parse_DOCP_solution_primal(docp, primal;
 ```
 """
 function parse_DOCP_solution_primal(
-    docp,
-    solution;
-    multipliers_L,
-    multipliers_U,
-    nlp_model,
-    nlp_solution
+    docp, solution; multipliers_L, multipliers_U, nlp_model, nlp_solution
 )
 
     # state and control variables
@@ -322,7 +328,7 @@ function parse_DOCP_solution_primal(
             mult_control_box_lower[:] = getter(nlp_solution; val=:control_l)'
             mult_variable_box_lower[:] = getter(nlp_solution; val=:variable_l)
         end
-        if !is_empty(multipliers_U) 
+        if !is_empty(multipliers_U)
             mult_state_box_upper[:] = getter(nlp_solution; val=:state_u)'
             mult_control_box_upper[:] = getter(nlp_solution; val=:control_u)'
             mult_variable_box_upper[:] = getter(nlp_solution; val=:variable_u)
@@ -350,8 +356,12 @@ function parse_DOCP_solution_primal(
         # control variables and box multipliers
         for i in 1:(N + 1)
             U[i, :] .= get_OCP_control_at_time_step(solution, docp, i)
-            mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(multipliers_L, docp, i)
-            mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(multipliers_U, docp, i)
+            mult_control_box_lower[i, :] .= get_OCP_control_at_time_step(
+                multipliers_L, docp, i
+            )
+            mult_control_box_upper[i, :] .= get_OCP_control_at_time_step(
+                multipliers_U, docp, i
+            )
         end
     end
 
@@ -394,9 +404,7 @@ julia> P, path_dual, bound_dual = parse_DOCP_solution_dual(docp, duals; nlp_mode
 ([...] , [...], [...])
 ```
 """
-function parse_DOCP_solution_dual(
-    docp, multipliers; nlp_model=ADNLPBackend(), nlp_solution
-)
+function parse_DOCP_solution_dual(docp, multipliers; nlp_model=ADNLPBackend(), nlp_solution)
 
     # costate
     N = docp.time.steps
@@ -411,7 +419,6 @@ function parse_DOCP_solution_dual(
         mul_boundary_constraints = zeros(dbc) # todo: add getters for boundary constraints for :exa in CTParser
 
     else # ADNLP
-
         disc = disc_model(docp)
 
         # if called with multipliers = nothing, fill with zeros

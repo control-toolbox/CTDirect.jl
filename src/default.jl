@@ -69,5 +69,3 @@ $(TYPEDSIGNATURES)
 Default maximum of iterations: `1000`
 """
 __max_iterations() = 1000
-
-
