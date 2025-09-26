@@ -107,7 +107,6 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
-
     disc = disc_model(docp)
 
     # offset for previous steps
@@ -153,7 +152,6 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Jacobian of constraints
 """
 function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
-
     disc = disc_model(docp)
 
     # vector format for sparse matrix
@@ -180,38 +178,59 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
         ui_end = var_offset + docp.dims.NLP_x + docp.dims.NLP_u
         xip1_end = var_offset + disc._step_variables_block + docp.dims.OCP_x
         var_end = var_offset + disc._step_variables_block + docp.dims.NLP_x
-      
+
         if docp.flags.lagrange && docp.flags.lagrange_to_mayer
             # dynamics part 0 = x_i+1 - (x_i + h_i * f(t_s, x_s, u_i, v))
             # with t_s = (t_i + t_i+1) / 2 and x_s = (x_i + x_i+1) / 2
             # depends on x_i, x_i+1, u_i, and v for h_i, t_s in variable times case, skip l_i  
-            add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dims.OCP_x, xi_start, xi_end)
-            add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dims.OCP_x, ui_start, xip1_end)
+            add_nonzero_block!(
+                Is, Js, c_offset+1, c_offset+docp.dims.OCP_x, xi_start, xi_end
+            )
+            add_nonzero_block!(
+                Is, Js, c_offset+1, c_offset+docp.dims.OCP_x, ui_start, xip1_end
+            )
             add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dims.OCP_x, v_start, v_end)
 
             # lagrange_to_mayer part 0 = l_i+1 - (l_i + h_i * l(t_s, x_s, u_i, v))
             # depends on l_i, l_i+1, x_i, x_i+1, u_i, and v for h_i, t_s in variable times case
-            add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, xi_start, var_end)
-            add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, v_start, v_end)
+            add_nonzero_block!(
+                Is,
+                Js,
+                c_offset+docp.dims.NLP_x,
+                c_offset+docp.dims.NLP_x,
+                xi_start,
+                var_end,
+            )
+            add_nonzero_block!(
+                Is, Js, c_offset+docp.dims.NLP_x, c_offset+docp.dims.NLP_x, v_start, v_end
+            )
 
             # path constraint g(t_i, x_i, u_i, v)
             # depends on x_i, u_i, v; skip l_i
-            add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, xi_start, xi_end)
-            add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, ui_start, ui_end)
-            add_nonzero_block!(Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, v_start, v_end)
+            add_nonzero_block!(
+                Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, xi_start, xi_end
+            )
+            add_nonzero_block!(
+                Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, ui_start, ui_end
+            )
+            add_nonzero_block!(
+                Is, Js, c_offset+docp.dims.NLP_x+1, c_offset+c_block, v_start, v_end
+            )
 
         else
             # dynamics constraint: depends on x_i, u_i, x_i+1 [, v]
-            add_nonzero_block!(Is, Js, c_offset+1, c_offset+docp.dims.OCP_x, xi_start, xip1_end)
+            add_nonzero_block!(
+                Is, Js, c_offset+1, c_offset+docp.dims.OCP_x, xi_start, xip1_end
+            )
 
             # path constraint: depends on x_i, u_i [, v]
-            add_nonzero_block!(Is, Js, c_offset+docp.dims.OCP_x+1, c_offset+c_block, xi_start, ui_end)
+            add_nonzero_block!(
+                Is, Js, c_offset+docp.dims.OCP_x+1, c_offset+c_block, xi_start, ui_end
+            )
 
             # dependency wrt v
             add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
         end
-
-
     end
 
     # 2. final path constraints (xf, uf, v)
@@ -227,7 +246,9 @@ function DOCP_Jacobian_pattern(docp::DOCP{Midpoint})
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
 
     # 3. boundary constraints (x0, xf, v)
-    c_offset = docp.time.steps * (disc._state_stage_eqs_block + disc._step_pathcons_block) + disc._step_pathcons_block
+    c_offset =
+        docp.time.steps * (disc._state_stage_eqs_block + disc._step_pathcons_block) +
+        disc._step_pathcons_block
     c_block = docp.dims.boundary_cons
     x0_start = 1
     x0_end = docp.dims.OCP_x
@@ -251,7 +272,6 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Hessian of Lagrangian
 """
 function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
-
     disc = disc_model(docp)
 
     # NB. need to provide full pattern for coloring, not just upper/lower part
@@ -285,7 +305,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Midpoint})
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i * f(t_s, x_s, u_i, v))
         # with t_s = (t_i + t_i+1)/2    x_s = (x_i + x_i+1)/2
         # 2nd order terms depend on x_i, u_i, x_i+1, and v; 
-        if docp.flags.lagrange && docp.flags.lagrange_to_mayer            
+        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
             #skip l_i
             add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
             add_nonzero_block!(Is, Js, ui_start, xip1_end, ui_start, xip1_end)

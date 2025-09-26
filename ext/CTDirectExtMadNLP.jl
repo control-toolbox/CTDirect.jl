@@ -38,7 +38,8 @@ function CTDirect.solve_docp(
     nlp = CTDirect.nlp_model(docp)
 
     # preallocate solver (NB. need to pass printlevel here)
-    solver = MadNLPSolver(nlp; print_level=print_level, tol=tol, max_iter=max_iter, kwargs...
+    solver = MadNLPSolver(
+        nlp; print_level=print_level, tol=tol, max_iter=max_iter, kwargs...
     )
 
     # solve discretized problem with NLP solver
@@ -48,9 +49,7 @@ function CTDirect.solve_docp(
     return docp_solution
 end
 
-
 function CTDirect.SolverInfos(nlp_solution::MadNLP.MadNLPExecutionStats)
-
     objective = nlp_solution.objective # NB sign is incorrect for max problems !
     iterations = nlp_solution.iter
     constraints_violation = nlp_solution.primal_feas
