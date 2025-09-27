@@ -5,7 +5,7 @@ using ADNLPModels
 using ExaModels
 using NLPModelsIpopt
 using NLPModelsKnitro
-using MadNLP
+using MadNLPMumps
 
 # to add docstrings from external packages
 const CTDirectExtADNLP = Base.get_extension(CTDirect, :CTDirectExtADNLP)
@@ -38,6 +38,7 @@ API_PAGES = [
     "solution.md",
     "solve.md",
     "trapeze.md",
+    "utils.md",
 ]
 
 makedocs(;

@@ -14,7 +14,7 @@ using ADNLPModels
 
 # activate NLP solvers
 using NLPModelsIpopt
-using MadNLP
+using MadNLPMumps
 
 # misc
 using SplitApplyCombine # for flatten in some tests

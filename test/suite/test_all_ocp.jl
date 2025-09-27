@@ -20,9 +20,10 @@ end
 if !isdefined(Main, :double_integrator_mintf)
     include("../problems/double_integrator.jl")
 end
-@testset verbose = true showtiming = true ":double_integrator :min_tf" begin
+@testset verbose = true showtiming = true ":double_integrator" begin
     check_problem(double_integrator_mintf(), display=false)
     check_problem(double_integrator_freet0tf(), display=false)
+    check_problem(double_integrator_nobounds(), display=false)
 end
 
 # electric vehicle

@@ -60,4 +60,28 @@ function CTDirect.build_nlp!(
     return nothing
 end
 
+
+function CTDirect.get_time_grid_exa(docp_solution, docp)
+    grid = zeros(docp.time.steps+1)
+    ocp = docp.ocp
+
+    if docp.flags.freet0 || docp.flags.freetf
+        v = docp.exa_getter(docp_solution, val=:variable)
+    end
+
+    if docp.flags.freet0
+        t0 = CTModels.initial_time(ocp, v)
+    else
+        t0 = CTModels.initial_time(ocp)
+    end
+    if docp.flags.freetf
+        tf = CTModels.final_time(ocp, v)
+    else
+        tf = CTModels.final_time(ocp)
+    end
+
+    @. grid = t0 + docp.time.normalized_grid * (tf - t0)
+    return grid
+end
+
 end
