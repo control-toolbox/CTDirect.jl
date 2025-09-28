@@ -133,11 +133,27 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
         (!isnothing(problem[:obj]) && !isapprox(objective(sol), problem[:obj]; rtol=5e-2))
         success = false
         iter = min(iterations(sol), 999) # to fit 3-digit print 
-        println("\nFailed ", problem[:name], " for grid size ", grid_size, " at iter ", iter, " obj ", objective(sol), " vs ", problem[:obj])
+        println(
+            "\nFailed ",
+            problem[:name],
+            " for grid size ",
+            grid_size,
+            " at iter ",
+            iter,
+            " obj ",
+            objective(sol),
+            " vs ",
+            problem[:obj],
+        )
     else
         success = true
         iter = iterations(sol)
-        verbose > 1 && @printf("%-20s: %4d iter %5.2f obj ", problem[:name], iterations(sol), objective(sol))
+        verbose > 1 && @printf(
+            "%-20s: %4d iter %5.2f obj ",
+            problem[:name],
+            iterations(sol),
+            objective(sol)
+        )
         # time
         time = @belapsed solve(
             $problem[:ocp],
@@ -303,7 +319,7 @@ function bench(;
     if return_sols
         return solutions
     else
-        return
+        return nothing
     end
 end
 
