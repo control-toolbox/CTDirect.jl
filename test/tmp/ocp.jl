@@ -6,8 +6,7 @@ using CTBase
 using CTParser: CTParser, @def
 using CTModels:
     CTModels, objective, state, control, variable, costate, time_grid, iterations
-using CTDirect:
-    CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
+using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
 
 @def ocp begin
     tf ∈ R, variable
