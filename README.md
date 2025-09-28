@@ -13,7 +13,7 @@ The CTDirect.jl package is part of the [control-toolbox ecosystem](https://githu
 | **CI / Build** | [![Build Status](https://github.com/control-toolbox/CTDirect.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/control-toolbox/CTDirect.jl/actions/workflows/CI.yml?query=branch%3Amain) |
 | **Test Coverage** | [![Coverage](https://codecov.io/gh/control-toolbox/CTDirect.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/control-toolbox/CTDirect.jl) |
 | **Package Evaluation** | [![PkgEval](https://img.shields.io/badge/Julia-package-purple)](https://juliahub.com/ui/Packages/General/CTDirect) [![Dependencies](https://juliahub.com/docs/General/CTDirect/stable/deps.svg)](https://juliahub.com/ui/Packages/General/CTDirect?t=2) |
-| **Release / Version** | [![Release](https://juliahub.com/docs/General/CTDirect/stable/version.svg)](https://github.com/control-toolbox/CTDirect.jl/releases) |
+| **Release / Version** | [![Release](https://img.shields.io/github/v/release/control-toolbox/CTDirect.jl.svg)](https://github.com/control-toolbox/CTDirect.jl/releases) |
 | **License** | [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/control-toolbox/CTDirect.jl/blob/master/LICENSE) |
 | **Code Style / Quality** | [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/JuliaDiff/BlueStyle) [![Aqua.jl](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl) |
 
