@@ -2,7 +2,7 @@
 The backend for ADNLPModels can be set in transcription / solve calls with the option `adnlp_backend=`. Possible values include the predefined(*) backends for ADNLPModels:
 - `:optimized`* Default for CTDirect. Forward mode for Jacobian, reverse for Gradient and forward over reverse for Hessian.
 - `:default`* Forward mode only. Significantly slower, but more rugged.
-- `:manual` Explicitely give to ADNLPModels the sparse pattern for Jacobian and Hessian. Uses the same forward / reverse settings as the `:optimized` predefined backend.  
+- `:manual` Explicitly give to ADNLPModels the sparse pattern for Jacobian and Hessian. Uses the same forward / reverse settings as the `:optimized` predefined backend.  
 - `:enzyme`* Enzyme (currently not working).
 
 ## Tests:

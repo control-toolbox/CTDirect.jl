@@ -33,7 +33,7 @@ if plot_solution
     plot(sol)
 end
 
-# state contraints
+# state constraints
 if plot_state_constraints
     ncx = sol.infos[:dim_state_constraints]
     if ncx > 0
