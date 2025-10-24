@@ -1,6 +1,6 @@
 name = "CTDirect"
 uuid = "790bbbee-bee9-49ee-8912-a9de031322d5"
-version = "0.18.0"
+version = "0.17.4"
 authors = ["Pierre Martinon <pierrecmartinon@gmail.com>"]
 
 [workspace]
