@@ -4,8 +4,8 @@ using CTBase
 using CTModels: CTModels
 using DocStringExtensions
 using SparseArrays
-using SolverCore: SolverCore, AbstractExecutionStats
-using NLPModels: NLPModels, AbstractNLPModel
+using SolverCore: SolverCore
+using NLPModels: NLPModels
 
 # ----------------------------------------------------------------------
 # EXTENSIONS
