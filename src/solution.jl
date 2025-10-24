@@ -32,14 +32,12 @@ is_empty(t) = (isnothing(t) || length(t) == 0)
 $(TYPEDSIGNATURES)
 
 Build an OCP functional solution from a DOCP discrete solution given as
-a `SolverCore.GenericExecutionStats` object.
+a `SolverCore.AbstractExecutionStats` object.
 
 # Arguments
 
 - `docp`: The discretized optimal control problem (`DOCP`).
 - `nlp_solution`: A solver execution statistics object.
-- `nlp_model`: The NLP model backend (default: `ADNLPBackend()`).
-- `nlp_solver`: The NLP solver backend (default: `IpoptBackend()`).
 
 # Returns
 
@@ -53,20 +51,17 @@ julia> build_OCP_solution(docp, nlp_solution)
 CTModels.Solution(...)
 ```
 """
-function build_OCP_solution(
-    docp, nlp_solution; nlp_model=ADNLPBackend(), nlp_solver=IpoptBackend()
-)
+function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecutionStats)
+
+    # retrieve NLP model and OCP model
+    nlp = nlp_model(docp)
     ocp = ocp_model(docp)
 
+    # retrieve NLP model backend
+    nlp_model_backend = docp.nlp_model_backend
+
     # retrieve data from NLP solver
-    objective, iterations, constraints_violation, message, status, successful = SolverInfos(
-        nlp_solution
-    )
-    # fix objective sign for maximization problems with MadNLP
-    # should be in Solverinfos but needs max info. can we retrieve it from nlp solution ?
-    if docp.flags.max && nlp_solver isa MadNLPBackend
-        objective = - objective
-    end
+    objective, iterations, constraints_violation, message, status, successful = SolverInfos(nlp_solution, nlp)
 
     # arrays (explicit conversion for GPU case)
     solution = Array(nlp_solution.solution)
@@ -75,7 +70,7 @@ function build_OCP_solution(
     multipliers_U = Array(nlp_solution.multipliers_U)
 
     # time grid
-    if nlp_model isa ADNLPBackend
+    if nlp_model_backend isa ADNLPBackend
         T = get_time_grid(solution, docp)
     else
         T = get_time_grid_exa(nlp_solution, docp)
@@ -90,13 +85,13 @@ function build_OCP_solution(
         solution;
         multipliers_L=multipliers_L,
         multipliers_U=multipliers_U,
-        nlp_model=nlp_model,
+        nlp_model_backend=nlp_model_backend,
         nlp_solution=nlp_solution,
     )
 
     # costate and constraints multipliers
     P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(
-        docp, multipliers; nlp_model=nlp_model, nlp_solution=nlp_solution
+        docp, multipliers; nlp_model_backend=nlp_model_backend, nlp_solution=nlp_solution
     )
 
     return CTModels.build_solution(
@@ -166,13 +161,12 @@ julia> SolverInfos(nlp_solution)
 (1.23, 15, 1.0e-6, "Ipopt/generic", :first_order, true)
 ```
 """
-function SolverInfos(nlp_solution)
+function SolverInfos(nlp_solution::SolverCore.AbstractExecutionStats, ::NLPModels.AbstractNLPModel)
     objective = nlp_solution.objective
     iterations = nlp_solution.iter
     constraints_violation = nlp_solution.primal_feas
     status = nlp_solution.status
     successful = (status == :first_order) || (status == :acceptable)
-
     return objective, iterations, constraints_violation, "Ipopt/generic", status, successful
 end
 
@@ -190,7 +184,7 @@ multipliers.
 - `dual`: Array of dual variables (default: `nothing`).
 - `multipliers_L`: Lower bound multipliers (default: `nothing`).
 - `multipliers_U`: Upper bound multipliers (default: `nothing`).
-- `nlp_model`: The NLP model backend (default: `ADNLPBackend()`).
+- `nlp_model_backend`: The NLP model backend (default: `ADNLPBackend()`).
 - `nlp_solution`: A solver execution statistics object.
 
 # Returns
@@ -211,7 +205,7 @@ function build_OCP_solution(
     dual=nothing,
     multipliers_L=nothing,
     multipliers_U=nothing,
-    nlp_model=ADNLPBackend(),
+    nlp_model_backend=ADNLPBackend(),
     nlp_solution,
 )
     ocp = ocp_model(docp)
@@ -224,7 +218,7 @@ function build_OCP_solution(
     objective = DOCP_objective(solution, docp)
 
     # time grid
-    if nlp_model isa ADNLPBackend
+    if nlp_model_backend isa ADNLPBackend
         T = get_time_grid(solution, docp)
     else
         T = get_time_grid_exa(nlp_solution, docp)
@@ -236,13 +230,13 @@ function build_OCP_solution(
         solution;
         multipliers_L=multipliers_L,
         multipliers_U=multipliers_U,
-        nlp_model=nlp_model,
+        nlp_model_backend=nlp_model_backend,
         nlp_solution=nlp_solution,
     )
 
     # costate and constraints multipliers
     P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(
-        docp, dual; nlp_model=nlp_model, nlp_solution=nlp_solution
+        docp, dual; nlp_model_backend=nlp_model_backend, nlp_solution=nlp_solution
     )
 
     return CTModels.build_solution(
@@ -281,7 +275,7 @@ variables. Bound multipliers are also parsed if available.
 - `solution`: Array of primal decision variables.
 - `multipliers_L`: Lower bound multipliers.
 - `multipliers_U`: Upper bound multipliers.
-- `nlp_model`: The NLP model backend.
+- `nlp_model_backend`: The NLP model backend.
 - `nlp_solution`: A solver execution statistics object.
 
 # Returns
@@ -296,12 +290,12 @@ variables. Bound multipliers are also parsed if available.
 
 ```julia-repl
 julia> X, U, v, box_mults = parse_DOCP_solution_primal(docp, primal;
-       multipliers_L=mL, multipliers_U=mU, nlp_model=nlp_model, nlp_solution=nlp_solution)
+       multipliers_L=mL, multipliers_U=mU, nlp_model_backend=nlp_model_backend, nlp_solution=nlp_solution)
 ([...] , [...], [...], (...))
 ```
 """
 function parse_DOCP_solution_primal(
-    docp, solution; multipliers_L, multipliers_U, nlp_model, nlp_solution
+    docp, solution; multipliers_L, multipliers_U, nlp_model_backend, nlp_solution
 )
 
     # state and control variables
@@ -318,7 +312,7 @@ function parse_DOCP_solution_primal(
     mult_variable_box_lower = zeros(size(v))
     mult_variable_box_upper = zeros(size(v))
 
-    if nlp_model isa ExaBackend # Exa
+    if nlp_model_backend isa ExaBackend # Exa
         getter = docp.exa_getter
         X[:] = getter(nlp_solution; val=:state)' # transpose to match choice below for ADNLP
         U[:] = getter(nlp_solution; val=:control)'
@@ -387,7 +381,7 @@ variables.
 
 - `docp`: The discretized optimal control problem (`DOCP`).
 - `multipliers`: Array of dual variables (may be `nothing`).
-- `nlp_model`: The NLP model backend (default: `ADNLPBackend()`).
+- `nlp_model_backend`: The NLP model backend (default: `ADNLPBackend()`).
 - `nlp_solution`: A solver execution statistics object.
 
 # Returns
@@ -400,17 +394,17 @@ variables.
 # Example
 
 ```julia-repl
-julia> P, path_dual, bound_dual = parse_DOCP_solution_dual(docp, duals; nlp_model=nlp_model, nlp_solution=nlp_solution)
+julia> P, path_dual, bound_dual = parse_DOCP_solution_dual(docp, duals; nlp_model_backend=nlp_model_backend, nlp_solution=nlp_solution)
 ([...] , [...], [...])
 ```
 """
-function parse_DOCP_solution_dual(docp, multipliers; nlp_model=ADNLPBackend(), nlp_solution)
+function parse_DOCP_solution_dual(docp, multipliers; nlp_model_backend=ADNLPBackend(), nlp_solution)
 
     # costate
     N = docp.time.steps
     P = zeros(N, docp.dims.NLP_x)
 
-    if nlp_model isa ExaBackend # Exa
+    if nlp_model_backend isa ExaBackend # Exa
         getter = docp.exa_getter
         P[:] = getter(nlp_solution; val=:costate)' # transpose to match choice below for ADNLP
         dpc = docp.dims.path_cons

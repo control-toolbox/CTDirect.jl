@@ -35,7 +35,7 @@ $(TYPEDSIGNATURES)
 Solve a discretized optimal control problem (Ipopt version).
 """
 function CTDirect.solve_docp(
-    solver_backend::CTDirect.IpoptBackend,
+    ::CTDirect.IpoptBackend,
     docp::CTDirect.DOCP;
     display::Bool=CTDirect.__display(),
     max_iter::Integer=CTDirect.__max_iterations(),
@@ -75,7 +75,7 @@ function CTDirect.solve_docp(
     solver = IpoptSolver(nlp)
 
     # solve discretized problem with NLP solver
-    docp_solution = solve!(
+    nlp_solution = solve!(
         solver,
         nlp;
         print_level=print_level,
@@ -88,8 +88,8 @@ function CTDirect.solve_docp(
         kwargs...,
     )
 
-    # return DOCP solution
-    return docp_solution
+    # return NLP solution
+    return nlp_solution
 end
 
 end

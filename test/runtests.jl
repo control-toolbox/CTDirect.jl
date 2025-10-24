@@ -5,14 +5,15 @@ using Test
 using CTBase
 using CTParser: CTParser, @def
 using CTModels:
-    CTModels, objective, state, control, variable, costate, time_grid, iterations
-using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
+    CTModels, objective, state, control, variable, costate, time_grid, iterations, criterion
+using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution, nlp_model, ocp_model
 
 # activate NLP modelers
 using ADNLPModels
 # + using ExaModels (in test_exa for now)
 
 # activate NLP solvers
+using NLPModels
 using NLPModelsIpopt
 using MadNLPMumps
 

@@ -277,7 +277,7 @@ Struct representing a discretized optimal control problem (DOCP).
 
 - `discretization::D`: The discretization scheme.
 - `ocp::O`: The original OCP model.
-- `nlp_model::N`: The NLP model backend.
+- `nlp_model_backend::N`: The NLP model backend.
 - `nlp`: The constructed NLP instance.
 - `exa_getter::Union{Nothing,Function}`: Getter for ExaModels if used.
 - `flags::DOCPFlags`: Boolean flags describing problem structure.
@@ -290,11 +290,11 @@ Struct representing a discretized optimal control problem (DOCP).
 # Example
 
 ```julia-repl
-julia> DOCP(ocp, nlp_model)
+julia> DOCP(ocp, nlp_model_backend)
 DOCP{...}(...)
 ```
 """
-mutable struct DOCP{D<:Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPModelBackend}
+mutable struct DOCP{D<:CTDirect.Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPModelBackend}
 
     # discretization scheme
     discretization::D
@@ -303,7 +303,7 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPM
     ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
 
     # NLP
-    nlp_model::N
+    nlp_model_backend::N
     nlp
     exa_getter::Union{Nothing,Function} # getter for ExaModels (if used)
 
@@ -326,7 +326,7 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPM
     # constructor
     function DOCP(
         ocp::CTModels.Model,
-        nlp_model;
+        nlp_model_backend::CTDirect.AbstractNLPModelBackend;
         grid_size=__grid_size(),
         time_grid=__time_grid(),
         disc_method=__disc_method(),
@@ -423,10 +423,10 @@ mutable struct DOCP{D<:Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPM
         )
 
         # call constructor with const fields
-        docp = new{typeof(discretization),typeof(ocp),typeof(nlp_model)}(
+        docp = new{typeof(discretization),typeof(ocp),typeof(nlp_model_backend)}(
             discretization,
             ocp,
-            nlp_model,
+            nlp_model_backend,
             nothing, # nlp
             nothing, # exa_getter
             flags,

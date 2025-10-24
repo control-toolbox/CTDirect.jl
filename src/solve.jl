@@ -65,7 +65,7 @@ Build the NLP model for a discretized optimal control problem using the specifie
 # Arguments
 
 - `docp::CTDirect.DOCP`: The discretized optimal control problem.
-- `nlp_model::T`: The NLP model backend (subtype of `AbstractNLPModelBackend`).
+- `nlp_model_backend::T`: The NLP model backend (subtype of `AbstractNLPModelBackend`).
 - `x0`: Initial guess for decision variables.
 
 # Returns
@@ -80,7 +80,11 @@ ERROR: ExtensionError(...)
 ```
 """
 function build_nlp!(
-    docp::CTDirect.DOCP, nlp_model::T, x0; kwargs...
+    docp::CTDirect.DOCP{
+        <:CTDirect.Discretization,
+        <:CTModels.Model,
+        T,
+    }, x0; kwargs...
 ) where {T<:AbstractNLPModelBackend}
     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
 end
@@ -100,7 +104,7 @@ Parse the method description to determine the NLP solver or model.
 
 # Returns
 
-- `nlp_solver` or `nlp_model`: The corresponding backend instance.
+- `nlp_solver_backend` or `nlp_model_backend`: The corresponding backend instance.
 
 # Example
 
@@ -120,32 +124,32 @@ function parse_description(description, info)
     if info == :solver
         # get NLP solver choice
         if :ipopt ∈ method
-            nlp_solver = CTDirect.IpoptBackend()
+            nlp_solver_backend = CTDirect.IpoptBackend()
         elseif :madnlp ∈ method
-            nlp_solver = CTDirect.MadNLPBackend()
+            nlp_solver_backend = CTDirect.MadNLPBackend()
         elseif :knitro ∈ method
-            nlp_solver = CTDirect.KnitroBackend()
+            nlp_solver_backend = CTDirect.KnitroBackend()
         else
             error("no known solver (:ipopt, :madnlp, :knitro) in method", method)
         end
 
         # patch: replaces ipopt by madnlp for :exa as long as the issue with getters for a posteriori treatment is not fixed
         #=if (:exa ∈ method) && (:ipopt ∈ method)
-            nlp_solver = CTDirect.MadNLPBackend()
+            nlp_solver_backend = CTDirect.MadNLPBackend()
             @warn "currently replacing Ipopt with MadNLP for :exa"
         end=#
-        return nlp_solver
+        return nlp_solver_backend
 
     elseif info == :model
         # get NLP model choice
         if :adnlp ∈ method
-            nlp_model = CTDirect.ADNLPBackend()
+            nlp_model_backend = CTDirect.ADNLPBackend()
         elseif :exa ∈ method
-            nlp_model = CTDirect.ExaBackend()
+            nlp_model_backend = CTDirect.ExaBackend()
         else
             error("no known model (:adnlp, :exa) in method", method)
         end
-        return nlp_model
+        return nlp_model_backend
     else
         error("parse_description info should be either :solver or :model, got ", info)
         return nothing
@@ -232,14 +236,11 @@ function solve(
     )
 
     # get NLP solver choice and solve DOCP
-    nlp_solver = parse_description(description, :solver)
-    nlp_model = parse_description(description, :model)
-    docp_solution = CTDirect.solve_docp(nlp_solver, docp; display=display, kwargs...)
+    nlp_solver_backend = parse_description(description, :solver)
+    nlp_solution = CTDirect.solve_docp(nlp_solver_backend, docp; display=display, kwargs...)
 
     # build and return OCP solution
-    return build_OCP_solution(
-        docp, docp_solution; nlp_model=nlp_model, nlp_solver=nlp_solver
-    )
+    return build_OCP_solution(docp, nlp_solution)
 end
 
 """
@@ -353,13 +354,13 @@ function direct_transcription(
     lagrange_to_mayer=__lagrange_to_mayer(),
     kwargs...,
 )
-    nlp_model = parse_description(description, :model)
+    nlp_model_backend = parse_description(description, :model)
 
     # build DOCP
-    if nlp_model isa ExaBackend
+    if nlp_model_backend isa ExaBackend
         docp = DOCP(
             ocp,
-            nlp_model;
+            nlp_model_backend;
             grid_size=grid_size,
             time_grid=time_grid,
             disc_method=disc_method,
@@ -368,7 +369,7 @@ function direct_transcription(
     else
         docp = DOCP(
             ocp,
-            nlp_model;
+            nlp_model_backend;
             grid_size=grid_size,
             time_grid=time_grid,
             disc_method=disc_method,
@@ -392,7 +393,6 @@ function direct_transcription(
     # build nlp
     build_nlp!(
         docp,
-        nlp_model, # +++is now in docp, can be removed
         x0;
         grid_size=grid_size,
         disc_method=disc_method,

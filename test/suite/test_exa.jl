@@ -110,8 +110,9 @@ function test_exa(exa_backend, display)
     end
 
     # goddard2
-    @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :grid_size" begin
+    @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :grid_size :objective" begin
         prob = goddard2()
+        # madnlp
         sol = solve(
             prob.ocp,
             :madnlp,
@@ -123,14 +124,37 @@ function test_exa(exa_backend, display)
         )
         @test time_grid(sol)[end] ≈ 0.201965 rtol = 1e-2  # check time grid
         @test objective(sol) ≈ prob.obj rtol = 1e-2
+        # ipopt
+        sol = solve(
+            prob.ocp,
+            :ipopt,
+            :exa;
+            disc_method=:trapeze,
+            exa_backend=exa_backend,
+            display=display,
+            grid_size=1000,
+        )
+        @test time_grid(sol)[end] ≈ 0.201965 rtol = 1e-2  # check time grid
+        @test objective(sol) ≈ prob.obj rtol = 1e-2
     end
 
-    @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size" begin
+    @testset verbose = true showtiming = true "goddard2 :examodel :transcription :max" begin
+        prob = goddard2()
+        docp = direct_transcription(
+            prob.ocp, :madnlp, :exa; display=display, disc_method=:trapeze, grid_size=100
+        )
+        @test NLPModels.get_minimize(nlp_model(docp)) == false
+        @test CTModels.criterion(ocp_model(docp)) == :max
+    end
+
+    @testset verbose = true showtiming = true ":examodel :cpu :transcription :grid_size :min" begin
         prob = beam2()
         docp = direct_transcription(
             prob.ocp, :madnlp, :exa; display=display, disc_method=:trapeze, grid_size=100
         )
         @test docp.dim_NLP_variables == 303
+        @test NLPModels.get_minimize(nlp_model(docp)) == true
+        @test CTModels.criterion(ocp_model(docp)) == :min
     end
 end
 
