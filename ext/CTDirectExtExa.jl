@@ -2,10 +2,9 @@ module CTDirectExtExa
 
 using CTDirect
 using CTModels: CTModels
-
 using DocStringExtensions
-
 using ExaModels
+using SolverCore
 
 """
 $(TYPEDSIGNATURES)
@@ -18,8 +17,11 @@ Build the NLP model for the DOCP (ExaModels version)
 * `exa_backend`: backend for ExaModels ([`nothing`])
 """
 function CTDirect.build_nlp!(
-    docp::CTDirect.DOCP,
-    nlp_model::CTDirect.ExaBackend,
+    docp::CTDirect.DOCP{
+        <:CTDirect.Discretization,
+        <:CTModels.Model,
+        <:CTDirect.ExaBackend,
+    },
     x0;
     grid_size=CTDirect.__grid_size(),
     disc_method=CTDirect.__disc_method(),
@@ -60,12 +62,26 @@ function CTDirect.build_nlp!(
     return nothing
 end
 
-function CTDirect.get_time_grid_exa(docp_solution, docp)
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve the time grid from the given DOCP solution.
+
+# Arguments
+
+- `nlp_solution`: The DOCP solution.
+- `docp`: The DOCP.
+
+# Returns
+
+- `::Vector{Float64}`: The time grid.
+"""
+function CTDirect.get_time_grid_exa(nlp_solution::SolverCore.AbstractExecutionStats, docp::CTDirect.DOCP)
     grid = zeros(docp.time.steps+1)
     ocp = docp.ocp
 
     if docp.flags.freet0 || docp.flags.freetf
-        v = docp.exa_getter(docp_solution; val=:variable)
+        v = docp.exa_getter(nlp_solution; val=:variable)
     end
 
     if docp.flags.freet0
