@@ -17,11 +17,7 @@ Build the NLP model for the DOCP (ExaModels version)
 * `exa_backend`: backend for ExaModels ([`nothing`])
 """
 function CTDirect.build_nlp!(
-    docp::CTDirect.DOCP{
-        <:CTDirect.Discretization,
-        <:CTModels.Model,
-        <:CTDirect.ExaBackend,
-    },
+    docp::CTDirect.DOCP{<:CTDirect.Discretization,<:CTModels.Model,<:CTDirect.ExaBackend},
     x0;
     grid_size=CTDirect.__grid_size(),
     disc_method=CTDirect.__disc_method(),
@@ -76,7 +72,9 @@ Retrieve the time grid from the given DOCP solution.
 
 - `::Vector{Float64}`: The time grid.
 """
-function CTDirect.get_time_grid_exa(nlp_solution::SolverCore.AbstractExecutionStats, docp::CTDirect.DOCP)
+function CTDirect.get_time_grid_exa(
+    nlp_solution::SolverCore.AbstractExecutionStats, docp::CTDirect.DOCP
+)
     grid = zeros(docp.time.steps+1)
     ocp = docp.ocp
 
