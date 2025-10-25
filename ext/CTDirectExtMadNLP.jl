@@ -50,7 +50,9 @@ function CTDirect.solve_docp(
     return nlp_solution
 end
 
-function CTDirect.SolverInfos(nlp_solution::MadNLP.MadNLPExecutionStats, nlp::NLPModels.AbstractNLPModel)
+function CTDirect.SolverInfos(
+    nlp_solution::MadNLP.MadNLPExecutionStats, nlp::NLPModels.AbstractNLPModel
+)
     minimize = NLPModels.get_minimize(nlp)
     objective = minimize ? nlp_solution.objective : -nlp_solution.objective # sign depends on minimization for MadNLP
     iterations = nlp_solution.iter

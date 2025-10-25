@@ -47,11 +47,8 @@ senses = [:min, :max]
 solver_types = [:madnlp, :ipopt]
 problem_types = [:exa, :adnlp]
 
-results = DataFrame(
-    sense = String[],
-    solver = String[],
-    problem_type = String[],
-    objective_value = Float64[],
+results = DataFrame(;
+    sense=String[], solver=String[], problem_type=String[], objective_value=Float64[]
 )
 
 for sense in senses
@@ -62,10 +59,10 @@ for sense in senses
             push!(
                 results,
                 (
-                    sense = String(sense),
-                    solver = String(solver_type),
-                    problem_type = String(problem_type),
-                    objective_value = objective_value,
+                    sense=String(sense),
+                    solver=String(solver_type),
+                    problem_type=String(problem_type),
+                    objective_value=objective_value,
                 ),
             )
         end

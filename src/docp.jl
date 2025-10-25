@@ -294,7 +294,9 @@ julia> DOCP(ocp, nlp_model_backend)
 DOCP{...}(...)
 ```
 """
-mutable struct DOCP{D<:CTDirect.Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPModelBackend}
+mutable struct DOCP{
+    D<:CTDirect.Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPModelBackend
+}
 
     # discretization scheme
     discretization::D

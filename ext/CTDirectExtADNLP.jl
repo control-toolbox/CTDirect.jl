@@ -15,11 +15,7 @@ Build the NLP model for the DOCP (ADNLPModels version)
 * `adnlp_backend`: backend for ADNLPModels ([`:optimized`], `:manual`, `:default`)
 """
 function CTDirect.build_nlp!(
-    docp::CTDirect.DOCP{
-        <:CTDirect.Discretization,
-        <:CTModels.Model,
-        <:CTDirect.ADNLPBackend,
-    },
+    docp::CTDirect.DOCP{<:CTDirect.Discretization,<:CTModels.Model,<:CTDirect.ADNLPBackend},
     x0;
     adnlp_backend=CTDirect.__adnlp_backend(),
     show_time=false, #+default

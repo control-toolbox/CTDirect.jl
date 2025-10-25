@@ -61,7 +61,9 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     nlp_model_backend = docp.nlp_model_backend
 
     # retrieve data from NLP solver
-    objective, iterations, constraints_violation, message, status, successful = SolverInfos(nlp_solution, nlp)
+    objective, iterations, constraints_violation, message, status, successful = SolverInfos(
+        nlp_solution, nlp
+    )
 
     # arrays (explicit conversion for GPU case)
     solution = Array(nlp_solution.solution)
@@ -161,7 +163,9 @@ julia> SolverInfos(nlp_solution)
 (1.23, 15, 1.0e-6, "Ipopt/generic", :first_order, true)
 ```
 """
-function SolverInfos(nlp_solution::SolverCore.AbstractExecutionStats, ::NLPModels.AbstractNLPModel)
+function SolverInfos(
+    nlp_solution::SolverCore.AbstractExecutionStats, ::NLPModels.AbstractNLPModel
+)
     objective = nlp_solution.objective
     iterations = nlp_solution.iter
     constraints_violation = nlp_solution.primal_feas
@@ -398,7 +402,9 @@ julia> P, path_dual, bound_dual = parse_DOCP_solution_dual(docp, duals; nlp_mode
 ([...] , [...], [...])
 ```
 """
-function parse_DOCP_solution_dual(docp, multipliers; nlp_model_backend=ADNLPBackend(), nlp_solution)
+function parse_DOCP_solution_dual(
+    docp, multipliers; nlp_model_backend=ADNLPBackend(), nlp_solution
+)
 
     # costate
     N = docp.time.steps
