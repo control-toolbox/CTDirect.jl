@@ -80,11 +80,7 @@ ERROR: ExtensionError(...)
 ```
 """
 function build_nlp!(
-    docp::CTDirect.DOCP{
-        <:CTDirect.Discretization,
-        <:CTModels.Model,
-        T,
-    }, x0; kwargs...
+    docp::CTDirect.DOCP{<:CTDirect.Discretization,<:CTModels.Model,T}, x0; kwargs...
 ) where {T<:AbstractNLPModelBackend}
     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
 end
@@ -391,13 +387,7 @@ function direct_transcription(
     x0 = DOCP_initial_guess(docp, docp_init)
 
     # build nlp
-    build_nlp!(
-        docp,
-        x0;
-        grid_size=grid_size,
-        disc_method=disc_method,
-        kwargs...,
-    )
+    build_nlp!(docp, x0; grid_size=grid_size, disc_method=disc_method, kwargs...)
 
     return docp
 end

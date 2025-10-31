@@ -6,7 +6,14 @@ using CTBase
 using CTParser: CTParser, @def
 using CTModels:
     CTModels, objective, state, control, variable, costate, time_grid, iterations, criterion
-using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution, nlp_model, ocp_model
+using CTDirect:
+    CTDirect,
+    solve,
+    direct_transcription,
+    set_initial_guess,
+    build_OCP_solution,
+    nlp_model,
+    ocp_model
 
 # activate NLP modelers
 using ADNLPModels
