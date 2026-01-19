@@ -1,5 +1,7 @@
 module CTDirect
 
+using ADNLPModels
+using ExaModels
 using CTBase
 using CTModels: CTModels
 using DocStringExtensions

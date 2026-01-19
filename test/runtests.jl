@@ -8,16 +8,14 @@ using CTModels:
     CTModels, objective, state, control, variable, costate, time_grid, iterations, criterion
 using CTDirect:
     CTDirect,
-    solve,
     direct_transcription,
-    set_initial_guess,
     build_OCP_solution,
     nlp_model,
     ocp_model
 
 # activate NLP modelers
 using ADNLPModels
-# + using ExaModels (in test_exa for now)
+using ExaModels
 
 # activate NLP solvers
 using NLPModels
@@ -38,13 +36,25 @@ macro ignore(e)
     :()
 end
 
-# run either usual test suite on CPU, or GPU tests only 
-@testset verbose = true showtiming = true "Test CTDirect" begin
-    if "GPU" in ARGS
-        # ExaModels tests only (GPU on moonshot workflow)
-        include("./suite/test_exa.jl")
-    else
-        # CPU: run all scripts in subfolder suite/
-        include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
-    end
+# # run either usual test suite on CPU, or GPU tests only 
+# @testset verbose = true showtiming = true "Test CTDirect" begin
+#     if "GPU" in ARGS
+#         # ExaModels tests only (GPU on moonshot workflow)
+#         include("./suite/test_exa.jl")
+#     else
+#         # CPU: run all scripts in subfolder suite/
+#         include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
+#     end
+# end
+
+# new tests
+const VERBOSE = true
+const SHOWTIMING = true
+@testset verbose = VERBOSE showtiming = SHOWTIMING "New tests for CTDirect" begin
+    include("./new/test_ctdirect_core_types.jl")
+    test_ctdirect_core_types()
+    include("./new/test_ctdirect_discretization_api.jl")
+    test_ctdirect_discretization_api()
+    include("./new/test_ctdirect_collocation_impl.jl")
+    test_ctdirect_collocation_impl()
 end

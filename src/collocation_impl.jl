@@ -1,11 +1,21 @@
+# ---------------------------------------------------------------------------
+# Implementation of Collocation discretizer
+# ---------------------------------------------------------------------------
 function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
-    SchemeSymbol = Dict(Midpoint => :midpoint, Trapezoidal => :trapeze, Trapeze => :trapeze)
 
+    # ==========================================================================================
+    # Scheme symbol mapping: just used for direct_transcription
+    # ==========================================================================================
+    SchemeSymbol = Dict(MidpointScheme => :midpoint, TrapezoidalScheme => :trapeze, TrapezeScheme => :trapeze)
     function scheme_symbol(discretizer::Collocation)
         scheme = CTModels.get_option_value(discretizer, :scheme)
         return SchemeSymbol[typeof(scheme)]
     end
 
+    # ==========================================================================================
+    # Build a DOCP from existing CTDirect.direct_transcription call
+    # This will be replace by new implementations of build models / solutions
+    # ==========================================================================================
     function get_docp(
         initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing},
         modeler::Symbol;
@@ -16,9 +26,9 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
             nothing
         else
             (
-                state=state(initial_guess),
-                control=control(initial_guess),
-                variable=variable(initial_guess),
+                state=CTModels.state(initial_guess),
+                control=CTModels.control(initial_guess),
+                variable=CTModels.variable(initial_guess),
             )
         end
 
@@ -65,6 +75,10 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         return docp
     end
 
+    # ==========================================================================================
+    # The needed builders for the construction of the final DiscretizedOptimalControlProblem
+    # ==========================================================================================
+
     function build_adnlp_model(
         initial_guess::CTModels.AbstractOptimalControlInitialGuess; kwargs...
     )::ADNLPModels.ADNLPModel
@@ -91,7 +105,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         return solu
     end
 
-    return DiscretizedOptimalControlProblem(
+    return CTModels.DiscretizedOptimalControlProblem(
         ocp,
         CTModels.ADNLPModelBuilder(build_adnlp_model),
         CTModels.ExaModelBuilder(build_exa_model),
