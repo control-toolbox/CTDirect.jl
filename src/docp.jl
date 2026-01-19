@@ -768,7 +768,7 @@ julia> DOCP_initial_guess(docp)
 [0.1, 0.1, …]
 ```
 """
-function DOCP_initial_guess(docp::DOCP, init::CTModels.Init=CTModels.Init())
+function DOCP_initial_guess(docp::DOCP, init::CTModels.OptimalControlInitialGuess=CTModels.initial_guess(docp.ocp))
 
     # default initialization (internal variables such as lagrange cost, k_i for RK schemes) will keep these default values 
     NLP_X = 0.1 * ones(docp.dim_NLP_variables)

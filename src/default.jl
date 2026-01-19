@@ -7,12 +7,12 @@ Default discretization method: `midpoint`.
 """
 __disc_method() = :midpoint
 
-"""
-$(TYPEDSIGNATURES)
+# """
+# $(TYPEDSIGNATURES)
 
-Default grid size: `250`.
-"""
-__grid_size() = 250
+# Default grid size: `250`.
+# """
+# __grid_size() = 250
 
 """
 $(TYPEDSIGNATURES)
