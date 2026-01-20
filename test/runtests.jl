@@ -25,8 +25,9 @@ using MadNLPMumps
 # misc
 using SplitApplyCombine # for flatten in some tests
 
-# check a specific example
+# check a specific example OCP
 function check_problem(prob; kwargs...)
+
     sol = solve(prob.ocp; init=prob.init, kwargs...)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
@@ -51,10 +52,12 @@ end
 const VERBOSE = true
 const SHOWTIMING = true
 @testset verbose = VERBOSE showtiming = SHOWTIMING "New tests for CTDirect" begin
-    include("./new/test_ctdirect_core_types.jl")
+    include("./ci/test_ctdirect_core_types.jl")
     test_ctdirect_core_types()
-    include("./new/test_ctdirect_discretization_api.jl")
+    include("./ci/test_ctdirect_discretization_api.jl")
     test_ctdirect_discretization_api()
-    include("./new/test_ctdirect_collocation_impl.jl")
+    include("./ci/test_ctdirect_collocation_impl.jl")
     test_ctdirect_collocation_impl()
+    include("./ci/test_ctdirect_solve.jl")
+    test_ctdirect_solve()
 end
