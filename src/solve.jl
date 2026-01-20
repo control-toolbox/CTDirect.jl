@@ -112,7 +112,7 @@
 # CTDirect.ExaBackend()
 # ```
 # """
-# function parse_description(description, info)
+#function parse_description(description, info)
 
 #     # default: Ipopt, ADNLPModels
 #     method = CTBase.complete(description; descriptions=available_methods())
@@ -170,7 +170,6 @@
 # - `time_grid`: Explicit time grid, uniform or not.
 # - `init`: Initial guess for states, controls, or variables.
 # - `adnlp_backend`, `exa_backend`: Backend options for NLP modelers.
-# - `lagrange_to_mayer`: Convert Lagrange cost to Mayer cost
 # - `kwargs...`: Additional parameters passed to NLP modelers and solvers.
 
 # # Returns
@@ -200,7 +199,6 @@
 #     disc_method=__disc_method(),
 #     time_grid=__time_grid(),
 #     init=__ocp_init(),
-#     lagrange_to_mayer=__lagrange_to_mayer(),
 #     adnlp_backend=__adnlp_backend(),
 #     exa_backend=__exa_backend(),
 #     kwargs...,
@@ -225,7 +223,6 @@
 #         grid_size=grid_size,
 #         time_grid=time_grid,
 #         disc_method=disc_method,
-#         lagrange_to_mayer=lagrange_to_mayer,
 #         adnlp_backend=adnlp_backend,
 #         exa_backend=exa_backend,
 #         kwargs...,
@@ -310,6 +307,7 @@
 #     return nothing
 # end
 
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -326,7 +324,6 @@ Convert a continuous-time optimal control problem into a discretized nonlinear p
 - `disc_method`: Discretization scheme (`:trapeze`, `:euler`, `:euler_implicit`, [`:midpoint`], `gauss_legendre_2`, `gauss_legendre_3`).
 - `time_grid`: Explicit time grid (can be non uniform).
 - `init`: Initial guess values or existing solution.
-- `lagrange_to_mayer::Bool`: Convert Lagrange cost to Mayer cost (`true` or `false`).
 - `kwargs...`: Additional arguments passed to the NLP modeler.
 
 # Returns
@@ -342,20 +339,17 @@ CTDirect.DOCP(...)
 """
 function direct_transcription(
     ocp::CTModels.Model,
-    description...;
+    modeler;
     grid_size=__grid_size(),
     disc_method=__disc_method(),
     time_grid=__time_grid(),
     init=__ocp_init(),
-    lagrange_to_mayer=__lagrange_to_mayer(),
     kwargs...,
 )
-    nlp_model_backend = parse_description(description, :model)
 
     # build DOCP
     docp = DOCP(
-        ocp,
-        nlp_model_backend;
+        ocp;
         grid_size=grid_size,
         time_grid=time_grid,
         disc_method=disc_method,
@@ -370,10 +364,11 @@ function direct_transcription(
     x0 = DOCP_initial_guess(docp, docp_init)
 
     # build nlp
-    build_nlp!(docp, x0; grid_size=grid_size, disc_method=disc_method, kwargs...)
+    nlp = build_nlp_adnlp(docp, x0; grid_size=grid_size, disc_method=disc_method, kwargs...)
 
     return docp
 end
+=#
 
 # """
 # $(TYPEDSIGNATURES)

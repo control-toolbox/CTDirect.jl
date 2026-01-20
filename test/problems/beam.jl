@@ -13,7 +13,9 @@ function beam()
         ∫(u(t)^2) → min
     end
 
-    return ((ocp=beam, obj=8.898598, name="beam", init=nothing))
+    init = (state=[0.05, 0.1], control=0.1)
+
+    return ((ocp=beam, obj=8.898598, name="beam", init=init))
 end
 
 # examodel version

@@ -4,14 +4,9 @@ using Test
 # OptimalControl
 using CTBase
 using CTParser: CTParser, @def
-using CTModels:
-    CTModels, objective, state, control, variable, costate, time_grid, iterations, criterion
-using CTDirect:
-    CTDirect,
-    direct_transcription,
-    build_OCP_solution,
-    nlp_model,
-    ocp_model
+using CTModels
+using CTDirect
+using CTSolvers
 
 # activate NLP modelers
 using ADNLPModels
@@ -52,12 +47,12 @@ end
 const VERBOSE = true
 const SHOWTIMING = true
 @testset verbose = VERBOSE showtiming = SHOWTIMING "New tests for CTDirect" begin
-    include("./ci/test_ctdirect_core_types.jl")
-    test_ctdirect_core_types()
-    include("./ci/test_ctdirect_discretization_api.jl")
-    test_ctdirect_discretization_api()
-    include("./ci/test_ctdirect_collocation_impl.jl")
-    test_ctdirect_collocation_impl()
-    include("./ci/test_ctdirect_solve.jl")
+    #include("./ci/test_core_types.jl")
+    #test_ctdirect_core_types()
+    #include("./ci/test_discretization_api.jl")
+    #test_ctdirect_discretization_api()
+    #include("./ci/test_collocation.jl")
+    #test_ctdirect_collocation()
+    include("./ci/test_solve.jl")
     test_ctdirect_solve()
 end

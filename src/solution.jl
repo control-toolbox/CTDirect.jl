@@ -51,19 +51,20 @@ julia> build_OCP_solution(docp, nlp_solution)
 CTModels.Solution(...)
 ```
 """
-function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecutionStats)
+function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecutionStats,
+    objective, iterations, constraints_violation, message, status, successful, T)
 
     # retrieve NLP model and OCP model
-    nlp = nlp_model(docp)
+    #nlp = nlp_model(docp)
     ocp = ocp_model(docp)
 
     # retrieve NLP model backend
-    nlp_model_backend = docp.nlp_model_backend
+    #nlp_model_backend = docp.nlp_model_backend
 
     # retrieve data from NLP solver
-    objective, iterations, constraints_violation, message, status, successful = SolverInfos(
-        nlp_solution, nlp
-    )
+    #objective, iterations, constraints_violation, message, status, successful = SolverInfos(
+    #    nlp_solution, nlp
+    #)
 
     # arrays (explicit conversion for GPU case)
     solution = Array(nlp_solution.solution)
@@ -72,11 +73,11 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     multipliers_U = Array(nlp_solution.multipliers_U)
 
     # time grid
-    if nlp_model_backend isa ADNLPBackend
-        T = get_time_grid(solution, docp)
-    else
-        T = get_time_grid_exa(nlp_solution, docp)
-    end
+    #if nlp_model_backend isa ADNLPBackend
+    #    T = get_time_grid(solution, docp)
+    #else
+    #    T = get_time_grid_exa(nlp_solution, docp)
+    #end
 
     # +++ todo: replace both parsing functions with series of getter calls
     # unify adnlp / exa cases
@@ -87,13 +88,13 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
         solution;
         multipliers_L=multipliers_L,
         multipliers_U=multipliers_U,
-        nlp_model_backend=nlp_model_backend,
+        #nlp_model_backend=nlp_model_backend,
         nlp_solution=nlp_solution,
     )
 
     # costate and constraints multipliers
     P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(
-        docp, multipliers; nlp_model_backend=nlp_model_backend, nlp_solution=nlp_solution
+        docp, multipliers;
     )
 
     return CTModels.build_solution(
@@ -163,8 +164,10 @@ julia> SolverInfos(nlp_solution)
 (1.23, 15, 1.0e-6, "Ipopt/generic", :first_order, true)
 ```
 """
+# +++ move to CTSolvers, but should be accessible from CTDirect !
+
 function SolverInfos(
-    nlp_solution::SolverCore.AbstractExecutionStats, ::NLPModels.AbstractNLPModel
+    nlp_solution::SolverCore.AbstractExecutionStats
 )
     objective = nlp_solution.objective
     iterations = nlp_solution.iter
@@ -174,6 +177,7 @@ function SolverInfos(
     return objective, iterations, constraints_violation, "Ipopt/generic", status, successful
 end
 
+#=
 """
 $(TYPEDSIGNATURES)
 
@@ -209,14 +213,14 @@ function build_OCP_solution(
     dual=nothing,
     multipliers_L=nothing,
     multipliers_U=nothing,
-    nlp_model_backend=ADNLPBackend(),
+    #nlp_model_backend=ADNLPBackend(),
     nlp_solution,
 )
     ocp = ocp_model(docp)
     solution = primal
 
     # dummy info
-    objective, iterations, constraints_violation, message, status, successful = SolverInfos()
+    #objective, iterations, constraints_violation, message, status, successful = SolverInfos()
 
     # recompute objective
     objective = DOCP_objective(solution, docp)
@@ -265,7 +269,7 @@ function build_OCP_solution(
         variable_constraints_lb_dual=box_multipliers[5],
         variable_constraints_ub_dual=box_multipliers[6],
     )
-end
+end=#
 
 """
 $(TYPEDSIGNATURES)
@@ -299,7 +303,7 @@ julia> X, U, v, box_mults = parse_DOCP_solution_primal(docp, primal;
 ```
 """
 function parse_DOCP_solution_primal(
-    docp, solution; multipliers_L, multipliers_U, nlp_model_backend, nlp_solution
+    docp, solution; multipliers_L, multipliers_U, nlp_solution
 )
 
     # state and control variables
@@ -316,7 +320,7 @@ function parse_DOCP_solution_primal(
     mult_variable_box_lower = zeros(size(v))
     mult_variable_box_upper = zeros(size(v))
 
-    if nlp_model_backend isa ExaBackend # Exa
+    #=if nlp_model_backend isa ExaBackend # Exa
         getter = docp.exa_getter
         X[:] = getter(nlp_solution; val=:state)' # transpose to match choice below for ADNLP
         U[:] = getter(nlp_solution; val=:control)'
@@ -332,7 +336,7 @@ function parse_DOCP_solution_primal(
             mult_variable_box_upper[:] = getter(nlp_solution; val=:variable_u)
         end
 
-    else # ADNLP
+    else # ADNLP =#
 
         # replace ipopt 0-length arrays with full 0 arrays
         is_empty(multipliers_L) && (multipliers_L = zeros(docp.dim_NLP_variables))
@@ -361,7 +365,7 @@ function parse_DOCP_solution_primal(
                 multipliers_U, docp, i
             )
         end
-    end
+    #end
 
     box_multipliers = (
         mult_state_box_lower,
@@ -403,14 +407,14 @@ julia> P, path_dual, bound_dual = parse_DOCP_solution_dual(docp, duals; nlp_mode
 ```
 """
 function parse_DOCP_solution_dual(
-    docp, multipliers; nlp_model_backend=ADNLPBackend(), nlp_solution
+    docp, multipliers
 )
 
     # costate
     N = docp.time.steps
     P = zeros(N, docp.dims.NLP_x)
 
-    if nlp_model_backend isa ExaBackend # Exa
+    #=if nlp_model_backend isa ExaBackend # Exa
         getter = docp.exa_getter
         P[:] = getter(nlp_solution; val=:costate)' # transpose to match choice below for ADNLP
         dpc = docp.dims.path_cons
@@ -418,7 +422,8 @@ function parse_DOCP_solution_dual(
         mul_path_constraints = zeros(N + 1, dpc) # todo: add getters for path constraints for :exa in CTParser
         mul_boundary_constraints = zeros(dbc) # todo: add getters for boundary constraints for :exa in CTParser
 
-    else # ADNLP
+    else =# 
+        #ADNLP
         disc = disc_model(docp)
 
         # if called with multipliers = nothing, fill with zeros
@@ -458,7 +463,7 @@ function parse_DOCP_solution_dual(
             mul_boundary_constraints[:] = multipliers[i_m:(i_m + dbc - 1)]
             i_m += dbc
         end
-    end
+    #end
 
     return P, mul_path_constraints, mul_boundary_constraints
 end

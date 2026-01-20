@@ -40,18 +40,19 @@ struct ExaBackend <: AbstractNLPModelBackend end
 # )
 
 # includes
-include("core_types.jl")
-include("discretization_api.jl")
-include("collocation_impl.jl")
-#
 include("utils.jl")
 include("default.jl")
-include("docp.jl")
+include("core_types.jl")
+include("discretization_api.jl")
+include("collocation.jl")
+include("collocation_core.jl")
+
 include("disc/common.jl")
 include("disc/euler.jl")
 include("disc/irk.jl")
 include("disc/midpoint.jl")
 include("disc/trapeze.jl")
+
 include("solution.jl")
 include("solve.jl")
 

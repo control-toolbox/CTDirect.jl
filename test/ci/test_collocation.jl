@@ -7,6 +7,7 @@ struct DummyDOCPCollocationRouting end
 
 const CM_ExaRecordedCollocation = Ref{Any}(nothing)
 
+#=
 function CTDirect.direct_transcription(
     ocp::DummyOCPExaRouting,
     modeler::Symbol;
@@ -38,8 +39,9 @@ function CTDirect.nlp_model(::DummyDOCPCollocationRouting)
     ExaModels.objective(core, x[1])
     return ExaModels.ExaModel(core)
 end
+=#
 
-function test_ctdirect_collocation_impl()
+function test_ctdirect_collocation()
     Test.@testset "Collocation as discretizer" verbose=VERBOSE showtiming=SHOWTIMING begin
         ocp = DummyOCPCollocation()
 

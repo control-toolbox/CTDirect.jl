@@ -284,8 +284,8 @@ DOCP{...}(...)
 ```
 """
 mutable struct DOCP{
-    D<:CTDirect.Discretization,O<:CTModels.Model,N<:CTDirect.AbstractNLPModelBackend
-}
+    D<:CTDirect.Discretization, O<:CTModels.Model
+    }
 
     # discretization scheme
     discretization::D
@@ -294,9 +294,8 @@ mutable struct DOCP{
     ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
 
     # NLP
-    nlp_model_backend::N
-    nlp
-    exa_getter::Union{Nothing,Function} # getter for ExaModels (if used)
+    #nlp
+    #exa_getter::Union{Nothing,Function} # getter for ExaModels (if used)
 
     # boolean flags
     flags::DOCPFlags
@@ -316,8 +315,7 @@ mutable struct DOCP{
 
     # constructor
     function DOCP(
-        ocp::CTModels.Model,
-        nlp_model_backend::CTDirect.AbstractNLPModelBackend;
+        ocp::CTModels.Model;
         grid_size=__grid_size(),
         time_grid=__time_grid(),
         disc_method=__disc_method(),
@@ -408,12 +406,11 @@ mutable struct DOCP{
         )
 
         # call constructor with const fields
-        docp = new{typeof(discretization),typeof(ocp),typeof(nlp_model_backend)}(
+        docp = new{typeof(discretization),typeof(ocp)}(
             discretization,
             ocp,
-            nlp_model_backend,
-            nothing, # nlp
-            nothing, # exa_getter
+            #nothing, # nlp
+            #nothing, # exa_getter
             flags,
             dims,
             time,
@@ -697,16 +694,16 @@ function DOCP_initial_guess(docp::DOCP, init::CTModels.OptimalControlInitialGues
     NLP_X = 0.1 * ones(docp.dim_NLP_variables)
 
     # set variables if provided (needed first in case of free times !)
-    if !isnothing(init.variable_init)
-        set_optim_variable!(NLP_X, init.variable_init, docp)
+    if !isnothing(init.variable)
+        set_optim_variable!(NLP_X, init.variable, docp)
     end
 
     # set state / control variables if provided (final control case handled by setter)
     time_grid = get_time_grid(NLP_X, docp)
     for i in 1:(docp.time.steps + 1)
         ti = time_grid[i]
-        set_state_at_time_step!(NLP_X, init.state_init(ti), docp, i)
-        set_control_at_time_step!(NLP_X, init.control_init(ti), docp, i)
+        set_state_at_time_step!(NLP_X, init.state(ti), docp, i)
+        set_control_at_time_step!(NLP_X, init.control(ti), docp, i)
     end
 
     return NLP_X
