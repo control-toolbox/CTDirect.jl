@@ -304,7 +304,7 @@ function parse_DOCP_solution_primal(
 
     # state and control variables
     N = docp.time.steps
-    X = zeros(N + 1, docp.dims.OCP_x)
+    X = zeros(N + 1, docp.dims.NLP_x)
     U = zeros(N + 1, docp.dims.NLP_u)
     v = zeros(docp.dims.NLP_v)
 

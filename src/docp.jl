@@ -31,14 +31,13 @@ discretized optimal control problem (DOCP).
 - `freetf::Bool`: Whether the OCP has a free final time.
 - `lagrange::Bool`: Whether the OCP includes a Lagrange cost.
 - `mayer::Bool`: Whether the OCP includes a Mayer cost.
-- `lagrange_to_mayer::Bool`: Whether the Lagrange cost is reformulated as a Mayer term.
 - `max::Bool`: Whether the OCP is a maximization problem.
 
 # Example
 
 ```julia-repl
-julia> DOCPFlags(true, false, true, true, false, false)
-DOCPFlags(true, false, true, true, false, false)
+julia> DOCPFlags(true, false, true, true, false)
+DOCPFlags(true, false, true, true, false)
 ```
 """
 struct DOCPFlags
@@ -46,7 +45,6 @@ struct DOCPFlags
     freetf::Bool
     lagrange::Bool
     mayer::Bool
-    lagrange_to_mayer::Bool
     max::Bool
 end
 
@@ -58,7 +56,6 @@ Construct a [`DOCPFlags`](@ref) struct from an OCP model.
 # Arguments
 
 - `ocp::CTModels.Model`: The optimal control problem model.
-- `lagrange_to_mayer::Bool`: Whether to reformulate the Lagrange cost as a Mayer term.
 
 # Returns
 
@@ -67,11 +64,11 @@ Construct a [`DOCPFlags`](@ref) struct from an OCP model.
 # Example
 
 ```julia-repl
-julia> DOCPFlags(ocp, true)
-DOCPFlags(false, true, true, false, true, false)
+julia> DOCPFlags(ocp)
+DOCPFlags(false, true, true, false, false)
 ```
 """
-function DOCPFlags(ocp::CTModels.Model, lagrange_to_mayer::Bool)
+function DOCPFlags(ocp::CTModels.Model)
     has_free_initial_time = CTModels.has_free_initial_time(ocp)
     has_free_final_time = CTModels.has_free_final_time(ocp)
     has_lagrange = CTModels.has_lagrange_cost(ocp)
@@ -83,7 +80,6 @@ function DOCPFlags(ocp::CTModels.Model, lagrange_to_mayer::Bool)
         has_free_final_time,
         has_lagrange,
         has_mayer,
-        lagrange_to_mayer,
         is_maximization,
     )
 end
@@ -95,10 +91,9 @@ Internal struct holding problem dimensions for a DOCP.
 
 # Fields
 
-- `NLP_x::Int`: State dimension, possibly including an extra variable for Lagrange cost.
+- `NLP_x::Int`: State dimension
 - `NLP_u::Int`: Control dimension.
 - `NLP_v::Int`: Variable dimension.
-- `OCP_x::Int`: State dimension of the original OCP.
 - `path_cons::Int`: Path constraints dimension.
 - `boundary_cons::Int`: Boundary constraints dimension.
 
@@ -113,7 +108,6 @@ struct DOCPdims
     NLP_x::Int
     NLP_u::Int
     NLP_v::Int
-    OCP_x::Int
     path_cons::Int
     boundary_cons::Int
 end
@@ -126,7 +120,6 @@ Construct a [`DOCPdims`](@ref) struct from an OCP model.
 # Arguments
 
 - `ocp::CTModels.Model`: The optimal control problem model.
-- `lagrange_to_mayer::Bool`: Whether the Lagrange cost is reformulated as Mayer.
 
 # Returns
 
@@ -135,24 +128,20 @@ Construct a [`DOCPdims`](@ref) struct from an OCP model.
 # Example
 
 ```julia-repl
-julia> DOCPdims(ocp, true)
-DOCPdims(5, 2, 1, 4, 2, 1)
+julia> DOCPdims(ocp)
+DOCPdims(4, 2, 1, 4, 2, 1)
 ```
 """
-function DOCPdims(ocp::CTModels.Model, lagrange_to_mayer::Bool)
-    if CTModels.has_lagrange_cost(ocp) && lagrange_to_mayer
-        dim_NLP_x = CTModels.state_dimension(ocp) + 1
-    else
-        dim_NLP_x = CTModels.state_dimension(ocp)
-    end
+function DOCPdims(ocp::CTModels.Model)
+
+    dim_NLP_x = CTModels.state_dimension(ocp)
     dim_NLP_u = CTModels.control_dimension(ocp)
     dim_NLP_v = CTModels.variable_dimension(ocp)
-    dim_OCP_x = CTModels.state_dimension(ocp)
     dim_path_cons = CTModels.dim_path_constraints_nl(ocp)
     dim_boundary_cons = CTModels.dim_boundary_constraints_nl(ocp)
 
     return DOCPdims(
-        dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_OCP_x, dim_path_cons, dim_boundary_cons
+        dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons
     )
 end
 
@@ -332,14 +321,13 @@ mutable struct DOCP{
         grid_size=__grid_size(),
         time_grid=__time_grid(),
         disc_method=__disc_method(),
-        lagrange_to_mayer=__lagrange_to_mayer(),
-    )
+        )
 
         # boolean flags
-        flags = DOCPFlags(ocp, lagrange_to_mayer)
+        flags = DOCPFlags(ocp)
 
         # dimensions
-        dims = DOCPdims(ocp, lagrange_to_mayer)
+        dims = DOCPdims(ocp)
 
         # time grid
         time = DOCPtime(ocp, grid_size, time_grid)
@@ -409,11 +397,6 @@ mutable struct DOCP{
                 "\nValid options are disc_method={:trapeze, :midpoint, :euler | :euler_explicit | :euler_forward, :euler_implicit | :euler_backward, :gauss_legendre_2, :gauss_legendre_3}\n",
                 typeof(disc_method),
             )
-        end
-
-        # add initial condition for lagrange state
-        if flags.lagrange && flags.lagrange_to_mayer
-            dim_NLP_constraints += 1
         end
 
         # lower and upper bounds for variables and constraints
@@ -501,32 +484,17 @@ function constraints_bounds!(docp::DOCP)
         end
         # path constraints
         if docp.dims.path_cons > 0
-            lb[(offset + 1):(offset + docp.dims.path_cons)] = CTModels.path_constraints_nl(
-                ocp_model(docp)
-            )[1]
-            ub[(offset + 1):(offset + docp.dims.path_cons)] = CTModels.path_constraints_nl(
-                ocp_model(docp)
-            )[3]
+            lb[(offset + 1):(offset + docp.dims.path_cons)] = CTModels.path_constraints_nl(ocp_model(docp))[1]
+            ub[(offset + 1):(offset + docp.dims.path_cons)] = CTModels.path_constraints_nl(ocp_model(docp))[3]
             offset = offset + docp.dims.path_cons
         end
     end
 
     # boundary constraints
     if docp.dims.boundary_cons > 0
-        lb[(offset + 1):(offset + docp.dims.boundary_cons)] = CTModels.boundary_constraints_nl(
-            ocp_model(docp)
-        )[1]
-        ub[(offset + 1):(offset + docp.dims.boundary_cons)] = CTModels.boundary_constraints_nl(
-            ocp_model(docp)
-        )[3]
+        lb[(offset + 1):(offset + docp.dims.boundary_cons)] = CTModels.boundary_constraints_nl(ocp_model(docp))[1]
+        ub[(offset + 1):(offset + docp.dims.boundary_cons)] = CTModels.boundary_constraints_nl(ocp_model(docp))[3]
         offset = offset + docp.dims.boundary_cons
-    end
-
-    # null initial condition for lagrangian cost state
-    if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-        lb[offset + 1] = 0.0
-        ub[offset + 1] = 0.0
-        offset = offset + 1
     end
 
     return lb, ub
@@ -560,7 +528,7 @@ function variables_bounds!(docp::DOCP)
 
     # build full ordered sets of bounds
     x_lb, x_ub = build_bounds(
-        docp.dims.OCP_x,
+        docp.dims.NLP_x,
         CTModels.dim_state_constraints_box(ocp),
         CTModels.state_constraints_box(ocp),
     )
@@ -635,24 +603,13 @@ function DOCP_objective(xu, docp::DOCP)
 
     # lagrange cost
     if docp.flags.lagrange
-        if docp.flags.lagrange_to_mayer
-            obj_lagrange = get_lagrange_state_at_time_step(xu, docp, docp.time.steps+1)
-        else
-            obj_lagrange = runningCost(docp, xu, v, time_grid)
-        end
+        obj_lagrange = runningCost(docp, xu, v, time_grid)
     else
         obj_lagrange = 0.0
     end
 
     # total cost
     obj = obj_mayer + obj_lagrange
-
-    #= maximization problem
-    # +++ add a max_to_min flag in DOCP
-    # option minimize[=true] for adnlpmodels
-    if docp.flags.max
-        obj = -obj
-    end=#
 
     return obj
 end
@@ -696,48 +653,10 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     for i in 1:(docp.time.steps + 1)
         setStepConstraints!(docp, c, xu, v, time_grid, i, work)
     end
-
-    # point constraints
-    setPointConstraints!(docp, c, xu, v)
-
-    # NB. the function *needs* to return c for AD...
-    return c
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Set boundary and variable point constraints for a DOCP.
-
-# Arguments
-
-- `docp::DOCP`: The discretized OCP.
-- `c`: Constraint vector to modify.
-- `xu`: Vector of NLP decision variables.
-- `v`: Additional OCP variables.
-
-# Returns
-
-- `nothing`: Modifies `c` in place.
-
-# Example
-
-```julia-repl
-julia> setPointConstraints!(docp, c, xu, v)
-```
-"""
-function setPointConstraints!(docp::DOCP, c, xu, v)
-
-    # add lagrange state null initial condition at the end
-    if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-        c[docp.dim_NLP_constraints] = get_lagrange_state_at_time_step(xu, docp, 1)
-        offset = docp.dim_NLP_constraints - docp.dims.boundary_cons - 1
-    else
-        offset = docp.dim_NLP_constraints - docp.dims.boundary_cons
-    end
-
+   
     # boundary constraints
     if docp.dims.boundary_cons > 0
+        offset = docp.dim_NLP_constraints - docp.dims.boundary_cons
         ocp = ocp_model(docp)
         x0 = get_OCP_state_at_time_step(xu, docp, 1)
         xf = get_OCP_state_at_time_step(xu, docp, docp.time.steps+1)
@@ -745,7 +664,11 @@ function setPointConstraints!(docp::DOCP, c, xu, v)
             (@view c[(offset + 1):(offset + docp.dims.boundary_cons)]), x0, xf, v
         )
     end
+
+    # NB. the function *needs* to return c for AD...
+    return c
 end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -768,7 +691,7 @@ julia> DOCP_initial_guess(docp)
 [0.1, 0.1, …]
 ```
 """
-function DOCP_initial_guess(docp::DOCP, init::CTModels.OptimalControlInitialGuess=CTModels.initial_guess(docp.ocp))
+function DOCP_initial_guess(docp::DOCP, init::CTModels.Init=CTModels.Init())
 
     # default initialization (internal variables such as lagrange cost, k_i for RK schemes) will keep these default values 
     NLP_X = 0.1 * ones(docp.dim_NLP_variables)

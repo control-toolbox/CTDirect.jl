@@ -197,7 +197,7 @@ Set work array for all dynamics and lagrange cost evaluations
 function setWorkArray(docp::DOCP{<: GenericIRK}, xu, time_grid, v)
     # work array layout: [x_ij ; sum_bk]
     dims = docp.dims
-    work = similar(xu, dims.OCP_x + dims.NLP_x)
+    work = similar(xu, dims.NLP_x + dims.NLP_x)
     return work
 end
 
@@ -212,7 +212,7 @@ function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
     obj_lagrange = 0.0
 
     # work array layout: [x_ij ; sum_bk]
-    work_xij = similar(xu, dims.OCP_x)
+    work_xij = similar(xu, dims.NLP_x)
     work_sumbk = similar(xu, 1)
 
     # loop over time steps
@@ -231,11 +231,11 @@ function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
 
             # state at stage: x_i^j = x_i + h_i sum a_jl k_i^l
             # +++ still some allocations here
-            @views @. work_xij[1:dims.OCP_x] = xi
+            @views @. work_xij[1:dims.NLP_x] = xi
             for l in 1:disc.stage
                 kil = get_stagevars_at_time_step(xu, docp, i, l)
-                @views @. work_xij[1:dims.OCP_x] =
-                    work_xij[1:dims.OCP_x] + hi * disc.butcher_a[j, l] * kil[1:dims.OCP_x]
+                @views @. work_xij[1:dims.NLP_x] =
+                    work_xij[1:dims.NLP_x] + hi * disc.butcher_a[j, l] * kil[1:dims.NLP_x]
             end
 
             # update sum b_j k_i^j (lagrange term) 
@@ -269,8 +269,8 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
     dims = docp.dims
 
     # work array layout: [x_ij ; sum_bk]
-    work_xij = @view work[1:dims.OCP_x]
-    work_sumbk = @view work[(dims.OCP_x + 1):(dims.OCP_x + dims.NLP_x)]
+    work_xij = @view work[1:dims.NLP_x]
+    work_sumbk = @view work[(dims.NLP_x + 1):(dims.NLP_x + dims.NLP_x)]
 
     # offset for previous steps
     offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
@@ -309,27 +309,22 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
 
             # state at stage: x_i^j = x_i + h_i sum a_jl k_i^l
             # +++ still some allocations here
-            @views @. work_xij[1:dims.OCP_x] = xi
+            @views @. work_xij[1:dims.NLP_x] = xi
             for l in 1:disc.stage
                 kil = get_stagevars_at_time_step(xu, docp, i, l)
-                @views @. work_xij[1:dims.OCP_x] =
-                    work_xij[1:dims.OCP_x] + hi * disc.butcher_a[j, l] * kil[1:dims.OCP_x]
+                @views @. work_xij[1:dims.NLP_x] =
+                    work_xij[1:dims.NLP_x] + hi * disc.butcher_a[j, l] * kil[1:dims.NLP_x]
             end
 
             # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f
             # NB. we skip the state equation here, which will be set below
             CTModels.dynamics(docp.ocp)(
-                (@view c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.OCP_x)]),
+                (@view c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)]),
                 tij,
                 work_xij,
                 ui,
                 v,
             )
-            if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-                c[offset + offset_stage_eqs + dims.NLP_x] = CTModels.lagrange(docp.ocp)(
-                    tij, work_xij, ui, v
-                )
-            end
             @views @. c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)] =
                 kij -
                 c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)]
@@ -337,13 +332,8 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
         end
 
         # state equation x_i+1 = x_i + h_i sum b_j k_i^j
-        @views @. c[(offset + 1):(offset + dims.OCP_x)] =
-            xip1 - (xi + hi * work_sumbk[1:dims.OCP_x])
-        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-            c[offset + dims.NLP_x] =
-                get_lagrange_state_at_time_step(xu, docp, i+1) -
-                (get_lagrange_state_at_time_step(xu, docp, i) + hi * work_sumbk[dims.NLP_x])
-        end
+        @views @. c[(offset + 1):(offset + dims.NLP_x)] =
+            xip1 - (xi + hi * work_sumbk[1:dims.NLP_x])
 
         # update offset for stage and state equations
         offset += dims.NLP_x * (1 + disc.stage)
@@ -383,7 +373,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRK})
         c_block = disc._state_stage_eqs_block + disc._step_pathcons_block
         c_offset = (i-1)*c_block
         dyn_start = c_offset + 1
-        dyn_end = c_offset + dims.OCP_x
+        dyn_end = c_offset + dims.NLP_x
         dyn_lag = c_offset + dims.NLP_x
         stage_start = c_offset + dims.NLP_x + 1
         stage_end = c_offset + (s+1) * dims.NLP_x
@@ -394,12 +384,12 @@ function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRK})
         # x_i (l_i) u_i k_i x_i+1 (l_i+1)
         var_offset = (i-1)*disc._step_variables_block
         xi_start = var_offset + 1
-        xi_end = var_offset + dims.OCP_x
+        xi_end = var_offset + dims.NLP_x
         ui_start = var_offset + dims.NLP_x + 1
         ui_end = var_offset + dims.NLP_x + dims.NLP_u
         ki_start = var_offset + dims.NLP_x + dims.NLP_u + 1
         ki_end = var_offset + disc._step_variables_block
-        xip1_end = var_offset + disc._step_variables_block + dims.OCP_x
+        xip1_end = var_offset + disc._step_variables_block + dims.NLP_x
         li = var_offset + dims.NLP_x
         lip1 = var_offset + disc._step_variables_block + dims.NLP_x
 
@@ -440,7 +430,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRK})
     c_block = disc._step_pathcons_block
     var_offset = docp.time.steps*disc._step_variables_block
     xf_start = var_offset + 1
-    xf_end = var_offset + dims.OCP_x
+    xf_end = var_offset + dims.NLP_x
     # NB convention u(tf) = U_N-1
     uf_start = var_offset - disc._step_variables_block + dims.NLP_x + 1
     uf_end = var_offset - disc._step_variables_block + dims.NLP_x + dims.NLP_u
@@ -454,7 +444,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRK})
         disc._step_pathcons_block
     c_block = dims.boundary_cons
     x0_start = 1
-    x0_end = dims.OCP_x
+    x0_end = dims.NLP_x
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, x0_start, x0_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
@@ -504,7 +494,7 @@ function DOCP_Hessian_pattern(docp::DOCP{<: GenericIRK})
         # x_i (l_i) u_i k_i x_i+1 (l_i+1)
         var_offset = (i-1)*disc._step_variables_block
         xi_start = var_offset + 1
-        xi_end = var_offset + dims.OCP_x
+        xi_end = var_offset + dims.NLP_x
         ui_start = var_offset + dims.NLP_x + 1
         ui_end = var_offset + dims.NLP_x + dims.NLP_u
         ki_start = var_offset + dims.NLP_x + dims.NLP_u + 1
@@ -531,7 +521,7 @@ function DOCP_Hessian_pattern(docp::DOCP{<: GenericIRK})
     # 2. final path constraints (xf, uf, v) (assume present) +++ done in 1.4 above ?
     var_offset = docp.time.steps * disc._step_variables_block
     xf_start = var_offset + 1
-    xf_end = var_offset + dims.OCP_x
+    xf_end = var_offset + dims.NLP_x
     # NB convention u(tf) = U_N-1
     uf_start = var_offset - disc._step_variables_block + dims.NLP_x + 1
     uf_end = var_offset - disc._step_variables_block + dims.NLP_x + dims.NLP_u
@@ -545,7 +535,7 @@ function DOCP_Hessian_pattern(docp::DOCP{<: GenericIRK})
     # -> x0 / x0, x0 / v terms included in first loop iteration
     # -> xf / xf, xf / v terms included in 2.
     x0_start = 1
-    x0_end = dims.OCP_x
+    x0_end = dims.NLP_x
     add_nonzero_block!(Is, Js, x0_start, x0_end, xf_start, xf_end; sym=true)
 
     # 3.1 null initial condition for lagrangian cost state l0

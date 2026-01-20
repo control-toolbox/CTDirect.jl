@@ -353,25 +353,13 @@ function direct_transcription(
     nlp_model_backend = parse_description(description, :model)
 
     # build DOCP
-    if nlp_model_backend isa ExaBackend
-        docp = DOCP(
-            ocp,
-            nlp_model_backend;
-            grid_size=grid_size,
-            time_grid=time_grid,
-            disc_method=disc_method,
-            lagrange_to_mayer=false,
-        )
-    else
-        docp = DOCP(
-            ocp,
-            nlp_model_backend;
-            grid_size=grid_size,
-            time_grid=time_grid,
-            disc_method=disc_method,
-            lagrange_to_mayer=lagrange_to_mayer,
-        )
-    end
+    docp = DOCP(
+        ocp,
+        nlp_model_backend;
+        grid_size=grid_size,
+        time_grid=time_grid,
+        disc_method=disc_method,
+    )
 
     # set bounds in DOCP
     variables_bounds!(docp)

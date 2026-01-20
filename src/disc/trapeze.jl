@@ -48,11 +48,11 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Set work array for all dynamics and lagrange cost evaluations
+Set work array for all dynamics evaluations
 """
 function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
 
-    #= use work array to store all dynamics + lagrange costs
+    #= use work array to store all dynamics
     NB. using a smaller work array to store a single dynamics between steps
     appears slower, maybe due to the copy involved ? =#
     dims = docp.dims
@@ -66,12 +66,8 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
         ui = get_OCP_control_at_time_step(xu, docp, i)
         # OCP dynamics
         CTModels.dynamics(docp.ocp)(
-            (@view work[(offset + 1):(offset + dims.OCP_x)]), ti, xi, ui, v
+            (@view work[(offset + 1):(offset + dims.NLP_x)]), ti, xi, ui, v
         )
-        # lagrange cost
-        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-            work[offset + dims.NLP_x] = CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
-        end
     end
     return work
 end
@@ -145,23 +141,15 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
         offset_dyn_ip1 = i*dims.NLP_x
 
         # trapeze rule (no allocations ^^)
-        @views @. c[(offset + 1):(offset + dims.OCP_x)] =
+        @views @. c[(offset + 1):(offset + dims.NLP_x)] =
             xip1 - (
                 xi +
                 half_hi * (
-                    work[(offset_dyn_i + 1):(offset_dyn_i + dims.OCP_x)] +
-                    work[(offset_dyn_ip1 + 1):(offset_dyn_ip1 + dims.OCP_x)]
+                    work[(offset_dyn_i + 1):(offset_dyn_i + dims.NLP_x)] +
+                    work[(offset_dyn_ip1 + 1):(offset_dyn_ip1 + dims.NLP_x)]
                 )
             )
 
-        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-            c[offset + dims.NLP_x] =
-                get_lagrange_state_at_time_step(xu, docp, i+1) - (
-                    get_lagrange_state_at_time_step(xu, docp, i) +
-                    half_hi *
-                    (work[offset_dyn_i + dims.NLP_x] + work[offset_dyn_ip1 + dims.NLP_x])
-                )
-        end
         offset += dims.NLP_x
     end
 
@@ -204,7 +192,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
         c_block = disc._state_stage_eqs_block + disc._step_pathcons_block
         c_offset = (i-1)*c_block
         dyn_start = c_offset + 1
-        dyn_end = c_offset + dims.OCP_x
+        dyn_end = c_offset + dims.NLP_x
         dyn_lag = c_offset + dims.NLP_x
         path_start = c_offset + dims.NLP_x + 1
         path_end = c_offset + c_block
@@ -214,10 +202,10 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
         var_block = disc._step_variables_block * 2
         var_offset = (i-1)*disc._step_variables_block
         xi_start = var_offset + 1
-        xi_end = var_offset + dims.OCP_x
+        xi_end = var_offset + dims.NLP_x
         ui_start = var_offset + dims.NLP_x + 1
         ui_end = var_offset + dims.NLP_x + dims.NLP_u
-        xip1_end = var_offset + dims.NLP_x + dims.NLP_u + dims.OCP_x
+        xip1_end = var_offset + dims.NLP_x + dims.NLP_u + dims.NLP_x
         uip1_start = var_offset + dims.NLP_x*2 + dims.NLP_u + 1
         uip1_end = var_offset + dims.NLP_x*2 + dims.NLP_u*2
 
@@ -226,11 +214,6 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
         add_nonzero_block!(Is, Js, dyn_start, dyn_end, xi_start, xi_end)
         add_nonzero_block!(Is, Js, dyn_start, dyn_end, ui_start, xip1_end)
         add_nonzero_block!(Is, Js, dyn_start, dyn_end, uip1_start, uip1_end)
-        # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i/2 (l(t_i,x_i,u_i,v) + l(t_i+1,x_i+1,u_i+1,v)))
-        # depends on x_i, l_i, u_i, x_i+1, l_i+1, u_i+1 ie whole variable block; v cf 1.4
-        if docp.flags.lagrange
-            add_nonzero_block!(Is, Js, dyn_lag, dyn_lag, var_offset+1, var_offset+var_block)
-        end
 
         # 1.3 path constraint g(t_i, x_i, u_i, v) 
         # depends on x_i, u_i; skip l_i; v cf 1.4
@@ -246,7 +229,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
     c_block = disc._step_pathcons_block
     var_offset = docp.time.steps*disc._step_variables_block
     xf_start = var_offset + 1
-    xf_end = var_offset + dims.OCP_x
+    xf_end = var_offset + dims.NLP_x
     uf_start = var_offset + dims.NLP_x + 1
     uf_end = var_offset + dims.NLP_x + dims.NLP_u
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
@@ -259,14 +242,10 @@ function DOCP_Jacobian_pattern(docp::DOCP{Trapeze})
         disc._step_pathcons_block
     c_block = dims.boundary_cons
     x0_start = 1
-    x0_end = dims.OCP_x
+    x0_end = dims.NLP_x
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, x0_start, x0_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
-    # 3.4 null initial condition for lagrangian cost state l0
-    if docp.flags.lagrange
-        add_nonzero_block!(Is, Js, docp.dim_NLP_constraints, dims.NLP_x)
-    end
 
     # build and return sparse matrix
     nnzj = length(Is)
@@ -294,8 +273,7 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
     # 0. objective
     # 0.1 mayer cost (x0, xf, v) 
     # -> grouped with term 3. for boundary conditions
-    # 0.2 lagrange case (lf)
-    # -> 2nd order term is zero
+    # +++ 0.2 lagrange cost ?
 
     # 1. main loop over steps
     # 1.0 v / v term
@@ -310,8 +288,6 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
 
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i/2 (f(t_i,x_i,u_i,v) + f(t_i+1,x_i+1,u_i+1,v)))
         # 2nd order terms depend on x_i, u_i, x_i+1, u_i+1, and v -> included in 1.2
-        # 1.2 lagrange 0 = l_i+1 - (l_i + h_i/2 (l(t_i,x_i,u_i,v) + l(t_i+1,x_i+1,u_i+1,v)))
-        # 2nd order terms depend on x_i, l_i, u_i, x_i+1, l_i+1, u_i+1, and v
         # -> use single block for all step variables
         add_nonzero_block!(
             Is, Js, var_offset+1, var_offset+var_block, var_offset+1, var_offset+var_block
@@ -333,9 +309,9 @@ function DOCP_Hessian_pattern(docp::DOCP{Trapeze})
     if docp.flags.mayer || dims.boundary_cons > 0
         var_offset = docp.time.steps*disc._step_variables_block
         x0_start = 1
-        x0_end = dims.OCP_x
+        x0_end = dims.NLP_x
         xf_start = var_offset + 1
-        xf_end = var_offset + dims.OCP_x
+        xf_end = var_offset + dims.NLP_x
         add_nonzero_block!(Is, Js, x0_start, x0_end, xf_start, xf_end; sym=true)
     end
     # 3.1 null initial condition for lagrangian cost state l0

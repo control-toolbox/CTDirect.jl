@@ -1,4 +1,3 @@
-
 #= Common parts for the discretization =#
 
 """
@@ -22,19 +21,9 @@ Vector output
 function get_OCP_state_at_time_step(xu, docp::DOCP, i)
     disc = disc_model(docp)
     offset = (i-1) * disc._step_variables_block
-    return @view xu[(offset + 1):(offset + docp.dims.OCP_x)]
+    return @view xu[(offset + 1):(offset + docp.dims.NLP_x)]
 end
-"""
-$(TYPEDSIGNATURES)
 
-Retrieve state variable for lagrange cost at given time step from the NLP variables.
-Convention: 1 <= i <= dim_NLP_steps+1   (no check for actual lagrange cost presence !)
-"""
-function get_lagrange_state_at_time_step(xu, docp::DOCP, i)
-    disc = disc_model(docp)
-    offset = (i-1) * disc._step_variables_block
-    return xu[offset + docp.dims.NLP_x]
-end
 
 """
 $(TYPEDSIGNATURES)
@@ -87,11 +76,10 @@ Set initial guess for state variables at given time step
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function set_state_at_time_step!(xu, x_init, docp::DOCP, i)
-    # initialize only actual state variables from OCP (not lagrange state)
     if !isnothing(x_init)
         disc = disc_model(docp)
         offset = (i-1) * disc._step_variables_block
-        xu[(offset + 1):(offset + docp.dims.OCP_x)] .= x_init
+        xu[(offset + 1):(offset + docp.dims.NLP_x)] .= x_init
     end
 end
 
@@ -115,7 +103,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Set work array for all dynamics and lagrange cost evaluations
+Set work array for all dynamics evaluations
 """
 function setWorkArray(docp::DOCP{<: Discretization}, xu, time_grid, v)
     return nothing
