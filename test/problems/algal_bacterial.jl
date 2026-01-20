@@ -46,5 +46,5 @@ function algal_bacterial()
         x₆(tf) → max
     end
 
-    return ((ocp=algal_bacterial, obj=5.45, name="algal_bacterial", init=nothing))
+    return ((ocp=algal_bacterial, obj=5.45, name="algal_bacterial", init=()))
 end

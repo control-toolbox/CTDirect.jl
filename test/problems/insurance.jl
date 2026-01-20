@@ -58,5 +58,5 @@ function insurance()
         ∫(U(t) * fx) → max
     end
 
-    return ((ocp=insurance, obj=2.059511, name="insurance", init=nothing))
+    return ((ocp=insurance, obj=2.059511, name="insurance", init=()))
 end

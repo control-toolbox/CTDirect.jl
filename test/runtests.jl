@@ -30,7 +30,7 @@ using SplitApplyCombine # for flatten in some tests
 ipopt_options = Dict(
     :max_iter => 1000,
     :tol => 1e-6,
-    :print_level => 0,
+    :print_level => 3,
     :mu_strategy => "adaptive",
     :linear_solver => "Mumps",
     :sb => "yes",
@@ -38,15 +38,12 @@ ipopt_options = Dict(
 modeler = CTModels.ADNLPModeler()
 solver = CTSolvers.IpoptSolver(; ipopt_options...)
 
-function check_problem(prob; display=true)
+function check_problem(prob; display=false)
     docp = CTDirect.discretize(prob.ocp, CTDirect.Collocation())
     init = CTModels.initial_guess(prob.ocp; prob.init...)
-    sol = CommonSolve.solve(docp, init, modeler, solver; display=true)
+    sol = CommonSolve.solve(docp, init, modeler, solver; display=display)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
-
-include("./problems/beam.jl")
-check_problem(beam(); display=true)
 
 # check local test suite
 macro ignore(e)
@@ -64,7 +61,7 @@ end
 #     end
 # end
 
-#= new tests
+# new tests
 const VERBOSE = true
 const SHOWTIMING = true
 @testset verbose = VERBOSE showtiming = SHOWTIMING "New tests for CTDirect" begin
@@ -78,5 +75,5 @@ const SHOWTIMING = true
     include("./ci/test_solve.jl")
     test_ctdirect_solve()
     
-    #include("./ci/test_all_ocp.jl")
-end=#
+    include("./ci/test_all_ocp.jl")
+end

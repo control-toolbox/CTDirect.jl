@@ -8,7 +8,7 @@ function test_ctdirect_solve()
     ipopt_options = Dict(
         :max_iter => 1000,
         :tol => 1e-6,
-        :print_level => 0,
+        :print_level => 3,
         :mu_strategy => "adaptive",
         :linear_solver => "Mumps",
         :sb => "yes",
