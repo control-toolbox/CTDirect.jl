@@ -1,18 +1,21 @@
 # runtests.jl
 using Test
 
-# OptimalControl
+# CT packages
 using CTBase
 using CTParser: CTParser, @def
 using CTModels
 using CTDirect
 using CTSolvers
 
-# activate NLP modelers
+# other
+using CommonSolve
+
+# NLP modelers
 using ADNLPModels
 using ExaModels
 
-# activate NLP solvers
+# NLP solvers
 using NLPModels
 using NLPModelsIpopt
 using MadNLPMumps
@@ -20,12 +23,30 @@ using MadNLPMumps
 # misc
 using SplitApplyCombine # for flatten in some tests
 
-# check a specific example OCP
-function check_problem(prob; kwargs...)
+# check a specific example OCP. Basic ADNLP / Ipopt for now
+# +++ add kwargs !!
+# test madnlp once solverinfos is available
+# test examodel once implemented again in collocation
+ipopt_options = Dict(
+    :max_iter => 1000,
+    :tol => 1e-6,
+    :print_level => 0,
+    :mu_strategy => "adaptive",
+    :linear_solver => "Mumps",
+    :sb => "yes",
+)
+modeler = CTModels.ADNLPModeler()
+solver = CTSolvers.IpoptSolver(; ipopt_options...)
 
-    sol = solve(prob.ocp; init=prob.init, kwargs...)
+function check_problem(prob; display=true)
+    docp = CTDirect.discretize(prob.ocp, CTDirect.Collocation())
+    init = CTModels.initial_guess(prob.ocp; prob.init...)
+    sol = CommonSolve.solve(docp, init, modeler, solver; display=true)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
+
+include("./problems/beam.jl")
+check_problem(beam(); display=true)
 
 # check local test suite
 macro ignore(e)
@@ -43,7 +64,7 @@ end
 #     end
 # end
 
-# new tests
+#= new tests
 const VERBOSE = true
 const SHOWTIMING = true
 @testset verbose = VERBOSE showtiming = SHOWTIMING "New tests for CTDirect" begin
@@ -53,6 +74,9 @@ const SHOWTIMING = true
     #test_ctdirect_discretization_api()
     #include("./ci/test_collocation.jl")
     #test_ctdirect_collocation()
+
     include("./ci/test_solve.jl")
     test_ctdirect_solve()
-end
+    
+    #include("./ci/test_all_ocp.jl")
+end=#

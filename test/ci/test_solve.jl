@@ -27,9 +27,11 @@ function test_ctdirect_solve()
         docp = CTDirect.discretize(ocp, discretizer)
         Test.@test docp isa CTModels.DiscretizedOptimalControlProblem
 
-        # solve nlp with ipopt and NLP modelers
+        # NLP modelers
         modelers = [CTModels.ADNLPModeler()]#, CTModels.ExaModeler()]
-        modelers_names = ["ADNLPModeler", "ExaModeler (CPU)"]
+        modelers_names = ["ADNLPModeler"] #, "ExaModeler (CPU)"]
+
+        # solve NLP with ipopt specific solver and NLP modelers
         Test.@testset "NLP level (solve_with_ipopt)" verbose=VERBOSE showtiming=SHOWTIMING begin
             for (modeler, modeler_name) in zip(modelers, modelers_names)
                 Test.@testset "$(modeler_name)" verbose=VERBOSE showtiming=SHOWTIMING begin
@@ -44,7 +46,7 @@ function test_ctdirect_solve()
             end
         end
 
-        #= DOCP level: CommonSolve.solve(docp, init, modeler, solver)
+        # solve DOCP with common solve and NLP modelers
         Test.@testset "DOCP level (solve)" verbose=VERBOSE showtiming=SHOWTIMING begin
             for (modeler, modeler_name) in zip(modelers, modelers_names)
                 Test.@testset "$(modeler_name)" verbose=VERBOSE showtiming=SHOWTIMING begin
@@ -58,8 +60,15 @@ function test_ctdirect_solve()
                     Test.@test CTModels.constraints_violation(sol) <= 1e-6
                 end
             end
-        end=#
+        end
+
+        # check_problem toplevel function
+        Test.@testset "DOCP level (check_problem)" verbose=VERBOSE showtiming=SHOWTIMING begin
+            check_problem(beam(); display=true)
+        end
     end
+
+
 
     # ========================================================================
     # INTEGRATION: Direct Goddard OCP with Collocation (Ipopt pieces)
