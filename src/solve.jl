@@ -29,32 +29,32 @@ function available_methods()
 end
 
 # solver
-"""
-$(TYPEDSIGNATURES)
+# """
+# $(TYPEDSIGNATURES)
 
-Solve a discretized optimal control problem using the specified solver backend.
+# Solve a discretized optimal control problem using the specified solver backend.
 
-# Arguments
+# # Arguments
 
-- `solver_backend::T`: An NLP solver backend (subtype of `AbstractNLPSolverBackend`).
-- `docp::CTDirect.DOCP`: The discretized optimal control problem.
+# - `solver_backend::T`: An NLP solver backend (subtype of `AbstractNLPSolverBackend`).
+# - `docp::CTDirect.DOCP`: The discretized optimal control problem.
 
-# Returns
+# # Returns
 
-- Throws `CTBase.ExtensionError` if the solver backend is unavailable.
+# - Throws `CTBase.ExtensionError` if the solver backend is unavailable.
 
-# Example
+# # Example
 
-```julia-repl
-julia> solve_docp(IpoptBackend(), docp)
-ERROR: ExtensionError(...)
-```
-"""
-function solve_docp(
-    solver_backend::T, docp::CTDirect.DOCP; kwargs...
-) where {T<:AbstractNLPSolverBackend}
-    throw(CTBase.ExtensionError(WEAKDEPS[T]...))
-end
+# ```julia-repl
+# julia> solve_docp(IpoptBackend(), docp)
+# ERROR: ExtensionError(...)
+# ```
+# """
+# function solve_docp(
+#     solver_backend::T, docp::CTDirect.DOCP; kwargs...
+# ) where {T<:AbstractNLPSolverBackend}
+#     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
+# end
 
 # modeller
 """
