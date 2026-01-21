@@ -1,90 +1,90 @@
 # CTDirect interface
 
-# """
-# $(TYPEDSIGNATURES)
+"""
+$(TYPEDSIGNATURES)
 
-# Return a tuple of available NLP model and solver combinations for solving optimal control problems.
+Return a tuple of available NLP model and solver combinations for solving optimal control problems.
 
-# # Returns
+# Returns
 
-# - `algorithms::Tuple`: A tuple of symbol pairs representing the available methods.
+- `algorithms::Tuple`: A tuple of symbol pairs representing the available methods.
 
-# # Example
+# Example
 
-# ```julia-repl
-# julia> available_methods()
-# ((:adnlp, :ipopt), (:adnlp, :madnlp), (:adnlp, :knitro), (:exa, :ipopt), (:exa, :madnlp), (:exa, :knitro))
-# ```
-# """
-# function available_methods()
-#     # available methods by order of preference
-#     algorithms = ()
-#     algorithms = CTBase.add(algorithms, (:adnlp, :ipopt))
-#     algorithms = CTBase.add(algorithms, (:adnlp, :madnlp))
-#     algorithms = CTBase.add(algorithms, (:adnlp, :knitro))
-#     algorithms = CTBase.add(algorithms, (:exa, :ipopt))
-#     algorithms = CTBase.add(algorithms, (:exa, :madnlp))
-#     algorithms = CTBase.add(algorithms, (:exa, :knitro))
-#     return algorithms
-# end
+```julia-repl
+julia> available_methods()
+((:adnlp, :ipopt), (:adnlp, :madnlp), (:adnlp, :knitro), (:exa, :ipopt), (:exa, :madnlp), (:exa, :knitro))
+```
+"""
+function available_methods()
+    # available methods by order of preference
+    algorithms = ()
+    algorithms = CTBase.add(algorithms, (:adnlp, :ipopt))
+    algorithms = CTBase.add(algorithms, (:adnlp, :madnlp))
+    algorithms = CTBase.add(algorithms, (:adnlp, :knitro))
+    algorithms = CTBase.add(algorithms, (:exa, :ipopt))
+    algorithms = CTBase.add(algorithms, (:exa, :madnlp))
+    algorithms = CTBase.add(algorithms, (:exa, :knitro))
+    return algorithms
+end
 
 # solver
-# """
-# $(TYPEDSIGNATURES)
+"""
+$(TYPEDSIGNATURES)
 
-# Solve a discretized optimal control problem using the specified solver backend.
+Solve a discretized optimal control problem using the specified solver backend.
 
-# # Arguments
+# Arguments
 
-# - `solver_backend::T`: An NLP solver backend (subtype of `AbstractNLPSolverBackend`).
-# - `docp::CTDirect.DOCP`: The discretized optimal control problem.
+- `solver_backend::T`: An NLP solver backend (subtype of `AbstractNLPSolverBackend`).
+- `docp::CTDirect.DOCP`: The discretized optimal control problem.
 
-# # Returns
+# Returns
 
-# - Throws `CTBase.ExtensionError` if the solver backend is unavailable.
+- Throws `CTBase.ExtensionError` if the solver backend is unavailable.
 
-# # Example
+# Example
 
-# ```julia-repl
-# julia> solve_docp(IpoptBackend(), docp)
-# ERROR: ExtensionError(...)
-# ```
-# """
-# function solve_docp(
-#     solver_backend::T, docp::CTDirect.DOCP; kwargs...
-# ) where {T<:AbstractNLPSolverBackend}
-#     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
-# end
+```julia-repl
+julia> solve_docp(IpoptBackend(), docp)
+ERROR: ExtensionError(...)
+```
+"""
+function solve_docp(
+    solver_backend::T, docp::CTDirect.DOCP; kwargs...
+) where {T<:AbstractNLPSolverBackend}
+    throw(CTBase.ExtensionError(WEAKDEPS[T]...))
+end
 
-# # modeller
-# """
-# $(TYPEDSIGNATURES)
+# modeller
+"""
+$(TYPEDSIGNATURES)
 
-# Build the NLP model for a discretized optimal control problem using the specified NLP backend.
+Build the NLP model for a discretized optimal control problem using the specified NLP backend.
 
-# # Arguments
+# Arguments
 
-# - `docp::CTDirect.DOCP`: The discretized optimal control problem.
-# - `nlp_model_backend::T`: The NLP model backend (subtype of `AbstractNLPModelBackend`).
-# - `x0`: Initial guess for decision variables.
+- `docp::CTDirect.DOCP`: The discretized optimal control problem.
+- `nlp_model_backend::T`: The NLP model backend (subtype of `AbstractNLPModelBackend`).
+- `x0`: Initial guess for decision variables.
 
-# # Returns
+# Returns
 
-# - Throws `CTBase.ExtensionError` if the NLP model backend is unavailable.
+- Throws `CTBase.ExtensionError` if the NLP model backend is unavailable.
 
-# # Example
+# Example
 
-# ```julia-repl
-# julia> build_nlp!(docp, ADNLPBackend(), x0)
-# ERROR: ExtensionError(...)
-# ```
-# """
-# function build_nlp!(
-#     docp::CTDirect.DOCP{<:CTDirect.Discretization,<:CTModels.Model,T}, x0; kwargs...
-# ) where {T<:AbstractNLPModelBackend}
-#     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
-# end
-# # ----------------------------------------------------------------------
+```julia-repl
+julia> build_nlp!(docp, ADNLPBackend(), x0)
+ERROR: ExtensionError(...)
+```
+"""
+function build_nlp!(
+    docp::CTDirect.DOCP{<:CTDirect.Discretization,<:CTModels.Model,T}, x0; kwargs...
+) where {T<:AbstractNLPModelBackend}
+    throw(CTBase.ExtensionError(WEAKDEPS[T]...))
+end
+# ----------------------------------------------------------------------
 
 """
 $(TYPEDSIGNATURES)
@@ -387,33 +387,33 @@ function direct_transcription(
     return docp
 end
 
-# """
-# $(TYPEDSIGNATURES)
+"""
+$(TYPEDSIGNATURES)
 
-# Set the initial guess for the decision variables in a discretized optimal control problem.
+Set the initial guess for the decision variables in a discretized optimal control problem.
 
-# # Arguments
+# Arguments
 
-# - `docp::DOCP`: The discretized optimal control problem.
-# - `init`: Initial guess values as a named tuple or existing solution.
+- `docp::DOCP`: The discretized optimal control problem.
+- `init`: Initial guess values as a named tuple or existing solution.
 
-# # Returns
+# Returns
 
-# - `nothing`
+- `nothing`
 
-# # Example
+# Example
 
-# ```julia-repl
-# julia> set_initial_guess(docp, init)
-# ```
-# """
-# function set_initial_guess(docp::DOCP, init)
-#     ocp = ocp_model(docp)
-#     docp_init = CTModels.Init(
-#         init;
-#         state_dim=CTModels.state_dimension(ocp),
-#         control_dim=CTModels.control_dimension(ocp),
-#         variable_dim=CTModels.variable_dimension(ocp),
-#     )
-#     docp.nlp.meta.x0 .= DOCP_initial_guess(docp, docp_init)
-# end
+```julia-repl
+julia> set_initial_guess(docp, init)
+```
+"""
+function set_initial_guess(docp::DOCP, init)
+    ocp = ocp_model(docp)
+    docp_init = CTModels.Init(
+        init;
+        state_dim=CTModels.state_dimension(ocp),
+        control_dim=CTModels.control_dimension(ocp),
+        variable_dim=CTModels.variable_dimension(ocp),
+    )
+    docp.nlp.meta.x0 .= DOCP_initial_guess(docp, docp_init)
+end
