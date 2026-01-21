@@ -86,71 +86,71 @@
 # end
 # # ----------------------------------------------------------------------
 
-# """
-# $(TYPEDSIGNATURES)
+"""
+$(TYPEDSIGNATURES)
 
-# Parse the method description to determine the NLP solver or model.
+Parse the method description to determine the NLP solver or model.
 
-# # Arguments
+# Arguments
 
-# - `description`: A tuple of symbols representing the desired solver and/or model.
-#     - NLP solver: `ipopt`, `madnlp` or `knitro` 
-#     - NLP model: `:adnlp` or `:exa`
-# - `info::Symbol`: Either `:solver` to return the solver backend or `:model` to return the NLP model backend.
+- `description`: A tuple of symbols representing the desired solver and/or model.
+    - NLP solver: `ipopt`, `madnlp` or `knitro` 
+    - NLP model: `:adnlp` or `:exa`
+- `info::Symbol`: Either `:solver` to return the solver backend or `:model` to return the NLP model backend.
 
-# # Returns
+# Returns
 
-# - `nlp_solver_backend` or `nlp_model_backend`: The corresponding backend instance.
+- `nlp_solver_backend` or `nlp_model_backend`: The corresponding backend instance.
 
-# # Example
+# Example
 
-# ```julia-repl
-# julia> parse_description((:adnlp, :ipopt), :solver)
-# CTDirect.IpoptBackend()
+```julia-repl
+julia> parse_description((:adnlp, :ipopt), :solver)
+CTDirect.IpoptBackend()
 
-# julia> parse_description((:exa, :madnlp), :model)
-# CTDirect.ExaBackend()
-# ```
-# """
-# function parse_description(description, info)
+julia> parse_description((:exa, :madnlp), :model)
+CTDirect.ExaBackend()
+```
+"""
+function parse_description(description, info)
 
-#     # default: Ipopt, ADNLPModels
-#     method = CTBase.complete(description; descriptions=available_methods())
+    # default: Ipopt, ADNLPModels
+    method = CTBase.complete(description; descriptions=available_methods())
 
-#     if info == :solver
-#         # get NLP solver choice
-#         if :ipopt ∈ method
-#             nlp_solver_backend = CTDirect.IpoptBackend()
-#         elseif :madnlp ∈ method
-#             nlp_solver_backend = CTDirect.MadNLPBackend()
-#         elseif :knitro ∈ method
-#             nlp_solver_backend = CTDirect.KnitroBackend()
-#         else
-#             error("no known solver (:ipopt, :madnlp, :knitro) in method", method)
-#         end
+    if info == :solver
+        # get NLP solver choice
+        if :ipopt ∈ method
+            nlp_solver_backend = CTDirect.IpoptBackend()
+        elseif :madnlp ∈ method
+            nlp_solver_backend = CTDirect.MadNLPBackend()
+        elseif :knitro ∈ method
+            nlp_solver_backend = CTDirect.KnitroBackend()
+        else
+            error("no known solver (:ipopt, :madnlp, :knitro) in method", method)
+        end
 
-#         # patch: replaces ipopt by madnlp for :exa as long as the issue with getters for a posteriori treatment is not fixed
-#         #=if (:exa ∈ method) && (:ipopt ∈ method)
-#             nlp_solver_backend = CTDirect.MadNLPBackend()
-#             @warn "currently replacing Ipopt with MadNLP for :exa"
-#         end=#
-#         return nlp_solver_backend
+        # patch: replaces ipopt by madnlp for :exa as long as the issue with getters for a posteriori treatment is not fixed
+        #=if (:exa ∈ method) && (:ipopt ∈ method)
+            nlp_solver_backend = CTDirect.MadNLPBackend()
+            @warn "currently replacing Ipopt with MadNLP for :exa"
+        end=#
+        return nlp_solver_backend
 
-#     elseif info == :model
-#         # get NLP model choice
-#         if :adnlp ∈ method
-#             nlp_model_backend = CTDirect.ADNLPBackend()
-#         elseif :exa ∈ method
-#             nlp_model_backend = CTDirect.ExaBackend()
-#         else
-#             error("no known model (:adnlp, :exa) in method", method)
-#         end
-#         return nlp_model_backend
-#     else
-#         error("parse_description info should be either :solver or :model, got ", info)
-#         return nothing
-#     end
-# end
+    elseif info == :model
+        # get NLP model choice
+        if :adnlp ∈ method
+            nlp_model_backend = CTDirect.ADNLPBackend()
+        elseif :exa ∈ method
+            nlp_model_backend = CTDirect.ExaBackend()
+        else
+            error("no known model (:adnlp, :exa) in method", method)
+        end
+        return nlp_model_backend
+    else
+        error("parse_description info should be either :solver or :model, got ", info)
+        return nothing
+    end
+end
 
 # """
 # $(TYPEDSIGNATURES)
