@@ -16,8 +16,8 @@ abstract type AbstractOptimalControlDiscretizer <: CTModels.AbstractOCPTool end
 # ---------------------------------------------------------------------------
 # Collocation discretizer
 # ---------------------------------------------------------------------------
-# must have the fields `options_values` and `options_sources` to be compatible with CTModels.AbstractOCPTool getters
 struct Collocation{T<:AbstractIntegratorScheme} <: AbstractOptimalControlDiscretizer
+    # required to be able to use default CTModels.AbstractOCPTool getters
     options_values
     options_sources
 end
@@ -38,11 +38,11 @@ function CTModels._option_specs(::Type{<:Collocation})
             default=__grid(),
             description="Collocation grid (Int = number of time steps, Vector = explicit time grid).",
         ),
-        lagrange_to_mayer=CTModels.OptionSpec(;
-            type=Bool,
-            default=false,
-            description="Whether to transform the Lagrange integral cost into an equivalent Mayer terminal cost.",
-        ),
+        #lagrange_to_mayer=CTModels.OptionSpec(;
+        #    type=Bool,
+        #    default=false,
+        #    description="Whether to transform the Lagrange integral cost into an equivalent Mayer terminal cost.",
+        #),
         scheme=CTModels.OptionSpec(;
             type=AbstractIntegratorScheme, # maybe we should use a Symbol instead?
             default=__scheme(),

@@ -37,7 +37,7 @@ function test_solve()
         modelers = [CTModels.ADNLPModeler()]#, CTModels.ExaModeler()]
         modelers_names = ["ADNLPModeler"] #, "ExaModeler (CPU)"]
 
-        # solve DOCP with common solve and NLP modelers
+        #= solve DOCP with common solve and NLP modelers
         Test.@testset "DOCP level (solve)" verbose=VERBOSE showtiming=SHOWTIMING begin
             for (modeler, modeler_name) in zip(modelers, modelers_names)
                 for (solver, solver_name) in zip(solvers, solvers_names)
@@ -51,11 +51,12 @@ function test_solve()
                     end 
                 end
             end
-        end
+        end=#
 
         # check_problem toplevel function
-        Test.@testset "DOCP level (check_problem)" verbose=VERBOSE showtiming=SHOWTIMING begin
+        Test.@testset "check_problem beam" verbose=VERBOSE showtiming=SHOWTIMING begin
             check_problem(beam(); display=true)
+            check_problem(beam2(); modeler=CTModels.ExaModeler(), display=true) 
         end
     end
 

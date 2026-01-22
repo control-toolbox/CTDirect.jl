@@ -4,7 +4,7 @@
 function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
     # ==========================================================================================
-    # Scheme symbol mapping: just used for direct_transcription
+    # Scheme symbol mapping
     # ==========================================================================================
     SchemeSymbol = Dict(MidpointScheme => :midpoint, TrapezoidalScheme => :trapeze, TrapezeScheme => :trapeze)
     function scheme_symbol(discretizer::Collocation)
@@ -13,13 +13,11 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     end
 
     # ==========================================================================================
-    # Build core DOCP structure with discretization information (ADNLP)
+    # Grid options mapping
+    # unified grid option: Int => grid_size, Vector => explicit time_grid
     # ==========================================================================================
-    function get_docp(; kwargs...)
-        # recover discretization scheme
-        disc_method = scheme_symbol(discretizer)
+    function grid_options(discretizer::Collocation)
 
-        # unified grid option: Int => grid_size, Vector => explicit time_grid
         grid = CTModels.get_option_value(discretizer, :grid)
         if grid isa Int
             grid_size = grid
@@ -29,31 +27,17 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
             time_grid = grid
         end
 
-        #=if modeler == :exa && haskey(kwargs, :backend)
-            # Route ExaModeler backend to CTDirect via exa_backend and drop backend from forwarded kwargs.
-            exa_backend = kwargs[:backend]
-            filtered_kwargs = (; (k => v for (k, v) in pairs(kwargs) if k != :backend)...)
-            docp = CTDirect.direct_transcription(
-                ocp,
-                modeler;
-                grid_size=grid_size,
-                disc_method=scheme_ctdirect,
-                init=init_ctdirect,
-                time_grid=time_grid,
-                exa_backend=exa_backend,
-                filtered_kwargs...,
-            )
-        else
-            docp = CTDirect.direct_transcription(
-                ocp,
-                modeler;
-                grid_size=grid_size,
-                disc_method=scheme_ctdirect,
-                init=init_ctdirect,
-                time_grid=time_grid,
-                kwargs...,
-            )
-        end=#
+        return grid_size, time_grid
+    end
+
+    # ==========================================================================================
+    # Build core DOCP structure with discretization information (ADNLP)
+    # ==========================================================================================
+    function get_docp(; kwargs...)
+        
+        # recover discretization scheme and options
+        disc_method = scheme_symbol(discretizer)
+        grid_size, time_grid = grid_options(discretizer)
 
         # initialize DOCP
         docp = DOCP(
@@ -101,8 +85,6 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # ==========================================================================================
     # The needed builders for the construction of the final DiscretizedOptimalControlProblem
     # ==========================================================================================
-
-    # NLP builder for ADNLPModels
     function build_adnlp_model(
         initial_guess::CTModels.AbstractOptimalControlInitialGuess;
         adnlp_backend=CTDirect.__adnlp_backend(),
@@ -111,6 +93,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     )::ADNLPModels.ADNLPModel
 
         # build docp (to be renamed later as disc_core ?)
+        # +++ todo: share docp with solution builder
         docp = get_docp(; kwargs...)
         
         # functions for objective and constraints
@@ -145,6 +128,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     function build_adnlp_solution(nlp_solution::SolverCore.AbstractExecutionStats)
         
         # build docp (to be renamed later as disc_core ?)
+        # +++ todo share docp with model buidler
         docp = get_docp()
 
         #retrieve data from NLP solver +++TO BE MOVED TO CTMODELS !
@@ -167,21 +151,22 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         kwargs...
     )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
 
-        # build nlp
-        # (time_grid != __time_grid()) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
-       
-        # build docp (to be renamed later as disc_core ?)
+        # recover discretization scheme and options
+        # since exa part does not reuse the docp struct
+        disc_method = scheme_symbol(discretizer)
+        grid_size, time_grid = grid_options(discretizer)
+
+        # build initial guess (ADNLP format)
         docp = get_docp(; kwargs...)
-        
-        # build initial guess
         x0 = get_x0(initial_guess, docp)
 
-        # reshape initial guess 
+        # reshape initial guess for ExaModel variables layout
         # - do not broadcast, apparently fails on GPU arrays
         # - unused final control in examodel / euler, hence the different x0 sizes
         n = CTModels.state_dimension(ocp)
         m = CTModels.control_dimension(ocp)
         q = CTModels.variable_dimension(ocp)
+        grid_size, time_grid = grid_options(discretizer)
         state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] for i in 0:grid_size]...) # grid_size + 1 states
         control = hcat(
         [
@@ -194,6 +179,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         variable = x0[(end - q + 1):end]
 
         # build Exa model and getters
+        # +++ todo share getter with solution builder
         build_exa = CTModels.get_build_examodel(ocp)
         nlp, exa_getter = build_exa(;
             grid_size=grid_size,
@@ -210,13 +196,30 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # Solution builder for ExaModels
     function build_exa_solution(nlp_solution::SolverCore.AbstractExecutionStats)
 
-        error("TODO:build exa solution")
+        # +++ todo share getter with model builder
+        disc_method = scheme_symbol(discretizer)
+        grid_size, time_grid = grid_options(discretizer)
+        build_exa = CTModels.get_build_examodel(ocp)
+        nlp, exa_getter = build_exa(;
+            grid_size=grid_size,
+            scheme=disc_method,
+        )
+
+        #retrieve data from NLP solver +++TO BE MOVED TO CTMODELS !
+        objective, iterations, constraints_violation, message, status, successful = CTDirect.SolverInfos(nlp_solution)
+
+        # retrieve time grid
+        # +++ todo share docp with model buidler
         docp = get_docp()
-        sol = CTDirect.build_OCP_solution(docp, nlp_solution)
+        T = get_time_grid_exa(nlp_solution, docp, exa_getter)
+
+        sol = CTDirect.build_OCP_solution(docp, nlp_solution, objective, iterations, constraints_violation, message, status, successful, T; exa_getter)
+        
         return sol
     end
 
 
+    #NB. it would be better to return builders as model/solution pairs since they are linked
     return CTModels.DiscretizedOptimalControlProblem(
         ocp,
         CTModels.ADNLPModelBuilder(build_adnlp_model),

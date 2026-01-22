@@ -28,6 +28,7 @@ true
 """
 is_empty(t) = (isnothing(t) || length(t) == 0)
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -51,20 +52,14 @@ julia> build_OCP_solution(docp, nlp_solution)
 CTModels.Solution(...)
 ```
 """
+# +++ todo: replace both parsing functions with series of getter calls
+# to unify adnlp / exa cases. the getter takes nlp_solution and a label
 function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecutionStats,
-    objective, iterations, constraints_violation, message, status, successful, T)
+    objective, iterations, constraints_violation, message, status, successful, T;
+    exa_getter = nothing)
 
     # retrieve NLP model and OCP model
-    #nlp = nlp_model(docp)
     ocp = ocp_model(docp)
-
-    # retrieve NLP model backend
-    #nlp_model_backend = docp.nlp_model_backend
-
-    # retrieve data from NLP solver
-    #objective, iterations, constraints_violation, message, status, successful = SolverInfos(
-    #    nlp_solution, nlp
-    #)
 
     # arrays (explicit conversion for GPU case)
     solution = Array(nlp_solution.solution)
@@ -72,29 +67,15 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     multipliers_L = Array(nlp_solution.multipliers_L)
     multipliers_U = Array(nlp_solution.multipliers_U)
 
-    # time grid
-    #if nlp_model_backend isa ADNLPBackend
-    #    T = get_time_grid(solution, docp)
-    #else
-    #    T = get_time_grid_exa(nlp_solution, docp)
-    #end
-
-    # +++ todo: replace both parsing functions with series of getter calls
-    # unify adnlp / exa cases
-
     # primal variables X, U, v and box multipliers
     X, U, v, box_multipliers = parse_DOCP_solution_primal(
-        docp,
-        solution;
-        multipliers_L=multipliers_L,
-        multipliers_U=multipliers_U,
-        #nlp_model_backend=nlp_model_backend,
-        nlp_solution=nlp_solution,
+        docp, solution, multipliers_L, multipliers_U, nlp_solution;
+        exa_getter
     )
 
     # costate and constraints multipliers
     P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(
-        docp, multipliers;
+        docp, multipliers, nlp_solution; exa_getter
     )
 
     return CTModels.build_solution(
@@ -303,7 +284,8 @@ julia> X, U, v, box_mults = parse_DOCP_solution_primal(docp, primal;
 ```
 """
 function parse_DOCP_solution_primal(
-    docp, solution; multipliers_L, multipliers_U, nlp_solution
+    docp, solution, multipliers_L, multipliers_U, nlp_solution; 
+    exa_getter=nothing
 )
 
     # state and control variables
@@ -320,23 +302,8 @@ function parse_DOCP_solution_primal(
     mult_variable_box_lower = zeros(size(v))
     mult_variable_box_upper = zeros(size(v))
 
-    #=if nlp_model_backend isa ExaBackend # Exa
-        getter = docp.exa_getter
-        X[:] = getter(nlp_solution; val=:state)' # transpose to match choice below for ADNLP
-        U[:] = getter(nlp_solution; val=:control)'
-        v[:] = getter(nlp_solution; val=:variable)
-        if !is_empty(multipliers_L)
-            mult_state_box_lower[:] = getter(nlp_solution; val=:state_l)'
-            mult_control_box_lower[:] = getter(nlp_solution; val=:control_l)'
-            mult_variable_box_lower[:] = getter(nlp_solution; val=:variable_l)
-        end
-        if !is_empty(multipliers_U)
-            mult_state_box_upper[:] = getter(nlp_solution; val=:state_u)'
-            mult_control_box_upper[:] = getter(nlp_solution; val=:control_u)'
-            mult_variable_box_upper[:] = getter(nlp_solution; val=:variable_u)
-        end
-
-    else # ADNLP =#
+    if isnothing(exa_getter)
+    # ADNLP
 
         # replace ipopt 0-length arrays with full 0 arrays
         is_empty(multipliers_L) && (multipliers_L = zeros(docp.dim_NLP_variables))
@@ -365,7 +332,22 @@ function parse_DOCP_solution_primal(
                 multipliers_U, docp, i
             )
         end
-    #end
+    else
+        getter = exa_getter
+        X[:] = getter(nlp_solution; val=:state)' # transpose to match choice for ADNLP
+        U[:] = getter(nlp_solution; val=:control)'
+        v[:] = getter(nlp_solution; val=:variable)
+        if !is_empty(multipliers_L)
+            mult_state_box_lower[:] = getter(nlp_solution; val=:state_l)'
+            mult_control_box_lower[:] = getter(nlp_solution; val=:control_l)'
+            mult_variable_box_lower[:] = getter(nlp_solution; val=:variable_l)
+        end
+        if !is_empty(multipliers_U)
+            mult_state_box_upper[:] = getter(nlp_solution; val=:state_u)'
+            mult_control_box_upper[:] = getter(nlp_solution; val=:control_u)'
+            mult_variable_box_upper[:] = getter(nlp_solution; val=:variable_u)
+        end
+    end
 
     box_multipliers = (
         mult_state_box_lower,
@@ -407,22 +389,14 @@ julia> P, path_dual, bound_dual = parse_DOCP_solution_dual(docp, duals; nlp_mode
 ```
 """
 function parse_DOCP_solution_dual(
-    docp, multipliers
+    docp, multipliers, nlp_solution; exa_getter=nothing
 )
 
     # costate
     N = docp.time.steps
     P = zeros(N, docp.dims.NLP_x)
 
-    #=if nlp_model_backend isa ExaBackend # Exa
-        getter = docp.exa_getter
-        P[:] = getter(nlp_solution; val=:costate)' # transpose to match choice below for ADNLP
-        dpc = docp.dims.path_cons
-        dbc = docp.dims.boundary_cons
-        mul_path_constraints = zeros(N + 1, dpc) # todo: add getters for path constraints for :exa in CTParser
-        mul_boundary_constraints = zeros(dbc) # todo: add getters for boundary constraints for :exa in CTParser
-
-    else =# 
+    if isnothing(exa_getter)
         #ADNLP
         disc = disc_model(docp)
 
@@ -463,7 +437,14 @@ function parse_DOCP_solution_dual(
             mul_boundary_constraints[:] = multipliers[i_m:(i_m + dbc - 1)]
             i_m += dbc
         end
-    #end
+    else
+        getter = exa_getter
+        P[:] = getter(nlp_solution; val=:costate)' # transpose to match choice below for ADNLP
+        dpc = docp.dims.path_cons
+        dbc = docp.dims.boundary_cons
+        mul_path_constraints = zeros(N + 1, dpc) # todo: add getters for path constraints for :exa in CTParser
+        mul_boundary_constraints = zeros(dbc) # todo: add getters for boundary constraints for :exa in CTParser
+    end
 
     return P, mul_path_constraints, mul_boundary_constraints
 end

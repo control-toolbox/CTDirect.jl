@@ -266,9 +266,6 @@ Struct representing a discretized optimal control problem (DOCP).
 
 - `discretization::D`: The discretization scheme.
 - `ocp::O`: The original OCP model.
-- `nlp_model_backend::N`: The NLP model backend.
-- `nlp`: The constructed NLP instance.
-- `exa_getter::Union{Nothing,Function}`: Getter for ExaModels if used.
 - `flags::DOCPFlags`: Boolean flags describing problem structure.
 - `dims::DOCPdims`: Problem dimensions.
 - `time::DOCPtime`: Time discretization.
@@ -292,10 +289,6 @@ mutable struct DOCP{
 
     # OCP
     ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
-
-    # NLP
-    #nlp
-    #exa_getter::Union{Nothing,Function} # getter for ExaModels (if used)
 
     # boolean flags
     flags::DOCPFlags
@@ -409,8 +402,6 @@ mutable struct DOCP{
         docp = new{typeof(discretization),typeof(ocp)}(
             discretization,
             ocp,
-            #nothing, # nlp
-            #nothing, # exa_getter
             flags,
             dims,
             time,
@@ -752,6 +743,46 @@ function get_time_grid(xu, docp::DOCP)
     @. grid = t0 + docp.time.normalized_grid * (tf - t0)
     return grid
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve the time grid from the given DOCP solution.
+
+# Arguments
+
+- `nlp_solution`: The DOCP solution.
+- `docp`: The DOCP.
+
+# Returns
+
+- `::Vector{Float64}`: The time grid.
+"""
+function get_time_grid_exa(
+    nlp_solution::SolverCore.AbstractExecutionStats, docp::CTDirect.DOCP, exa_getter
+)
+    grid = zeros(docp.time.steps+1)
+    ocp = docp.ocp
+
+    if docp.flags.freet0 || docp.flags.freetf
+        v = docp.exa_getter(nlp_solution; val=:variable)
+    end
+
+    if docp.flags.freet0
+        t0 = CTModels.initial_time(ocp, v)
+    else
+        t0 = CTModels.initial_time(ocp)
+    end
+    if docp.flags.freetf
+        tf = CTModels.final_time(ocp, v)
+    else
+        tf = CTModels.final_time(ocp)
+    end
+
+    @. grid = t0 + docp.time.normalized_grid * (tf - t0)
+    return grid
+end
+
 
 """
 $(TYPEDSIGNATURES)
