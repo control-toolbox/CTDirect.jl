@@ -7,7 +7,6 @@ version = "1.0.0-beta"
 ADNLPModels = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
 CTBase = "54762871-cc72-4466-b8e8-f6c8b58076cd"
 CTModels = "34c4fa32-2049-4079-8329-de33c2a22e2d"
-
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 ExaModels = "1037b233-b668-4ce9-9b63-f9f681f55dd2"
 HSL = "34c5aeac-e683-54a6-a0e9-6e0fdc586c50"
@@ -36,7 +35,7 @@ NLPModelsIpopt = "0.11"
 NLPModelsKnitro = "0.9"
 SolverCore = "0.3.8"
 SplitApplyCombine = "1"
-julia = "1.10"
+julia = "1.12"
 
 [extras]
 AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"

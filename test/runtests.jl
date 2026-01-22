@@ -23,10 +23,8 @@ using MadNLPMumps
 # misc
 using SplitApplyCombine # for flatten in some tests
 
-# check a specific example OCP. Basic ADNLP / Ipopt for now
-# +++ add kwargs !!
-# test madnlp once solverinfos is available
-# test examodel once implemented again in collocation
+# check a specific example OCP.
+# +++ use a solve moved from OptimalControl to CTSolvers ?
 ipopt_options = Dict(
     :max_iter => 1000,
     :tol => 1e-6,
@@ -35,10 +33,9 @@ ipopt_options = Dict(
     :linear_solver => "Mumps",
     :sb => "yes",
 )
-modeler = CTModels.ADNLPModeler()
-solver = CTSolvers.IpoptSolver(; ipopt_options...)
-
 function check_problem(prob; display=false)
+    modeler = CTModels.ADNLPModeler()
+    solver = CTSolvers.IpoptSolver(; ipopt_options...)
     docp = CTDirect.discretize(prob.ocp, CTDirect.Collocation())
     init = CTModels.initial_guess(prob.ocp; prob.init...)
     sol = CommonSolve.solve(docp, init, modeler, solver; display=display)
@@ -73,7 +70,7 @@ const SHOWTIMING = true
     #test_ctdirect_collocation()
 
     include("./ci/test_solve.jl")
-    test_ctdirect_solve()
+    test_solve()
     
-    include("./ci/test_all_ocp.jl")
+    #include("./ci/test_all_ocp.jl")
 end

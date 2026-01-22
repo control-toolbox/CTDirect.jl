@@ -1,61 +1,5 @@
 # CTDirect interface
 
-# """
-# $(TYPEDSIGNATURES)
-
-# Return a tuple of available NLP model and solver combinations for solving optimal control problems.
-
-# # Returns
-
-# - `algorithms::Tuple`: A tuple of symbol pairs representing the available methods.
-
-# # Example
-
-# ```julia-repl
-# julia> available_methods()
-# ((:adnlp, :ipopt), (:adnlp, :madnlp), (:adnlp, :knitro), (:exa, :ipopt), (:exa, :madnlp), (:exa, :knitro))
-# ```
-# """
-# function available_methods()
-#     # available methods by order of preference
-#     algorithms = ()
-#     algorithms = CTBase.add(algorithms, (:adnlp, :ipopt))
-#     algorithms = CTBase.add(algorithms, (:adnlp, :madnlp))
-#     algorithms = CTBase.add(algorithms, (:adnlp, :knitro))
-#     algorithms = CTBase.add(algorithms, (:exa, :ipopt))
-#     algorithms = CTBase.add(algorithms, (:exa, :madnlp))
-#     algorithms = CTBase.add(algorithms, (:exa, :knitro))
-#     return algorithms
-# end
-
-# solver
-# """
-# $(TYPEDSIGNATURES)
-
-# Solve a discretized optimal control problem using the specified solver backend.
-
-# # Arguments
-
-# - `solver_backend::T`: An NLP solver backend (subtype of `AbstractNLPSolverBackend`).
-# - `docp::CTDirect.DOCP`: The discretized optimal control problem.
-
-# # Returns
-
-# - Throws `CTBase.ExtensionError` if the solver backend is unavailable.
-
-# # Example
-
-# ```julia-repl
-# julia> solve_docp(IpoptBackend(), docp)
-# ERROR: ExtensionError(...)
-# ```
-# """
-# function solve_docp(
-#     solver_backend::T, docp::CTDirect.DOCP; kwargs...
-# ) where {T<:AbstractNLPSolverBackend}
-#     throw(CTBase.ExtensionError(WEAKDEPS[T]...))
-# end
-
 # # modeller
 # """
 # $(TYPEDSIGNATURES)
@@ -86,71 +30,7 @@
 # end
 # # ----------------------------------------------------------------------
 
-# """
-# $(TYPEDSIGNATURES)
 
-# Parse the method description to determine the NLP solver or model.
-
-# # Arguments
-
-# - `description`: A tuple of symbols representing the desired solver and/or model.
-#     - NLP solver: `ipopt`, `madnlp` or `knitro` 
-#     - NLP model: `:adnlp` or `:exa`
-# - `info::Symbol`: Either `:solver` to return the solver backend or `:model` to return the NLP model backend.
-
-# # Returns
-
-# - `nlp_solver_backend` or `nlp_model_backend`: The corresponding backend instance.
-
-# # Example
-
-# ```julia-repl
-# julia> parse_description((:adnlp, :ipopt), :solver)
-# CTDirect.IpoptBackend()
-
-# julia> parse_description((:exa, :madnlp), :model)
-# CTDirect.ExaBackend()
-# ```
-# """
-#function parse_description(description, info)
-
-#     # default: Ipopt, ADNLPModels
-#     method = CTBase.complete(description; descriptions=available_methods())
-
-#     if info == :solver
-#         # get NLP solver choice
-#         if :ipopt ∈ method
-#             nlp_solver_backend = CTDirect.IpoptBackend()
-#         elseif :madnlp ∈ method
-#             nlp_solver_backend = CTDirect.MadNLPBackend()
-#         elseif :knitro ∈ method
-#             nlp_solver_backend = CTDirect.KnitroBackend()
-#         else
-#             error("no known solver (:ipopt, :madnlp, :knitro) in method", method)
-#         end
-
-#         # patch: replaces ipopt by madnlp for :exa as long as the issue with getters for a posteriori treatment is not fixed
-#         #=if (:exa ∈ method) && (:ipopt ∈ method)
-#             nlp_solver_backend = CTDirect.MadNLPBackend()
-#             @warn "currently replacing Ipopt with MadNLP for :exa"
-#         end=#
-#         return nlp_solver_backend
-
-#     elseif info == :model
-#         # get NLP model choice
-#         if :adnlp ∈ method
-#             nlp_model_backend = CTDirect.ADNLPBackend()
-#         elseif :exa ∈ method
-#             nlp_model_backend = CTDirect.ExaBackend()
-#         else
-#             error("no known model (:adnlp, :exa) in method", method)
-#         end
-#         return nlp_model_backend
-#     else
-#         error("parse_description info should be either :solver or :model, got ", info)
-#         return nothing
-#     end
-# end
 
 # """
 # $(TYPEDSIGNATURES)

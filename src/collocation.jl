@@ -13,11 +13,10 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     end
 
     # ==========================================================================================
-    # Build a DOCP from existing CTDirect.direct_transcription call
-    # This will be replace by new implementations of build models / solutions
+    # Build core DOCP structure with discretization information (ADNLP)
     # ==========================================================================================
     function get_docp(
-        modeler::Symbol;
+        #modeler::Symbol;
         kwargs...,
     )
         # recover discretization scheme
@@ -74,7 +73,9 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         return docp
     end
 
-
+    # ==========================================================================================
+    # Build initial guess for discretized problem
+    # ==========================================================================================
     function get_x0(
         initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing},
         docp
@@ -84,7 +85,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         if (initial_guess === nothing)
             init = nothing
         else
-            init =
+            init = 
             (
                 state=CTModels.state(initial_guess),
                 control=CTModels.control(initial_guess),
@@ -100,11 +101,11 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         
     end
 
-
     # ==========================================================================================
     # The needed builders for the construction of the final DiscretizedOptimalControlProblem
     # ==========================================================================================
 
+    # NLP builder for ADNLPModels
     function build_adnlp_model(
         initial_guess::CTModels.AbstractOptimalControlInitialGuess;
         adnlp_backend=CTDirect.__adnlp_backend(),
@@ -113,7 +114,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     )::ADNLPModels.ADNLPModel
 
         # build docp (to be renamed later as disc_core ?)
-        docp = get_docp(:adnlp; kwargs...)
+        docp = get_docp(; kwargs...)
         
         # functions for objective and constraints
         f = x -> CTDirect.DOCP_objective(x, docp)
@@ -143,12 +144,13 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         return nlp
     end
 
+    # Solution builder for ADNLPModels
     function build_adnlp_solution(nlp_solution::SolverCore.AbstractExecutionStats)
         
         # build docp (to be renamed later as disc_core ?)
         docp = get_docp(:adnlp)
 
-        #+++ retrieve data from NLP solver
+        #retrieve data from NLP solver +++TO BE MOVED TO CTMODELS !
         objective, iterations, constraints_violation, message, status, successful = CTDirect.SolverInfos(nlp_solution)
 
         # retrieve time grid
@@ -160,18 +162,63 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         return sol
     end
 
+    # NLP builder for ExaModels
     function build_exa_model(
-        ::Type{BaseType}, initial_guess::CTModels.AbstractOptimalControlInitialGuess; kwargs...
+        ::Type{BaseType}, 
+        initial_guess::CTModels.AbstractOptimalControlInitialGuess; 
+        exa_backend=CTDirect.__exa_backend(),
+        kwargs...
     )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
-        docp = get_docp(initial_guess, :exa; kwargs...)
-        return CTDirect.nlp_model(docp)
+
+        # build nlp
+        # (time_grid != __time_grid()) || throw("non uniform time grid not available for nlp_model = :exa") # todo: remove when implemented in CTParser
+       
+        # build docp (to be renamed later as disc_core ?)
+        docp = get_docp(; kwargs...)
+        
+        # build initial guess
+        x0 = get_x0(initial_guess, docp)
+
+        # reshape initial guess 
+        # - do not broadcast, apparently fails on GPU arrays
+        # - unused final control in examodel / euler, hence the different x0 sizes
+        n = CTModels.state_dimension(ocp)
+        m = CTModels.control_dimension(ocp)
+        q = CTModels.variable_dimension(ocp)
+        state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] for i in 0:grid_size]...) # grid_size + 1 states
+        control = hcat(
+        [
+            x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] for
+            i in 0:(grid_size - 1)
+        ]...,
+        ) # grid_size controls...
+        # +++ todo: pass indeed to grid_size only for euler(_b), trapeze and midpoint
+        control = [control control[:, end]] 
+        variable = x0[(end - q + 1):end]
+
+        # build Exa model and getters
+        build_exa = CTModels.get_build_examodel(ocp)
+        nlp, exa_getter = build_exa(;
+            grid_size=grid_size,
+            backend=exa_backend,
+            scheme=disc_method,
+            init=(variable, state, control),
+        )
+        # remark: nlp.meta.x0[1:docp.dim_NLP_variables] = -vcat(state..., control..., variable) 
+        # also work, and supersedes previous init via ExaModels start (itself overridden by init in solve)
+    
+        return nlp
     end
 
+    # Solution builder for ExaModels
     function build_exa_solution(nlp_solution::SolverCore.AbstractExecutionStats)
+
+        error("TODO:build exa solution")
         docp = get_docp(nothing, :exa)
-        solu = CTDirect.build_OCP_solution(docp, nlp_solution)
-        return solu
+        sol = CTDirect.build_OCP_solution(docp, nlp_solution)
+        return sol
     end
+
 
     return CTModels.DiscretizedOptimalControlProblem(
         ocp,

@@ -2,7 +2,7 @@
 
 include("../problems/beam.jl")
 
-function test_ctdirect_solve()
+function test_solve()
 
     # common options
     ipopt_options = Dict(
