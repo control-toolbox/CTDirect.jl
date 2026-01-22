@@ -25,9 +25,11 @@ using SplitApplyCombine # for flatten in some tests
 
 # check a specific example OCP.
 # +++ use a solve moved from OptimalControl to CTSolvers ?
+max_iter = 1000
+tol = 1e-6
 ipopt_options = Dict(
-    :max_iter => 1000,
-    :tol => 1e-6,
+    :max_iter => max_iter,
+    :tol => tol,
     :print_level => 3,
     :mu_strategy => "adaptive",
     :linear_solver => "Mumps",
@@ -39,6 +41,9 @@ function check_problem(prob; display=false)
     docp = CTDirect.discretize(prob.ocp, CTDirect.Collocation())
     init = CTModels.initial_guess(prob.ocp; prob.init...)
     sol = CommonSolve.solve(docp, init, modeler, solver; display=display)
+    @test CTModels.successful(sol)
+    @test CTModels.iterations(sol) <= max_iter
+    @test CTModels.constraints_violation(sol) <= tol
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 

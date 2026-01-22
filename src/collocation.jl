@@ -15,10 +15,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # ==========================================================================================
     # Build core DOCP structure with discretization information (ADNLP)
     # ==========================================================================================
-    function get_docp(
-        #modeler::Symbol;
-        kwargs...,
-    )
+    function get_docp(; kwargs...)
         # recover discretization scheme
         disc_method = scheme_symbol(discretizer)
 
@@ -148,7 +145,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     function build_adnlp_solution(nlp_solution::SolverCore.AbstractExecutionStats)
         
         # build docp (to be renamed later as disc_core ?)
-        docp = get_docp(:adnlp)
+        docp = get_docp()
 
         #retrieve data from NLP solver +++TO BE MOVED TO CTMODELS !
         objective, iterations, constraints_violation, message, status, successful = CTDirect.SolverInfos(nlp_solution)
@@ -214,7 +211,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     function build_exa_solution(nlp_solution::SolverCore.AbstractExecutionStats)
 
         error("TODO:build exa solution")
-        docp = get_docp(nothing, :exa)
+        docp = get_docp()
         sol = CTDirect.build_OCP_solution(docp, nlp_solution)
         return sol
     end
