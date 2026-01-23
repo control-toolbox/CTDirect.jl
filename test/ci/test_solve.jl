@@ -22,7 +22,7 @@ function test_solve()
     Test.@testset "integration: beam_docp" verbose=VERBOSE showtiming=SHOWTIMING begin
 
         # load and discretize OCP
-        beam_data = beam()
+        beam_data = beam2() # use exa-compatible version
         ocp = beam_data.ocp
         init = CTModels.initial_guess(ocp; beam_data.init...)
         discretizer = CTDirect.Collocation()
@@ -34,10 +34,10 @@ function test_solve()
         solvers_names = ["Ipopt"]
 
         # NLP modelers
-        modelers = [CTModels.ADNLPModeler()]#, CTModels.ExaModeler()]
-        modelers_names = ["ADNLPModeler"] #, "ExaModeler (CPU)"]
+        modelers = [CTModels.ADNLPModeler(), CTModels.ExaModeler()]
+        modelers_names = ["ADNLPModeler", "ExaModeler (CPU)"]
 
-        #= solve DOCP with common solve and NLP modelers
+        # solve DOCP with common solve and NLP modelers
         Test.@testset "DOCP level (solve)" verbose=VERBOSE showtiming=SHOWTIMING begin
             for (modeler, modeler_name) in zip(modelers, modelers_names)
                 for (solver, solver_name) in zip(solvers, solvers_names)
@@ -51,7 +51,7 @@ function test_solve()
                     end 
                 end
             end
-        end=#
+        end
 
         # check_problem toplevel function
         Test.@testset "check_problem beam" verbose=VERBOSE showtiming=SHOWTIMING begin

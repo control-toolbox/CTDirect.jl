@@ -36,12 +36,6 @@ end
 const VERBOSE = true
 const SHOWTIMING = true
 @testset verbose = VERBOSE showtiming = SHOWTIMING "New tests for CTDirect" begin
-    #include("./ci/test_core_types.jl")
-    #test_ctdirect_core_types()
-    #include("./ci/test_discretization_api.jl")
-    #test_ctdirect_discretization_api()
-    #include("./ci/test_collocation.jl")
-    #test_ctdirect_collocation()
 
     include("./ci/test_solve.jl")
     test_solve()

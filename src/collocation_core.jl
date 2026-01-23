@@ -784,24 +784,6 @@ function get_time_grid_exa(
 end
 
 
-"""
-$(TYPEDSIGNATURES)
-
-Helper for invalid execution paths.
-
-Always throws an error.
-
-# Example
-
-```julia-repl
-julia> get_time_grid_exa()
-ERROR: you should not be here
-```
-"""
-function get_time_grid_exa()
-    error("you should not be here")
-    return nothing
-end
 
 """
 $(TYPEDSIGNATURES)

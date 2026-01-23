@@ -28,6 +28,14 @@ true
 """
 is_empty(t) = (isnothing(t) || length(t) == 0)
 
+function SolverInfos(nlp_solution::SolverCore.AbstractExecutionStats)
+    objective = nlp_solution.objective
+    iterations = nlp_solution.iter
+    constraints_violation = nlp_solution.primal_feas
+    status = nlp_solution.status
+    successful = (status == :first_order) || (status == :acceptable)
+    return objective, iterations, constraints_violation, "Ipopt/generic", status, successful
+end
 
 """
 $(TYPEDSIGNATURES)
@@ -102,61 +110,6 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     )
 end
 
-"""
-$(TYPEDSIGNATURES)
-
-Return default convergence information for an NLP solution.
-
-# Returns
-
-- `(objective, iterations, constraints_violation, message, status, successful)`:  
-  Default values representing an undefined solver state.
-
-# Example
-
-```julia-repl
-julia> SolverInfos()
-(0.0, 0, 0.0, "undefined", :undefined, true)
-```
-"""
-function SolverInfos()
-    return 0.0, 0, 0.0, "undefined", :undefined, true
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Retrieve convergence information from an NLP solution.
-
-# Arguments
-
-- `nlp_solution`: A solver execution statistics object.
-
-# Returns
-
-- `(objective, iterations, constraints_violation, message, status, successful)`:  
-  A tuple containing the final objective value, iteration count,
-  primal feasibility, solver message, solver status, and success flag.
-
-# Example
-
-```julia-repl
-julia> SolverInfos(nlp_solution)
-(1.23, 15, 1.0e-6, "Ipopt/generic", :first_order, true)
-```
-"""
-# +++ move to CTSolvers, but should be accessible from CTDirect !
-
-function SolverInfos(
-    nlp_solution::SolverCore.AbstractExecutionStats
-)
-    objective = nlp_solution.objective
-    iterations = nlp_solution.iter
-    constraints_violation = nlp_solution.primal_feas
-    status = nlp_solution.status
-    successful = (status == :first_order) || (status == :acceptable)
-    return objective, iterations, constraints_violation, "Ipopt/generic", status, successful
-end
 
 #=
 """
