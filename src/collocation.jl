@@ -54,8 +54,6 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         return docp
     end
 
-    discretizer.docp = get_docp()
-
     # ==========================================================================================
     # Build initial guess for discretized problem
     # ==========================================================================================
@@ -81,8 +79,16 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
         # build discretized initial guess
         x0 = DOCP_initial_guess(docp, functional_init)
-        
+   
+        #+++ add adjustment for exa case here, with input flag for modeler ?
+
+        return x0
     end
+
+    #+++get_x0_exa() see exa model builder below, call get_x0 and return init triplet
+
+    # construct common data for builders
+    discretizer.docp = get_docp()
 
     # ==========================================================================================
     # The needed builders for the construction of the final DiscretizedOptimalControlProblem
@@ -95,8 +101,6 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     )::ADNLPModels.ADNLPModel
 
         # build docp (to be renamed later as disc_core ?)
-        # +++ share
-        #docp = get_docp()
         docp = discretizer.docp
         
         # functions for objective and constraints
@@ -131,8 +135,6 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     function build_adnlp_solution(nlp_solution::SolverCore.AbstractExecutionStats)
         
         # build docp (to be renamed later as disc_core ?)
-        # +++ share
-        #docp = get_docp()
         docp = discretizer.docp
 
         #retrieve data from NLP solver
@@ -162,10 +164,10 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         grid_size, time_grid = grid_options(discretizer)
 
         # build initial guess (ADNLP format)
-        #docp = get_docp() +++ share
         docp = discretizer.docp
         x0 = get_x0(initial_guess, docp)
 
+        #+++ use aux function here  get_x0_exa()
         # reshape initial guess for ExaModel variables layout
         # - do not broadcast, apparently fails on GPU arrays
         # - unused final control in examodel / euler, hence the different x0 sizes
@@ -216,8 +218,6 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         objective, iterations, constraints_violation, message, status, successful = CTDirect.SolverInfos(nlp_solution)
 
         # retrieve time grid
-        # +++ share
-        #docp = get_docp()
         docp = discretizer.docp
         T = get_time_grid_exa(nlp_solution, docp, exa_getter)
 

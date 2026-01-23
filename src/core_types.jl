@@ -22,7 +22,7 @@ mutable struct Collocation{T<:AbstractIntegratorScheme} <: AbstractOptimalContro
     options_sources
 
     docp
-    #x0+++
+    #x0 ? requires initial guess data...
 end
 
 # useful for OptimalControl. Should be a field of AbstractOptimalControlDiscretizer with default getter, for consistency.
