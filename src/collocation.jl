@@ -8,10 +8,13 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # ==========================================================================================
     # Scheme symbol mapping
     # ==========================================================================================
-    SchemeSymbol = Dict(MidpointScheme => :midpoint, TrapezoidalScheme => :trapeze, TrapezeScheme => :trapeze)
+    #=SchemeSymbol = Dict(MidpointScheme => :midpoint, TrapezoidalScheme => :trapeze, TrapezeScheme => :trapeze)
     function scheme_symbol(discretizer::Collocation)
         scheme = CTModels.get_option_value(discretizer, :scheme)
         return SchemeSymbol[typeof(scheme)]
+    end=#
+    function scheme(discretizer::Collocation)
+        return CTModels.get_option_value(discretizer, :scheme)
     end
 
     # ==========================================================================================
@@ -38,7 +41,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     function get_docp()
         
         # recover discretization scheme and options
-        disc_method = scheme_symbol(discretizer)
+        scheme = scheme(discretizer)
         grid_size, time_grid = grid_options(discretizer)
 
         # initialize DOCP
@@ -46,7 +49,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
             ocp;
             grid_size=grid_size,
             time_grid=time_grid,
-            disc_method=disc_method,
+            scheme=scheme,
         )
 
         # set bounds in DOCP
@@ -107,7 +110,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         kwargs...
     )::ADNLPModels.ADNLPModel
 
-        # build docp (to be renamed later as disc_core ?)
+        # recover docp
         docp = discretizer.docp
         
         # functions for objective and constraints
@@ -141,14 +144,12 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # Solution builder for ADNLPModels
     function build_adnlp_solution(nlp_solution::SolverCore.AbstractExecutionStats)
         
-        # build docp (to be renamed later as disc_core ?)
-        docp = discretizer.docp
-
         #retrieve data from NLP solver
         #objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution)
         objective, iterations, constraints_violation, message, status, successful = CTDirect.SolverInfos(nlp_solution)
 
         # retrieve time grid
+        docp = discretizer.docp
         T = get_time_grid(nlp_solution.solution, docp)
 
         # build OCP solution from NLP solution
@@ -167,7 +168,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
         # recover discretization scheme and options
         # since exa part does not reuse the docp struct
-        disc_method = scheme_symbol(discretizer)
+        scheme = scheme(discretizer)
         grid_size, time_grid = grid_options(discretizer)
 
         # build initial guess (ADNLP format)
@@ -181,7 +182,6 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         n = CTModels.state_dimension(ocp)
         m = CTModels.control_dimension(ocp)
         q = CTModels.variable_dimension(ocp)
-        grid_size, time_grid = grid_options(discretizer)
         state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] for i in 0:grid_size]...) # grid_size + 1 states
         control = hcat(
         [
@@ -200,7 +200,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         nlp, discretizer.exa_getter = build_exa(;
             grid_size=grid_size,
             backend=exa_backend,
-            scheme=disc_method,
+            scheme=scheme,
             init=(variable, state, control),
         )
         # remark: nlp.meta.x0[1:docp.dim_NLP_variables] = -vcat(state..., control..., variable) 
@@ -212,16 +212,6 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # Solution builder for ExaModels
     function build_exa_solution(nlp_solution::SolverCore.AbstractExecutionStats)
 
-        #= +++ share
-        disc_method = scheme_symbol(discretizer)
-        grid_size, time_grid = grid_options(discretizer)
-        build_exa = CTModels.get_build_examodel(ocp)
-        nlp, exa_getter = build_exa(;
-            grid_size=grid_size,
-            scheme=disc_method,
-        )=#
-        
-
         #retrieve data from NLP solver
         #objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution)
         objective, iterations, constraints_violation, message, status, successful = CTDirect.SolverInfos(nlp_solution)
@@ -231,6 +221,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         exa_getter = discretizer.exa_getter
         T = get_time_grid_exa(nlp_solution, docp, exa_getter)
 
+        # build OCP solution from NLP solution
         sol = CTDirect.build_OCP_solution(docp, nlp_solution, objective, iterations, constraints_violation, message, status, successful, T; exa_getter)
         
         return sol

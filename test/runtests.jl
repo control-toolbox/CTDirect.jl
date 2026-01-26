@@ -33,9 +33,8 @@ end
 const VERBOSE = true
 const SHOWTIMING = true
 @testset verbose = VERBOSE showtiming = SHOWTIMING "New tests for CTDirect" begin
-
-    include("./ci/test_solve.jl")
-    test_solve()
     
-    #include("./ci/test_all_ocp.jl")
+    # test collection of OCP in problems/ 
+    include("./ci/test_all_ocp.jl")
+
 end

@@ -311,7 +311,7 @@ mutable struct DOCP{
         ocp::CTModels.Model;
         grid_size=__grid_size(),
         time_grid=__time_grid(),
-        disc_method=__disc_method(),
+        scheme=__scheme(),
         )
 
         # boolean flags
@@ -330,35 +330,35 @@ mutable struct DOCP{
                     dims.NLP_v,
                     dims.path_cons,
                     dims.boundary_cons]
-        if disc_method == :trapeze
+        if scheme == :trapeze
             discretization, dim_NLP_variables, dim_NLP_constraints = 
             CTDirect.Trapeze(disc_args...)
 
-        elseif disc_method == :midpoint
+        elseif scheme == :midpoint
             discretization, dim_NLP_variables, dim_NLP_constraints = 
             CTDirect.Midpoint(disc_args...)
 
-        elseif disc_method == :euler || disc_method == :euler_explicit || disc_method == :euler_forward
+        elseif scheme == :euler || scheme == :euler_explicit || scheme == :euler_forward
             discretization, dim_NLP_variables, dim_NLP_constraints = 
             CTDirect.Euler(disc_args...)
-        elseif disc_method == :euler_implicit || disc_method == :euler_backward
+        elseif scheme == :euler_implicit || scheme == :euler_backward
             discretization, dim_NLP_variables, dim_NLP_constraints = 
             CTDirect.Euler(disc_args...; explicit=false)
 
-        elseif disc_method == :gauss_legendre_2
+        elseif scheme == :gauss_legendre_2
             discretization, dim_NLP_variables, dim_NLP_constraints = 
             CTDirect.Gauss_Legendre_2(disc_args...)
 
-        elseif disc_method == :gauss_legendre_3
+        elseif scheme == :gauss_legendre_3
             discretization, dim_NLP_variables, dim_NLP_constraints = 
             CTDirect.Gauss_Legendre_3(disc_args...)
 
         else
             error(
                 "Unknown discretization method: ",
-                disc_method,
-                "\nValid options are disc_method={:trapeze, :midpoint, :euler | :euler_explicit | :euler_forward, :euler_implicit | :euler_backward, :gauss_legendre_2, :gauss_legendre_3}\n",
-                typeof(disc_method),
+                scheme,
+                "\nValid options are scheme={:trapeze, :midpoint, :euler | :euler_explicit | :euler_forward, :euler_implicit | :euler_backward, :gauss_legendre_2, :gauss_legendre_3}\n",
+                typeof(scheme),
             )
         end
 

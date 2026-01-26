@@ -2,10 +2,10 @@
 # Discretization schemes
 # ---------------------------------------------------------------------------
 # to merge with structs in `disc/`
-abstract type AbstractIntegratorScheme end
-struct MidpointScheme <: AbstractIntegratorScheme end
-struct TrapezoidalScheme <: AbstractIntegratorScheme end
-const TrapezeScheme = TrapezoidalScheme
+#abstract type AbstractIntegratorScheme end
+#struct MidpointScheme <: AbstractIntegratorScheme end
+#struct TrapezoidalScheme <: AbstractIntegratorScheme end
+#const TrapezeScheme = TrapezoidalScheme
 
 # ---------------------------------------------------------------------------
 # Abstract discretizer type
@@ -16,7 +16,7 @@ abstract type AbstractOptimalControlDiscretizer <: CTModels.AbstractOCPTool end
 # ---------------------------------------------------------------------------
 # Collocation discretizer
 # ---------------------------------------------------------------------------
-mutable struct Collocation{T<:AbstractIntegratorScheme} <: AbstractOptimalControlDiscretizer
+mutable struct Collocation <: AbstractOptimalControlDiscretizer
     # required to be able to use default CTModels.AbstractOCPTool getters
     options_values
     options_sources
@@ -32,7 +32,7 @@ CTModels.get_symbol(::Type{<:Collocation}) = :collocation
 
 # default options (related to default.jl)
 __grid_size()::Int = 250
-__scheme()::AbstractIntegratorScheme = MidpointScheme()
+__scheme()::Symbol = :midpoint
 __grid()::Union{Int,AbstractVector} = __grid_size()
 
 # options specs: for each option, we define the type, default value, and description.
@@ -44,7 +44,7 @@ function CTModels._option_specs(::Type{<:Collocation})
             description="Collocation grid (Int = number of time steps, Vector = explicit time grid).",
         ),
         scheme=CTModels.OptionSpec(;
-            type=AbstractIntegratorScheme, # maybe we should use a Symbol instead?
+            type=Symbol,
             default=__scheme(),
             description="Time integration scheme used by the collocation discretizer.",
         ),
@@ -63,7 +63,7 @@ function Collocation(; kwargs...)
     # exa getter
     exa_getter = nothing
 
-    return Collocation{typeof(scheme)}(values, sources, docp, exa_getter)
+    return Collocation(values, sources, docp, exa_getter)
 end
 
 # ---------------------------------------------------------------------------
