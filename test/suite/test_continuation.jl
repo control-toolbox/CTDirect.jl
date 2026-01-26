@@ -1,4 +1,5 @@
 println("testing: discrete continuation")
++++ append to initial guess tests
 
 test1 = true
 test2 = true

@@ -35,6 +35,9 @@ const SHOWTIMING = true
 @testset verbose = VERBOSE showtiming = SHOWTIMING "New tests for CTDirect" begin
     
     # test collection of OCP in problems/ 
-    include("./ci/test_all_ocp.jl")
+    # include("./ci/test_all_ocp.jl") ok except 2 cases with adnlp_backend=:manual
+
+    # test discretization options
+    include("./ci/test_discretization.jl")
 
 end

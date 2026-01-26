@@ -1,7 +1,7 @@
 # CT packages
 using CTBase
 using CTParser: CTParser, @def
-using CTModels
+using CTModels: CTModels, objective, time_grid, iterations
 using CTDirect
 using CTSolvers
 

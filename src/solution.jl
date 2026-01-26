@@ -28,6 +28,7 @@ true
 """
 is_empty(t) = (isnothing(t) || length(t) == 0)
 
+# +++ will be in ctmodels instead
 function SolverInfos(nlp_solution::SolverCore.AbstractExecutionStats)
     objective = nlp_solution.objective
     iterations = nlp_solution.iter
@@ -110,100 +111,6 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     )
 end
 
-
-#=
-"""
-$(TYPEDSIGNATURES)
-
-Build an OCP functional solution from a DOCP discrete solution, given
-explicit primal variables, and optionally dual variables and bound
-multipliers.
-
-# Arguments
-
-- `docp`: The discretized optimal control problem (`DOCP`).
-- `primal`: Array of primal decision variables.
-- `dual`: Array of dual variables (default: `nothing`).
-- `multipliers_L`: Lower bound multipliers (default: `nothing`).
-- `multipliers_U`: Upper bound multipliers (default: `nothing`).
-- `nlp_model_backend`: The NLP model backend (default: `ADNLPBackend()`).
-- `nlp_solution`: A solver execution statistics object.
-
-# Returns
-
-- `solution::CTModels.Solution`: A functional OCP solution with
-  trajectories, multipliers, and solver information.
-
-# Example
-
-```julia-repl
-julia> build_OCP_solution(docp; primal=primal_vars, nlp_solution=nlp_solution)
-CTModels.Solution(...)
-```
-"""
-function build_OCP_solution(
-    docp;
-    primal,
-    dual=nothing,
-    multipliers_L=nothing,
-    multipliers_U=nothing,
-    #nlp_model_backend=ADNLPBackend(),
-    nlp_solution,
-)
-    ocp = ocp_model(docp)
-    solution = primal
-
-    # dummy info
-    #objective, iterations, constraints_violation, message, status, successful = SolverInfos()
-
-    # recompute objective
-    objective = DOCP_objective(solution, docp)
-
-    # time grid
-    if nlp_model_backend isa ADNLPBackend
-        T = get_time_grid(solution, docp)
-    else
-        T = get_time_grid_exa(nlp_solution, docp)
-    end
-
-    # primal variables X, U, v and box multipliers
-    X, U, v, box_multipliers = parse_DOCP_solution_primal(
-        docp,
-        solution;
-        multipliers_L=multipliers_L,
-        multipliers_U=multipliers_U,
-        nlp_model_backend=nlp_model_backend,
-        nlp_solution=nlp_solution,
-    )
-
-    # costate and constraints multipliers
-    P, path_constraints_dual, boundary_constraints_dual = parse_DOCP_solution_dual(
-        docp, dual; nlp_model_backend=nlp_model_backend, nlp_solution=nlp_solution
-    )
-
-    return CTModels.build_solution(
-        ocp,
-        T,
-        X,
-        U,
-        v,
-        P;
-        objective=objective,
-        iterations=iterations,
-        constraints_violation=constraints_violation,
-        message=message,
-        status=status,
-        successful=successful,
-        path_constraints_dual=path_constraints_dual,
-        boundary_constraints_dual=boundary_constraints_dual,
-        state_constraints_lb_dual=box_multipliers[1],
-        state_constraints_ub_dual=box_multipliers[2],
-        control_constraints_lb_dual=box_multipliers[3],
-        control_constraints_ub_dual=box_multipliers[4],
-        variable_constraints_lb_dual=box_multipliers[5],
-        variable_constraints_ub_dual=box_multipliers[6],
-    )
-end=#
 
 """
 $(TYPEDSIGNATURES)

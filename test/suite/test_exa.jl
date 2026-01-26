@@ -1,5 +1,6 @@
 # ExaModels tests, CPU + GPU (when available)
-# +++ later move these to runtest with the others
+# +++ move to test_modeler_solver ?
+# and keep gpu only here ?
 using MadNLPGPU
 using CUDA
 using AMDGPU

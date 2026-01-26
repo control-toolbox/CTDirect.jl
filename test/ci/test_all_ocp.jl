@@ -64,7 +64,7 @@ if !isdefined(Main, :insurance)
     include("../problems/insurance.jl")
 end
 @testset verbose = true showtiming = true ":insurance" begin
-    test_problem(insurance(), disc_method=:trapeze)
+    test_problem(insurance(), scheme=:trapeze)
 end
 
 # jackson
@@ -88,7 +88,7 @@ if !isdefined(Main, :quadrotor)
     include("../problems/quadrotor.jl")
 end
 @testset verbose = true showtiming = true ":quadrotor" begin
-    test_problem(moonlander(), adnlp_backend=:manual, disc_method=:midpoint)
+    test_problem(moonlander(), adnlp_backend=:manual)
 end
 
 # robbins
