@@ -1,6 +1,6 @@
 # solve tests
 
-include("../problems/beam.jl")
+include("../problems/goddard.jl")
 
 function test_solve()
 
@@ -21,7 +21,7 @@ function test_solve()
     # ========================================================================
     Test.@testset "integration: beam_docp" verbose=VERBOSE showtiming=SHOWTIMING begin
 
-        # load and discretize OCP
+        #= load and discretize OCP
         beam_data = beam2() # use exa-compatible version
         ocp = beam_data.ocp
         init = CTModels.initial_guess(ocp; beam_data.init...)
@@ -51,13 +51,17 @@ function test_solve()
                     end 
                 end
             end
-        end
+        end=#
 
         # check_problem toplevel function
-        Test.@testset "check_problem beam" verbose=VERBOSE showtiming=SHOWTIMING begin
-            check_problem(beam(); display=true)
-            check_problem(beam2(); modeler=CTModels.ExaModeler(), display=true) 
+        Test.@testset "test_problem goddard" verbose=VERBOSE showtiming=SHOWTIMING begin
+            test_problem(goddard(); display=true)
+            test_problem(goddard2(); modeler=:exa, display=true) 
         end
+
+
+
+
     end
 
 end

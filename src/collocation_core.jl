@@ -323,64 +323,36 @@ mutable struct DOCP{
         # time grid
         time = DOCPtime(ocp, grid_size, time_grid)
 
-        # discretization method (+++ try to unify this if possible)
+        # discretization method 
+        disc_args = [time.steps, 
+                    dims.NLP_x, 
+                    dims.NLP_u, 
+                    dims.NLP_v,
+                    dims.path_cons,
+                    dims.boundary_cons]
         if disc_method == :trapeze
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Trapeze(
-                time.steps,
-                dims.NLP_x,
-                dims.NLP_u,
-                dims.NLP_v,
-                dims.path_cons,
-                dims.boundary_cons,
-            )
+            discretization, dim_NLP_variables, dim_NLP_constraints = 
+            CTDirect.Trapeze(disc_args...)
+
         elseif disc_method == :midpoint
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Midpoint(
-                time.steps,
-                dims.NLP_x,
-                dims.NLP_u,
-                dims.NLP_v,
-                dims.path_cons,
-                dims.boundary_cons,
-            )
-        elseif disc_method == :euler ||
-            disc_method == :euler_explicit ||
-            disc_method == :euler_forward
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler(
-                time.steps,
-                dims.NLP_x,
-                dims.NLP_u,
-                dims.NLP_v,
-                dims.path_cons,
-                dims.boundary_cons,
-            )
+            discretization, dim_NLP_variables, dim_NLP_constraints = 
+            CTDirect.Midpoint(disc_args...)
+
+        elseif disc_method == :euler || disc_method == :euler_explicit || disc_method == :euler_forward
+            discretization, dim_NLP_variables, dim_NLP_constraints = 
+            CTDirect.Euler(disc_args...)
         elseif disc_method == :euler_implicit || disc_method == :euler_backward
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Euler(
-                time.steps,
-                dims.NLP_x,
-                dims.NLP_u,
-                dims.NLP_v,
-                dims.path_cons,
-                dims.boundary_cons;
-                explicit=false,
-            )
+            discretization, dim_NLP_variables, dim_NLP_constraints = 
+            CTDirect.Euler(disc_args...; explicit=false)
+
         elseif disc_method == :gauss_legendre_2
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_2(
-                time.steps,
-                dims.NLP_x,
-                dims.NLP_u,
-                dims.NLP_v,
-                dims.path_cons,
-                dims.boundary_cons,
-            )
+            discretization, dim_NLP_variables, dim_NLP_constraints = 
+            CTDirect.Gauss_Legendre_2(disc_args...)
+
         elseif disc_method == :gauss_legendre_3
-            discretization, dim_NLP_variables, dim_NLP_constraints = CTDirect.Gauss_Legendre_3(
-                time.steps,
-                dims.NLP_x,
-                dims.NLP_u,
-                dims.NLP_v,
-                dims.path_cons,
-                dims.boundary_cons,
-            )
+            discretization, dim_NLP_variables, dim_NLP_constraints = 
+            CTDirect.Gauss_Legendre_3(disc_args...)
+
         else
             error(
                 "Unknown discretization method: ",
@@ -653,7 +625,7 @@ function DOCP_constraints!(c, xu, docp::DOCP)
         )
     end
 
-    # NB. the function *needs* to return c for AD...
+    # NB. the function *needs* to return c for ADNLPModels
     return c
 end
 
@@ -765,7 +737,7 @@ function get_time_grid_exa(
     ocp = docp.ocp
 
     if docp.flags.freet0 || docp.flags.freetf
-        v = docp.exa_getter(nlp_solution; val=:variable)
+        v = exa_getter(nlp_solution; val=:variable)
     end
 
     if docp.flags.freet0

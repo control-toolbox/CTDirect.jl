@@ -3,6 +3,8 @@
 # ---------------------------------------------------------------------------
 function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
+    # +++ some of these functions could be outside the discretizer ?
+
     # ==========================================================================================
     # Scheme symbol mapping
     # ==========================================================================================
@@ -57,12 +59,9 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # ==========================================================================================
     # Build initial guess for discretized problem
     # ==========================================================================================
-    function get_x0(
-        initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing},
-        docp
-        )
-
-        # build initial guess data
+    function get_functional_init(initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing})
+        
+        # set initial guess data
         if (initial_guess === nothing)
             init = nothing
         else
@@ -74,18 +73,26 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
             )
         end
 
+        # return functional initial guess
+        return CTModels.build_initial_guess(ocp, init)
+    end
+    
+    function get_x0(
+        initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing},
+        docp
+        )
+
         # build functional initial guess
-        functional_init = CTModels.build_initial_guess(ocp, init)
+        functional_init = get_functional_init(initial_guess)
 
         # build discretized initial guess
         x0 = DOCP_initial_guess(docp, functional_init)
    
-        #+++ add adjustment for exa case here, with input flag for modeler ?
-
         return x0
     end
 
-    #+++get_x0_exa() see exa model builder below, call get_x0 and return init triplet
+    #+++get_x0_exa() see exa model builder below, 
+    #return init triplet  
 
     # construct common data for builders
     discretizer.docp = get_docp()
@@ -187,9 +194,10 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         variable = x0[(end - q + 1):end]
 
         # build Exa model and getters
+        # +++ later try to call Exa constructor here if possible, reusing existing functions...
         # +++ share
         build_exa = CTModels.get_build_examodel(ocp)
-        nlp, exa_getter = build_exa(;
+        nlp, discretizer.exa_getter = build_exa(;
             grid_size=grid_size,
             backend=exa_backend,
             scheme=disc_method,
@@ -204,14 +212,15 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # Solution builder for ExaModels
     function build_exa_solution(nlp_solution::SolverCore.AbstractExecutionStats)
 
-        # +++ share
+        #= +++ share
         disc_method = scheme_symbol(discretizer)
         grid_size, time_grid = grid_options(discretizer)
         build_exa = CTModels.get_build_examodel(ocp)
         nlp, exa_getter = build_exa(;
             grid_size=grid_size,
             scheme=disc_method,
-        )
+        )=#
+        
 
         #retrieve data from NLP solver
         #objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution)
@@ -219,6 +228,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
         # retrieve time grid
         docp = discretizer.docp
+        exa_getter = discretizer.exa_getter
         T = get_time_grid_exa(nlp_solution, docp, exa_getter)
 
         sol = CTDirect.build_OCP_solution(docp, nlp_solution, objective, iterations, constraints_violation, message, status, successful, T; exa_getter)

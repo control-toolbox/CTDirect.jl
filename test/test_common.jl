@@ -33,15 +33,28 @@ ipopt_options = Dict(
     :sb => "yes",
 )
 
-function solve_problem(prob; 
-    modeler = CTModels.ADNLPModeler(),
-    solver = CTSolvers.IpoptSolver(; ipopt_options...),
+function solve_problem(prob;
+    modeler=:adnlp,
+    solver=:ipopt,
     display=false,
-    graph=false)
+    graph=false,
+    kwargs...)
 
-    docp = CTDirect.discretize(prob.ocp, CTDirect.Collocation())
+    discretizer = CTDirect.Collocation(; kwargs...) # kwargs here
+    docp = CTDirect.discretize(prob.ocp, discretizer)
     init = CTModels.initial_guess(prob.ocp; prob.init...) # check if still needed
-    sol = CommonSolve.solve(docp, init, modeler, solver; display=display)
+
+    if modeler == :adnlp
+        my_modeler = CTModels.ADNLPModeler() # kwargs
+    elseif modeler == :exa
+        my_modeler = CTModels.ExaModeler() # kwargs
+    else
+        error("Unknown modele oprion: ", modeler)
+    end
+
+    my_solver = CTSolvers.IpoptSolver(; ipopt_options...) # kwargs
+
+    sol = CommonSolve.solve(docp, init, my_modeler, my_solver; display=display)
 
     return sol
 end

@@ -22,7 +22,9 @@ mutable struct Collocation{T<:AbstractIntegratorScheme} <: AbstractOptimalContro
     options_sources
 
     docp
-    #x0 ? requires initial guess data...
+    exa_getter
+    #+++ mettre directement ici le contenu de l'ancien DOCP de CTDirect ?
+    #+++ du coup les fonctions dans collocation_core prennent discretizer au lieu de docp ??
 end
 
 # useful for OptimalControl. Should be a field of AbstractOptimalControlDiscretizer with default getter, for consistency.
@@ -58,8 +60,10 @@ function Collocation(; kwargs...)
 
     # docp
     docp = nothing
+    # exa getter
+    exa_getter = nothing
 
-    return Collocation{typeof(scheme)}(values, sources, docp)
+    return Collocation{typeof(scheme)}(values, sources, docp, exa_getter)
 end
 
 # ---------------------------------------------------------------------------

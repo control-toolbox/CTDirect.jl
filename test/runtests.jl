@@ -2,12 +2,9 @@
 using Test
 include("test_common.jl")
 
-function check_problem(prob; 
-    modeler = CTModels.ADNLPModeler(),
-    solver = CTSolvers.IpoptSolver(; ipopt_options...),
-    display=false)
+function test_problem(prob; kwargs...)
 
-    sol = solve_problem(prob; modeler, solver, display)
+    sol = solve_problem(prob; kwargs...)
     @test CTModels.successful(sol)
     @test CTModels.iterations(sol) <= max_iter
     @test CTModels.constraints_violation(sol) <= tol

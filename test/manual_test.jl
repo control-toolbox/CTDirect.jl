@@ -3,6 +3,6 @@ using Plots
 Plots.default(show = true)
 include("test_common.jl")
 
-include("./problems/beam.jl")
-sol = solve_problem(beam(); display=true)
+include("./problems/goddard.jl")
+sol = solve_problem(goddard(); display=true)
 #plot(sol)
