@@ -49,10 +49,16 @@ function solve_problem(prob;
     elseif modeler == :exa
         my_modeler = CTModels.ExaModeler() # kwargs
     else
-        error("Unknown modele oprion: ", modeler)
+        error("Unknown modeler: ", modeler)
     end
 
-    my_solver = CTSolvers.IpoptSolver(; ipopt_options...) # kwargs
+    if solver == :ipopt
+        my_solver = CTSolvers.IpoptSolver(; ipopt_options...) # kwargs
+    elseif solver == :madnlp
+        my_solver = CTSolvers.MadNLPSolver() # kwargs
+    else
+        error("Unknown solver: ", solver)
+    end
 
     sol = CommonSolve.solve(docp, init, my_modeler, my_solver; display=display)
 

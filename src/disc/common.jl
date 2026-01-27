@@ -1,5 +1,32 @@
 #= Common parts for the discretization =#
 
+
+function adnlp_getter(xu, docp::DOCP, tag::Symbol)
+
+    N = docp.time.steps
+    
+    if tag == :variable
+        return get_OCP_variable(xu, docp)
+    
+    elseif tag == :state
+        X = zeros(N + 1, docp.dims.NLP_x)
+        for i in 1:(N + 1)
+            X[:, i] .= get_OCP_state_at_time_step(solution, docp, i)
+        end
+        return X
+    
+    elseif tag == :control    
+        U = zeros(N + 1, docp.dims.NLP_u)
+        for i in 1:(N + 1)
+            U[:, i] .= get_OCP_control_at_time_step(solution, docp, i)
+        end
+        return U
+
+    else
+        error("Unknown tag for getter: ", tag)
+    end
+end
+
 """
 $(TYPEDSIGNATURES)
 

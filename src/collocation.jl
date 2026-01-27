@@ -13,7 +13,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         scheme = CTModels.get_option_value(discretizer, :scheme)
         return SchemeSymbol[typeof(scheme)]
     end=#
-    function scheme(discretizer::Collocation)
+    function get_scheme(discretizer::Collocation)
         return CTModels.get_option_value(discretizer, :scheme)
     end
 
@@ -41,7 +41,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     function get_docp()
         
         # recover discretization scheme and options
-        scheme = scheme(discretizer)
+        scheme = get_scheme(discretizer)
         grid_size, time_grid = grid_options(discretizer)
 
         # initialize DOCP
@@ -144,12 +144,13 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # Solution builder for ADNLPModels
     function build_adnlp_solution(nlp_solution::SolverCore.AbstractExecutionStats)
         
+        docp = discretizer.docp
+
         #retrieve data from NLP solver
-        #objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution)
-        objective, iterations, constraints_violation, message, status, successful = CTDirect.SolverInfos(nlp_solution)
+        minimize = !docp.flags.max
+        objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution, minimize)
 
         # retrieve time grid
-        docp = discretizer.docp
         T = get_time_grid(nlp_solution.solution, docp)
 
         # build OCP solution from NLP solution
@@ -168,7 +169,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
         # recover discretization scheme and options
         # since exa part does not reuse the docp struct
-        scheme = scheme(discretizer)
+        scheme = get_scheme(discretizer)
         grid_size, time_grid = grid_options(discretizer)
 
         # build initial guess (ADNLP format)
@@ -212,12 +213,13 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # Solution builder for ExaModels
     function build_exa_solution(nlp_solution::SolverCore.AbstractExecutionStats)
 
-        #retrieve data from NLP solver
-        #objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution)
-        objective, iterations, constraints_violation, message, status, successful = CTDirect.SolverInfos(nlp_solution)
-
-        # retrieve time grid
         docp = discretizer.docp
+
+        #retrieve data from NLP solver
+        minimize = !docp.flags.max
+        objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution, minimize)
+  
+        # retrieve time grid
         exa_getter = discretizer.exa_getter
         T = get_time_grid_exa(nlp_solution, docp, exa_getter)
 

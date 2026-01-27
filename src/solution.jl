@@ -28,15 +28,6 @@ true
 """
 is_empty(t) = (isnothing(t) || length(t) == 0)
 
-# +++ will be in ctmodels instead
-function SolverInfos(nlp_solution::SolverCore.AbstractExecutionStats)
-    objective = nlp_solution.objective
-    iterations = nlp_solution.iter
-    constraints_violation = nlp_solution.primal_feas
-    status = nlp_solution.status
-    successful = (status == :first_order) || (status == :acceptable)
-    return objective, iterations, constraints_violation, "Ipopt/generic", status, successful
-end
 
 """
 $(TYPEDSIGNATURES)
