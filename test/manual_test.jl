@@ -5,7 +5,6 @@ include("test_common.jl")
 
 include("./problems/beam.jl")
 include("./problems/goddard.jl")
-sol = solve_problem(beam2(); display=true, solver=:ipopt, modeler=:adnlp)
 sol = solve_problem(beam2(); display=true, solver=:ipopt, modeler=:exa)
 
 #plot(sol) even basic plot is broken for all julia versions -_- 

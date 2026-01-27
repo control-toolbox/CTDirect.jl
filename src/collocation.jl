@@ -150,11 +150,8 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         minimize = !docp.flags.max
         objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution, minimize)
 
-        # retrieve time grid
-        T = get_time_grid(nlp_solution.solution, docp)
-
         # build OCP solution from NLP solution
-        sol = CTDirect.build_OCP_solution(docp, nlp_solution, objective, iterations, constraints_violation, message, status, successful, T)
+        sol = CTDirect.build_OCP_solution(docp, nlp_solution, objective, iterations, constraints_violation, message, status, successful)
         
         return sol
     end
@@ -219,12 +216,9 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         minimize = !docp.flags.max
         objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution, minimize)
   
-        # retrieve time grid
-        exa_getter = discretizer.exa_getter
-        T = get_time_grid_exa(nlp_solution, docp, exa_getter)
-
         # build OCP solution from NLP solution
-        sol = CTDirect.build_OCP_solution(docp, nlp_solution, objective, iterations, constraints_violation, message, status, successful, T; exa_getter)
+        sol = CTDirect.build_OCP_solution(docp, nlp_solution, objective, iterations, constraints_violation, message, status, successful; 
+        exa_getter=discretizer.exa_getter)
         
         return sol
     end

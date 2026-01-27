@@ -1,26 +1,45 @@
 #= Common parts for the discretization =#
 
+# +++ add similar setter for initial guess ?
 
-function adnlp_getter(xu, docp::DOCP; val::Symbol)
+# Generic getter for post optimization parsing
+# written for compatibility with examodels getter
+# +++ note: getter could be rewritten to take nlp_solution
+# and select proper sub array depending on val 
+# cf 
+# ie .solution, .multipliers_L, or .multipliers_U
+function getter(nlp_solution, docp::DOCP; val::Symbol)
 
     N = docp.time.steps
+
+    # select data array according to required values
+    if occursin("_l",String(val))
+        data = nlp_solution.multipliers_L
+    elseif occursin("_u",String(val))
+        data = nlp_solution.multipliers_U
+    else
+        data = nlp_solution.solution
+    end
     
-    if val == :variable
-        return get_OCP_variable(xu, docp)
+    if val == :variable || val == :variable_l || val == :variable_u
+        # same layout for optimization variables and box multipliers
+        return get_OCP_variable(data, docp)
     
-    elseif val == :state
-        X = zeros(docp.dims.NLP_x, N + 1)
+    elseif val == :state || val == :state_l || val == :state_u
+        # same layout for state variables and box multipliers
+        V = zeros(docp.dims.NLP_x, N + 1)
         for i in 1:(N + 1)
-            X[:, i] .= get_OCP_state_at_time_step(xu, docp, i)
+            V[:, i] .= get_OCP_state_at_time_step(data, docp, i)
         end
-        return X
+        return V
     
-    elseif val == :control    
-        U = zeros(docp.dims.NLP_u, N + 1)
+    elseif val == :control || val == :control_l || val == :control_u
+        # same layout for control variables and box multipliers
+        V = zeros(docp.dims.NLP_u, N + 1)
         for i in 1:(N + 1)
-            U[:, i] .= get_OCP_control_at_time_step(xu, docp, i)
+            V[:, i] .= get_OCP_control_at_time_step(data, docp, i)
         end
-        return U
+        return V
 
     else
         error("Unknown val for getter: ", val)
