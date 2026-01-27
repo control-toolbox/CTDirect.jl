@@ -4,14 +4,11 @@
 
 # Generic getter for post optimization parsing
 # written for compatibility with examodels getter
-# +++ note: getter could be rewritten to take nlp_solution
-# and select proper sub array depending on val 
-# cf 
-# ie .solution, .multipliers_L, or .multipliers_U
 function getter(nlp_solution, docp::DOCP; val::Symbol)
 
     N = docp.time.steps
 
+    # variables and box multipliers use the same layout
     # select data array according to required values
     if occursin("_l",String(val))
         data = nlp_solution.multipliers_L
@@ -21,20 +18,20 @@ function getter(nlp_solution, docp::DOCP; val::Symbol)
         data = nlp_solution.solution
     end
     
+    # optimization variables
     if val == :variable || val == :variable_l || val == :variable_u
-        # same layout for optimization variables and box multipliers
         return get_OCP_variable(data, docp)
     
+    # state
     elseif val == :state || val == :state_l || val == :state_u
-        # same layout for state variables and box multipliers
         V = zeros(docp.dims.NLP_x, N + 1)
         for i in 1:(N + 1)
             V[:, i] .= get_OCP_state_at_time_step(data, docp, i)
         end
         return V
     
+    # control
     elseif val == :control || val == :control_l || val == :control_u
-        # same layout for control variables and box multipliers
         V = zeros(docp.dims.NLP_u, N + 1)
         for i in 1:(N + 1)
             V[:, i] .= get_OCP_control_at_time_step(data, docp, i)
