@@ -38,6 +38,9 @@ const SHOWTIMING = true
     include("./ci/test_all_ocp.jl") #ok except 2 cases with adnlp_backend=:manual
 
     # test discretization options
-    include("./ci/test_discretization.jl")
+    include("./ci/test_discretization.jl") #ok
+
+    # test NLP modeler / solver options
+    include("./ci/test_modeler_solver.jl") #ok except 1 case with adnlp_backend=:manual
 
 end
