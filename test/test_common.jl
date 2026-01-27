@@ -38,9 +38,9 @@ function solve_problem(prob;
     
     # initial guess for model builders
     if isnothing(init)
-        my_init = CTModels.initial_guess(prob.ocp; prob.init...)
+        my_init = CTModels.build_initial_guess(prob.ocp, prob.init)
     else
-        my_init = CTModels.initial_guess(prob.ocp; init...)
+        my_init = CTModels.build_initial_guess(prob.ocp, init)
     end
 
     # NLP modeler
@@ -57,14 +57,18 @@ function solve_problem(prob;
         ipopt_options = Dict(
             :max_iter => max_iter,
             :tol => tol,
-            :print_level => 3,
+            :print_level => 5,
             :mu_strategy => "adaptive",
             :linear_solver => "Mumps",
             :sb => "yes",
         )
         my_solver = CTSolvers.IpoptSolver(; ipopt_options...)
     elseif solver == :madnlp
-        my_solver = CTSolvers.MadNLPSolver() # +++kwargs
+        madnlp_options = Dict(
+            :max_iter => max_iter,
+            :tol => tol,
+        )
+        my_solver = CTSolvers.MadNLPSolver(; madnlp_options...)
     else
         error("Unknown solver: ", solver)
     end

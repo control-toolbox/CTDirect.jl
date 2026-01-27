@@ -179,7 +179,7 @@ end
 
 
 ##########################
-#= 2. discrete continuation
+# 2. discrete continuation
 
 test1 = true
 test2 = true
@@ -192,11 +192,11 @@ if test1
         include("../problems/double_integrator.jl")
     end
     @testset verbose = true showtiming = true ":continuation :double_integrator" begin
-        init = nothing
+        init = ()
         obj_list = []
         for T in 1:5
-            ocp = double_integrator_minenergy(T).ocp
-            sol = solve_problem(ocp, , init=init, grid_size=100)
+            prob = double_integrator_minenergy(T)
+            sol = solve_problem(prob; init=init, grid=100)
             init = sol
             push!(obj_list, objective(sol))
         end
@@ -209,13 +209,12 @@ if test2
     if !isdefined(Main, :parametric)
         include("../problems/parametric.jl")
     end
-
     @testset verbose = true showtiming = true ":continuation :parametric_ocp" begin
         init = ()
         obj_list = []
         for ρ in [0.1, 5, 10, 30, 100]
-            ocp = parametric(ρ).ocp
-            sol = solve_problem(ocp, , init=init)
+            prob = parametric(ρ)
+            sol = solve_problem(prob; init=init)
             init = sol
             push!(obj_list, objective(sol))
         end
@@ -228,14 +227,13 @@ if test3
     if !isdefined(Main, :goddard)
         include("../problems/goddard.jl")
     end
-    sol0 = solve_problem(goddard().ocp; )
-
+    sol0 = solve_problem(goddard())
     @testset verbose = true showtiming = true ":continuation :goddard" begin
         sol = sol0
         Tmax_list = []
         obj_list = []
         for Tmax in 3.5:-0.5:1
-            sol = solve_problem(goddard(Tmax=Tmax).ocp, , init=sol)
+            sol = solve_problem(goddard(Tmax=Tmax); init=sol)
             push!(Tmax_list, Tmax)
             push!(obj_list, objective(sol))
         end
@@ -259,4 +257,3 @@ if test3
         end
     end
 end
-=#
