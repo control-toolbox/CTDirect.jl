@@ -4,6 +4,7 @@
 
 # Generic getter for post optimization parsing
 # written for compatibility with examodels getter
+# +++ extend to constraints multipliers cf parse_dual in solution.jl
 function getter(nlp_solution, docp::DOCP; val::Symbol)
 
     N = docp.time.steps

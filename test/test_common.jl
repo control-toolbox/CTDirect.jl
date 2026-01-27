@@ -1,7 +1,7 @@
 # CT packages
 using CTBase
 using CTParser: CTParser, @def
-using CTModels: CTModels, objective, time_grid, iterations, state, control, costate
+using CTModels: CTModels, objective, time_grid, iterations, state, control, variable, costate
 using CTDirect
 using CTSolvers
 
@@ -20,30 +20,30 @@ using MadNLPMumps
 # misc
 using SplitApplyCombine # for flatten in some tests
 
-# check a specific example OCP.
+# solve a given OCP problem (given as struct)
 # +++ use a solve moved from OptimalControl to CTSolvers ?
-max_iter = 1000
-tol = 1e-6
-ipopt_options = Dict(
-    :max_iter => max_iter,
-    :tol => tol,
-    :print_level => 3,
-    :mu_strategy => "adaptive",
-    :linear_solver => "Mumps",
-    :sb => "yes",
-)
-
 function solve_problem(prob;
-    modeler=:adnlp,
-    solver=:ipopt,
+    max_iter=1000,
+    tol=1e-6,
+    modeler=:adnlp, #+++exa
+    solver=:ipopt, #+++madnlp
     display=false,
     graph=false,
+    init=nothing,
     kwargs...)
 
+    # discretized problem (model and solution builders)
     discretizer = CTDirect.Collocation(; kwargs...) # kwargs here
     docp = CTDirect.discretize(prob.ocp, discretizer)
-    init = CTModels.initial_guess(prob.ocp; prob.init...) # check if still needed
+    
+    # initial guess for model builders
+    if isnothing(init)
+        my_init = CTModels.initial_guess(prob.ocp; prob.init...)
+    else
+        my_init = CTModels.initial_guess(prob.ocp; init...)
+    end
 
+    # NLP modeler
     if modeler == :adnlp
         my_modeler = CTModels.ADNLPModeler() # kwargs
     elseif modeler == :exa
@@ -52,15 +52,25 @@ function solve_problem(prob;
         error("Unknown modeler: ", modeler)
     end
 
+    # NLP solver
     if solver == :ipopt
-        my_solver = CTSolvers.IpoptSolver(; ipopt_options...) # kwargs
+        ipopt_options = Dict(
+            :max_iter => max_iter,
+            :tol => tol,
+            :print_level => 3,
+            :mu_strategy => "adaptive",
+            :linear_solver => "Mumps",
+            :sb => "yes",
+        )
+        my_solver = CTSolvers.IpoptSolver(; ipopt_options...)
     elseif solver == :madnlp
-        my_solver = CTSolvers.MadNLPSolver() # kwargs
+        my_solver = CTSolvers.MadNLPSolver() # +++kwargs
     else
         error("Unknown solver: ", solver)
     end
 
-    sol = CommonSolve.solve(docp, init, my_modeler, my_solver; display=display)
+    # solve DOCP and return OCP solution
+    sol = CommonSolve.solve(docp, my_init, my_modeler, my_solver; display=display)
 
     return sol
 end
