@@ -10,9 +10,6 @@ maxiter = 0
 if !isdefined(Main, :double_integrator_mintf)
     include("../problems/double_integrator.jl")
 end
-if !isdefined(Main, :beam)
-    include("../problems/beam.jl")
-end
 prob = double_integrator_mintf()
 prob2 = double_integrator_minenergy()
 sol0 = solve_problem(prob)
@@ -132,26 +129,23 @@ end
 # 1.d interpolated initial guess
 t_vec = [0, 0.1, v_const]
 @testset verbose = true showtiming = true ":vector_txu :constant_v" begin
-    sol = solve_problem(prob;
-        init=(time=t_vec, state=x_vec, control=u_vec, variable=v_const),
-        max_iter=maxiter)
+    init = (state=(t_vec, x_vec), control=(t_vec, u_vec), variable=v_const)
+    sol = solve_problem(prob; init=init, max_iter=maxiter)
     @test isapprox(state(sol).(t_vec), x_vec, rtol=1e-2)
     @test isapprox(control(sol).(t_vec), u_vec, rtol=1e-2)
     @test variable(sol) == v_const
 end
 t_matrix = [0 0.1 v_const]
 @testset verbose = true showtiming = true ":matrix_t :vector_xu :constant_v" begin
-    sol = solve_problem(prob;
-        init=(time=t_matrix, state=x_vec, control=u_vec, variable=v_const),
-        max_iter=maxiter)
+    init = (state=(t_matrix, x_vec), control=(t_matrix, u_vec), variable=v_const)
+    sol = solve_problem(prob; init=init, max_iter=maxiter)
     @test isapprox(state(sol).(flatten(t_matrix)), x_vec, rtol=1e-2)
     @test isapprox(control(sol).(flatten(t_matrix)), u_vec, rtol=1e-2)
     @test variable(sol) == v_const
 end
 @testset verbose = true showtiming = true ":matrix_x :vector_tu :constant_v" begin
-    sol = solve_problem(prob;
-        init=(time=t_vec, state=x_matrix, control=u_vec, variable=v_const),
-        max_iter=maxiter)
+    init = (state=(t_vec, x_matrix), control=(t_vec, u_vec), variable=v_const)
+    sol = solve_problem(prob; init=init, max_iter=maxiter)
     @test isapprox(stack(state(sol).(t_matrix), dims=1), x_matrix, rtol=1e-2)
     @test isapprox(control(sol).(t_vec), u_vec, rtol=1e-2)
     @test variable(sol) == v_const
@@ -159,9 +153,8 @@ end
 
 # 1.e mixed initial guess
 @testset verbose = true showtiming = true ":vector_tx :functional_u :constant_v" begin
-    sol = solve_problem(prob;
-        init=(time=t_vec, state=x_vec, control=u_func, variable=v_const),
-        max_iter=maxiter)
+    init = (state=(t_vec, x_vec), control=u_func, variable=v_const)
+    sol = solve_problem(prob; init=init, max_iter=maxiter)
     T = time_grid(sol)
     @test isapprox(state(sol).(t_vec), x_vec, rtol=1e-2)
     @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)
