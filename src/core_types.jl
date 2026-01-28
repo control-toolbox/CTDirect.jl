@@ -30,7 +30,7 @@ end
 # useful for OptimalControl. Should be a field of AbstractOptimalControlDiscretizer with default getter, for consistency.
 CTModels.get_symbol(::Type{<:Collocation}) = :collocation
 
-# default options (related to default.jl)
+# default options (this replaces default.jl)
 __grid_size()::Int = 250
 __scheme()::Symbol = :midpoint
 __grid()::Union{Int,AbstractVector} = __grid_size()

@@ -120,8 +120,42 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         # build initial guess
         x0 = get_x0(initial_guess, docp)
 
+        # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
+        unused_backends = (
+        hprod_backend=ADNLPModels.EmptyADbackend,
+        jtprod_backend=ADNLPModels.EmptyADbackend,
+        jprod_backend=ADNLPModels.EmptyADbackend,
+        ghjvprod_backend=ADNLPModels.EmptyADbackend,
+        )
+
         # set adnlp backends
-        backend_options = (backend=adnlp_backend,)
+        if adnlp_backend == :manual
+
+            # build sparsity patterns for Jacobian and Hessian
+            J_backend = ADNLPModels.SparseADJacobian(
+                docp.dim_NLP_variables,
+                f,
+                docp.dim_NLP_constraints,
+                c!,
+                CTDirect.DOCP_Jacobian_pattern(docp),
+            )
+            H_backend = ADNLPModels.SparseReverseADHessian(
+                docp.dim_NLP_variables,
+                f,
+                docp.dim_NLP_constraints,
+                c!,
+                CTDirect.DOCP_Hessian_pattern(docp),
+            )
+            backend_options = (
+                gradient_backend=ADNLPModels.ReverseDiffADGradient,
+                jacobian_backend=J_backend,
+                hessian_backend=H_backend,
+            )
+
+        else
+            # use backend preset
+            backend_options = (backend=adnlp_backend,)
+        end
 
         # build NLP
         nlp = ADNLPModel!(
@@ -134,7 +168,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
             docp.bounds.con_u;
             minimize=(!docp.flags.max),
             backend_options...,
-            #unused_backends...,
+            unused_backends...,
             show_time=show_time,
         )
 

@@ -1,18 +1,12 @@
-# Direct methods
+# Direct methods default options
+# +++ review and update wrt ctsolvers !
 
 """
 $(TYPEDSIGNATURES)
 
 Default discretization method: `midpoint`.
 """
-__disc_method() = :midpoint
-
-# """
-# $(TYPEDSIGNATURES)
-
-# Default grid size: `250`.
-# """
-# __grid_size() = 250
+#__disc_method() = :midpoint
 
 """
 $(TYPEDSIGNATURES)
@@ -31,13 +25,6 @@ __display() = true
 """
 $(TYPEDSIGNATURES)
 
-Default (non uniform) time grid: `nothing`
-"""
-__time_grid() = nothing
-
-"""
-$(TYPEDSIGNATURES)
-
 Default backend for ADNLPModels: `:optimized`
 """
 __adnlp_backend() = :optimized
@@ -48,13 +35,6 @@ $(TYPEDSIGNATURES)
 Default backend for ExaModels: `nothing`
 """
 __exa_backend() = nothing
-
-"""
-$(TYPEDSIGNATURES)
-
-Reformulate Lagrange cost as Mayer cost: false
-"""
-__lagrange_to_mayer() = false
 
 """
 $(TYPEDSIGNATURES)

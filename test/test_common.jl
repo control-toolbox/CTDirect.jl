@@ -30,6 +30,7 @@ function solve_problem(prob;
     display=false,
     graph=false,
     init=nothing,
+    adnlp_backend=:optimized,
     kwargs...)
 
     # discretized problem (model and solution builders)
@@ -45,7 +46,7 @@ function solve_problem(prob;
 
     # NLP modeler
     if modeler == :adnlp
-        my_modeler = CTModels.ADNLPModeler() # kwargs
+        my_modeler = CTModels.ADNLPModeler(; adnlp_backend=adnlp_backend) # kwargs
     elseif modeler == :exa
         my_modeler = CTModels.ExaModeler() # kwargs
     else

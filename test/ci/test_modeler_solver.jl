@@ -16,7 +16,7 @@ end
     for prob in problem_list
         for modeler in modeler_list
             for solver in solver_list
-                test_problem(prob; display=false, modeler=modeler, solver=solver)
+                test_problem(prob; modeler=modeler, solver=solver)
             end
         end
     end
@@ -25,11 +25,11 @@ end
 # backends for ADNLPModels
 @testset verbose = true showtiming = true ":adnlp_backends" begin
     prob = goddard()
-    test_problem(prob; display=false)
-    test_problem(prob; display=false, adnlp_backend=:default)
-    test_problem(prob; display=false, adnlp_backend=:manual)
-    test_problem(prob; display=false, disc_method=:midpoint, adnlp_backend=:manual)
-    test_problem(prob; display=false, disc_method=:gauss_legendre_2, adnlp_backend=:manual)
+    test_problem(prob)
+    test_problem(prob; adnlp_backend=:default)
+    test_problem(prob; adnlp_backend=:manual)
+    test_problem(prob; scheme=:midpoint, adnlp_backend=:manual)
+    test_problem(prob; scheme=:gauss_legendre_2, adnlp_backend=:manual)
 end
 
 
@@ -51,7 +51,7 @@ p_opt = t -> [24, 12 - 24 * t]
 end
 
 @testset verbose = true showtiming = true ":analytic_solution :madnlp" begin
-    sol = solve_problem(prob; solver=:madnlp, display=false)
+    sol = solve_problem(prob; solver=:madnlp)
     T = time_grid(sol)
     @test isapprox(x_opt.(T), state(sol).(T), rtol=1e-2)
     @test isapprox(u_opt.(T), control(sol).(T), rtol=1e-2)

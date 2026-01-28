@@ -11,13 +11,13 @@ prob = simple_integrator()
 sol0 = solve_problem(prob; display=false)
 
 @testset verbose = true showtiming = true ":explicit_grid" begin
-    sol = solve_problem(prob; grid=LinRange(0, 1, N + 1), display=false)
+    sol = solve_problem(prob; grid=LinRange(0, 1, N + 1))
     @test (objective(sol) == objective(sol0)) && (iterations(sol) == iterations(sol0))
 end
 
 @testset verbose = true showtiming = true ":non_uniform_grid" begin
     grid = [0, 0.1, 0.3, 0.6, 0.98, 0.99, 1]
-    sol = solve_problem(prob; grid=grid, display=false)
+    sol = solve_problem(prob; grid=grid)
     @test time_grid(sol) ≈ grid
 end
 
@@ -29,13 +29,13 @@ prob = double_integrator_freet0tf()
 sol0 = solve_problem(prob; display=false)
 
 @testset verbose = true showtiming = true ":explicit_grid" begin
-    sol = solve_problem(prob; grid=LinRange(0, 1, N + 1), display=false)
+    sol = solve_problem(prob; grid=LinRange(0, 1, N + 1))
     @test (objective(sol) == objective(sol0)) && (iterations(sol) == iterations(sol0))
 end
 
 @testset verbose = true showtiming = true ":max_t0 :non_uniform_grid" begin
     grid = [0, 0.1, 0.6, 0.95, 1]
-    sol = solve_problem(prob; grid=grid, display=false)
+    sol = solve_problem(prob; grid=grid)
     @test normalize_grid(time_grid(sol)) ≈ grid
 end
 
@@ -47,13 +47,13 @@ prob = double_integrator_minenergy(2)
 sol0 = solve_problem(prob; display=false)
 
 @testset verbose = true showtiming = true ":explicit_grid" begin
-    sol = solve_problem(prob; grid=LinRange(0, 1, N + 1), display=false)
+    sol = solve_problem(prob; grid=LinRange(0, 1, N + 1))
     @test (objective(sol) == objective(sol0)) && (iterations(sol) == iterations(sol0))
 end
 
 @testset verbose = true showtiming = true ":non_uniform_grid" begin
     grid = [0, 0.3, 1, 1.9, 2]
-    sol = solve_problem(prob; grid=grid, display=false)
+    sol = solve_problem(prob; grid=grid)
     @test time_grid(sol) ≈ grid
 end
 
@@ -61,22 +61,17 @@ end
 if !isdefined(Main, :beam)
     include("../problems/beam.jl")
 end
+scheme_list = [:trapeze, :midpoint, :euler, :euler_implicit, 
+            :gauss_legendre_2, :gauss_legendre_3]
 @testset verbose = true showtiming = true ":beam :scheme" begin
-    for scheme in
-        [:trapeze, :midpoint, :euler, :euler_implicit, :gauss_legendre_2, :gauss_legendre_3]
-        test_problem(beam(), display=false, scheme=scheme)
+    for scheme in scheme_list
+        test_problem(beam(); scheme=scheme)
     end
 end
 
 # discretization methods: mayer with free t0 and tf
 @testset verbose = true showtiming = true ":double_integrator :scheme" begin
-    for scheme in
-        [:trapeze, :midpoint, :euler, :euler_implicit, :gauss_legendre_2, :gauss_legendre_3]
-        test_problem(
-            double_integrator_freet0tf(),
-            display=false,
-            scheme=scheme,
-            grid=50,
-        )
+    for scheme in scheme_list
+        test_problem(double_integrator_freet0tf(); scheme=scheme, grid=50)
     end
 end
