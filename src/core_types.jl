@@ -23,8 +23,7 @@ mutable struct Collocation <: AbstractOptimalControlDiscretizer
 
     docp
     exa_getter
-    #+++ mettre directement ici le contenu de l'ancien DOCP de CTDirect ?
-    #+++ du coup les fonctions dans collocation_core prennent discretizer au lieu de docp ??
+    #+++ put here contents from CTDirect.DOCP and adjust functions ?
 end
 
 # useful for OptimalControl. Should be a field of AbstractOptimalControlDiscretizer with default getter, for consistency.

@@ -15,21 +15,22 @@ macro ignore(e)
     :()
 end
 
-# # run either usual test suite on CPU, or GPU tests only 
-# @testset verbose = true showtiming = true "Test CTDirect" begin
-#     if "GPU" in ARGS
-#         # ExaModels tests only (GPU on moonshot workflow)
-#         include("./suite/test_exa.jl")
-#     else
-#         # CPU: run all scripts in subfolder suite/
-#         include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
-#     end
-# end
-
-
-# new ci tests
 const VERBOSE = true
 const SHOWTIMING = true
+
+# run either usual test suite on CPU, or GPU tests only 
+@testset verbose = VERBOSE showtiming = SHOWTIMING "Test CTDirect" begin
+    if "GPU" in ARGS
+        # ExaModels tests only (GPU on moonshot workflow)
+        include("./suite/test_exa.jl")
+    else
+        # CPU: run all scripts in subfolder suite/
+        include.(filter(contains(r".jl$"), readdir("./ci"; join=true)))
+    end
+end
+
+
+#= new ci tests
 @testset verbose = VERBOSE showtiming = SHOWTIMING "New tests for CTDirect" begin
     
     # test collection of OCP in problems/ 
@@ -43,4 +44,4 @@ const SHOWTIMING = true
 
     # test initial guess and continuation
     include("./ci/test_initial_guess.jl") # ok
-end
+end=#
