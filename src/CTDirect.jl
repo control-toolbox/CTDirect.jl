@@ -23,6 +23,5 @@ include("disc/euler.jl")
 include("disc/irk.jl")
 include("disc/midpoint.jl")
 include("disc/trapeze.jl")
-include("solution.jl")
 
 end
