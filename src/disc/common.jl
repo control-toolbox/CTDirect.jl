@@ -17,19 +17,19 @@ function getter(nlp_solution, docp::DOCP; val::Symbol)
         disc = disc_model(docp)
         dpc = docp.dims.path_cons
         dbc = docp.dims.boundary_cons
-        mult_path_constraints = zeros(N + 1, dpc)
+        P = zeros(docp.dims.NLP_x, N)
+        mult_path_constraints = zeros(dpc, N + 1)
         mult_boundary_constraints = zeros(dbc)
-        P = zeros(N, docp.dims.NLP_x)
         # loop over time grid and get multipliers for state dynamics equation and path constraints
         i_m = 1
         for i in 1:N
             # use state dynamics multipliers for costate
-            P[i, :] = data[i_m:(i_m + docp.dims.NLP_x - 1)]
+            P[:, i] = data[i_m:(i_m + docp.dims.NLP_x - 1)]
             # skip state / stage constraints 
             i_m += disc._state_stage_eqs_block
             # get path constraints multipliers
             if dpc > 0
-                mult_path_constraints[i, :] = data[i_m:(i_m + dpc - 1)]
+                mult_path_constraints[:, i] = data[i_m:(i_m + dpc - 1)]
                 i_m += dpc
             end
         end

@@ -54,6 +54,26 @@ function double_integrator_minenergy(T=2)
 
     return ((ocp=ocp, obj=nothing, name="double_integrator_e", init=()))
 end
+function double_integrator_minenergy2(T=2)
+    @def ocp begin
+        t ∈ [0, T], time
+        x ∈ R², state
+        u ∈ R, control
+        q = x₁
+        v = x₂
+        q(0) == 0
+        v(0) == 0
+        q(T) == 1
+        v(T) == 0
+        ∂(x₁)(t) == x₂(t)
+        ∂(x₂)(t) == u(t)
+        ∫(u(t)^2) → min
+    end
+
+    return ((ocp=ocp, obj=nothing, name="double_integrator_e2", init=()))
+end
+
+
 
 # max t0 with free t0,tf
 function double_integrator_freet0tf()
