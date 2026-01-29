@@ -58,7 +58,7 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     objective, iterations, constraints_violation, message, status, successful;
     exa_getter = nothing)
 
-    # retrieve time grid
+    # retrieve time grid +++ unify this ?
     if isnothing(exa_getter)
         T = get_time_grid(nlp_solution.solution, docp)
     else
@@ -143,13 +143,13 @@ function parse_DOCP_solution_primal(
     multipliers_L = Array(nlp_solution.multipliers_L)
     multipliers_U = Array(nlp_solution.multipliers_U)
 
-    # state and control variables
+    # state and control variables +++ could be done in getter instead ? check with exa
     N = docp.time.steps
     X = zeros(N + 1, docp.dims.NLP_x)
     U = zeros(N + 1, docp.dims.NLP_u)
     v = zeros(docp.dims.NLP_v)
 
-    # multipliers for box constraints
+    # multipliers for box constraints +++ could be done in getter instead ? check with exa
     mult_state_box_lower = zeros(size(X))
     mult_state_box_upper = zeros(size(X))
     mult_control_box_lower = zeros(size(U))
@@ -229,57 +229,29 @@ function parse_DOCP_solution_dual(
 
     # arrays (explicit conversion for GPU case)
     multipliers = Array(nlp_solution.multipliers)
+    #isnothing(multipliers) && (multipliers = zeros(docp.dim_NLP_constraints))
 
-    # costate
+    # allocate arrays +++ could be done in getter instead ? check with exa
     N = docp.time.steps
+    dpc = docp.dims.path_cons
+    dbc = docp.dims.boundary_cons
     P = zeros(N, docp.dims.NLP_x)
+    mult_path_constraints = zeros(N + 1, dpc)
+    mult_boundary_constraints = zeros(dbc)
 
     if isnothing(exa_getter)
         #ADNLP
-        disc = disc_model(docp)
-
-        # if called with multipliers = nothing, fill with zeros
-        isnothing(multipliers) && (multipliers = zeros(docp.dim_NLP_constraints))
-
-        # dimensions
-        dpc = docp.dims.path_cons
-        dbc = docp.dims.boundary_cons
-
-        # constraints multipliers
-        mul_path_constraints = zeros(N + 1, dpc)
-        mul_boundary_constraints = zeros(dbc)
-
-        # loop over time steps
-        i_m = 1
-        for i in 1:(N + 1)
-
-            # state equation multiplier for costate
-            if i <= N
-                P[i, :] = multipliers[i_m:(i_m + docp.dims.NLP_x - 1)]
-                # skip state / stage constraints
-                i_m += disc._state_stage_eqs_block
-            end
-
-            # path constraints and multipliers
-            if dpc > 0
-                mul_path_constraints[i, :] = multipliers[i_m:(i_m + dpc - 1)]
-                i_m += dpc
-            end
-        end
-
-        # pointwise constraints: boundary then variables
-        if dbc > 0
-            mul_boundary_constraints[:] = multipliers[i_m:(i_m + dbc - 1)]
-            i_m += dbc
-        end
+        getter(nlp_solution; val) = CTDirect.getter(nlp_solution, docp; val)
     else
         getter = exa_getter
-        P[:] = getter(nlp_solution; val=:costate)' # transpose to match choice below for ADNLP
-        dpc = docp.dims.path_cons
-        dbc = docp.dims.boundary_cons
-        mul_path_constraints = zeros(N + 1, dpc) # todo: add getters for path constraints for :exa in CTParser
-        mul_boundary_constraints = zeros(dbc) # todo: add getters for boundary constraints for :exa in CTParser
     end
 
-    return P, mul_path_constraints, mul_boundary_constraints
+    # costate
+    P[:] = getter(nlp_solution; val=:costate)'
+
+    # path constraints multipliers (+++ not yet implemented for exa)
+    isnothing(exa_getter) && (mult_path_constraints = getter(nlp_solution; val=:mult_path_constraints))
+    isnothing(exa_getter) && (mult_boundary_constraints = getter(nlp_solution; val=:mult_boundary_constraints))
+
+    return P, mult_path_constraints, mult_boundary_constraints
 end

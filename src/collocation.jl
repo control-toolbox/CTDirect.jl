@@ -1,6 +1,9 @@
 # ---------------------------------------------------------------------------
 # Implementation of Collocation discretizer
 # ---------------------------------------------------------------------------
+__adnlp_backend() = :optimized
+__exa_backend() = nothing
+
 function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
     # +++ some of these functions could be outside the discretizer ?
@@ -105,7 +108,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # ==========================================================================================
     function build_adnlp_model(
         initial_guess::CTModels.AbstractOptimalControlInitialGuess;
-        adnlp_backend=CTDirect.__adnlp_backend(),
+        adnlp_backend=__adnlp_backend(),
         show_time=false,
         kwargs...
     )::ADNLPModels.ADNLPModel

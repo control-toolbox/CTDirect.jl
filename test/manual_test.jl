@@ -7,10 +7,7 @@ include("./problems/beam.jl")
 include("./problems/goddard.jl")
 include("./problems/double_integrator.jl")
 
-prob = goddard()
-
-sol = solve_problem(prob; display=true)
-sol = solve_problem(prob; display=true, adnlp_backend=:manual)
-sol = solve_problem(prob; display=true)
+sol = solve_problem(goddard(); display=true)
+sol1 = solve_problem(goddard2(); display=true, modeler=:exa)
 
 #plot(sol) even basic plot is broken for all julia versions -_- 
