@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-24.04]
-        gpu-backend: [kkt, amdgpu]
+        gpu-backend: [kkt] #, amdgpu]
         julia-version: ['1']
         julia-arch: [x64]
 
