@@ -1,11 +1,24 @@
 # ---------------------------------------------------------------------------
-# Discretization schemes
+# Discretization schemes: see disc/
 # ---------------------------------------------------------------------------
-# to merge with structs in `disc/`
-#abstract type AbstractIntegratorScheme end
-#struct MidpointScheme <: AbstractIntegratorScheme end
-#struct TrapezoidalScheme <: AbstractIntegratorScheme end
-#const TrapezeScheme = TrapezoidalScheme
+"""
+$(TYPEDEF)
+
+Abstract type representing a discretization strategy for an optimal
+control problem.  
+
+Concrete subtypes of `Discretization` define specific schemes for
+transforming a continuous-time problem into a discrete-time
+representation suitable for numerical solution.
+
+# Example
+
+```julia-repl
+julia> struct MyDiscretization <: Discretization end
+MyDiscretization
+```
+"""
+abstract type Discretization end
 
 # ---------------------------------------------------------------------------
 # Abstract discretizer type
@@ -16,11 +29,14 @@ abstract type AbstractOptimalControlDiscretizer <: CTModels.AbstractOCPTool end
 # ---------------------------------------------------------------------------
 # Collocation discretizer
 # ---------------------------------------------------------------------------
-mutable struct Collocation <: AbstractOptimalControlDiscretizer
+mutable struct Collocation{D<:CTDirect.Discretization} <: AbstractOptimalControlDiscretizer
+    #{D<:CTDirect.Discretization, O<:CTModels.Model} 
+    
     # required to be able to use default CTModels.AbstractOCPTool getters
     options_values
     options_sources
 
+    disc::D
     docp
     exa_getter
     #+++ put here contents from CTDirect.DOCP and adjust functions ?
@@ -55,14 +71,16 @@ function Collocation(; kwargs...)
 
     # parsing options from CTModels
     values, sources = CTModels._build_ocp_tool_options(Collocation; kwargs..., strict_keys=true)
-    scheme = values.scheme
+    #scheme = values.scheme
 
+    # disc
+    disc, _, _ = CTDirect.Midpoint(1,1,1,1,1,1)
     # docp
     docp = nothing
     # exa getter
     exa_getter = nothing
 
-    return Collocation(values, sources, docp, exa_getter)
+    return Collocation{typeof(disc)}(values, sources, disc, docp, exa_getter)
 end
 
 # ---------------------------------------------------------------------------

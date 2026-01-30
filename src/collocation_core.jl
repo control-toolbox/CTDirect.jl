@@ -3,25 +3,6 @@
 """
 $(TYPEDEF)
 
-Abstract type representing a discretization strategy for an optimal
-control problem.  
-
-Concrete subtypes of `Discretization` define specific schemes for
-transforming a continuous-time problem into a discrete-time
-representation suitable for numerical solution.
-
-# Example
-
-```julia-repl
-julia> struct MyDiscretization <: Discretization end
-MyDiscretization
-```
-"""
-abstract type Discretization end
-
-"""
-$(TYPEDEF)
-
 Internal struct holding boolean flags that characterize properties of the 
 discretized optimal control problem (DOCP).
 
@@ -435,6 +416,7 @@ function constraints_bounds!(docp::DOCP)
     lb = docp.bounds.con_l
     ub = docp.bounds.con_u
     disc = disc_model(docp)
+    ocp = ocp_model(docp)
 
     offset = 0
     for i in 1:(docp.time.steps + 1)
@@ -444,16 +426,16 @@ function constraints_bounds!(docp::DOCP)
         end
         # path constraints
         if docp.dims.path_cons > 0
-            lb[(offset + 1):(offset + docp.dims.path_cons)] = CTModels.path_constraints_nl(ocp_model(docp))[1]
-            ub[(offset + 1):(offset + docp.dims.path_cons)] = CTModels.path_constraints_nl(ocp_model(docp))[3]
+            lb[(offset + 1):(offset + docp.dims.path_cons)] = CTModels.path_constraints_nl(ocp)[1]
+            ub[(offset + 1):(offset + docp.dims.path_cons)] = CTModels.path_constraints_nl(ocp)[3]
             offset = offset + docp.dims.path_cons
         end
     end
 
     # boundary constraints
     if docp.dims.boundary_cons > 0
-        lb[(offset + 1):(offset + docp.dims.boundary_cons)] = CTModels.boundary_constraints_nl(ocp_model(docp))[1]
-        ub[(offset + 1):(offset + docp.dims.boundary_cons)] = CTModels.boundary_constraints_nl(ocp_model(docp))[3]
+        lb[(offset + 1):(offset + docp.dims.boundary_cons)] = CTModels.boundary_constraints_nl(ocp)[1]
+        ub[(offset + 1):(offset + docp.dims.boundary_cons)] = CTModels.boundary_constraints_nl(ocp)[3]
         offset = offset + docp.dims.boundary_cons
     end
 
@@ -676,6 +658,7 @@ end
 $(TYPEDSIGNATURES)
 
 Return the time grid for problems with free initial or final times.
+Note that this function can be called during optimization, not just for postprocessing
 
 # Arguments
 
@@ -792,29 +775,6 @@ function build_bounds(dim_var, dim_box, box_triplet)
 end
 
 # getters for high level structs
-"""
-$(TYPEDSIGNATURES)
-
-Return the nonlinear programming (NLP) model associated with a given
-discretized optimal control problem (`DOCP`).
-
-# Arguments
-
-- `docp::DOCP`: The discretized optimal control problem.
-
-# Returns
-
-- `nlp::Any`: The underlying NLP model stored in `docp`.
-
-# Example
-
-```julia-repl
-julia> nlp_model(docp)
-NLPModel(...)
-```
-"""
-nlp_model(docp::DOCP) = docp.nlp
-
 """
 $(TYPEDSIGNATURES)
 

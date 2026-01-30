@@ -1,72 +1,73 @@
 # ---------------------------------------------------------------------------
 # Implementation of Collocation discretizer
 # ---------------------------------------------------------------------------
+
+# default options for modelers backend
 __adnlp_backend() = :optimized
 __exa_backend() = nothing
 
-function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
+# ==========================================================================================
+# Scheme symbol mapping
+# ==========================================================================================
+function get_scheme(discretizer::Collocation)
+    return CTModels.get_option_value(discretizer, :scheme)
+end
 
-    # +++ some of these functions could be outside the discretizer ?
+# ==========================================================================================
+# Grid options mapping
+# unified grid option: Int => grid_size, Vector => explicit time_grid
+# ==========================================================================================
+function grid_options(discretizer::Collocation)
 
-    # ==========================================================================================
-    # Scheme symbol mapping
-    # ==========================================================================================
-    #=SchemeSymbol = Dict(MidpointScheme => :midpoint, TrapezoidalScheme => :trapeze, TrapezeScheme => :trapeze)
-    function scheme_symbol(discretizer::Collocation)
-        scheme = CTModels.get_option_value(discretizer, :scheme)
-        return SchemeSymbol[typeof(scheme)]
-    end=#
-    function get_scheme(discretizer::Collocation)
-        return CTModels.get_option_value(discretizer, :scheme)
+    grid = CTModels.get_option_value(discretizer, :grid)
+    if grid isa Int
+        grid_size = grid
+        time_grid = nothing
+    else
+        grid_size = length(grid)
+        time_grid = grid
     end
 
-    # ==========================================================================================
-    # Grid options mapping
-    # unified grid option: Int => grid_size, Vector => explicit time_grid
-    # ==========================================================================================
-    function grid_options(discretizer::Collocation)
+    return grid_size, time_grid
+end
 
-        grid = CTModels.get_option_value(discretizer, :grid)
-        if grid isa Int
-            grid_size = grid
-            time_grid = nothing
-        else
-            grid_size = length(grid)
-            time_grid = grid
-        end
+# ==========================================================================================
+# Build core DOCP structure with discretization information (ADNLP)
+# ==========================================================================================
+function get_docp(discretizer::Collocation, ocp::AbstractOptimalControlProblem)
+    
+    # recover discretization scheme and options
+    scheme = get_scheme(discretizer)
+    grid_size, time_grid = grid_options(discretizer)
 
-        return grid_size, time_grid
-    end
+    # initialize DOCP
+    docp = DOCP(
+        ocp;
+        grid_size=grid_size,
+        time_grid=time_grid,
+        scheme=scheme,
+    )
 
-    # ==========================================================================================
-    # Build core DOCP structure with discretization information (ADNLP)
-    # ==========================================================================================
-    function get_docp()
-        
-        # recover discretization scheme and options
-        scheme = get_scheme(discretizer)
-        grid_size, time_grid = grid_options(discretizer)
+    # set bounds in DOCP
+    variables_bounds!(docp)
+    constraints_bounds!(docp)
 
-        # initialize DOCP
-        docp = DOCP(
-            ocp;
-            grid_size=grid_size,
-            time_grid=time_grid,
-            scheme=scheme,
+    return docp
+end
+
+# ==========================================================================================
+# Build initial guess for discretized problem
+# ==========================================================================================
+
+# +++ single function get_docp_initial_guess for both adnlp/exa
+# see exa model builder below, return init triplet 
+# put functional init above inside this one
+function get_docp_initial_guess(modeler::Symbol, docp,
+        initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing},
         )
 
-        # set bounds in DOCP
-        variables_bounds!(docp)
-        constraints_bounds!(docp)
+        ocp = docp.ocp
 
-        return docp
-    end
-
-    # ==========================================================================================
-    # Build initial guess for discretized problem
-    # ==========================================================================================
-    function get_functional_init(initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing})
-        
         # set initial guess data
         if (initial_guess === nothing)
             init = nothing
@@ -79,29 +80,45 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
             )
         end
 
-        # return functional initial guess
-        return CTModels.build_initial_guess(ocp, init)
-    end
-    
-    function get_x0(
-        initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing},
-        docp
-        )
-
         # build functional initial guess
-        functional_init = get_functional_init(initial_guess)
+        functional_init = CTModels.build_initial_guess(ocp, init)
 
         # build discretized initial guess
         x0 = DOCP_initial_guess(docp, functional_init)
    
-        return x0
+        if modeler == :adnlp
+            return x0
+        elseif modeler == :exa
+            # reshape initial guess for ExaModel variables layout
+            # - do not broadcast, apparently fails on GPU arrays
+            # - unused final control in examodel / euler, hence the different x0 sizes
+            n = CTModels.state_dimension(ocp)
+            m = CTModels.control_dimension(ocp)
+            q = CTModels.variable_dimension(ocp)
+            N = docp.time.steps
+            # N + 1 states, N controls
+            state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] 
+            for i in 0:N]...)
+            control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] 
+            for i in 0:(N - 1)]...,)
+            # +++? todo: pass indeed to grid_size only for euler(_b), trapeze and midpoint
+            control = [control control[:, end]] 
+            variable = x0[(end - q + 1):end]
+            
+            return (variable, state, control)
+        else
+            error("unknown modeler in get_docp_initial_guess: ", modeler)
+        end
     end
 
-    #+++get_x0_exa() see exa model builder below, 
-    #return init triplet  
+
+# ==========================================================================================
+# Build discretizer API (return sets of model/solution builders)
+# ==========================================================================================
+function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
     # construct common data for builders
-    discretizer.docp = get_docp()
+    discretizer.docp = get_docp(discretizer, ocp)
 
     # ==========================================================================================
     # The needed builders for the construction of the final DiscretizedOptimalControlProblem
@@ -121,7 +138,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         c! = (c, x) -> CTDirect.DOCP_constraints!(c, x, docp)
 
         # build initial guess
-        x0 = get_x0(initial_guess, docp)
+        init = get_docp_initial_guess(:adnlp, docp, initial_guess)
 
         # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
         unused_backends = (
@@ -163,7 +180,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         # build NLP
         nlp = ADNLPModel!(
             f,
-            x0,
+            init,
             docp.bounds.var_l,
             docp.bounds.var_u,
             c!,
@@ -208,39 +225,18 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
         # build initial guess (ADNLP format)
         docp = discretizer.docp
-        x0 = get_x0(initial_guess, docp)
-
-        #+++ use aux function here  get_x0_exa()
-        # reshape initial guess for ExaModel variables layout
-        # - do not broadcast, apparently fails on GPU arrays
-        # - unused final control in examodel / euler, hence the different x0 sizes
-        n = CTModels.state_dimension(ocp)
-        m = CTModels.control_dimension(ocp)
-        q = CTModels.variable_dimension(ocp)
-        state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] for i in 0:grid_size]...) # grid_size + 1 states
-        control = hcat(
-        [
-            x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] for
-            i in 0:(grid_size - 1)
-        ]...,
-        ) # grid_size controls...
-        # +++? todo: pass indeed to grid_size only for euler(_b), trapeze and midpoint
-        control = [control control[:, end]] 
-        variable = x0[(end - q + 1):end]
+        init = get_docp_initial_guess(:exa, docp, initial_guess)
 
         # build Exa model and getters
         # +++ later try to call Exa constructor here if possible, reusing existing functions...
-        # +++ share
         build_exa = CTModels.get_build_examodel(ocp)
         nlp, discretizer.exa_getter = build_exa(;
             grid_size=grid_size,
             backend=exa_backend,
             scheme=scheme,
-            init=(variable, state, control),
+            init=init,
         )
-        # remark: nlp.meta.x0[1:docp.dim_NLP_variables] = -vcat(state..., control..., variable) 
-        # also work, and supersedes previous init via ExaModels start (itself overridden by init in solve)
-    
+
         return nlp
     end
 
@@ -259,7 +255,6 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         
         return sol
     end
-
 
     #NB. it would be better to return builders as model/solution pairs since they are linked
     return CTModels.DiscretizedOptimalControlProblem(
