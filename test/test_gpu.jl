@@ -48,7 +48,8 @@ function test_exa(exa_backend, display)
 
     # goddard2
     @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :grid_size :objective" begin
-        sol = solve_problem(goddard2(); solver=:madnlp, modeler=:exa, scheme=:trapeze,
+        prob = goddard2()
+        sol = solve_problem(prob; solver=:madnlp, modeler=:exa, scheme=:trapeze,
                 exa_backend=exa_backend, display=display, grid=1000)
         @test time_grid(sol)[end] ≈ 0.201965 rtol = 1e-2  # check time grid
         @test objective(sol) ≈ prob.obj rtol = 1e-2
