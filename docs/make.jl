@@ -24,8 +24,9 @@ end=#
 repo_url = "github.com/control-toolbox/CTDirect.jl"
 
 API_PAGES = [
-    "collocation.md"
+    "collocation.md",
     "common.md",
+    "docp.md",
     "euler.md",
     "irk.md",
     "midpoint.md",
