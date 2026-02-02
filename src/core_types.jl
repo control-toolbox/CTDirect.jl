@@ -29,17 +29,15 @@ abstract type AbstractOptimalControlDiscretizer <: CTModels.AbstractOCPTool end
 # ---------------------------------------------------------------------------
 # Collocation discretizer
 # ---------------------------------------------------------------------------
-mutable struct Collocation{D<:CTDirect.Discretization} <: AbstractOptimalControlDiscretizer
-    #{D<:CTDirect.Discretization, O<:CTModels.Model} 
-    
+mutable struct Collocation <: AbstractOptimalControlDiscretizer
+
     # required to be able to use default CTModels.AbstractOCPTool getters
     options_values
     options_sources
 
-    disc::D
-    docp
+    # reuse existing DOCP and build it later since we don't have the ocp here...
+    docp  
     exa_getter
-    #+++ put here contents from CTDirect.DOCP and adjust functions ?
 end
 
 # useful for OptimalControl. Should be a field of AbstractOptimalControlDiscretizer with default getter, for consistency.
@@ -67,20 +65,19 @@ function CTModels._option_specs(::Type{<:Collocation})
 end
 
 # constructor: kwargs contains the options values
+# NB we don't have the ocp at this point ! (?)
+# so we reuse DOCP and set it later
 function Collocation(; kwargs...)
 
     # parsing options from CTModels
     values, sources = CTModels._build_ocp_tool_options(Collocation; kwargs..., strict_keys=true)
-    #scheme = values.scheme
 
-    # disc
-    disc, _, _ = CTDirect.Midpoint(1,1,1,1,1,1)
     # docp
     docp = nothing
     # exa getter
     exa_getter = nothing
 
-    return Collocation{typeof(disc)}(values, sources, disc, docp, exa_getter)
+    return Collocation(values, sources, docp, exa_getter)
 end
 
 # ---------------------------------------------------------------------------

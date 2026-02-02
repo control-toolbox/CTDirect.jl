@@ -876,15 +876,8 @@ CTModels.Solution(...)
 ```
 """
 function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecutionStats,
-    objective, iterations, constraints_violation, message, status, successful;
+    T, objective, iterations, constraints_violation, message, status, successful;
     exa_getter = nothing)
-
-    # retrieve time grid +++ unify this ?
-    if isnothing(exa_getter)
-        T = get_time_grid(nlp_solution.solution, docp)
-    else
-        T = get_time_grid_exa(nlp_solution, docp, exa_getter)
-    end
 
     # NB. we might get rid of the transpose depending on the CTModels part...
 

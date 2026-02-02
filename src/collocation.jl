@@ -3,6 +3,7 @@
 # ---------------------------------------------------------------------------
 
 # default options for modelers backend
+# +++ recheck kwargs passing / default with Olivier
 __adnlp_backend() = :optimized
 __exa_backend() = nothing
 
@@ -58,10 +59,6 @@ end
 # ==========================================================================================
 # Build initial guess for discretized problem
 # ==========================================================================================
-
-# +++ single function get_docp_initial_guess for both adnlp/exa
-# see exa model builder below, return init triplet 
-# put functional init above inside this one
 function get_docp_initial_guess(modeler::Symbol, docp,
         initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing},
         )
@@ -123,6 +120,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # ==========================================================================================
     # The needed builders for the construction of the final DiscretizedOptimalControlProblem
     # ==========================================================================================
+    # +++ recheck kwargs passing / default with Olivier
     function build_adnlp_model(
         initial_guess::CTModels.AbstractOptimalControlInitialGuess;
         adnlp_backend=__adnlp_backend(),
@@ -200,17 +198,22 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         
         docp = discretizer.docp
 
-        #retrieve data from NLP solver
+        # retrieve data from NLP solver
         minimize = !docp.flags.max
         objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution, minimize)
 
+        # retrieve time grid
+        T = get_time_grid(nlp_solution.solution, docp)
+
         # build OCP solution from NLP solution
-        sol = CTDirect.build_OCP_solution(docp, nlp_solution, objective, iterations, constraints_violation, message, status, successful)
+        sol = CTDirect.build_OCP_solution(docp, nlp_solution, T, 
+        objective, iterations, constraints_violation, message, status, successful)
         
         return sol
     end
 
     # NLP builder for ExaModels
+    # +++ recheck kwargs passing / default with Olivier
     function build_exa_model(
         ::Type{BaseType}, 
         initial_guess::CTModels.AbstractOptimalControlInitialGuess; 
@@ -245,12 +248,16 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
         docp = discretizer.docp
 
-        #retrieve data from NLP solver
+        # retrieve data from NLP solver
         minimize = !docp.flags.max
         objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution, minimize)
   
+        # retrieve time grid
+        T = get_time_grid_exa(nlp_solution, docp, discretizer.exa_getter)
+
         # build OCP solution from NLP solution
-        sol = CTDirect.build_OCP_solution(docp, nlp_solution, objective, iterations, constraints_violation, message, status, successful; 
+        sol = CTDirect.build_OCP_solution(docp, nlp_solution, T,
+        objective, iterations, constraints_violation, message, status, successful; 
         exa_getter=discretizer.exa_getter)
         
         return sol
