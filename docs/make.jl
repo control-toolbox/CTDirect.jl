@@ -1,13 +1,13 @@
 using Documenter
 using DocumenterMermaid
 using CTDirect
-using ADNLPModels
-using ExaModels
-using NLPModelsIpopt
-using NLPModelsKnitro
-using MadNLPMumps
+#using ADNLPModels
+#using ExaModels
+#using NLPModelsIpopt
+#using NLPModelsKnitro
+#using MadNLPMumps
 
-# to add docstrings from external packages
+#= to add docstrings from external packages
 const CTDirectExtADNLP = Base.get_extension(CTDirect, :CTDirectExtADNLP)
 const CTDirectExtExa = Base.get_extension(CTDirect, :CTDirectExtExa)
 const CTDirectExtIpopt = Base.get_extension(CTDirect, :CTDirectExtIpopt)
@@ -19,26 +19,17 @@ Modules = [
 for Module in Modules
     isnothing(DocMeta.getdocmeta(Module, :DocTestSetup)) &&
         DocMeta.setdocmeta!(Module, :DocTestSetup, :(using $Module); recursive=true)
-end
+end=#
 
 repo_url = "github.com/control-toolbox/CTDirect.jl"
 
 API_PAGES = [
+    "collocation.md"
     "common.md",
-    "ctdirectext_adnlp.md",
-    "ctdirectext_exa.md",
-    "ctdirectext_ipopt.md",
-    "ctdirectext_knitro.md",
-    "ctdirectext_madnlp.md",
-    "default.md",
-    "docp.md",
     "euler.md",
     "irk.md",
     "midpoint.md",
-    "solution.md",
-    "solve.md",
     "trapeze.md",
-    "utils.md",
 ]
 
 makedocs(;
