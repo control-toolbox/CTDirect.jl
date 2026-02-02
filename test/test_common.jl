@@ -31,6 +31,7 @@ function solve_problem(prob;
     graph=false,
     init=nothing,
     adnlp_backend=:optimized,
+    exa_backend=nothing,
     kwargs...)
 
     # discretized problem (model and solution builders)
@@ -48,7 +49,7 @@ function solve_problem(prob;
     if modeler == :adnlp
         my_modeler = CTModels.ADNLPModeler(; adnlp_backend=adnlp_backend) # kwargs
     elseif modeler == :exa
-        my_modeler = CTModels.ExaModeler() # kwargs
+        my_modeler = CTModels.ExaModeler(; exa_backend=exa_backend) # kwargs
     else
         error("Unknown modeler: ", modeler)
     end

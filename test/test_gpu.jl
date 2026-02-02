@@ -55,7 +55,7 @@ function test_exa(exa_backend, display)
     end
 end
 
-# GPU tests (moonshot workflow)
+# GPU tests (kkt workflow)
 display = false
 if CUDA.functional()
     println("testing: ExaModels on GPU (MadNLPGPU / CUDA)")
