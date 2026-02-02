@@ -49,7 +49,7 @@ function solve_problem(prob;
     if modeler == :adnlp
         my_modeler = CTModels.ADNLPModeler(; adnlp_backend=adnlp_backend) # kwargs
     elseif modeler == :exa
-        my_modeler = CTModels.ExaModeler(; exa_backend=exa_backend) # kwargs
+        my_modeler = CTModels.ExaModeler(; backend=exa_backend) # kwargs
     else
         error("Unknown modeler: ", modeler)
     end
