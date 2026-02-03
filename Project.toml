@@ -21,7 +21,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 [compat]
 ADNLPModels = "0.8"
 CTBase = "0.16, 0.17"
-CTModels = "0.6, 0.7, 0.8"
+CTModels = "0.6, 0.7"
 CTParser = "0.7, 0.8"
 CTSolvers = "0.2"
 CUDA = "5"
