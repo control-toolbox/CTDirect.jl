@@ -14,10 +14,11 @@ using NLPModels: NLPModels
 const AbstractOptimalControlProblem = CTModels.AbstractModel
 
 # includes
-include("core_types.jl")
-include("discretization_api.jl")
 include("collocation.jl")
 include("collocation_core.jl")
+include("collocation_variables.jl")
+include("collocation_functions.jl")
+include("collocation_solution.jl")
 include("disc/common.jl")
 include("disc/euler.jl")
 include("disc/irk.jl")

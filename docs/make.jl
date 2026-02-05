@@ -4,8 +4,7 @@ using CTDirect
 
 repo_url = "github.com/control-toolbox/CTDirect.jl"
 
-API_PAGES = [
-    "core_types.md",      
+API_PAGES = [    
     "collocation_core.md",    
     "collocation.md",
     "common.md",
