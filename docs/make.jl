@@ -5,8 +5,10 @@ using CTDirect
 repo_url = "github.com/control-toolbox/CTDirect.jl"
 
 API_PAGES = [    
-    "collocation_core.md",    
     "collocation.md",
+    "collocation_functions.md",
+    "collocation_variables.md",
+    "collocation_core.md",    
     "common.md",
     "docp.md",
     "euler.md",
