@@ -161,6 +161,20 @@ end
     @test variable(sol) == v_const
 end
 
+# 1.e bis mixed initial guess with @init macro
+@testset verbose = true showtiming = true ":vector_tx :functional_u :constant_v @init" begin
+    init = @init prob.ocp begin
+        x(t_vec) := x_vec
+        u(t) := u_func(t)
+        tf := v_const
+    end
+    sol = solve_problem(prob; init=init, max_iter=maxiter)
+    T = time_grid(sol)
+    @test isapprox(state(sol).(t_vec), x_vec, rtol=1e-2)
+    @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)
+    @test variable(sol) == v_const
+end    
+
 # 1.f warm start
 @testset verbose = true showtiming = true ":warm_start" begin
     sol = solve_problem(prob; init=sol0, max_iter=maxiter)
