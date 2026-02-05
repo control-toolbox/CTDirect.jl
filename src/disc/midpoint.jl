@@ -51,6 +51,7 @@ Set work array for all dynamics cost evaluations
 """
 function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
     work = similar(xu, docp.dims.NLP_x * docp.time.steps)
+    ocp = ocp_model(docp)
 
     # loop over time steps
     for i in 1:docp.time.steps
@@ -63,7 +64,7 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
             )
         ui = get_OCP_control_at_time_step(xu, docp, i)
         # OCP dynamics
-        CTModels.dynamics(docp.ocp)(
+        CTModels.dynamics(ocp)(
             (@view work[(offset + 1):(offset + docp.dims.NLP_x)]), ts, xs, ui, v
         )
     end
@@ -78,6 +79,7 @@ Compute the running cost
 """
 function runningCost(docp::DOCP{Midpoint}, xu, v, time_grid)
     obj_lagrange = 0.0
+    ocp = ocp_model(docp)
 
     # loop over time steps
     for i in 1:docp.time.steps
@@ -90,7 +92,7 @@ function runningCost(docp::DOCP{Midpoint}, xu, v, time_grid)
                 get_OCP_state_at_time_step(xu, docp, i+1)
             )
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        obj_lagrange = obj_lagrange + hi * CTModels.lagrange(docp.ocp)(ts, xs, ui, v)
+        obj_lagrange = obj_lagrange + hi * CTModels.lagrange(ocp)(ts, xs, ui, v)
     end
 
     return obj_lagrange
@@ -103,6 +105,7 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
+    ocp = ocp_model(docp)
     disc = disc_model(docp)
 
     # offset for previous steps
@@ -129,7 +132,7 @@ function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
     # 2. path constraints
     if docp.dims.path_cons > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(docp.ocp)[2](
+        CTModels.path_constraints_nl(ocp)[2](
             (@view c[(offset + 1):(offset + docp.dims.path_cons)]), ti, xi, ui, v
         )
     end

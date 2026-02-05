@@ -16,8 +16,7 @@ t_vec = [0, 0.1, v_const]
 x_vec = [[0, 0], [1, 2], [5, -1]]
 u_func = t -> (cos(10 * t) + 1) * 0.5
 init = @init prob.ocp begin
-    x1(t_vec) := x_vec[:,1]
-    x2(t) := t²
+    x(t_vec) := x_vec
     u(t) := u_func(t)
     tf := v_const
 end

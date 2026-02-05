@@ -106,7 +106,7 @@ function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
         u = get_OCP_control_at_time_step(xu, docp, index)
 
         # OCP dynamics
-        CTModels.dynamics(docp.ocp)(
+        CTModels.dynamics(ocp)(
             (@view work[(offset + 1):(offset + dims.NLP_x)]), t, x, u, v
         )
     end
@@ -150,6 +150,7 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
+    ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
 
@@ -177,7 +178,7 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
     # 2. path constraints
     if disc._step_pathcons_block > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(docp.ocp)[2](
+        CTModels.path_constraints_nl(ocp)[2](
             (@view c[(offset + 1):(offset + dims.path_cons)]), ti, xi, ui, v
         )
     end

@@ -21,17 +21,17 @@ julia> DOCP_initial_guess(docp)
 [0.1, 0.1, …]
 ```
 """
-function DOCP_initial_guess(docp::DOCP, init::CTModels.OptimalControlInitialGuess=CTModels.initial_guess(docp.ocp))
+function DOCP_initial_guess(docp::DOCP, init::CTModels.OptimalControlInitialGuess)
 
-    # default initialization (internal variables such as lagrange cost, k_i for RK schemes) will keep these default values 
+    # default initialization (including internal variables such as k_i for RK schemes)
+    # NB. passing nothing to the setters below will leave this default values 
     NLP_X = 0.1 * ones(docp.dim_NLP_variables)
 
     # set variables if provided (needed first in case of free times !)
-    if !isnothing(init.variable)
-        set_optim_variable!(NLP_X, init.variable, docp)
-    end
+    set_optim_variable!(NLP_X, init.variable, docp)
 
-    # set state / control variables if provided (final control case handled by setter)
+    # set state / control variables if provided 
+    # NB. setter handles the final control case
     time_grid = get_time_grid(NLP_X, docp)
     for i in 1:(docp.time.steps + 1)
         ti = time_grid[i]

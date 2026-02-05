@@ -268,8 +268,9 @@ mutable struct DOCP{
     # discretization scheme
     discretization::D
 
-    # OCP +++ remove ?
-    ocp::O # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
+    # OCP (for OCP functions calls and some getters eg free times)
+    # parametric instead of just qualifying reduces allocations (but not time). Specialization ?
+    ocp::O
 
     # boolean flags
     flags::DOCPFlags
@@ -641,7 +642,7 @@ function get_time_grid_exa(
     nlp_solution::SolverCore.AbstractExecutionStats, docp::CTDirect.DOCP, exa_getter
 )
     grid = zeros(docp.time.steps+1)
-    ocp = docp.ocp
+    ocp = ocp_model(docp)
 
     if docp.flags.freet0 || docp.flags.freetf
         v = exa_getter(nlp_solution; val=:variable)

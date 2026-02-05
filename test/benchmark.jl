@@ -26,6 +26,58 @@ for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
+# predefined problem lists
+target_dict = Dict{Symbol, Vector{String}}()
+target_dict[:easy] = [
+    "beam",
+    "double_integrator_mintf",
+    "double_integrator_minenergy",
+    "electric_vehicle",
+    "fuller",
+    "goddard",
+    "goddard_all",
+    "jackson",
+    "simple_integrator",
+    "vanderpol",
+]
+
+target_dict[:hard] = [
+    "algal_bacterial",
+    "bioreactor_1day",
+    "bioreactor_Ndays",
+    "bolza_freetf",
+    "glider",
+    #"insurance", # requires distinct u(tf)
+    "moonlander",
+    "quadrotor",
+    "space_shuttle",
+    "swimmer",
+    "truck_trailer"
+]
+
+target_dict[:lagrange_easy] = [
+    "beam",
+    "double_integrator_minenergy",
+    "fuller",
+    "simple_integrator",
+    "vanderpol",
+]
+
+target_dict[:lagrange_hard] = [
+    "bioreactor_1day",
+    "bioreactor_Ndays",
+    "bolza_freetf",
+    #"insurance", #only converge when final control is present (mixed path constraint) 
+    "parametric",
+    "quadrotor",
+    "robbins",
+    "truck_trailer"
+]
+
+target_dict[:all] = [ target_dict[:easy] ; target_dict[:hard] ]
+
+target_dict[:lagrange_all] = [ target_dict[:lagrange_easy] ; target_dict[:lagrange_hard] ]
+
 # check a specific example
 function check_problem(prob; kwargs...)
     sol = solve(prob.ocp; init=prob.init, kwargs...)
@@ -155,6 +207,7 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
             objective(sol)
         )
         # time
+        if timer
         time = @belapsed solve(
             $problem[:ocp],
             $nlp_solver;
@@ -163,6 +216,7 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
             grid_size=($grid_size),
             $kwargs...,
         )
+        end
         verbose > 1 && @printf("%7.2f s\n", time)
     end
 
@@ -182,77 +236,8 @@ function bench(;
 
     # load problems for benchmark
     # Note that problems may vary significantly in convergence times...  
-    if target_list == :lagrange_easy
-        target_list = [
-            "beam",
-            "double_integrator_minenergy",
-            "fuller",
-            "simple_integrator",
-            "vanderpol",
-        ]
-    elseif target_list == :lagrange_hard
-        target_list = [
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "insurance", #only converge when final control is present (mixed path constraint) 
-            "parametric",
-            "robbins",
-        ]
-    elseif target_list == :lagrange_all
-        target_list = [
-            "beam",
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "double_integrator_e",
-            "fuller",
-            "parametric",
-            "robbins",
-            "simple_integrator",
-            "vanderpol",
-        ]
-    elseif target_list == :hard
-        target_list = [
-            "action",
-            "glider",
-            "moonlander",
-            "quadrotor",
-            "schlogl",
-            "space_shuttle",
-            "truck_trailer",
-        ]
-
-    elseif target_list == :all
-        target_list = [
-            "algal_bacterial",
-            "beam",
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "double_integrator_mintf",
-            "double_integrator_minenergy",
-            "double_integrator_freet0tf",
-            "fuller",
-            "goddard",
-            "goddard_all",
-            #"insurance", fail unless final control
-            "jackson",
-            "parametric",
-            "robbins",
-            "simple_integrator",
-            #"swimmer", #much slower then others #fail for madnlpmumps
-            "vanderpol",
-        ]
-    elseif target_list == :hard
-        target_list = [
-            "algal_bacterial",
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "insurance",
-            "swimmer",
-        ]
+    if target_list isa Symbol
+        target_list = target_dict[target_list]
     end
     verbose > 1 && println("Problem list: ", target_list)
     problem_list = []
@@ -269,7 +254,7 @@ function bench(;
     solutions = Array{Any}(undef, (length(problem_list), length(grid_size_list)))
     i = 1
     for problem in problem_list
-        verbose > 1 && @printf("Testing problem %-22s for grid size ", problem[:name])
+        verbose > 1 && @printf("Testing problem %-20s: grid ", problem[:name])
         j = 1
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
@@ -341,7 +326,6 @@ function bench_custom()
     solutions = Dict{Symbol,Any}()
 
     for disc in disc_list
-        lagrange_to_mayer=true
         @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
         println(lagrange_to_mayer, " Grid ", grid_size_list)
         solutions[disc] = bench(;
@@ -353,22 +337,33 @@ function bench_custom()
         )
         flush(stdout)
         println("")
-
-        # plot
-        if disc == disc_list[1]
-            p = plot(solutions[disc][1, 1], :control; label=String(disc))
-        else
-            p = plot!(solutions[disc][1, 1], :control; label=String(disc))
-        end
-        display(p)
-
-        #=
-        lagrange_to_mayer=false
-        @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
-        println(lagrange_to_mayer, " Grid ", grid_size_list)
-        sol2 = bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
-        flush(stdout)
-        println("")
-        =#
     end
+
+    # plot
+    if target_list isa Symbol
+        problem_list = target_dict[target_list]
+    else
+        problem_list = target_list
+    end
+    if draw_plots
+        i = 1
+        for problem in problem_list
+            j = 1
+            for size in grid_size_list
+                # plot all discretizations for given problem / size
+                for disc in disc_list
+                    if disc == disc_list[1]
+                        plot(solutions[disc][i,j], :control, label=String(disc))
+                    else
+                        plot!(solutions[disc][i,j], :control, label=String(disc))
+                    end
+                end
+                # save figure
+                savefig(string(problem)*"-"*string(size))
+                j = j + 1
+            end
+            i = i + 1
+        end
+    end
+
 end

@@ -156,7 +156,9 @@ $(TYPEDSIGNATURES)
 Set optimization variables in the NLP variables (for initial guess)
 """
 function set_optim_variable!(xu, v_init, docp)
-    xu[(end - docp.dims.NLP_v + 1):end] .= v_init
+    if !isnothing(v_init)
+        xu[(end - docp.dims.NLP_v + 1):end] .= v_init
+    end
 end
 
 """

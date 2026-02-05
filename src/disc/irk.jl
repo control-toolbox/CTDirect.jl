@@ -207,6 +207,7 @@ $(TYPEDSIGNATURES)
 Compute the running cost
 """
 function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
+    ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
     obj_lagrange = 0.0
@@ -242,11 +243,11 @@ function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
             # split to avoid dual tag ordering error in AD
             if j == 1
                 work_sumbk[1] =
-                    disc.butcher_b[j] * CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
+                    disc.butcher_b[j] * CTModels.lagrange(ocp)(tij, work_xij, ui, v)
             else
                 work_sumbk[1] =
                     work_sumbk[1] +
-                    disc.butcher_b[j] * CTModels.lagrange(docp.ocp)(tij, work_xij, ui, v)
+                    disc.butcher_b[j] * CTModels.lagrange(ocp)(tij, work_xij, ui, v)
             end
         end
 
@@ -318,7 +319,7 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
 
             # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f
             # NB. we skip the state equation here, which will be set below
-            CTModels.dynamics(docp.ocp)(
+            CTModels.dynamics(ocp)(
                 (@view c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)]),
                 tij,
                 work_xij,
@@ -341,7 +342,7 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
 
     #2. path constraints
     if dims.path_cons > 0
-        CTModels.path_constraints_nl(docp.ocp)[2](
+        CTModels.path_constraints_nl(ocp)[2](
             (@view c[(offset + 1):(offset + dims.path_cons)]), ti, xi, ui, v
         )
     end

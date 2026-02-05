@@ -167,22 +167,10 @@ function get_docp_initial_guess(modeler::Symbol, docp,
         initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing},
         )
 
-        ocp = docp.ocp
-
-        # set initial guess data
-        if (initial_guess === nothing)
-            init = nothing
-        else
-            init = 
-            (
-                state=CTModels.state(initial_guess),
-                control=CTModels.control(initial_guess),
-                variable=CTModels.variable(initial_guess),
-            )
-        end
+        ocp = ocp_model(docp)
 
         # build functional initial guess
-        functional_init = CTModels.build_initial_guess(ocp, init)
+        functional_init = CTModels.build_initial_guess(ocp, initial_guess)
 
         # build discretized initial guess
         x0 = DOCP_initial_guess(docp, functional_init)

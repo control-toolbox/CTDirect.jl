@@ -55,6 +55,7 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
     #= use work array to store all dynamics
     NB. using a smaller work array to store a single dynamics between steps
     appears slower, maybe due to the copy involved ? =#
+    ocp = ocp_model(docp)
     dims = docp.dims
     work = similar(xu, dims.NLP_x * (docp.time.steps+1))
 
@@ -65,7 +66,7 @@ function setWorkArray(docp::DOCP{Trapeze}, xu, time_grid, v)
         xi = get_OCP_state_at_time_step(xu, docp, i)
         ui = get_OCP_control_at_time_step(xu, docp, i)
         # OCP dynamics
-        CTModels.dynamics(docp.ocp)(
+        CTModels.dynamics(ocp)(
             (@view work[(offset + 1):(offset + dims.NLP_x)]), ti, xi, ui, v
         )
     end
@@ -78,6 +79,7 @@ $(TYPEDSIGNATURES)
 Compute the running cost
 """
 function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
+    ocp = ocp_model(docp)
     dims = docp.dims
     obj_lagrange = 0.0
 
@@ -89,7 +91,7 @@ function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
     xi = get_OCP_state_at_time_step(xu, docp, i)
     ui = get_OCP_control_at_time_step(xu, docp, i)
     h = time_grid[i + 1] - time_grid[i]
-    obj_lagrange = obj_lagrange + h / 2.0 * CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
+    obj_lagrange = obj_lagrange + h / 2.0 * CTModels.lagrange(ocp)(ti, xi, ui, v)
 
     # loop over time steps
     for i in 2:docp.time.steps
@@ -98,7 +100,7 @@ function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
         xi = get_OCP_state_at_time_step(xu, docp, i)
         ui = get_OCP_control_at_time_step(xu, docp, i)
         h2 = time_grid[i + 1] - time_grid[i - 1]
-        obj_lagrange = obj_lagrange + h2 / 2.0 * CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
+        obj_lagrange = obj_lagrange + h2 / 2.0 * CTModels.lagrange(ocp)(ti, xi, ui, v)
     end
 
     # last term
@@ -107,7 +109,7 @@ function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
     xi = get_OCP_state_at_time_step(xu, docp, i)
     ui = get_OCP_control_at_time_step(xu, docp, i)
     h = time_grid[i] - time_grid[i - 1]
-    obj_lagrange = obj_lagrange + h / 2.0 * CTModels.lagrange(docp.ocp)(ti, xi, ui, v)
+    obj_lagrange = obj_lagrange + h / 2.0 * CTModels.lagrange(ocp)(ti, xi, ui, v)
 
     return obj_lagrange
 end
@@ -119,13 +121,12 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
+    ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
 
     # offset for previous steps
     offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
-    # c block version 
-    # offset = 0
 
     # 0. variables
     ti = time_grid[i]
@@ -156,7 +157,7 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     # 2. path constraints
     if dims.path_cons > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(docp.ocp)[2](
+        CTModels.path_constraints_nl(ocp)[2](
             (@view c[(offset + 1):(offset + dims.path_cons)]), ti, xi, ui, v
         )
     end
