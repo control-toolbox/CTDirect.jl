@@ -141,5 +141,5 @@ function swimmer(tf=25)
         objective = nothing
     end
 
-    return ((ocp=swimmer, obj=objective, name="swimmer", init=nothing))
+    return ((ocp=swimmer, obj=objective, name="swimmer", init=()))
 end

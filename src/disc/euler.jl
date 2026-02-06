@@ -106,13 +106,9 @@ function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
         u = get_OCP_control_at_time_step(xu, docp, index)
 
         # OCP dynamics
-        CTModels.dynamics(docp.ocp)(
-            (@view work[(offset + 1):(offset + dims.OCP_x)]), t, x, u, v
+        CTModels.dynamics(ocp)(
+            (@view work[(offset + 1):(offset + dims.NLP_x)]), t, x, u, v
         )
-        # lagrange cost
-        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-            work[offset + dims.NLP_x] = CTModels.lagrange(ocp)(t, x, u, v)
-        end
     end
     return work
 end
@@ -154,6 +150,7 @@ Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
 function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
+    ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
 
@@ -173,22 +170,15 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
         offset_dyn_i = (i-1)*dims.NLP_x
 
         # state equation: euler rule
-        @views @. c[(offset + 1):(offset + dims.OCP_x)] =
-            xip1 - (xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + dims.OCP_x)])
-        if docp.flags.lagrange && docp.flags.lagrange_to_mayer
-            c[offset + dims.NLP_x] =
-                get_lagrange_state_at_time_step(xu, docp, i+1) - (
-                    get_lagrange_state_at_time_step(xu, docp, i) +
-                    hi * work[offset_dyn_i + dims.NLP_x]
-                )
-        end
+        @views @. c[(offset + 1):(offset + dims.NLP_x)] =
+            xip1 - (xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + dims.NLP_x)])
         offset += dims.NLP_x
     end
 
     # 2. path constraints
     if disc._step_pathcons_block > 0
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(docp.ocp)[2](
+        CTModels.path_constraints_nl(ocp)[2](
             (@view c[(offset + 1):(offset + dims.path_cons)]), ti, xi, ui, v
         )
     end
@@ -220,7 +210,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
         c_block = disc._state_stage_eqs_block + disc._step_pathcons_block
         c_offset = (i-1)*c_block
         dyn_start = c_offset + 1
-        dyn_end = c_offset + dims.OCP_x
+        dyn_end = c_offset + dims.NLP_x
         dyn_lag = c_offset + dims.NLP_x
         path_start = c_offset + dims.NLP_x + 1
         path_end = c_offset + c_block
@@ -229,11 +219,11 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
         # x_i (l_i) u_i x_i+1 (l_i+1)
         var_offset = (i-1)*disc._step_variables_block
         xi_start = var_offset + 1
-        xi_end = var_offset + dims.OCP_x
+        xi_end = var_offset + dims.NLP_x
         li = var_offset + dims.NLP_x
         ui_start = var_offset + dims.NLP_x + 1
         ui_end = var_offset + dims.NLP_x + dims.NLP_u
-        xip1_end = var_offset + disc._step_variables_block + dims.OCP_x
+        xip1_end = var_offset + disc._step_variables_block + dims.NLP_x
         lip1 = var_offset + disc._step_variables_block + dims.NLP_x
 
         # 1.1 (explicit) state eq 0 = x_i+1 - (x_i + h_i * f(t_i, x_i, u_i, v))
@@ -272,7 +262,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
     c_block = disc._step_pathcons_block
     var_offset = docp.time.steps*disc._step_variables_block
     xf_start = var_offset + 1
-    xf_end = var_offset + dims.OCP_x
+    xf_end = var_offset + dims.NLP_x
     uf_start = var_offset - disc._step_variables_block + dims.NLP_x + 1
     uf_end = var_offset-disc._step_variables_block + dims.NLP_x + dims.NLP_u
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
@@ -285,7 +275,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
         disc._step_pathcons_block
     c_block = dims.boundary_cons
     x0_start = 1
-    x0_end = dims.OCP_x
+    x0_end = dims.NLP_x
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, x0_start, x0_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
@@ -335,9 +325,9 @@ function DOCP_Hessian_pattern(docp::DOCP{Euler})
         # x_i (l_i) u_i x_i+1 (l_i+1)
         var_offset = (i-1)*disc._step_variables_block
         xi_start = var_offset + 1
-        xi_end = var_offset + dims.OCP_x
+        xi_end = var_offset + dims.NLP_x
         xip1_start = var_offset + disc._step_variables_block + 1
-        xip1_end = var_offset + disc._step_variables_block + dims.OCP_x
+        xip1_end = var_offset + disc._step_variables_block + dims.NLP_x
         ui_start = var_offset + dims.NLP_x + 1
         ui_end = var_offset + dims.NLP_x + dims.NLP_u
 
@@ -375,10 +365,10 @@ function DOCP_Hessian_pattern(docp::DOCP{Euler})
     # -> x0 / x0, x0 / v terms included in first loop iteration
     # -> xf / xf, xf / v terms included in last loop iteration (with x_i+1 as x_f)
     x0_start = 1
-    x0_end = dims.OCP_x
+    x0_end = dims.NLP_x
     var_offset = docp.time.steps*disc._step_variables_block
     xf_start = var_offset + 1
-    xf_end = var_offset + dims.OCP_x
+    xf_end = var_offset + dims.NLP_x
     add_nonzero_block!(Is, Js, x0_start, x0_end, xf_start, xf_end; sym=true)
 
     # 3.1 null initial condition for lagrangian cost state l0

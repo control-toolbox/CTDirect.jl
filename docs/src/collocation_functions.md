@@ -1,9 +1,9 @@
-# Utils
+# Solution
 
 ## Index
 
 ```@index
-Pages   = ["utils.md"]
+Pages   = ["collocation_functions.md"]
 Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 ```
@@ -11,7 +11,7 @@ Order = [:module, :constant, :type, :function, :macro]
 ## Documentation
 
 ```@autodocs
-Pages = ["utils.jl"]
+Pages = ["collocation_functions.jl"]
 Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 ```

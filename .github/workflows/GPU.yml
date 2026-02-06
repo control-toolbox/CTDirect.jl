@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-24.04]
-        gpu-backend: [cuda, amdgpu]
+        gpu-backend: [kkt] #, amdgpu]
         julia-version: ['1']
         julia-arch: [x64]
 
@@ -29,6 +29,10 @@ jobs:
         with:
           version: ${{ matrix.julia-version }}
           arch: ${{ matrix.julia-arch }}
+      - uses: julia-actions/add-julia-registry@v1
+        with:
+          key: ${{ secrets.SSH_KEY }}
+          registry: control-toolbox/ct-registry
       - uses: actions/cache@v5
         env:
           cache-name: cache-artifacts
