@@ -30,7 +30,7 @@ function test_exa(exa_backend, display)
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :grid_size" begin
         test_problem(beam2(); solver=:madnlp, modeler=:exa, scheme=:trapeze,
-                exa_backend=exa_backend, display=display, grid=1000)
+                exa_backend=exa_backend, display=display, grid_size=1000)
     end
 
     @testset verbose = true showtiming = true "beam2 :examodel :trapeze :init" begin
@@ -50,7 +50,7 @@ function test_exa(exa_backend, display)
     @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :grid_size :objective" begin
         prob = goddard2()
         sol = solve_problem(prob; solver=:madnlp, modeler=:exa, scheme=:trapeze,
-                exa_backend=exa_backend, display=display, grid=1000)
+                exa_backend=exa_backend, display=display, grid_size=1000)
         @test time_grid(sol)[end] ≈ 0.201965 rtol = 1e-2  # check time grid
         @test objective(sol) ≈ prob.obj rtol = 1e-2
     end
