@@ -1,22 +1,15 @@
 # Benchmark and profiling
-using CTBase #? still needed ?
-using CTParser: CTParser, @def
-using CTModels:
-    CTModels, objective, state, control, variable, costate, time_grid, iterations
-using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
+include("test_common.jl")
 
-using ADNLPModels
-using NLPModelsIpopt
-using MadNLPMumps
-
-using LinearAlgebra
+#using LinearAlgebra
 using Printf
 using Plots
 
 using BenchmarkTools
-using JET
-using Profile
-using PProf
+#using Profile
+#using PProf
+#using JET
+
 using Test # to run individual test scripts if needed
 
 #######################################################
@@ -80,14 +73,14 @@ target_dict[:lagrange_all] = [ target_dict[:lagrange_easy] ; target_dict[:lagran
 
 # check a specific example
 function check_problem(prob; kwargs...)
-    sol = solve(prob.ocp; init=prob.init, kwargs...)
+    sol = solve_problem(prob; kwargs...)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
 # tests to check allocations in particular
-function init(ocp; grid_size, disc_method)
+function init(ocp; grid_size, scheme)
     docp = CTDirect.DOCP(
-        ocp; grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=disc_method
+        ocp; grid_size=grid_size, time_grid=CTDirect.__time_grid(), scheme=scheme
     )
     xu = CTDirect.DOCP_initial_guess(docp)
     return docp, xu
@@ -97,20 +90,18 @@ function test_unit(
     ocp;
     test_obj=true,
     test_cons=true,
-    test_trans=true,
-    test_solve=true,
     warntype=false,
     jet=false,
     profile=false,
     grid_size=100,
-    disc_method=:trapeze,
+    scheme=:trapeze,
 )
-    if profile
-        Profile.Allocs.clear()
-    end
+    #if profile
+    #    Profile.Allocs.clear()
+    #end
 
     # define problem and variables
-    docp, xu = init(ocp; grid_size=grid_size, disc_method=disc_method)
+    docp, xu = init(ocp; grid_size=grid_size, scheme=scheme)
     disc = docp.discretization
     c = fill(666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dims.NLP_x)
@@ -120,12 +111,12 @@ function test_unit(
         print("Objective");
         @btime CTDirect.DOCP_objective($xu, $docp)
         warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
-        jet && display(@report_opt CTDirect.DOCP_objective(xu, docp))
-        if profile
-            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
-            results = Profile.Allocs.fetch()
-            PProf.Allocs.pprof()
-        end
+        #jet && display(@report_opt CTDirect.DOCP_objective(xu, docp))
+        #if profile
+        #    Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
+        #    results = Profile.Allocs.fetch()
+        #    PProf.Allocs.pprof()
+        #end
     end
 
     # DOCP_constraints
@@ -134,29 +125,15 @@ function test_unit(
         @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
         any(c .== 666.666) && error("undefined values in constraints ", c)
         warntype && @code_warntype CTDirect.DOCP_constraints!(c, xu, docp)
-        jet && display(@report_opt CTDirect.DOCP_constraints!(c, xu, docp))
-        if profile
-            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints!(c, xu, docp)
-            results = Profile.Allocs.fetch()
-            PProf.Allocs.pprof()
-        end
+        #jet && display(@report_opt CTDirect.DOCP_constraints!(c, xu, docp))
+        #if profile
+        #    Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints!(c, xu, docp)
+        #    results = Profile.Allocs.fetch()
+        #    PProf.Allocs.pprof()
+        #end
     end
 
-    # transcription
-    if test_trans
-        print("Transcription");
-        @btime direct_transcription(
-            $ocp, grid_size=($grid_size), disc_method=($disc_method)
-        )
-    end
-
-    # solve
-    if test_solve
-        print("Solve");
-        @btime solve(
-            $ocp, display=false, grid_size=($grid_size), disc_method=($disc_method)
-        )
-    end
+    # collocation build ?
 
     return nothing
 end
@@ -165,7 +142,7 @@ end
 # verbose <= 1: no output
 # verbose > 1: print summary (iter, obj, time)
 # verbose > 2: print NLP iterations also
-function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
+function bench_problem(problem; verbose=1, solver, grid_size, timer=false, kwargs...)
     if verbose > 2
         display = true
     else
@@ -173,10 +150,9 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
     end
 
     # check (will also precompile)
-    time = @elapsed sol = solve(
-        problem[:ocp],
-        nlp_solver;
-        init=problem[:init],
+    time = @elapsed sol = solve_problem(
+        problem;
+        solver=solver,
         display=display,
         grid_size=grid_size,
         kwargs...,
@@ -208,10 +184,9 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
         )
         # time
         if timer
-        time = @belapsed solve(
-            $problem[:ocp],
-            $nlp_solver;
-            init=$problem[:init],
+        time = @belapsed solve_problem(
+            $problem;
+            solver=($solver),
             display=false,
             grid_size=($grid_size),
             $kwargs...,
@@ -228,7 +203,7 @@ function bench(;
     verbose=1,
     target_list=:all,
     grid_size_list=[250, 500, 1000],
-    nlp_solver=:ipopt,
+    solver=:ipopt,
     return_sols=false,
     save_sols=false,
     kwargs...,
@@ -263,7 +238,7 @@ function bench(;
                 problem;
                 grid_size=grid_size,
                 verbose=verbose-1,
-                nlp_solver=nlp_solver,
+                solver=solver,
                 kwargs...,
             )
             t_bench[i, j] = time
@@ -322,18 +297,18 @@ function bench_custom()
     target_list = ["goddard"] #:hard
     grid_size_list=[250] #, 500, 1000]
     verbose = 1
+    draw_plots = false
 
     solutions = Dict{Symbol,Any}()
 
     for disc in disc_list
-        @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
-        println(lagrange_to_mayer, " Grid ", grid_size_list)
+        @printf("Bench %s / %s ", target_list, disc)
+        println(" Grid ", grid_size_list)
         solutions[disc] = bench(;
             target_list=target_list,
             grid_size_list=grid_size_list,
-            disc_method=disc,
+            scheme=disc,
             verbose=verbose,
-            lagrange_to_mayer=lagrange_to_mayer,
         )
         flush(stdout)
         println("")
