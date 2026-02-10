@@ -15,6 +15,7 @@ Strategies.id(::Type{<:Collocation}) = :collocation
 # default options
 __collocation_grid_size()::Int = 250
 __collocation_scheme()::Symbol = :midpoint
+__collocation_time_grid() = nothing
 
 function Strategies.metadata(::Type{<:Collocation})
     return Strategies.StrategyMetadata(
@@ -30,11 +31,14 @@ function Strategies.metadata(::Type{<:Collocation})
         default = __collocation_scheme(),
         description = "Time integration scheme (e.g., :midpoint, :trapeze)",
         ),
+        Options.OptionDefinition(
+        name = :time_grid,
+        type = Union{Nothing,AbstractVector},
+        default = __collocation_time_grid(),
+        description = "Explicit time grid (possibly non uniform) for the collocation",
+        ),
     )
 end
-
-#__grid()::Union{Int,AbstractVector} = __grid_size()
-
 
 # constructor: kwargs contains the options values
 function Collocation(; mode::Symbol = :strict, kwargs...)
@@ -44,51 +48,10 @@ end
 
 Strategies.options(c::Collocation) = c.options
 
-# ---------------------------------------------------------------------------
-# Discretizers registration
-# ---------------------------------------------------------------------------
-#= useful for OptimalControl.
-const REGISTERED_DISCRETIZERS = (Collocation,)
-registered_discretizer_types() = REGISTERED_DISCRETIZERS
-discretizer_symbols() = Tuple(CTModels.get_symbol(T) for T in REGISTERED_DISCRETIZERS)
-function _discretizer_type_from_symbol(sym::Symbol)
-    for T in REGISTERED_DISCRETIZERS
-        if CTModels.get_symbol(T) === sym
-            return T
-        end
-    end
-    msg = "Unknown discretizer symbol $(sym). Supported discretizers: $(discretizer_symbols())."
-    throw(CTBase.IncorrectArgument(msg))
-end
-function build_discretizer_from_symbol(sym::Symbol; kwargs...)
-    T = _discretizer_type_from_symbol(sym)
-    return T(; kwargs...)
-end=#
-
-
 # default options for modelers backend
 # +++ recheck kwargs passing / default with Olivier
 __adnlp_backend() = :optimized
 __exa_backend() = nothing
-
-
-# ==========================================================================================
-# Grid options mapping
-# unified grid option: Int => grid_size, Vector => explicit time_grid
-# ==========================================================================================
-#=function grid_options(discretizer::Collocation)
-
-    grid = CTModels.get_option_value(discretizer, :grid)
-    if grid isa Int
-        grid_size = grid
-        time_grid = nothing
-    else
-        grid_size = length(grid)
-        time_grid = grid
-    end
-
-    return grid_size, time_grid
-end=#
 
 
 # ==========================================================================================
@@ -99,7 +62,7 @@ function get_docp(discretizer::Collocation, ocp::AbstractOptimalControlProblem)
     # recover discretization scheme and options
     scheme = Strategies.options(discretizer)[:scheme]
     grid_size = Strategies.options(discretizer)[:grid_size]
-    time_grid = nothing
+    time_grid = Strategies.options(discretizer)[:time_grid]
 
     # initialize DOCP
     docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, scheme=scheme)
@@ -167,7 +130,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # +++ recheck kwargs passing / default with Olivier
     function build_adnlp_model(
         initial_guess::CTModels.AbstractOptimalControlInitialGuess;
-        adnlp_backend=__adnlp_backend(),
+        backend=__adnlp_backend(),
         show_time=false,
         kwargs...
     )::ADNLPModels.ADNLPModel
@@ -188,7 +151,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         )
 
         # set adnlp backends
-        if adnlp_backend == :manual
+        if backend == :manual
 
             # build sparsity patterns for Jacobian and Hessian
             J_backend = ADNLPModels.SparseADJacobian(
@@ -208,7 +171,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
             )
         else
             # use backend preset
-            backend_options = (backend=adnlp_backend,)
+            backend_options = (backend=backend,)
         end
 
         # build NLP
@@ -255,8 +218,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         kwargs...
     )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
 
-        # recover discretization scheme and options
-        # since exa part does not reuse the docp struct
+        # recover discretization scheme and size
         scheme = Strategies.options(discretizer)[:scheme]
         grid_size = Strategies.options(discretizer)[:grid_size]
 

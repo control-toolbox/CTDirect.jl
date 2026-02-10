@@ -47,7 +47,7 @@ function solve_problem(prob;
 
     # NLP modeler
     if modeler == :adnlp
-        my_modeler = CTSolvers.ADNLPModeler(; adnlp_backend=adnlp_backend, mode=:permissive) # kwargs
+        my_modeler = CTSolvers.ADNLPModeler(; backend=adnlp_backend) # kwargs
     elseif modeler == :exa
         my_modeler = CTSolvers.ExaModeler(; backend=exa_backend) # kwargs
     else

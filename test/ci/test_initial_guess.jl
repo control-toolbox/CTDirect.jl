@@ -203,7 +203,7 @@ if test1
         obj_list = []
         for T in 1:5
             prob = double_integrator_minenergy(T)
-            sol = solve_problem(prob; init=init, grid=100)
+            sol = solve_problem(prob; init=init, grid_size=100)
             init = sol
             push!(obj_list, objective(sol))
         end

@@ -7,8 +7,8 @@ include("./problems/beam.jl")
 include("./problems/goddard.jl")
 include("./problems/double_integrator.jl")
 
-sol = solve_problem(goddard(); display=true)
-sol1 = solve_problem(goddard2(); display=true, modeler=:exa)
+sol = solve_problem(goddard(); display=true, time_grid=[0,0.5,1])
+#sol1 = solve_problem(goddard2(); display=true, modeler=:exa)
 
 #=
 prob = double_integrator_mintf()
