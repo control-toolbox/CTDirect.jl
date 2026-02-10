@@ -3,15 +3,60 @@ module CTDirect
 using ADNLPModels
 using ExaModels
 using CTBase
-using CTModels: CTModels
+using CTModels
+import CTSolvers, CTSolvers.Strategies, CTSolvers.Options
 using DocStringExtensions
 using SparseArrays
-using SolverCore: SolverCore
-using NLPModels: NLPModels
+using SolverCore
+using NLPModels
 
 # ----------------------------------------------------------------------
 # TYPES
 const AbstractOptimalControlProblem = CTModels.AbstractModel
+
+# ---------------------------------------------------------------------------
+# Abstract discretizer type
+# ---------------------------------------------------------------------------
+abstract type AbstractOptimalControlDiscretizer <: Strategies.AbstractStrategy end
+
+function discretize(
+    ocp::AbstractOptimalControlProblem, 
+    discretizer::AbstractOptimalControlDiscretizer
+)
+    return discretizer(ocp)
+end
+
+__discretizer()::AbstractOptimalControlDiscretizer = Collocation()
+
+function discretize(
+    ocp::AbstractOptimalControlProblem;
+    discretizer::AbstractOptimalControlDiscretizer=__discretizer(),
+)
+    return discretize(ocp, discretizer)
+end
+
+# ---------------------------------------------------------------------------
+# Discretization schemes: see disc/
+# ---------------------------------------------------------------------------
+"""
+$(TYPEDEF)
+
+Abstract type representing a discretization strategy for an optimal
+control problem.  
+
+Concrete subtypes of `Discretization` define specific schemes for
+transforming a continuous-time problem into a discrete-time
+representation suitable for numerical solution.
+
+# Example
+
+```julia-repl
+julia> struct MyDiscretization <: Discretization end
+MyDiscretization
+```
+"""
+abstract type Discretization end
+
 
 # includes
 include("collocation.jl")

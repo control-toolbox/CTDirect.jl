@@ -7,9 +7,10 @@ include("./problems/beam.jl")
 include("./problems/goddard.jl")
 include("./problems/double_integrator.jl")
 
-#sol = solve_problem(goddard(); display=true)
-#sol1 = solve_problem(goddard2(); display=true, modeler=:exa)
+sol = solve_problem(goddard(); display=true)
+sol1 = solve_problem(goddard2(); display=true, modeler=:exa)
 
+#=
 prob = double_integrator_mintf()
 v_const = 0.15
 t_vec = [0, 0.1, v_const]
@@ -21,4 +22,4 @@ init = @init prob.ocp begin
     tf := v_const
 end
 sol2 = solve_problem(prob; display=true, max_iter=0, init=init)
-
+=#

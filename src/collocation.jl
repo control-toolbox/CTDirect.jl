@@ -3,96 +3,51 @@
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Discretization schemes: see disc/
-# ---------------------------------------------------------------------------
-"""
-$(TYPEDEF)
-
-Abstract type representing a discretization strategy for an optimal
-control problem.  
-
-Concrete subtypes of `Discretization` define specific schemes for
-transforming a continuous-time problem into a discrete-time
-representation suitable for numerical solution.
-
-# Example
-
-```julia-repl
-julia> struct MyDiscretization <: Discretization end
-MyDiscretization
-```
-"""
-abstract type Discretization end
-
-# ---------------------------------------------------------------------------
-# Abstract discretizer type
-# ---------------------------------------------------------------------------
-# must be a subtype of CTModels.AbstractOCPTool to get benefit of options handling
-abstract type AbstractOptimalControlDiscretizer <: CTModels.AbstractOCPTool end
-
-
-function discretize(
-    ocp::AbstractOptimalControlProblem, 
-    discretizer::AbstractOptimalControlDiscretizer
-)
-    return discretizer(ocp)
-end
-
-__discretizer()::AbstractOptimalControlDiscretizer = Collocation()
-
-function discretize(
-    ocp::AbstractOptimalControlProblem;
-    discretizer::AbstractOptimalControlDiscretizer=__discretizer(),
-)
-    return discretize(ocp, discretizer)
-end
-
-# ---------------------------------------------------------------------------
 # Collocation discretizer
 # ---------------------------------------------------------------------------
 struct Collocation <: AbstractOptimalControlDiscretizer
-    # required to be able to use default CTModels.AbstractOCPTool getters
-    options_values
-    options_sources
+    options::Strategies.StrategyOptions
 end
 
-# useful for OptimalControl. Should be a field of AbstractOptimalControlDiscretizer with default getter, for consistency.
-CTModels.get_symbol(::Type{<:Collocation}) = :collocation
+# useful for OptimalControl
+Strategies.id(::Type{<:Collocation}) = :collocation
 
 # default options
-__grid_size()::Int = 250
-__scheme()::Symbol = :midpoint
-__grid()::Union{Int,AbstractVector} = __grid_size()
+__collocation_grid_size()::Int = 250
+__collocation_scheme()::Symbol = :midpoint
 
-# options specs: for each option, we define the type, default value, and description.
-function CTModels._option_specs(::Type{<:Collocation})
-    return (
-        grid=CTModels.OptionSpec(;
-            type=Union{Int,AbstractVector},
-            default=__grid(),
-            description="Collocation grid (Int = number of time steps, Vector = explicit time grid).",
+function Strategies.metadata(::Type{<:Collocation})
+    return Strategies.StrategyMetadata(
+        Options.OptionDefinition(
+        name = :grid_size,
+        type = Int,
+        default = __collocation_grid_size(),
+        description = "Number of time steps for the collocation grid",
         ),
-        scheme=CTModels.OptionSpec(;
-            type=Symbol,
-            default=__scheme(),
-            description="Time integration scheme used by the collocation discretizer.",
+        Options.OptionDefinition(
+        name = :scheme,
+        type = Symbol,
+        default = __collocation_scheme(),
+        description = "Time integration scheme (e.g., :midpoint, :trapeze)",
         ),
     )
 end
 
+#__grid()::Union{Int,AbstractVector} = __grid_size()
+
+
 # constructor: kwargs contains the options values
-function Collocation(; kwargs...)
-
-    # parsing options from CTModels
-    values, sources = CTModels._build_ocp_tool_options(Collocation; kwargs..., strict_keys=true)
-
-    return Collocation(values, sources)
+function Collocation(; mode::Symbol = :strict, kwargs...)
+    opts = Strategies.build_strategy_options(Collocation; mode = mode, kwargs...)
+    return Collocation(opts)
 end
+
+Strategies.options(c::Collocation) = c.options
 
 # ---------------------------------------------------------------------------
 # Discretizers registration
 # ---------------------------------------------------------------------------
-# useful for OptimalControl.
+#= useful for OptimalControl.
 const REGISTERED_DISCRETIZERS = (Collocation,)
 registered_discretizer_types() = REGISTERED_DISCRETIZERS
 discretizer_symbols() = Tuple(CTModels.get_symbol(T) for T in REGISTERED_DISCRETIZERS)
@@ -108,7 +63,7 @@ end
 function build_discretizer_from_symbol(sym::Symbol; kwargs...)
     T = _discretizer_type_from_symbol(sym)
     return T(; kwargs...)
-end
+end=#
 
 
 # default options for modelers backend
@@ -116,18 +71,12 @@ end
 __adnlp_backend() = :optimized
 __exa_backend() = nothing
 
-# ==========================================================================================
-# Scheme symbol mapping
-# ==========================================================================================
-function get_scheme(discretizer::Collocation)
-    return CTModels.get_option_value(discretizer, :scheme)
-end
 
 # ==========================================================================================
 # Grid options mapping
 # unified grid option: Int => grid_size, Vector => explicit time_grid
 # ==========================================================================================
-function grid_options(discretizer::Collocation)
+#=function grid_options(discretizer::Collocation)
 
     grid = CTModels.get_option_value(discretizer, :grid)
     if grid isa Int
@@ -139,7 +88,8 @@ function grid_options(discretizer::Collocation)
     end
 
     return grid_size, time_grid
-end
+end=#
+
 
 # ==========================================================================================
 # Build core DOCP structure with discretization information (ADNLP)
@@ -147,8 +97,9 @@ end
 function get_docp(discretizer::Collocation, ocp::AbstractOptimalControlProblem)
     
     # recover discretization scheme and options
-    scheme = get_scheme(discretizer)
-    grid_size, time_grid = grid_options(discretizer)
+    scheme = Strategies.options(discretizer)[:scheme]
+    grid_size = Strategies.options(discretizer)[:grid_size]
+    time_grid = nothing
 
     # initialize DOCP
     docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, scheme=scheme)
@@ -283,7 +234,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         
         # retrieve data from NLP solver
         minimize = !docp.flags.max
-        objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution, minimize)
+        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution, minimize)
 
         # retrieve time grid
         T = get_time_grid(nlp_solution.solution, docp)
@@ -306,8 +257,8 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
         # recover discretization scheme and options
         # since exa part does not reuse the docp struct
-        scheme = get_scheme(discretizer)
-        grid_size, time_grid = grid_options(discretizer)
+        scheme = Strategies.options(discretizer)[:scheme]
+        grid_size = Strategies.options(discretizer)[:grid_size]
 
         # build initial guess
         init = get_docp_initial_guess(:exa, docp, initial_guess)
@@ -335,7 +286,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
 
         # retrieve data from NLP solver
         minimize = !docp.flags.max
-        objective, iterations, constraints_violation, message, status, successful = CTModels.extract_solver_infos(nlp_solution, minimize)
+        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution, minimize)
   
         # retrieve time grid
         T = get_time_grid_exa(nlp_solution, docp, exa_getter)
@@ -349,11 +300,11 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     end
 
     #NB. it would be better to return builders as model/solution pairs since they are linked
-    return CTModels.DiscretizedOptimalControlProblem(
+    return CTSolvers.DiscretizedOptimalControlProblem(
         ocp,
-        CTModels.ADNLPModelBuilder(build_adnlp_model),
-        CTModels.ExaModelBuilder(build_exa_model),
-        CTModels.ADNLPSolutionBuilder(build_adnlp_solution),
-        CTModels.ExaSolutionBuilder(build_exa_solution),
+        CTSolvers.ADNLPModelBuilder(build_adnlp_model),
+        CTSolvers.ExaModelBuilder(build_exa_model),
+        CTSolvers.ADNLPSolutionBuilder(build_adnlp_solution),
+        CTSolvers.ExaSolutionBuilder(build_exa_solution),
     )
 end
