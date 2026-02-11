@@ -1,36 +1,13 @@
 # runtests.jl
 using Test
+include("test_common.jl")
 
-# OptimalControl
-using CTBase
-using CTParser: CTParser, @def
-using CTModels:
-    CTModels, objective, state, control, variable, costate, time_grid, iterations, criterion
-using CTDirect:
-    CTDirect,
-    solve,
-    direct_transcription,
-    set_initial_guess,
-    build_OCP_solution,
-    nlp_model,
-    ocp_model
+function test_problem(prob; kwargs...)
 
-# activate NLP modelers
-using ADNLPModels
-# + using ExaModels (in test_exa for now)
-
-# activate NLP solvers
-using NLPModels
-using NLPModelsIpopt
-using MadNLPMumps
-
-# misc
-using SplitApplyCombine # for flatten in some tests
-
-# check a specific example
-function check_problem(prob; kwargs...)
-    sol = solve(prob.ocp; init=prob.init, kwargs...)
+    sol = solve_problem(prob; kwargs...)
+    @test CTModels.successful(sol)
     @test sol.objective ≈ prob.obj rtol = 1e-2
+
 end
 
 # check local test suite
@@ -38,13 +15,16 @@ macro ignore(e)
     :()
 end
 
+const VERBOSE = true
+const SHOWTIMING = true
+
 # run either usual test suite on CPU, or GPU tests only 
-@testset verbose = true showtiming = true "Test CTDirect" begin
+@testset verbose = VERBOSE showtiming = SHOWTIMING "Test CTDirect" begin
     if "GPU" in ARGS
-        # ExaModels tests only (GPU on moonshot workflow)
-        include("./suite/test_exa.jl")
+        # GPU tests only (specific workflow)
+        include("./test_gpu.jl")
     else
-        # CPU: run all scripts in subfolder suite/
-        include.(filter(contains(r".jl$"), readdir("./suite"; join=true)))
+        # CPU: run all scripts in subfolder ci/
+        include.(filter(contains(r".jl$"), readdir("./ci"; join=true)))
     end
 end

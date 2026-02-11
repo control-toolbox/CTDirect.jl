@@ -34,5 +34,5 @@ function schlogl()
         ) → min
     end
 
-    return ((ocp=schlogl, obj=nothing, name="schlogl", init=nothing))
+    return ((ocp=schlogl, obj=nothing, name="schlogl", init=()))
 end

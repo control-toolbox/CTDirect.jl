@@ -15,7 +15,7 @@ function double_integrator_mintf()
         tf → min
     end
 
-    return ((ocp=ocp, obj=2.0, name="double_integrator_tf", init=nothing))
+    return ((ocp=ocp, obj=2.0, name="double_integrator_tf", init=()))
 end
 # examodel version
 function double_integrator_mintf2()
@@ -33,7 +33,7 @@ function double_integrator_mintf2()
         tf → min
     end
 
-    return ((ocp=ocp, obj=2.0, name="double_integrator_tf2", init=nothing))
+    return ((ocp=ocp, obj=2.0, name="double_integrator_tf2", init=()))
 end
 
 # min energy with fixed tf
@@ -52,8 +52,28 @@ function double_integrator_minenergy(T=2)
         ∫(u(t)^2) → min
     end
 
-    return ((ocp=ocp, obj=nothing, name="double_integrator_e", init=nothing))
+    return ((ocp=ocp, obj=nothing, name="double_integrator_e", init=()))
 end
+function double_integrator_minenergy2(T=2)
+    @def ocp begin
+        t ∈ [0, T], time
+        x ∈ R², state
+        u ∈ R, control
+        q = x₁
+        v = x₂
+        q(0) == 0
+        v(0) == 0
+        q(T) == 1
+        v(T) == 0
+        ∂(x₁)(t) == x₂(t)
+        ∂(x₂)(t) == u(t)
+        ∫(u(t)^2) → min
+    end
+
+    return ((ocp=ocp, obj=nothing, name="double_integrator_e2", init=()))
+end
+
+
 
 # max t0 with free t0,tf
 function double_integrator_freet0tf()
@@ -74,7 +94,7 @@ function double_integrator_freet0tf()
         t0 → max
     end
 
-    return ((ocp=ocp, obj=8.0, name="double_integ_t0tf", init=nothing))
+    return ((ocp=ocp, obj=8.0, name="double_integ_t0tf", init=()))
 end
 
 # no variable bounds
@@ -90,5 +110,5 @@ function double_integrator_nobounds()
         0.5∫(u(t)^2) → min
     end
 
-    return ((ocp=ocp, obj=2.0, name="double_integ_nobounds", init=nothing))
+    return ((ocp=ocp, obj=2.0, name="double_integ_nobounds", init=()))
 end

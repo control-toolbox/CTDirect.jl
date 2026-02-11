@@ -134,5 +134,5 @@ function swimmer2(tf=25)
         #∫(a1^2 + a2^2) → min
     end
 
-    return ((ocp=ocp, obj=0.984273, name="swimmer2", init=nothing))
+    return ((ocp=ocp, obj=0.984273, name="swimmer2", init=()))
 end

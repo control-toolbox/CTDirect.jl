@@ -1,17 +1,17 @@
-# CTDirectExtADNLP
+# Solution
 
 ## Index
 
 ```@index
-Pages   = ["ctdirectext_adnlp.md"]
-Modules = [CTDirect, CTDirectExtADNLP]
+Pages   = ["collocation_variables.md"]
+Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 ```
 
 ## Documentation
 
 ```@autodocs
-Pages = ["CTDirectExtADNLP.jl"]
-Modules = [CTDirectExtADNLP]
+Pages = ["collocation_variables.jl"]
+Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 ```

@@ -1,17 +1,17 @@
-# CTDirectExtExa
+# Solution
 
 ## Index
 
 ```@index
-Pages   = ["ctdirectext_exa.md"]
-Modules = [CTDirect, CTDirectExtExa]
+Pages   = ["collocation.md"]
+Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 ```
 
 ## Documentation
 
 ```@autodocs
-Pages = ["CTDirectExtExa.jl"]
-Modules = [CTDirectExtExa]
+Pages = ["collocation.jl"]
+Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 ```

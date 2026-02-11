@@ -1,17 +1,17 @@
-# CTDirectExtMadNLP
+# Solution
 
 ## Index
 
 ```@index
-Pages   = ["ctdirectext_madnlp.md"]
-Modules = [CTDirect, CTDirectExtMadNLP]
+Pages   = ["collocation_core.md"]
+Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 ```
 
 ## Documentation
 
 ```@autodocs
-Pages = ["CTDirectExtMadNLP.jl"]
-Modules = [CTDirectExtMadNLP]
+Pages = ["collocation_core.jl"]
+Modules = [CTDirect]
 Order = [:module, :constant, :type, :function, :macro]
 ```

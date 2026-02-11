@@ -55,7 +55,7 @@ function bioreactor_1day()
         ∫(mu2 * b(t) / (beta + c)) → max
     end
 
-    return ((ocp=bioreactor_1, obj=0.614134, name="bioreactor_1day", init=nothing))
+    return ((ocp=bioreactor_1, obj=0.614134, name="bioreactor_1day", init=()))
 end
 
 # N days (non periodic)
