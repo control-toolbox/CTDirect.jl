@@ -1,12 +1,9 @@
 #= Common parts for the discretization =#
 
-# getters
-
-# +++ add similar setter for initial guess ?
+# Getters
 
 # Generic getter for post optimization parsing
 # written for compatibility with examodels getter
-# +++ extend to constraints multipliers cf parse_dual in solution.jl
 function getter(nlp_solution, docp::DOCP; val::Symbol)
 
     N = docp.time.steps
@@ -33,6 +30,12 @@ function getter(nlp_solution, docp::DOCP; val::Symbol)
                 i_m += dpc
             end
         end
+        # add path constraints at final time
+        if dpc > 0
+            mult_path_constraints[:, N+1] = data[i_m:(i_m + dpc - 1)]
+            i_m += dpc
+        end
+
         # pointwise constraints: boundary then variables
         if dbc > 0
             mult_boundary_constraints[:] = data[i_m:(i_m + dbc - 1)]
@@ -140,15 +143,16 @@ Note that passing correct indices is up to the caller, no checks are made here.
 """
 function get_stagevars_at_time_step(xu, docp::DOCP, i, j)
     disc = disc_model(docp)
-    offset =
-        (i-1) * disc._step_variables_block +
-        docp.dims.NLP_x +
-        docp.dims.NLP_u +
-        (j-1)*docp.dims.NLP_x
+    offset = (i-1) * disc._step_variables_block + docp.dims.NLP_x + docp.dims.NLP_u + (j-1)*docp.dims.NLP_x
     return @view xu[(offset + 1):(offset + docp.dims.NLP_x)]
 end
 
-# setters
+
+# Setters
+
+# NB. full setters for state/control may be useful for initial guess
+# but would need to accept both array and functional init data
+# while only removing the time steps loop in the calling code...
 
 """
 $(TYPEDSIGNATURES)
@@ -160,6 +164,7 @@ function set_optim_variable!(xu, v_init, docp)
         xu[(end - docp.dims.NLP_v + 1):end] .= v_init
     end
 end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -173,6 +178,7 @@ function set_state_at_time_step!(xu, x_init, docp::DOCP, i)
         offset = (i-1) * disc._step_variables_block
         xu[(offset + 1):(offset + docp.dims.NLP_x)] .= x_init
     end
+    return
 end
 
 """
@@ -189,6 +195,7 @@ function set_control_at_time_step!(xu, u_init, docp::DOCP, i)
             xu[(offset + 1):(offset + docp.dims.NLP_u)] .= u_init
         end
     end
+    return
 end
 
 """

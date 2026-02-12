@@ -596,7 +596,16 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     P[:] = getter(nlp_solution; val=:costate)'
 
     # path constraints multipliers (+++ not yet implemented for exa)
-    isnothing(exa_getter) && (mult_path_constraints = getter(nlp_solution; val=:mult_path_constraints))
+    # NB. normalize wrt time step
+    if isnothing(exa_getter)
+        raw_mult_path = getter(nlp_solution; val=:mult_path_constraints)'
+        for i=1:N
+            mult_path_constraints[i,:] = raw_mult_path[i,:] / (T[i+1] - T[i])
+        end
+        mult_path_constraints[N+1,:] = raw_mult_path[N+1,:] / (T[N+1] - T[N])
+    end
+
+    # boundary constraints multipliers (+++ not yet implemented for exa)
     isnothing(exa_getter) && (mult_boundary_constraints = getter(nlp_solution; val=:mult_boundary_constraints))
 
     return CTModels.build_solution(

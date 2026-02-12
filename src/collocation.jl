@@ -48,10 +48,9 @@ end
 
 Strategies.options(c::Collocation) = c.options
 
-# default options for modelers backend
-# +++ recheck kwargs passing / default with Olivier
-__adnlp_backend() = :optimized
-__exa_backend() = nothing
+# default options for modelers backend (now in CTSolvers ?)
+#__adnlp_backend() = :optimized
+#__exa_backend() = nothing
 
 
 # ==========================================================================================
@@ -104,7 +103,7 @@ function get_docp_initial_guess(modeler::Symbol, docp,
             for i in 0:N]...)
             control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] 
             for i in 0:(N - 1)]...,)
-            # +++? todo: pass indeed to grid_size only for euler(_b), trapeze and midpoint
+            # see with JB: pass indeed to grid_size only for euler(_b), trapeze and midpoint
             control = [control control[:, end]] 
             variable = x0[(end - q + 1):end]
             
@@ -127,11 +126,11 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # ==========================================================================================
     # The needed builders for the construction of the final DiscretizedOptimalControlProblem
     # ==========================================================================================
-    # +++ recheck kwargs passing / default with Olivier
+    
+    # NLP builder for ADNLPModels
     function build_adnlp_model(
         initial_guess::CTModels.AbstractOptimalControlInitialGuess;
-        backend=__adnlp_backend(),
-        show_time=false,
+        backend,
         kwargs...
     )::ADNLPModels.ADNLPModel
 
@@ -186,7 +185,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
             minimize=(!docp.flags.max),
             backend_options...,
             unused_backends...,
-            show_time=show_time,
+            kwargs...,
         )
 
         return nlp
@@ -210,12 +209,10 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     end
 
     # NLP builder for ExaModels
-    # +++ recheck kwargs passing / default with Olivier
     function build_exa_model(
         ::Type{BaseType}, 
         initial_guess::CTModels.AbstractOptimalControlInitialGuess; 
-        exa_backend=CTDirect.__exa_backend(),
-        kwargs...
+        backend
     )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
 
         # recover discretization scheme and size
@@ -226,13 +223,14 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
         init = get_docp_initial_guess(:exa, docp, initial_guess)
 
         # build Exa model and getters
-        # +++ later try to call Exa constructor here if possible, reusing existing functions...
+        # see with JB. later try to call Exa constructor here if possible, reusing existing functions...
         build_exa = CTModels.get_build_examodel(ocp)
         nlp, exa_getter = build_exa(;
             grid_size=grid_size,
-            backend=exa_backend,
+            backend=backend,
             scheme=scheme,
             init=init,
+            base_type=BaseType,
         )
 
         return nlp

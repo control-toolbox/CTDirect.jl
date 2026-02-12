@@ -21,7 +21,7 @@ using MadNLPMumps
 using SplitApplyCombine # for flatten in some tests
 
 # solve a given OCP problem (given as struct)
- +++ recheck kwargs passing / default with Olivier
+# +++ make more similar to high level solve from Optimal Control (options ...)
 function solve_problem(prob;
     max_iter=1000,
     tol=1e-6,
