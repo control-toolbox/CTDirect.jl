@@ -33,6 +33,7 @@ function solve_problem(prob;
     adnlp_backend=:optimized,
     exa_backend=nothing,
     linear_solver=nothing,
+    bound_relax_factor=nothing,
     kwargs...)
 
     # discretized problem (model and solution builders)
@@ -77,6 +78,9 @@ function solve_problem(prob;
             :tol => tol,
             :linear_solver => solver,
         )
+        if !isnothing(bound_relax_factor)
+            Dict[:bound_relax_factor] = bound_relax_factor
+        end
         my_solver = CTSolvers.MadNLPSolver(; madnlp_options...)
     else
         error("Unknown solver: ", solver)

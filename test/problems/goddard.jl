@@ -66,7 +66,6 @@ function goddard2(; vmax=0.1, Tmax=3.5)
         u ∈ R, control
         tf ≥ 0.01
         x(0) == x0
-        r(tf) ≥ r0 + 0.001 #for gpu test 
         m(tf) == mf
         r0 ≤ r(t) ≤ r0 + 0.1
         v0 ≤ v(t) ≤ vmax
