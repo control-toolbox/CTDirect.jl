@@ -79,7 +79,7 @@ function solve_problem(prob;
             :linear_solver => solver,
         )
         if !isnothing(bound_relax_factor)
-            Dict[:bound_relax_factor] = bound_relax_factor
+            madnlp_options[:bound_relax_factor] = bound_relax_factor
         end
         my_solver = CTSolvers.MadNLPSolver(; madnlp_options...)
     else
