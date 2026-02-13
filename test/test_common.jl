@@ -66,7 +66,7 @@ function solve_problem(prob;
             :linear_solver => "mumps",
             :sb => "yes",
         )
-        my_solver = CTSolvers.IpoptSolver(; ipopt_options...)
+        my_solver = CTSolvers.Ipopt(; ipopt_options...)
     elseif solver == :madnlp
         if isnothing(linear_solver)
             solver = MumpsSolver

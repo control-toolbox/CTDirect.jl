@@ -30,7 +30,7 @@ function test_solve()
         Test.@test docp isa CTModels.DiscretizedModel
 
         # NLP solver
-        solvers = [CTSolvers.IpoptSolver(; ipopt_options...)]
+        solvers = [CTSolvers.Ipopt(; ipopt_options...)]
         solvers_names = ["Ipopt"]
 
         # NLP modelers
