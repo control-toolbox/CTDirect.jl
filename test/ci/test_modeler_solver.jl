@@ -23,8 +23,21 @@ end
 end
 
 # backends for ADNLPModels
+# +++ improve: check hardcoded nnz values ?
+# maybe also check that manual mode is active in infos from the NLP ? 
+# NLPModelMeta nnzj nnzh
 @testset verbose = true showtiming = true ":adnlp_backends" begin
     prob = goddard()
+    # sparsity test: goddard with midpoint / 250 steps
+    # default/optimized: nnzj 4504 nnzh 5259 vs manual: nnzj 6028 nnzh 6519
+    discretizer = CTDirect.Collocation()
+    docp = CTDirect.discretize(prob.ocp, discretizer)
+    my_init = CTModels.build_initial_guess(prob.ocp, prob.init)
+    nlp = docp.adnlp_model_builder(my_init; backend=:manual)
+    @test (nlp.meta.nnzj == 6028 && nlp.meta.nnzh == 6519)
+    # + add other schemes...
+
+    # solve test
     test_problem(prob)
     test_problem(prob; adnlp_backend=:default)
     test_problem(prob; adnlp_backend=:manual)

@@ -21,7 +21,7 @@ using MadNLPMumps
 using SplitApplyCombine # for flatten in some tests
 
 # solve a given OCP problem (given as struct)
-# +++ recheck kwargs passing / default with Olivier
+# +++ make more similar to high level solve from Optimal Control (options ...)
 function solve_problem(prob;
     max_iter=1000,
     tol=1e-6,
@@ -32,6 +32,8 @@ function solve_problem(prob;
     init=nothing,
     adnlp_backend=:optimized,
     exa_backend=nothing,
+    linear_solver=nothing,
+    bound_relax_factor=nothing,
     kwargs...)
 
     # discretized problem (model and solution builders)
@@ -66,10 +68,20 @@ function solve_problem(prob;
         )
         my_solver = CTSolvers.IpoptSolver(; ipopt_options...)
     elseif solver == :madnlp
+        if isnothing(linear_solver)
+            solver = MumpsSolver
+        else
+            solver = linear_solver
+        end
         madnlp_options = Dict(
             :max_iter => max_iter,
             :tol => tol,
+            :linear_solver => solver,
         )
+        if !isnothing(bound_relax_factor)
+            madnlp_options[:bound_relax_factor] = bound_relax_factor
+            madnlp_options[:mode] = :permissive
+        end
         my_solver = CTSolvers.MadNLPSolver(; madnlp_options...)
     else
         error("Unknown solver: ", solver)
