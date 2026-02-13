@@ -82,7 +82,7 @@ function solve_problem(prob;
             madnlp_options[:bound_relax_factor] = bound_relax_factor
             madnlp_options[:mode] = :permissive
         end
-        my_solver = CTSolvers.MadNLPSolver(; madnlp_options...)
+        my_solver = CTSolvers.MadNLP(; madnlp_options...)
     else
         error("Unknown solver: ", solver)
     end
