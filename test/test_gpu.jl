@@ -57,7 +57,7 @@ function test_exa(exa_backend, display; linear_solver=CUDSSSolver)
 end
 
 # GPU tests (kkt workflow)
-display = false
+display = true
 if CUDA.functional()
     println("testing: ExaModels on GPU (MadNLPGPU / CUDA)")
     test_exa(CUDABackend(), display) # GPU tests
