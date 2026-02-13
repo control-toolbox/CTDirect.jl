@@ -80,6 +80,7 @@ function solve_problem(prob;
         )
         if !isnothing(bound_relax_factor)
             madnlp_options[:bound_relax_factor] = bound_relax_factor
+            madnlp_options[:mode] = :permissive
         end
         my_solver = CTSolvers.MadNLPSolver(; madnlp_options...)
     else
