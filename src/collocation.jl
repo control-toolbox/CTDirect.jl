@@ -77,7 +77,7 @@ end
 # Build initial guess for discretized problem
 # ==========================================================================================
 function get_docp_initial_guess(modeler::Symbol, docp,
-        initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing},
+        initial_guess::Union{CTModels.AbstractInitialGuess,Nothing},
         )
 
         ocp = ocp_model(docp)
@@ -129,7 +129,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     
     # NLP builder for ADNLPModels
     function build_adnlp_model(
-        initial_guess::CTModels.AbstractOptimalControlInitialGuess;
+        initial_guess::CTModels.AbstractInitialGuess;
         backend,
         kwargs...
     )::ADNLPModels.ADNLPModel
@@ -211,7 +211,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # NLP builder for ExaModels
     function build_exa_model(
         ::Type{BaseType}, 
-        initial_guess::CTModels.AbstractOptimalControlInitialGuess; 
+        initial_guess::CTModels.AbstractInitialGuess; 
         backend
     )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
 

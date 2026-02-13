@@ -21,7 +21,7 @@ julia> DOCP_initial_guess(docp)
 [0.1, 0.1, …]
 ```
 """
-function DOCP_initial_guess(docp::DOCP, init::CTModels.OptimalControlInitialGuess)
+function DOCP_initial_guess(docp::DOCP, init::CTModels.InitialGuess)
 
     # default initialization (including internal variables such as k_i for RK schemes)
     # NB. passing nothing to the setters below will leave this default values 

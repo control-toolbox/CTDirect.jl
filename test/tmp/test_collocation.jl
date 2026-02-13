@@ -81,7 +81,7 @@ function test_ctdirect_collocation()
         exa_builder = CTModels.get_exa_model_builder(docp)
 
         # Minimal initial guess: functions for state/control and empty variable
-        init_guess = CTModels.OptimalControlInitialGuess(t -> 0.0, t -> 0.0, Float64[])
+        init_guess = CTModels.InitialGuess(t -> 0.0, t -> 0.0, Float64[])
 
         BaseType = Float32
         exa_nlp = exa_builder(BaseType, init_guess; backend=:gpu, foo=1)
