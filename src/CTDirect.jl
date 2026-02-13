@@ -17,20 +17,20 @@ const AbstractOptimalControlProblem = CTModels.AbstractModel
 # ---------------------------------------------------------------------------
 # Abstract discretizer type
 # ---------------------------------------------------------------------------
-abstract type AbstractOptimalControlDiscretizer <: Strategies.AbstractStrategy end
+abstract type AbstractDiscretizer <: Strategies.AbstractStrategy end
 
 function discretize(
     ocp::AbstractOptimalControlProblem, 
-    discretizer::AbstractOptimalControlDiscretizer
+    discretizer::AbstractDiscretizer
 )
     return discretizer(ocp)
 end
 
-__discretizer()::AbstractOptimalControlDiscretizer = Collocation()
+__discretizer()::AbstractDiscretizer = Collocation()
 
 function discretize(
     ocp::AbstractOptimalControlProblem;
-    discretizer::AbstractOptimalControlDiscretizer=__discretizer(),
+    discretizer::AbstractDiscretizer=__discretizer(),
 )
     return discretize(ocp, discretizer)
 end

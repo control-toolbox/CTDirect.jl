@@ -5,7 +5,7 @@
 # ---------------------------------------------------------------------------
 # Collocation discretizer
 # ---------------------------------------------------------------------------
-struct Collocation <: AbstractOptimalControlDiscretizer
+struct Collocation <: AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
 

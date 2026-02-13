@@ -1,7 +1,7 @@
 # Unit tests for the discretization API (discretize with custom and default discretizers).
 struct DummyOCPDiscretize <: CTModels.AbstractOptimalControlProblem end
 
-struct DummyDiscretizer <: CTDirect.AbstractOptimalControlDiscretizer
+struct DummyDiscretizer <: CTDirect.AbstractDiscretizer
     calls::Base.RefValue{Int}
     tag::Symbol
 end
@@ -43,7 +43,7 @@ function test_ctdirect_discretization_api()
 
         # And the low-level __discretizer() helper should return a Collocation
         disc = CTDirect.__discretizer()
-        Test.@test disc isa CTDirect.AbstractOptimalControlDiscretizer
+        Test.@test disc isa CTDirect.AbstractDiscretizer
         Test.@test disc isa CTDirect.Collocation
     end
 end

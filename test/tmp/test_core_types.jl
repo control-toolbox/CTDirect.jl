@@ -16,11 +16,11 @@ function test_ctdirect_core_types()
         # Trapeze is an alias to Trapezoidal
         Test.@test CTDirect.TrapezeScheme === CTDirect.TrapezoidalScheme
 
-        # AbstractOptimalControlDiscretizer should be abstract
-        Test.@test isabstracttype(CTDirect.AbstractOptimalControlDiscretizer)
+        # AbstractDiscretizer should be abstract
+        Test.@test isabstracttype(CTDirect.AbstractDiscretizer)
 
         # Collocation should be a concrete discretizer subtype
-        Test.@test CTDirect.Collocation <: CTDirect.AbstractOptimalControlDiscretizer
+        Test.@test CTDirect.Collocation <: CTDirect.AbstractDiscretizer
     end
 
     # ========================================================================
