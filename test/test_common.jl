@@ -32,6 +32,7 @@ function solve_problem(prob;
     init=nothing,
     adnlp_backend=:optimized,
     exa_backend=nothing,
+    linear_solver=nothing,
     kwargs...)
 
     # discretized problem (model and solution builders)
@@ -66,9 +67,15 @@ function solve_problem(prob;
         )
         my_solver = CTSolvers.IpoptSolver(; ipopt_options...)
     elseif solver == :madnlp
+        if isnothing(linear_solver)
+            solver = MumpsSolver
+        else
+            solver = linear_solver
+        end
         madnlp_options = Dict(
             :max_iter => max_iter,
             :tol => tol,
+            :linear_solver => solver,
         )
         my_solver = CTSolvers.MadNLPSolver(; madnlp_options...)
     else
