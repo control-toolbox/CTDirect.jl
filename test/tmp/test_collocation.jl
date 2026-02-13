@@ -51,8 +51,8 @@ function test_ctdirect_collocation()
 
         docp = discretizer(ocp)
 
-        # The call operator on Collocation should return a DiscretizedOptimalControlProblem
-        Test.@test docp isa CTModels.DiscretizedOptimalControlProblem
+        # The call operator on Collocation should return a DiscretizedModel
+        Test.@test docp isa CTModels.DiscretizedModel
         Test.@test CTModels.ocp_model(docp) === ocp
 
         # The model and solution builders should be correctly wired with both

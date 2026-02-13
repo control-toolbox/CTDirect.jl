@@ -124,7 +124,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     exa_getter = nothing # will be set in build_exa_model
 
     # ==========================================================================================
-    # The needed builders for the construction of the final DiscretizedOptimalControlProblem
+    # The needed builders for the construction of the final DiscretizedModel
     # ==========================================================================================
     
     # NLP builder for ADNLPModels
@@ -260,7 +260,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     end
 
     #NB. it would be better to return builders as model/solution pairs since they are linked
-    return CTSolvers.DiscretizedOptimalControlProblem(
+    return CTSolvers.DiscretizedModel(
         ocp,
         CTSolvers.ADNLPModelBuilder(build_adnlp_model),
         CTSolvers.ExaModelBuilder(build_exa_model),

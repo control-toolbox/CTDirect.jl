@@ -27,7 +27,7 @@ function test_solve()
         init = CTModels.initial_guess(ocp; beam_data.init...)
         discretizer = CTDirect.Collocation()
         docp = CTDirect.discretize(ocp, discretizer)
-        Test.@test docp isa CTModels.DiscretizedOptimalControlProblem
+        Test.@test docp isa CTModels.DiscretizedModel
 
         # NLP solver
         solvers = [CTSolvers.IpoptSolver(; ipopt_options...)]
