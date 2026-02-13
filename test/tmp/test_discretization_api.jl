@@ -1,12 +1,12 @@
 # Unit tests for the discretization API (discretize with custom and default discretizers).
-struct DummyOCPDiscretize <: CTModels.AbstractOptimalControlProblem end
+struct DummyOCPDiscretize <: CTModels.AbstractModel end
 
 struct DummyDiscretizer <: CTDirect.AbstractDiscretizer
     calls::Base.RefValue{Int}
     tag::Symbol
 end
 
-function (d::DummyDiscretizer)(ocp::CTModels.AbstractOptimalControlProblem)
+function (d::DummyDiscretizer)(ocp::CTModels.AbstractModel)
     d.calls[] += 1
     return (ocp, d.tag)
 end

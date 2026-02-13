@@ -1,7 +1,7 @@
 # Unit tests for Collocation discretizer wiring from OCP to discretized OCP and builders.
-struct DummyOCPCollocation <: CTModels.AbstractOptimalControlProblem end
+struct DummyOCPCollocation <: CTModels.AbstractModel end
 
-struct DummyOCPExaRouting <: CTModels.AbstractOptimalControlProblem end
+struct DummyOCPExaRouting <: CTModels.AbstractModel end
 
 struct DummyDOCPCollocationRouting end
 

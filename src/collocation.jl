@@ -56,7 +56,7 @@ Strategies.options(c::Collocation) = c.options
 # ==========================================================================================
 # Build core DOCP structure with discretization information (ADNLP)
 # ==========================================================================================
-function get_docp(discretizer::Collocation, ocp::AbstractOptimalControlProblem)
+function get_docp(discretizer::Collocation, ocp::AbstractModel)
     
     # recover discretization scheme and options
     scheme = Strategies.options(discretizer)[:scheme]
@@ -117,7 +117,7 @@ function get_docp_initial_guess(modeler::Symbol, docp,
 # ==========================================================================================
 # Build discretizer API (return sets of model/solution builders)
 # ==========================================================================================
-function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
+function (discretizer::Collocation)(ocp::AbstractModel)
 
     # common parts for builders
     docp = get_docp(discretizer, ocp)
