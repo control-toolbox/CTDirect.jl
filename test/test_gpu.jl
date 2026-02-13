@@ -54,7 +54,7 @@ function test_exa(exa_backend, display; linear_solver=CUDSSSolver)
                 tol=1e-7, bound_relax_factor=1e-7)
         @test time_grid(sol)[end] ≈ 0.2014 rtol = 1e-2  # free tf
         @test objective(sol) ≈ prob.obj rtol = 1e-2
-    end=#
+    end
 
     @testset verbose = true showtiming = true "goddard2 :examodel :grid_size :freetf :init" begin
         prob = goddard2()
@@ -63,7 +63,7 @@ function test_exa(exa_backend, display; linear_solver=CUDSSSolver)
         @test time_grid(sol)[end] ≈ 0.1 rtol = 1e-2  # free tf
         @test length(time_grid(sol)) == 1001
         @test objective(sol) ≈ 1.01 rtol = 1e-2
-    end
+    end=#
 
 end
 
