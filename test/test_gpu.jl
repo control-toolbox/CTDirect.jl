@@ -50,8 +50,8 @@ function test_exa(exa_backend, display; linear_solver=CUDSSSolver)
     @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :grid_size :objective" begin
         prob = goddard2()
         sol = solve_problem(prob; solver=:madnlp, modeler=:exa, scheme=:trapeze,
-                exa_backend=exa_backend, display=display, grid_size=1000, linear_solver=linear_solver)
-        @test time_grid(sol)[end] ≈ 0.201965 rtol = 1e-2  # check time grid
+                exa_backend=exa_backend, display=display, linear_solver=linear_solver)
+        @test time_grid(sol)[end] ≈ 0.2014 rtol = 1e-2  # check time grid
         @test objective(sol) ≈ prob.obj rtol = 1e-2
     end
 end

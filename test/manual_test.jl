@@ -8,5 +8,5 @@ include("./problems/goddard.jl")
 include("./problems/double_integrator.jl")
 
 sol = solve_problem(goddard(); display=true)
-sol1 = solve_problem(goddard2(); display=true, solver=:madnlp)
+sol1 = solve_problem(goddard2(); display=true, modeler=:exa, solver=:madnlp)
 
