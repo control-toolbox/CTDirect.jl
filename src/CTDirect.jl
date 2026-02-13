@@ -12,25 +12,25 @@ using NLPModels
 
 # ----------------------------------------------------------------------
 # TYPES
-const AbstractOptimalControlProblem = CTModels.AbstractModel
+const AbstractModel = CTModels.AbstractModel
 
 # ---------------------------------------------------------------------------
 # Abstract discretizer type
 # ---------------------------------------------------------------------------
-abstract type AbstractOptimalControlDiscretizer <: Strategies.AbstractStrategy end
+abstract type AbstractDiscretizer <: Strategies.AbstractStrategy end
 
 function discretize(
-    ocp::AbstractOptimalControlProblem, 
-    discretizer::AbstractOptimalControlDiscretizer
+    ocp::AbstractModel, 
+    discretizer::AbstractDiscretizer
 )
     return discretizer(ocp)
 end
 
-__discretizer()::AbstractOptimalControlDiscretizer = Collocation()
+__discretizer()::AbstractDiscretizer = Collocation()
 
 function discretize(
-    ocp::AbstractOptimalControlProblem;
-    discretizer::AbstractOptimalControlDiscretizer=__discretizer(),
+    ocp::AbstractModel;
+    discretizer::AbstractDiscretizer=__discretizer(),
 )
     return discretize(ocp, discretizer)
 end
