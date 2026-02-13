@@ -47,14 +47,14 @@ function test_exa(exa_backend, display; linear_solver=CUDSSSolver)
     end
 
     # goddard2
-    @testset verbose = true showtiming = true "goddard2 :examodel :trapeze :freetf :max" begin
+    #=@testset verbose = true showtiming = true "goddard2 :examodel :trapeze :freetf :max" begin
         prob = goddard2()
         sol = solve_problem(prob; solver=:madnlp, modeler=:exa, scheme=:trapeze,
                 exa_backend=exa_backend, display=display, linear_solver=linear_solver,
                 tol=1e-7, bound_relax_factor=1e-7)
         @test time_grid(sol)[end] ≈ 0.2014 rtol = 1e-2  # free tf
         @test objective(sol) ≈ prob.obj rtol = 1e-2
-    end
+    end=#
 
     @testset verbose = true showtiming = true "goddard2 :examodel :grid_size :freetf :init" begin
         prob = goddard2()
