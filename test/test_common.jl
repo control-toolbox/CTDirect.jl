@@ -51,7 +51,7 @@ function solve_problem(prob;
     if modeler == :adnlp
         my_modeler = CTSolvers.ADNLP(; backend=adnlp_backend) # kwargs
     elseif modeler == :exa
-        my_modeler = CTSolvers.ExaModeler(; backend=exa_backend) # kwargs
+        my_modeler = CTSolvers.Exa(; backend=exa_backend) # kwargs
     else
         error("Unknown modeler: ", modeler)
     end

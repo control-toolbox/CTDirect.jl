@@ -34,8 +34,8 @@ function test_solve()
         solvers_names = ["Ipopt"]
 
         # NLP modelers
-        modelers = [CTModels.ADNLP(), CTModels.ExaModeler()]
-        modelers_names = ["ADNLP", "ExaModeler (CPU)"]
+        modelers = [CTModels.ADNLP(), CTModels.Exa()]
+        modelers_names = ["ADNLP", "Exa (CPU)"]
 
         # solve DOCP with common solve and NLP modelers
         Test.@testset "DOCP level (solve)" verbose=VERBOSE showtiming=SHOWTIMING begin
