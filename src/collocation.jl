@@ -5,7 +5,7 @@
 # ---------------------------------------------------------------------------
 # Collocation discretizer
 # ---------------------------------------------------------------------------
-struct Collocation <: AbstractOptimalControlDiscretizer
+struct Collocation <: AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
 
@@ -56,7 +56,7 @@ Strategies.options(c::Collocation) = c.options
 # ==========================================================================================
 # Build core DOCP structure with discretization information (ADNLP)
 # ==========================================================================================
-function get_docp(discretizer::Collocation, ocp::AbstractOptimalControlProblem)
+function get_docp(discretizer::Collocation, ocp::AbstractModel)
     
     # recover discretization scheme and options
     scheme = Strategies.options(discretizer)[:scheme]
@@ -77,7 +77,7 @@ end
 # Build initial guess for discretized problem
 # ==========================================================================================
 function get_docp_initial_guess(modeler::Symbol, docp,
-        initial_guess::Union{CTModels.AbstractOptimalControlInitialGuess,Nothing},
+        initial_guess::Union{CTModels.AbstractInitialGuess,Nothing},
         )
 
         ocp = ocp_model(docp)
@@ -117,19 +117,19 @@ function get_docp_initial_guess(modeler::Symbol, docp,
 # ==========================================================================================
 # Build discretizer API (return sets of model/solution builders)
 # ==========================================================================================
-function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
+function (discretizer::Collocation)(ocp::AbstractModel)
 
     # common parts for builders
     docp = get_docp(discretizer, ocp)
     exa_getter = nothing # will be set in build_exa_model
 
     # ==========================================================================================
-    # The needed builders for the construction of the final DiscretizedOptimalControlProblem
+    # The needed builders for the construction of the final DiscretizedModel
     # ==========================================================================================
     
     # NLP builder for ADNLPModels
     function build_adnlp_model(
-        initial_guess::CTModels.AbstractOptimalControlInitialGuess;
+        initial_guess::CTModels.AbstractInitialGuess;
         backend,
         kwargs...
     )::ADNLPModels.ADNLPModel
@@ -211,7 +211,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     # NLP builder for ExaModels
     function build_exa_model(
         ::Type{BaseType}, 
-        initial_guess::CTModels.AbstractOptimalControlInitialGuess; 
+        initial_guess::CTModels.AbstractInitialGuess; 
         backend
     )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
 
@@ -260,7 +260,7 @@ function (discretizer::Collocation)(ocp::AbstractOptimalControlProblem)
     end
 
     #NB. it would be better to return builders as model/solution pairs since they are linked
-    return CTSolvers.DiscretizedOptimalControlProblem(
+    return CTSolvers.DiscretizedModel(
         ocp,
         CTSolvers.ADNLPModelBuilder(build_adnlp_model),
         CTSolvers.ExaModelBuilder(build_exa_model),

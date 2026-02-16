@@ -1,7 +1,7 @@
 # Unit tests for Collocation discretizer wiring from OCP to discretized OCP and builders.
-struct DummyOCPCollocation <: CTModels.AbstractOptimalControlProblem end
+struct DummyOCPCollocation <: CTModels.AbstractModel end
 
-struct DummyOCPExaRouting <: CTModels.AbstractOptimalControlProblem end
+struct DummyOCPExaRouting <: CTModels.AbstractModel end
 
 struct DummyDOCPCollocationRouting end
 
@@ -51,8 +51,8 @@ function test_ctdirect_collocation()
 
         docp = discretizer(ocp)
 
-        # The call operator on Collocation should return a DiscretizedOptimalControlProblem
-        Test.@test docp isa CTModels.DiscretizedOptimalControlProblem
+        # The call operator on Collocation should return a DiscretizedModel
+        Test.@test docp isa CTModels.DiscretizedModel
         Test.@test CTModels.ocp_model(docp) === ocp
 
         # The model and solution builders should be correctly wired with both
@@ -81,7 +81,7 @@ function test_ctdirect_collocation()
         exa_builder = CTModels.get_exa_model_builder(docp)
 
         # Minimal initial guess: functions for state/control and empty variable
-        init_guess = CTModels.OptimalControlInitialGuess(t -> 0.0, t -> 0.0, Float64[])
+        init_guess = CTModels.InitialGuess(t -> 0.0, t -> 0.0, Float64[])
 
         BaseType = Float32
         exa_nlp = exa_builder(BaseType, init_guess; backend=:gpu, foo=1)

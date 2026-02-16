@@ -1,6 +1,6 @@
 name = "CTDirect"
 uuid = "790bbbee-bee9-49ee-8912-a9de031322d5"
-version = "1.0.1-beta"
+version = "1.0.2-beta"
 authors = ["Pierre Martinon <pierrecmartinon@gmail.com>"]
 
 [workspace]
@@ -22,9 +22,9 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 ADNLPModels = "0.8"
 AMDGPU = "2"
 CTBase = "0.18"
-CTModels = "0.8"
+CTModels = "0.9"
 CTParser = "0.8"
-CTSolvers = "0.2"
+CTSolvers = "0.3"
 CUDA = "5"
 CommonSolve = "0.2"
 DocStringExtensions = "0.9"

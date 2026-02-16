@@ -49,9 +49,9 @@ function solve_problem(prob;
 
     # NLP modeler
     if modeler == :adnlp
-        my_modeler = CTSolvers.ADNLPModeler(; backend=adnlp_backend) # kwargs
+        my_modeler = CTSolvers.ADNLP(; backend=adnlp_backend) # kwargs
     elseif modeler == :exa
-        my_modeler = CTSolvers.ExaModeler(; backend=exa_backend) # kwargs
+        my_modeler = CTSolvers.Exa(; backend=exa_backend) # kwargs
     else
         error("Unknown modeler: ", modeler)
     end
@@ -66,7 +66,7 @@ function solve_problem(prob;
             :linear_solver => "mumps",
             :sb => "yes",
         )
-        my_solver = CTSolvers.IpoptSolver(; ipopt_options...)
+        my_solver = CTSolvers.Ipopt(; ipopt_options...)
     elseif solver == :madnlp
         if isnothing(linear_solver)
             solver = MumpsSolver
@@ -82,7 +82,7 @@ function solve_problem(prob;
             madnlp_options[:bound_relax_factor] = bound_relax_factor
             madnlp_options[:mode] = :permissive
         end
-        my_solver = CTSolvers.MadNLPSolver(; madnlp_options...)
+        my_solver = CTSolvers.MadNLP(; madnlp_options...)
     else
         error("Unknown solver: ", solver)
     end

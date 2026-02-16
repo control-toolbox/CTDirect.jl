@@ -27,15 +27,15 @@ function test_solve()
         init = CTModels.initial_guess(ocp; beam_data.init...)
         discretizer = CTDirect.Collocation()
         docp = CTDirect.discretize(ocp, discretizer)
-        Test.@test docp isa CTModels.DiscretizedOptimalControlProblem
+        Test.@test docp isa CTModels.DiscretizedModel
 
         # NLP solver
-        solvers = [CTSolvers.IpoptSolver(; ipopt_options...)]
+        solvers = [CTSolvers.Ipopt(; ipopt_options...)]
         solvers_names = ["Ipopt"]
 
         # NLP modelers
-        modelers = [CTModels.ADNLPModeler(), CTModels.ExaModeler()]
-        modelers_names = ["ADNLPModeler", "ExaModeler (CPU)"]
+        modelers = [CTModels.ADNLP(), CTModels.Exa()]
+        modelers_names = ["ADNLP", "Exa (CPU)"]
 
         # solve DOCP with common solve and NLP modelers
         Test.@testset "DOCP level (solve)" verbose=VERBOSE showtiming=SHOWTIMING begin
