@@ -189,6 +189,7 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         )
 
         return nlp
+
     end
 
     # Solution builder for ADNLPModels

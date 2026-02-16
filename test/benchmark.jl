@@ -204,6 +204,7 @@ function bench(;
     target_list=:all,
     grid_size_list=[250, 500, 1000],
     solver=:ipopt,
+    timer=false,
     return_sols=false,
     save_sols=false,
     kwargs...,
@@ -214,7 +215,7 @@ function bench(;
     if target_list isa Symbol
         target_list = target_dict[target_list]
     end
-    verbose > 1 && println("Problem list: ", target_list)
+    verbose > 0 && println("Problem list: ", target_list)
     problem_list = []
     for problem_name in target_list
         ocp_data = getfield(Main, Symbol(problem_name))()
@@ -222,23 +223,24 @@ function bench(;
     end
 
     # solve problem list for all grid sizes
-    verbose > 1 && println("Grid size list: ", grid_size_list)
+    verbose > 0 && println("Grid size list: ", grid_size_list)
     t_bench = zeros(Float64, (length(problem_list), length(grid_size_list)))
     i_bench = zeros(Int, (length(problem_list), length(grid_size_list)))
     s_bench = zeros(Bool, (length(problem_list), length(grid_size_list)))
     solutions = Array{Any}(undef, (length(problem_list), length(grid_size_list)))
     i = 1
     for problem in problem_list
-        verbose > 1 && @printf("Testing problem %-20s: grid ", problem[:name])
+        verbose > 0 && @printf("Testing problem %s: ", problem[:name])
         j = 1
         for grid_size in grid_size_list
-            verbose > 1 && @printf("%d ", grid_size)
+            verbose > 0 && @printf("%d ", grid_size)
             flush(stdout)
             time, iter, success, sol = bench_problem(
                 problem;
                 grid_size=grid_size,
                 verbose=verbose-1,
                 solver=solver,
+                timer=timer,
                 kwargs...,
             )
             t_bench[i, j] = time
@@ -247,7 +249,7 @@ function bench(;
             solutions[i, j] = sol
             j = j + 1
         end
-        verbose > 1 && println("")
+        verbose > 0 && print("\r\e[K")
         i = i + 1
     end
 
@@ -256,7 +258,7 @@ function bench(;
     if verbose > 0
         i = 1
         for problem in problem_list
-            @printf("%-22s", problem[:name])
+            @printf("%-25s", problem[:name])
             for j in 1:length(grid_size_list)
                 if s_bench[i, j]
                     @printf("%6.2f(%3d) ", t_bench[i, j], i_bench[i, j])
@@ -267,6 +269,7 @@ function bench(;
             println("")
             i = i + 1
         end
+        println("")
     end
 
     # summary
