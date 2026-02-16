@@ -134,6 +134,7 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         kwargs...
     )::ADNLPModels.ADNLPModel
 
+        #let docp_local = docp
         # functions for objective and constraints
         f = x -> CTDirect.DOCP_objective(x, docp)
         c! = (c, x) -> CTDirect.DOCP_constraints!(c, x, docp)
@@ -189,6 +190,7 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         )
 
         return nlp
+    #end
     end
 
     # Solution builder for ADNLPModels

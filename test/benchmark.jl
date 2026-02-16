@@ -204,6 +204,7 @@ function bench(;
     target_list=:all,
     grid_size_list=[250, 500, 1000],
     solver=:ipopt,
+    timer=false,
     return_sols=false,
     save_sols=false,
     kwargs...,
@@ -239,6 +240,7 @@ function bench(;
                 grid_size=grid_size,
                 verbose=verbose-1,
                 solver=solver,
+                timer=timer,
                 kwargs...,
             )
             t_bench[i, j] = time
