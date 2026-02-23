@@ -214,7 +214,7 @@ $(TYPEDSIGNATURES)
 Compute the running cost (must be implemented for each discretization scheme)
 """
 function runningCost(docp::DOCP{D}, xu, v, time_grid) where {(D<:Discretization)}
-    error("running_cost not implemented for discretization ", D)
+    return integral(docp, xu, v, time_grid, CTModels.lagrange(ocp_model(docp)))
 end
 
 """

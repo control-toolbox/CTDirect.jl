@@ -77,9 +77,8 @@ $(TYPEDSIGNATURES)
 
 Compute the running cost
 """
-function runningCost(docp::DOCP{Midpoint}, xu, v, time_grid)
-    obj_lagrange = 0.0
-    ocp = ocp_model(docp)
+function integral(docp::DOCP{Midpoint}, xu, v, time_grid, f)
+    value = 0.0
 
     # loop over time steps
     for i in 1:docp.time.steps
@@ -92,10 +91,10 @@ function runningCost(docp::DOCP{Midpoint}, xu, v, time_grid)
                 get_OCP_state_at_time_step(xu, docp, i+1)
             )
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        obj_lagrange = obj_lagrange + hi * CTModels.lagrange(ocp)(ts, xs, ui, v)
+        value +=  hi * f(ts, xs, ui, v)
     end
 
-    return obj_lagrange
+    return value
 end
 
 """

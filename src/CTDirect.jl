@@ -63,10 +63,11 @@ include("collocation.jl")
 include("collocation_core.jl")
 include("collocation_variables.jl")
 include("collocation_functions.jl")
-include("disc/common.jl")
-include("disc/euler.jl")
-include("disc/irk.jl")
-include("disc/midpoint.jl")
-include("disc/trapeze.jl")
+include("ode/common.jl")
+include("ode/euler.jl")
+include("ode/irk.jl")
+include("ode/midpoint.jl")
+include("ode/trapeze.jl")
+# ode/variable_step
 
 end
