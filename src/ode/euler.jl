@@ -118,11 +118,10 @@ $(TYPEDSIGNATURES)
 
 Compute the running cost
 """
-function runningCost(docp::DOCP{Euler}, xu, v, time_grid)
-    ocp = ocp_model(docp)
+function integral(docp::DOCP{Euler}, xu, v, time_grid, f)
     disc = disc_model(docp)
     dims = docp.dims
-    obj_lagrange = 0.0
+    value = 0.0
 
     # loop over time steps
     for i in 1:docp.time.steps
@@ -137,10 +136,10 @@ function runningCost(docp::DOCP{Euler}, xu, v, time_grid)
         xi = get_OCP_state_at_time_step(xu, docp, index)
         ui = get_OCP_control_at_time_step(xu, docp, index)
         hi = time_grid[i + 1] - time_grid[i]
-        obj_lagrange = obj_lagrange + hi * CTModels.lagrange(ocp)(ti, xi, ui, v)
+        value += hi * f(ti, xi, ui, v)
     end
 
-    return obj_lagrange
+    return value
 end
 
 """

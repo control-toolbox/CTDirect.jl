@@ -78,10 +78,9 @@ $(TYPEDSIGNATURES)
 
 Compute the running cost
 """
-function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
-    ocp = ocp_model(docp)
+function integral(docp::DOCP{Trapeze}, xu, v, time_grid, f)
     dims = docp.dims
-    obj_lagrange = 0.0
+    value = 0.0
 
     # sum_i=1..N h_i * (l_i + l_i+1) / 2 = (h_1 / 2) l_1 + sum_i=2..N (h_i-1+h_i)/2 * l_i + (h_N / 2) l_N+1 
 
@@ -90,8 +89,8 @@ function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
     ui = get_OCP_control_at_time_step(xu, docp, i)
-    h = time_grid[i + 1] - time_grid[i]
-    obj_lagrange = obj_lagrange + h / 2.0 * CTModels.lagrange(ocp)(ti, xi, ui, v)
+    hi = time_grid[i + 1] - time_grid[i]
+    value += hi / 2.0 * f(ti, xi, ui, v)
 
     # loop over time steps
     for i in 2:docp.time.steps
@@ -99,8 +98,8 @@ function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
         ti = time_grid[i]
         xi = get_OCP_state_at_time_step(xu, docp, i)
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        h2 = time_grid[i + 1] - time_grid[i - 1]
-        obj_lagrange = obj_lagrange + h2 / 2.0 * CTModels.lagrange(ocp)(ti, xi, ui, v)
+        hi2 = time_grid[i + 1] - time_grid[i - 1]
+        value += hi2 / 2.0 * f(ti, xi, ui, v)
     end
 
     # last term
@@ -108,10 +107,10 @@ function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
     ui = get_OCP_control_at_time_step(xu, docp, i)
-    h = time_grid[i] - time_grid[i - 1]
-    obj_lagrange = obj_lagrange + h / 2.0 * CTModels.lagrange(ocp)(ti, xi, ui, v)
+    hi = time_grid[i] - time_grid[i - 1]
+    value += hi / 2.0 * f(ti, xi, ui, v)
 
-    return obj_lagrange
+    return value
 end
 
 """

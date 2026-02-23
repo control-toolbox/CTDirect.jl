@@ -206,11 +206,10 @@ $(TYPEDSIGNATURES)
 
 Compute the running cost
 """
-function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
-    ocp = ocp_model(docp)
+function integral(docp::DOCP{<: GenericIRK}, xu, v, time_grid, f)
     disc = disc_model(docp)
     dims = docp.dims
-    obj_lagrange = 0.0
+    value = 0.0
 
     # work array layout: [x_ij ; sum_bk]
     work_xij = similar(xu, dims.NLP_x)
@@ -243,19 +242,19 @@ function runningCost(docp::DOCP{<: GenericIRK}, xu, v, time_grid)
             # split to avoid dual tag ordering error in AD
             if j == 1
                 work_sumbk[1] =
-                    disc.butcher_b[j] * CTModels.lagrange(ocp)(tij, work_xij, ui, v)
+                    disc.butcher_b[j] * f(tij, work_xij, ui, v)
             else
                 work_sumbk[1] =
                     work_sumbk[1] +
-                    disc.butcher_b[j] * CTModels.lagrange(ocp)(tij, work_xij, ui, v)
+                    disc.butcher_b[j] * f(tij, work_xij, ui, v)
             end
         end
 
         # update lagrange cost
-        obj_lagrange = obj_lagrange + hi * work_sumbk[1]
+        value += hi * work_sumbk[1]
     end
 
-    return obj_lagrange
+    return value
 end
 
 """
