@@ -11,7 +11,7 @@ Strategies.id(::Type{<:DirectShooting}) = :direct_shooting
 # default options
 __direct_shooting_grid_size()::Int = 100
 __direct_shooting_scheme()::Symbol = :midpoint # later use variable step ode solver
-__direct_shooting_scheme_steps() = 10
+__direct_shooting_control_steps() = 10 # ie number of controls per time step
 
 function Strategies.metadata(::Type{<:Collocation})
     return Strategies.StrategyMetadata(
@@ -22,11 +22,18 @@ function Strategies.metadata(::Type{<:Collocation})
         description = "Number of time steps for the direct shooting grid",
         ),
         Options.OptionDefinition(
+        name = :control_steps,
+        type = Int,
+        default = __direct_shooting_control_steps(),
+        description = "Number of controls per time step for the direct shooting",
+        ),
+        Options.OptionDefinition(
         name = :scheme,
         type = Symbol,
         default = __direct_shooting_scheme(),
         description = "Time integration scheme (e.g., :midpoint, :trapeze)",
         ),
+
     )
 end
 
