@@ -16,29 +16,20 @@ struct Euler <: Discretization
     _explicit::Bool
 
     # constructor
-    function Euler(
-        dim_NLP_steps,
-        dim_NLP_x,
-        dim_NLP_u,
-        dim_NLP_v,
-        dim_path_cons,
-        dim_boundary_cons;
-        explicit=true,
-    )
+    function Euler(dims::DOCPdims, time::DOCPtime; explicit=true)
 
         # aux variables
-        step_variables_block = dim_NLP_x + dim_NLP_u
-        state_stage_eqs_block = dim_NLP_x
-        step_pathcons_block = dim_path_cons
+        step_variables_block = dims.NLP_x + dims.NLP_u
+        state_stage_eqs_block = dims.NLP_x
+        step_pathcons_block = dims.path_cons
 
         # NLP variables size ([state, control]_1..N, final state, variable)
-        dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
+        dim_NLP_variables = time.steps * step_variables_block + dims.NLP_x + dims.NLP_v
 
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints =
-            dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) +
-            step_pathcons_block +
-            dim_boundary_cons
+            time.steps * (state_stage_eqs_block + step_pathcons_block) +
+            step_pathcons_block + dims.boundary_cons
 
         if explicit
             info = "Euler (explicit), 1st order"

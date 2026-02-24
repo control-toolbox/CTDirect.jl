@@ -69,5 +69,7 @@ include("ode/irk.jl")
 include("ode/midpoint.jl")
 include("ode/trapeze.jl")
 # ode/variable_step
+#include("direct_shooting.jl")
+#include("direct_shooting_core.jl")
 
 end

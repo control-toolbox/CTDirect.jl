@@ -45,14 +45,13 @@ end
 
 Strategies.options(c::DirectShooting) = c.options
 
-
 # ==========================================================================================
 # Build discretizer API (return sets of model/solution builders)
 # ==========================================================================================
 function (discretizer::DirectShooting)(ocp::AbstractModel)
 
     # common parts for builders
-    docp = get_docp(discretizer, ocp) ?
+    docp = get_docp(discretizer, ocp)
     exa_getter = nothing # will be set in build_exa_model
 
     # ==========================================================================================
@@ -65,6 +64,8 @@ function (discretizer::DirectShooting)(ocp::AbstractModel)
         backend,
         kwargs...
     )::ADNLPModels.ADNLPModel
+
+        docp = 
 
         # functions for objective and constraints
         f = x -> CTDirect.DirectShooting_objective(x, docp)
@@ -126,6 +127,8 @@ function (discretizer::DirectShooting)(ocp::AbstractModel)
         initial_guess::CTModels.AbstractInitialGuess; 
         backend
     )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
+    
+        # try to call constructor here with constraints component wise ?
     end
 
     # Solution builder for ExaModels

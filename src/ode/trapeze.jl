@@ -11,27 +11,24 @@ struct Trapeze <: Discretization
     _final_control::Bool
 
     # constructor
-    function Trapeze(
-        dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons
-    )
+    function Trapeze(dims::DOCPdims, time::DOCPtime)
 
         # Trapeze is better with final control (used in final dynamics)
         final_control = true #false about 10% slower
 
         # aux variables
-        step_variables_block = dim_NLP_x + dim_NLP_u
-        state_stage_eqs_block = dim_NLP_x
-        step_pathcons_block = dim_path_cons
+        step_variables_block = dims.NLP_x + dims.NLP_u
+        state_stage_eqs_block = dims.NLP_x
+        step_pathcons_block = dims.path_cons
 
         # NLP variables size ([state, control]_1..N+1, variable)
-        dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
-        final_control && (dim_NLP_variables += dim_NLP_u)
+        dim_NLP_variables = time.steps * step_variables_block + dims.NLP_x + dims.NLP_v
+        final_control && (dim_NLP_variables += dims.NLP_u)
 
         # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints =
-            dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) +
-            step_pathcons_block +
-            dim_boundary_cons
+            time.steps * (state_stage_eqs_block + step_pathcons_block) +
+            step_pathcons_block + dims.boundary_cons
 
         disc = new(
             "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable",

@@ -28,20 +28,11 @@ struct Gauss_Legendre_1 <: GenericIRK
     _step_pathcons_block::Int
     _final_control::Bool
 
-    function Gauss_Legendre_1(
-        dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons
-    )
+    function Gauss_Legendre_1(dims::DOCPdims, time::DOCPtime)
         stage = 1
 
         step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(
-            dim_NLP_steps,
-            dim_NLP_x,
-            dim_NLP_u,
-            dim_NLP_v,
-            dim_path_cons,
-            dim_boundary_cons,
-            stage,
-        )
+            dims, time, stage)
 
         disc = new(
             "[test only] Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic, A-stable",
@@ -75,20 +66,11 @@ struct Gauss_Legendre_2 <: GenericIRK
     _step_pathcons_block::Int
     _final_control::Bool
 
-    function Gauss_Legendre_2(
-        dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons
-    )
+    function Gauss_Legendre_2(dims::DOCPdims, time::DOCPtime)
         stage = 2
 
         step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(
-            dim_NLP_steps,
-            dim_NLP_x,
-            dim_NLP_u,
-            dim_NLP_v,
-            dim_path_cons,
-            dim_boundary_cons,
-            stage,
-        )
+            dims, time, stage)
 
         disc = new(
             "Implicit Gauss-Legendre collocation for s=2, 4th order, symplectic, A-stable",
@@ -122,20 +104,11 @@ struct Gauss_Legendre_3 <: GenericIRK
     _step_pathcons_block::Int
     _final_control::Bool
 
-    function Gauss_Legendre_3(
-        dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons
-    )
+    function Gauss_Legendre_3(dims::DOCPdims, time::DOCPtime)
         stage = 3
 
         step_variables_block, state_stage_eqs_block, step_pathcons_block, dim_NLP_variables, dim_NLP_constraints = IRK_dims(
-            dim_NLP_steps,
-            dim_NLP_x,
-            dim_NLP_u,
-            dim_NLP_v,
-            dim_path_cons,
-            dim_boundary_cons,
-            stage,
-        )
+            dims, time, stage)
 
         disc = new(
             "Implicit Gauss-Legendre collocation for s=3, 6th order, symplectic, A-stable",
@@ -162,27 +135,24 @@ $(TYPEDSIGNATURES)
 
 Return the dimension of the NLP variables and constraints for a generic IRK discretizion, with the control taken constant per step (ie not distinct controls at time stages)
 """
-function IRK_dims(
-    dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons, stage
-)
+function IRK_dims(dims::DOCPdims, time::DOCPtime, stage::Int)
 
     # size of variables block for one step: x, u, k
-    step_variables_block = dim_NLP_x + dim_NLP_u + dim_NLP_x * stage
+    step_variables_block = dims.NLP_x + dims.NLP_u + dims.NLP_x * stage
 
     # size of state + stage equations for one step
-    state_stage_eqs_block = dim_NLP_x * (1 + stage)
+    state_stage_eqs_block = dims.NLP_x * (1 + stage)
 
     # size of path constraints block for one step: u, x, xu 
-    step_pathcons_block = dim_path_cons
+    step_pathcons_block = dims.path_cons
 
     # NLP variables size ([state, control, stage]_1..N, final state and control, variable)
-    dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
+    dim_NLP_variables = time.steps * step_variables_block + dims.NLP_x + dims.NLP_v
 
     # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
     dim_NLP_constraints =
-        dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) +
-        step_pathcons_block +
-        dim_boundary_cons
+        time.steps * (state_stage_eqs_block + step_pathcons_block) +
+        step_pathcons_block + dims.boundary_cons
 
     return step_variables_block,
     state_stage_eqs_block, step_pathcons_block, dim_NLP_variables,

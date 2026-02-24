@@ -48,10 +48,7 @@ end
 
 Strategies.options(c::Collocation) = c.options
 
-# default options for modelers backend (now in CTSolvers ?)
-#__adnlp_backend() = :optimized
-#__exa_backend() = nothing
-
+# +++ move to collocation_core ?
 
 # ==========================================================================================
 # Build core DOCP structure with discretization information (ADNLP)
@@ -64,7 +61,7 @@ function get_docp(discretizer::Collocation, ocp::AbstractModel)
     time_grid = Strategies.options(discretizer)[:time_grid]
 
     # initialize DOCP
-    docp = DOCP(ocp; grid_size=grid_size, time_grid=time_grid, scheme=scheme)
+    docp = DOCP(ocp, grid_size, time_grid, scheme)
 
     # set bounds in DOCP
     variables_bounds!(docp)

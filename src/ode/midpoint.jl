@@ -14,23 +14,18 @@ struct Midpoint <: Discretization
     _final_control::Bool
 
     # constructor
-    function Midpoint(
-        dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons
-    )
+    function Midpoint(dims::DOCPdims, time::DOCPtime)
 
-        # aux variables
-        step_variables_block = dim_NLP_x + dim_NLP_u
-        state_stage_eqs_block = dim_NLP_x
-        step_pathcons_block = dim_path_cons
+        step_variables_block = dims.NLP_x + time.control_steps * dims.NLP_u
+        state_stage_eqs_block = dims.NLP_x
+        step_pathcons_block = dims.path_cons
 
-        # NLP variables size ([state, control]_1..N, final state, variable)
-        dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
+        # NLP variables size ([state, controls]_1..N, final state, variable)
+        dim_NLP_variables = time.steps * step_variables_block + dims.NLP_x + dims.NLP_v
 
-        # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
-        dim_NLP_constraints =
-            dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) +
-            step_pathcons_block +
-            dim_boundary_cons
+        # NLP constraints size ([state eq, path]_1..N, final_path, boundary)
+        dim_NLP_constraints = time.steps * (dims.NLP_x + step_pathcons_block) + 
+        step_pathcons_block + dims.boundary_cons
 
         disc = new(
             "Implicit Midpoint aka Gauss-Legendre collocation for s=1, 2nd order, symplectic",
