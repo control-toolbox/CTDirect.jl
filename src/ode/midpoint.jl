@@ -16,7 +16,7 @@ struct Midpoint <: Scheme
     # constructor
     function Midpoint(dims::DOCPdims, time::DOCPtime)
 
-        step_variables_block = dims.NLP_x + time.control_steps * dims.NLP_u
+        step_variables_block = dims.NLP_x + dims.NLP_u * time.control_steps
         state_stage_eqs_block = dims.NLP_x
         step_pathcons_block = dims.path_cons
 
@@ -57,7 +57,7 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
                 get_OCP_state_at_time_step(xu, docp, i) +
                 get_OCP_state_at_time_step(xu, docp, i+1)
             )
-        # +++ loop over control steps
+        # loop over control steps
         for j in 1:docp.time.control_steps
             uij = get_OCP_control_at_time_step(xu, docp, i; j=j)
             # OCP dynamics
@@ -132,6 +132,7 @@ function stepStateConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, wor
     xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
     hi = (tip1 - ti) / docp.time.control_steps
     offset_dyn_i = (i-1) * docp.dims.NLP_x * docp.time.control_steps
+    # +++ allocations here ?
     x_next = xi
     for j in 1:docp.time.control_steps
         x_next += hi * work[(offset_dyn_i + 1):(offset_dyn_i + docp.dims.NLP_x)]

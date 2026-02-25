@@ -138,7 +138,7 @@ Return the dimension of the NLP variables and constraints for a generic IRK disc
 function IRK_dims(dims::DOCPdims, time::DOCPtime, stage::Int)
 
     # size of variables block for one step: x, u, k
-    step_variables_block = dims.NLP_x + dims.NLP_u + dims.NLP_x * stage
+    step_variables_block = dims.NLP_x + dims.NLP_u * time.control_steps + dims.NLP_x * stage
 
     # size of state + stage equations for one step
     state_stage_eqs_block = dims.NLP_x * (1 + stage)
@@ -220,7 +220,7 @@ function integral(docp::DOCP{<: GenericIRK}, xu, v, time_grid, f)
             end
         end
 
-        # update lagrange cost
+        # update value
         value += hi * work_sumbk[1]
     end
 
@@ -251,70 +251,60 @@ function setStepConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i, 
     ui = get_OCP_control_at_time_step(xu, docp, i)
 
     # 1. state and stage equations
-    if i <= docp.time.steps
-        # more variables
-        tip1 = time_grid[i + 1]
-        xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
-        hi = tip1 - ti
-        offset_stage_eqs = dims.NLP_x
 
-        # loop over stages
-        for j in 1:disc.stage
+    # more variables
+    tip1 = time_grid[i + 1]
+    xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
+    hi = tip1 - ti
+    offset_stage_eqs = dims.NLP_x
 
-            # time at stage: t_i^j = t_i + c[j] h_i
-            cj = disc.butcher_c[j]
-            tij = ti + cj * hi
+    # loop over stages
+    for j in 1:disc.stage
 
-            # stage variables
-            kij = get_stagevars_at_time_step(xu, docp, i, j)
+        # time at stage: t_i^j = t_i + c[j] h_i
+        cj = disc.butcher_c[j]
+        tij = ti + cj * hi
 
-            # update sum b_j k_i^j (w/ lagrange term) for state equation after loop
-            # split to avoid dual tag ordering error in AD
-            if j == 1
-                @views @. work_sumbk[1:dims.NLP_x] = disc.butcher_b[j] * kij[1:dims.NLP_x]
-            else
-                @views @. work_sumbk[1:dims.NLP_x] =
-                    work_sumbk[1:dims.NLP_x] + disc.butcher_b[j] * kij[1:dims.NLP_x]
-            end
+        # stage variables
+        kij = get_stagevars_at_time_step(xu, docp, i, j)
 
-            # state at stage: x_i^j = x_i + h_i sum a_jl k_i^l
-            # +++ still some allocations here
-            @views @. work_xij[1:dims.NLP_x] = xi
-            for l in 1:disc.stage
-                kil = get_stagevars_at_time_step(xu, docp, i, l)
-                @views @. work_xij[1:dims.NLP_x] =
-                    work_xij[1:dims.NLP_x] + hi * disc.butcher_a[j, l] * kil[1:dims.NLP_x]
-            end
-
-            # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f
-            # NB. we skip the state equation here, which will be set below
-            CTModels.dynamics(ocp)(
-                (@view c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)]),
-                tij,
-                work_xij,
-                ui,
-                v,
-            )
-            @views @. c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)] =
-                kij -
-                c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)]
-            offset_stage_eqs += dims.NLP_x
+        # update sum b_j k_i^j (w/ lagrange term) for state equation after loop
+        # split to avoid dual tag ordering error in AD
+        if j == 1
+            @views @. work_sumbk[1:dims.NLP_x] = disc.butcher_b[j] * kij[1:dims.NLP_x]
+        else
+            @views @. work_sumbk[1:dims.NLP_x] =
+                work_sumbk[1:dims.NLP_x] + disc.butcher_b[j] * kij[1:dims.NLP_x]
         end
 
-        # state equation x_i+1 = x_i + h_i sum b_j k_i^j
-        @views @. c[(offset + 1):(offset + dims.NLP_x)] =
-            xip1 - (xi + hi * work_sumbk[1:dims.NLP_x])
+        # state at stage: x_i^j = x_i + h_i sum a_jl k_i^l
+        # +++ still some allocations here
+        @views @. work_xij[1:dims.NLP_x] = xi
+        for l in 1:disc.stage
+            kil = get_stagevars_at_time_step(xu, docp, i, l)
+            @views @. work_xij[1:dims.NLP_x] =
+                work_xij[1:dims.NLP_x] + hi * disc.butcher_a[j, l] * kil[1:dims.NLP_x]
+        end
 
-        # update offset for stage and state equations
-        offset += dims.NLP_x * (1 + disc.stage)
-    end
-
-    #2. path constraints
-    if dims.path_cons > 0
-        CTModels.path_constraints_nl(ocp)[2](
-            (@view c[(offset + 1):(offset + dims.path_cons)]), ti, xi, ui, v
+        # stage equations k_i^j = f(t_i^j, x_i^j, u_i, v) as c[] = k - f
+        # NB. we skip the state equation here, which will be set below
+        CTModels.dynamics(ocp)(
+            (@view c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)]),
+            tij,
+            work_xij,
+            ui,
+            v,
         )
+        @views @. c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)] =
+            kij -
+            c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)]
+        offset_stage_eqs += dims.NLP_x
     end
+
+    # state equation x_i+1 = x_i + h_i sum b_j k_i^j
+    @views @. c[(offset + 1):(offset + dims.NLP_x)] =
+        xip1 - (xi + hi * work_sumbk[1:dims.NLP_x])
+
 end
 
 """

@@ -17,7 +17,7 @@ struct Trapeze <: Scheme
         final_control = true #false about 10% slower
 
         # aux variables
-        step_variables_block = dims.NLP_x + dims.NLP_u
+        step_variables_block = dims.NLP_x + dims.NLP_u * time.control_steps
         state_stage_eqs_block = dims.NLP_x
         step_pathcons_block = dims.path_cons
 
@@ -120,42 +120,25 @@ function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     disc = disc_model(docp)
     dims = docp.dims
 
-    # offset for previous steps
-    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
-
-    # 0. variables
+    # compute state variables at next step: trapeze rule
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
-
-    # 1. state equation
-    if i <= docp.time.steps
-        # more variables
-        tip1 = time_grid[i + 1]
-        xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
-        half_hi = 0.5 * (tip1 - ti)
-        offset_dyn_i = (i-1)*dims.NLP_x
-        offset_dyn_ip1 = i*dims.NLP_x
-
-        # trapeze rule (no allocations ^^)
-        @views @. c[(offset + 1):(offset + dims.NLP_x)] =
-            xip1 - (
-                xi +
-                half_hi * (
-                    work[(offset_dyn_i + 1):(offset_dyn_i + dims.NLP_x)] +
-                    work[(offset_dyn_ip1 + 1):(offset_dyn_ip1 + dims.NLP_x)]
-                )
+    tip1 = time_grid[i + 1]
+    xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
+    half_hi = 0.5 * (tip1 - ti)
+    offset_dyn_i = (i-1)*dims.NLP_x
+    offset_dyn_ip1 = i*dims.NLP_x
+    # +++ allocations here ?
+    x_next = xi
+    x_next += half_hi * (
+                work[(offset_dyn_i + 1):(offset_dyn_i + dims.NLP_x)] +
+                work[(offset_dyn_ip1 + 1):(offset_dyn_ip1 + dims.NLP_x)]
             )
 
-        offset += dims.NLP_x
-    end
+    # set state equation as constraints (equal to 0)
+    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
+    @views @. c[(offset + 1):(offset + dims.NLP_x)] = xip1 - x_next
 
-    # 2. path constraints
-    if dims.path_cons > 0
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(ocp)[2](
-            (@view c[(offset + 1):(offset + dims.path_cons)]), ti, xi, ui, v
-        )
-    end
 end
 
 """

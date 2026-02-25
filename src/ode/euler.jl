@@ -19,7 +19,7 @@ struct Euler <: Scheme
     function Euler(dims::DOCPdims, time::DOCPtime; explicit=true)
 
         # aux variables
-        step_variables_block = dims.NLP_x + dims.NLP_u
+        step_variables_block = dims.NLP_x + dims.NLP_u * time.control_steps 
         state_stage_eqs_block = dims.NLP_x
         step_pathcons_block = dims.path_cons
 
@@ -56,7 +56,7 @@ Retrieve control variables at given time step from the NLP variables.
 Convention: see above for explicit / implicit versions
 Vector output
 """
-function get_OCP_control_at_time_step(xu, docp::DOCP{Euler}, i)
+function get_OCP_control_at_time_step(xu, docp::DOCP{Euler}, i; j=1)
     disc = disc_model(docp)
     dims = docp.dims
     if disc._explicit
@@ -143,34 +143,19 @@ function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
     disc = disc_model(docp)
     dims = docp.dims
 
-    # offset for previous steps
-    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
-
-    # 0. variables
+    # compute state variables at next step: euler rule
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
+    tip1 = time_grid[i + 1]
+    xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
+    hi = tip1 - ti
+    offset_dyn_i = (i-1)*dims.NLP_x
 
-    # 1. state equation
-    if i <= docp.time.steps
-        # more variables
-        tip1 = time_grid[i + 1]
-        xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
-        hi = tip1 - ti
-        offset_dyn_i = (i-1)*dims.NLP_x
+    # set state equation as constraints (equal to 0)
+    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
+    @views @. c[(offset + 1):(offset + dims.NLP_x)] =
+        xip1 - (xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + dims.NLP_x)])
 
-        # state equation: euler rule
-        @views @. c[(offset + 1):(offset + dims.NLP_x)] =
-            xip1 - (xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + dims.NLP_x)])
-        offset += dims.NLP_x
-    end
-
-    # 2. path constraints
-    if disc._step_pathcons_block > 0
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(ocp)[2](
-            (@view c[(offset + 1):(offset + dims.path_cons)]), ti, xi, ui, v
-        )
-    end
 end
 
 """
