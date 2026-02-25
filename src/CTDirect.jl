@@ -36,38 +36,40 @@ function discretize(
 end
 
 # ---------------------------------------------------------------------------
-# Discretization schemes: see disc/
+# Discretization schemes: see ode/
 # ---------------------------------------------------------------------------
 """
 $(TYPEDEF)
 
-Abstract type representing a discretization strategy for an optimal
+Abstract type representing a discretization scheme strategy for an optimal
 control problem.  
 
-Concrete subtypes of `Discretization` define specific schemes for
+Concrete subtypes of `Scheme` define specific schemes for
 transforming a continuous-time problem into a discrete-time
 representation suitable for numerical solution.
 
 # Example
 
 ```julia-repl
-julia> struct MyDiscretization <: Discretization end
-MyDiscretization
+julia> struct MyScheme <: Scheme end
+MyScheme
 ```
 """
-abstract type Discretization end #+++ rename as Scheme ?
+abstract type Scheme end
 
 
 # includes
-include("collocation.jl")
-include("collocation_core.jl")
-include("collocation_variables.jl")
-include("collocation_functions.jl")
+include("DOCP_core.jl")
 include("ode/common.jl")
 include("ode/euler.jl")
 include("ode/irk.jl")
 include("ode/midpoint.jl")
 include("ode/trapeze.jl")
+
+include("collocation.jl")
+include("collocation_variables.jl")
+include("collocation_functions.jl")
+
 # ode/variable_step
 #include("direct_shooting.jl")
 #include("direct_shooting_core.jl")

@@ -6,7 +6,7 @@ NB. This version is much faster than the one using stage variables
 Version without work array gives identical performance but is less readable
 =#
 
-struct Midpoint <: Discretization
+struct Midpoint <: Scheme
     info::String
     _step_variables_block::Int
     _state_stage_eqs_block::Int
@@ -98,7 +98,7 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
-function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
+function stepStateConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
     ocp = ocp_model(docp)
     disc = disc_model(docp)
 
@@ -121,14 +121,6 @@ function setStepConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, work)
         @views @. c[(offset + 1):(offset + docp.dims.NLP_x)] =
             xip1 - (xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + docp.dims.NLP_x)])
         offset += docp.dims.NLP_x
-    end
-
-    # 2. path constraints
-    if docp.dims.path_cons > 0
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(ocp)[2](
-            (@view c[(offset + 1):(offset + docp.dims.path_cons)]), ti, xi, ui, v
-        )
     end
 end
 

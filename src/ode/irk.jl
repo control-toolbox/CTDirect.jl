@@ -9,7 +9,7 @@ with s the stage number and U piecewise constant equal to U_i in [t_i, t_i+1]
 Path constraints are all evaluated at time steps, including final time.
 =#
 
-abstract type GenericIRK <: Discretization end
+abstract type GenericIRK <: Scheme end
 
 """
 $(TYPEDSIGNATURES)

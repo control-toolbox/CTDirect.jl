@@ -7,7 +7,7 @@ with the convention
 Note that both the explicit and implicit versions therefore use the same variables layout.
 =#
 
-struct Euler <: Discretization
+struct Euler <: Scheme
     info::String
     _step_variables_block::Int
     _state_stage_eqs_block::Int

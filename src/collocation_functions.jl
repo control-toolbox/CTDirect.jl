@@ -20,7 +20,7 @@ julia> DOCP_objective(xu, docp)
 12.34
 ```
 """
-function DOCP_objective(xu, docp::DOCP)
+function __objective(xu, docp::DOCP)
 
     # initialization
     if docp.flags.freet0 || docp.flags.freetf
@@ -77,7 +77,7 @@ julia> DOCP_constraints!(zeros(docp.dim_NLP_constraints), xu, docp)
 [0.0, 0.1, …]
 ```
 """
-function DOCP_constraints!(c, xu, docp::DOCP)
+function __constraints!(c, xu, docp::DOCP)
 
     # initialization
     if docp.flags.freet0 || docp.flags.freetf
@@ -89,10 +89,17 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     work = setWorkArray(docp, xu, time_grid, v)
 
     # main loop on time steps
-    for i in 1:(docp.time.steps + 1)
-        setStepConstraints!(docp, c, xu, v, time_grid, i, work)
+    for i in 1:docp.time.steps
+        # state equation (includes stage equation depending on scheme)
+        stepStateConstraints!(docp, c, xu, v, time_grid, i, work)
+        
+        #path constraints
+        stepPathConstraints!(docp, c, xu, v, time_grid, i, work)
     end
-   
+    # path constraints at final time
+    stepPathConstraints!(docp, c, xu, v, time_grid, docp.time.steps+1, work)
+
+    
     # boundary constraints
     if docp.dims.boundary_cons > 0
         offset = docp.dim_NLP_constraints - docp.dims.boundary_cons
@@ -106,6 +113,21 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 
     # NB. the function *needs* to return c for ADNLPModels
     return c
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+Set path constraints at given time step
+"""
+function stepPathConstraints!(docp, c, xu, v, time_grid, i, work)
+    if docp.dims.path_cons > 0
+        ui = get_OCP_control_at_time_step(xu, docp, i)
+        CTModels.path_constraints_nl(ocp)[2](
+        (@view c[(offset + 1):(offset + docp.dims.path_cons)]), ti, xi, ui, v
+        )
+    end
+    return
 end
 
 
@@ -129,7 +151,7 @@ julia> constraints_bounds!(docp)
 ([-1.0, …], [1.0, …])
 ```
 """
-function constraints_bounds!(docp::DOCP)
+function __constraints_bounds!(docp::DOCP)
     lb = docp.bounds.con_l
     ub = docp.bounds.con_u
     disc = disc_model(docp)

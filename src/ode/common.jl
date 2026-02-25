@@ -203,7 +203,7 @@ $(TYPEDSIGNATURES)
 
 Set work array for all dynamics evaluations
 """
-function setWorkArray(docp::DOCP{<: Discretization}, xu, time_grid, v)
+function setWorkArray(docp::DOCP{<: Scheme}, xu, time_grid, v)
     return nothing
 end
 
@@ -213,7 +213,7 @@ $(TYPEDSIGNATURES)
 
 Compute the running cost (must be implemented for each discretization scheme)
 """
-function runningCost(docp::DOCP{D}, xu, v, time_grid) where {(D<:Discretization)}
+function runningCost(docp::DOCP{D}, xu, v, time_grid) where {(D<:Scheme)}
     return integral(docp, xu, v, time_grid, CTModels.lagrange(ocp_model(docp)))
 end
 
@@ -223,7 +223,7 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Jacobian of constraints
 (to be implemented for each discretization scheme)
 """
-function DOCP_Jacobian_pattern(docp::DOCP{D}) where {(D<:Discretization)}
+function DOCP_Jacobian_pattern(docp::DOCP{D}) where {(D<:Scheme)}
     error(
         "DOCP_Jacobian_pattern not implemented for discretization ",
         D,
@@ -237,7 +237,7 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Hessian of Lagrangian
 (to be implemented for each discretization scheme)
 """
-function DOCP_Hessian_pattern(docp::DOCP{D}) where {(D<:Discretization)}
+function DOCP_Hessian_pattern(docp::DOCP{D}) where {(D<:Scheme)}
     error(
         "DOCP_Hessian_pattern not implemented for discretization ",
         D,

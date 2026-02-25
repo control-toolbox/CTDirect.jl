@@ -61,11 +61,11 @@ function get_docp(discretizer::Collocation, ocp::AbstractModel)
     time_grid = Strategies.options(discretizer)[:time_grid]
 
     # initialize DOCP
-    docp = DOCP(ocp, grid_size, time_grid, scheme)
+    docp = __DOCP(ocp, grid_size, time_grid, scheme)
 
     # set bounds in DOCP
-    variables_bounds!(docp)
-    constraints_bounds!(docp)
+    __variables_bounds!(docp)
+    __constraints_bounds!(docp)
 
     return docp
 end

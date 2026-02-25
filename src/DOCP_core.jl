@@ -262,8 +262,8 @@ julia> DOCP(ocp, nlp_model_backend)
 DOCP{...}(...)
 ```
 """
-mutable struct DOCP{
-    D<:CTDirect.Discretization, O<:CTModels.Model
+mutable struct __DOCP{
+    D<:CTDirect.Scheme, O<:CTModels.Model
     }
 
     # discretization scheme
@@ -290,7 +290,7 @@ mutable struct DOCP{
     dim_NLP_constraints::Int
 
     # constructor
-    function DOCP(ocp::CTModels.Model, grid_size, time_grid, scheme)
+    function __DOCP(ocp::CTModels.Model, grid_size, time_grid, scheme)
 
         # boolean flags
         flags = DOCPFlags(ocp)

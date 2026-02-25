@@ -46,6 +46,26 @@ end
 Strategies.options(c::DirectShooting) = c.options
 
 # ==========================================================================================
+# Build core DOCP structure with discretization information (ADNLP)
+# ==========================================================================================
+function get_docp(discretizer::DirectShooting, ocp::AbstractModel)
+    
+    # recover discretization scheme and options
+    scheme = Strategies.options(discretizer)[:scheme]
+    grid_size = Strategies.options(discretizer)[:grid_size]
+    control_steps = Strategies.options(discretizer)[:control_steps]
+
+    # initialize DOCP
+    docp = __DOCP(ocp, grid_size, control_steps, scheme)
+
+    # set bounds in DOCP
+    variables_bounds!(docp)
+    constraints_bounds!(docp)
+
+    return docp
+end
+
+# ==========================================================================================
 # Build discretizer API (return sets of model/solution builders)
 # ==========================================================================================
 function (discretizer::DirectShooting)(ocp::AbstractModel)

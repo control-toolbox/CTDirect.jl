@@ -3,7 +3,7 @@ Internal layout for NLP variables:
 [X_1,U_1, .., X_N+1,U_N+1, V]
 =#
 
-struct Trapeze <: Discretization
+struct Trapeze <: Scheme
     info::String
     _step_variables_block::Int
     _state_stage_eqs_block::Int
