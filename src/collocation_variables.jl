@@ -21,7 +21,7 @@ julia> DOCP_initial_guess(docp)
 [0.1, 0.1, …]
 ```
 """
-function DOCP_initial_guess(docp::DOCP, init::CTModels.InitialGuess)
+function __initial_guess(docp::DOCP, init::CTModels.InitialGuess)
 
     # default initialization (including internal variables such as k_i for RK schemes)
     # NB. passing nothing to the setters below will leave this default values 
@@ -63,7 +63,7 @@ julia> variables_bounds!(docp)
 ([-Inf, …], [Inf, …])
 ```
 """
-function variables_bounds!(docp::DOCP)
+function __variables_bounds!(docp::DOCP)
     N = docp.time.steps
     var_l = docp.bounds.var_l
     var_u = docp.bounds.var_u

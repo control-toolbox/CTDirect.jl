@@ -83,7 +83,7 @@ function get_docp_initial_guess(modeler::Symbol, docp,
         functional_init = CTModels.build_initial_guess(ocp, initial_guess)
 
         # build discretized initial guess
-        x0 = DOCP_initial_guess(docp, functional_init)
+        x0 = __initial_guess(docp, functional_init)
    
         if modeler == :adnlp
             return x0
@@ -132,8 +132,8 @@ function (discretizer::Collocation)(ocp::AbstractModel)
     )::ADNLPModels.ADNLPModel
 
         # functions for objective and constraints
-        f = x -> CTDirect.DOCP_objective(x, docp)
-        c! = (c, x) -> CTDirect.DOCP_constraints!(c, x, docp)
+        f = x -> CTDirect.__objective(x, docp)
+        c! = (c, x) -> CTDirect.__constraints!(c, x, docp)
 
         # build initial guess
         init = get_docp_initial_guess(:adnlp, docp, initial_guess)
