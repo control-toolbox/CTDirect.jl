@@ -132,8 +132,9 @@ function stepStateConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, wor
     xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
     hi = (tip1 - ti) / docp.time.control_steps
     offset_dyn_i = (i-1) * docp.dims.NLP_x * docp.time.control_steps
+    x_next = xi
     for j in 1:docp.time.control_steps
-        x_next = xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + docp.dims.NLP_x)]
+        x_next += hi * work[(offset_dyn_i + 1):(offset_dyn_i + docp.dims.NLP_x)]
         offset_dyn_i += docp.dims.NLP_x
     end
 
