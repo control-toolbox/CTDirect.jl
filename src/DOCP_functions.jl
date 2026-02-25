@@ -94,10 +94,10 @@ function __constraints!(c, xu, docp::DOCP)
         stepStateConstraints!(docp, c, xu, v, time_grid, i, work)
         
         #path constraints
-        stepPathConstraints!(docp, c, xu, v, time_grid, i, work)
+        (docp.dims.path_cons > 0) && stepPathConstraints!(docp, c, xu, v, time_grid, i)
     end
     # path constraints at final time
-    stepPathConstraints!(docp, c, xu, v, time_grid, docp.time.steps+1, work)
+    (docp.dims.path_cons > 0) && stepPathConstraints!(docp, c, xu, v, time_grid, docp.time.steps+1)
 
     # boundary constraints
     if docp.dims.boundary_cons > 0
@@ -119,13 +119,19 @@ end
 $(TYPEDSIGNATURES)
 Set path constraints at given time step
 """
-function stepPathConstraints!(docp, c, xu, v, time_grid, i, work)
-    if docp.dims.path_cons > 0
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(ocp)[2](
-        (@view c[(offset + 1):(offset + docp.dims.path_cons)]), ti, xi, ui, v
-        )
-    end
+function stepPathConstraints!(docp, c, xu, v, time_grid, i)
+
+    ocp = ocp_model(docp)
+    disc = disc_model(docp)
+    ti = time_grid[i]
+    xi = get_OCP_state_at_time_step(xu, docp, i)
+    ui = get_OCP_control_at_time_step(xu, docp, i)
+    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block) 
+            + disc._state_stage_eqs_block
+    
+    CTModels.path_constraints_nl(ocp)[2](
+    (@view c[(offset + 1):(offset + docp.dims.path_cons)]), ti, xi, ui, v
+    )
     return
 end
 
