@@ -138,7 +138,7 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
-function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
+function stepStateConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
     ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
