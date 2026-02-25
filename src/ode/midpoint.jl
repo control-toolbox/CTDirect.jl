@@ -45,23 +45,27 @@ $(TYPEDSIGNATURES)
 Set work array for all dynamics cost evaluations
 """
 function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
-    work = similar(xu, docp.dims.NLP_x * docp.time.steps)
+    work = similar(xu, docp.dims.NLP_x * docp.time.steps * docp.time.control_steps)
     ocp = ocp_model(docp)
 
     # loop over time steps
+    offset = 0
     for i in 1:docp.time.steps
-        offset = (i-1) * docp.dims.NLP_x
         ts = 0.5 * (time_grid[i] + time_grid[i + 1])
         xs =
             0.5 * (
                 get_OCP_state_at_time_step(xu, docp, i) +
                 get_OCP_state_at_time_step(xu, docp, i+1)
             )
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        # OCP dynamics
-        CTModels.dynamics(ocp)(
-            (@view work[(offset + 1):(offset + docp.dims.NLP_x)]), ts, xs, ui, v
-        )
+        # +++ loop over control steps
+        for j in 1:docp.time.control_steps
+            uij = get_OCP_control_at_time_step(xu, docp, i; j=j)
+            # OCP dynamics
+            CTModels.dynamics(ocp)(
+            (@view work[(offset + 1):(offset + docp.dims.NLP_x)]), ts, xs, uij, v
+            )
+            offset += docp.dims.NLP_x
+        end
     end
 
     return work
@@ -75,9 +79,8 @@ Compute the running cost
 function integral(docp::DOCP{Midpoint}, xu, v, time_grid, f)
     value = 0.0
 
-    # +++ add inner loop over control steps ?
-    # nb if more than one, need to store value
-    # split both cases control_steps = 1 or > 1 ?
+    # Collocation: 1 control per step
+    # Direct shooting: >=1 controls per step
 
     if docp.time.control_steps == 1
         # loop over time steps
@@ -122,26 +125,22 @@ function stepStateConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, wor
     ocp = ocp_model(docp)
     disc = disc_model(docp)
 
-    # offset for previous steps
-    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
-
-    # 0. variables
+    # compute state variables at next step: midpoint rule
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
-
-    # 1. state equation
-    if i <= docp.time.steps
-        # more variables
-        tip1 = time_grid[i + 1]
-        xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
-        hi = tip1 - ti
-        offset_dyn_i = (i-1)*docp.dims.NLP_x
-
-        # state equation: midpoint rule
-        @views @. c[(offset + 1):(offset + docp.dims.NLP_x)] =
-            xip1 - (xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + docp.dims.NLP_x)])
-        offset += docp.dims.NLP_x
+    tip1 = time_grid[i + 1]
+    xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
+    hi = (tip1 - ti) / docp.time.control_steps
+    offset_dyn_i = (i-1) * docp.dims.NLP_x * docp.time.control_steps
+    for j in 1:docp.time.control_steps
+        x_next = xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + docp.dims.NLP_x)]
+        offset_dyn_i += docp.dims.NLP_x
     end
+
+    # set state equation as constraints (equal to 0)
+    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
+    @views @. c[(offset + 1):(offset + docp.dims.NLP_x)] = xip1 - x_next
+
 end
 
 """
