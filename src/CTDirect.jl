@@ -59,7 +59,7 @@ abstract type Scheme end
 
 
 # includes
-include("DOCP_core.jl")
+include("DOCP_data.jl")
 include("ode/common.jl")
 include("ode/euler.jl")
 include("ode/irk.jl")

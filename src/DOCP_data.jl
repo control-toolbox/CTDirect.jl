@@ -1,4 +1,4 @@
-# Discretized Optimal Control Problem DOCP
+# Data for iscretized Optimal Control Problem DOCP
 
 """
 $(TYPEDEF)
@@ -262,7 +262,7 @@ julia> DOCP(ocp, nlp_model_backend)
 DOCP{...}(...)
 ```
 """
-mutable struct __DOCP{
+mutable struct DOCP{
     D<:CTDirect.Scheme, O<:CTModels.Model
     }
 
@@ -290,7 +290,7 @@ mutable struct __DOCP{
     dim_NLP_constraints::Int
 
     # constructor
-    function __DOCP(ocp::CTModels.Model, grid_size, time_grid, scheme)
+    function DOCP(ocp::CTModels.Model, grid_size, time_grid, scheme)
 
         # boolean flags
         flags = DOCPFlags(ocp)

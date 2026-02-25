@@ -56,7 +56,7 @@ function get_docp(discretizer::DirectShooting, ocp::AbstractModel)
     control_steps = Strategies.options(discretizer)[:control_steps]
 
     # initialize DOCP
-    docp = __DOCP(ocp, grid_size, control_steps, scheme)
+    docp = DOCP(ocp, grid_size, control_steps, scheme)
 
     # set bounds in DOCP
     variables_bounds!(docp)
