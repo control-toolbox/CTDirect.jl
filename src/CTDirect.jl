@@ -55,7 +55,7 @@ julia> struct MyDiscretization <: Discretization end
 MyDiscretization
 ```
 """
-abstract type Discretization end
+abstract type Discretization end #+++ rename as Scheme ?
 
 
 # includes
