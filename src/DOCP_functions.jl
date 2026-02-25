@@ -123,12 +123,16 @@ function stepPathConstraints!(docp, c, xu, v, time_grid, i)
 
     ocp = ocp_model(docp)
     disc = disc_model(docp)
+
+    # skip previous steps
+    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block) 
+    # skip state equation except at final time
+    (i <= docp.time.steps) && (offset += disc._state_stage_eqs_block)
+    
+    # set constraint
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
     ui = get_OCP_control_at_time_step(xu, docp, i)
-    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block) 
-            + disc._state_stage_eqs_block
-    
     CTModels.path_constraints_nl(ocp)[2](
     (@view c[(offset + 1):(offset + docp.dims.path_cons)]), ti, xi, ui, v
     )
