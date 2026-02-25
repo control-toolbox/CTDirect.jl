@@ -75,18 +75,38 @@ Compute the running cost
 function integral(docp::DOCP{Midpoint}, xu, v, time_grid, f)
     value = 0.0
 
-    # loop over time steps
-    for i in 1:docp.time.steps
-        offset = (i-1) * docp.dims.NLP_x
-        hi = time_grid[i + 1] - time_grid[i]
-        ts = 0.5 * (time_grid[i] + time_grid[i + 1])
-        xs =
-            0.5 * (
-                get_OCP_state_at_time_step(xu, docp, i) +
-                get_OCP_state_at_time_step(xu, docp, i+1)
-            )
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        value +=  hi * f(ts, xs, ui, v)
+    # +++ add inner loop over control steps ?
+    # nb if more than one, need to store value
+    # split both cases control_steps = 1 or > 1 ?
+
+    if docp.time.control_steps == 1
+        # loop over time steps
+        for i in 1:docp.time.steps
+            hi = time_grid[i + 1] - time_grid[i]
+            ts = 0.5 * (time_grid[i] + time_grid[i + 1])
+            xs =
+                0.5 * (
+                    get_OCP_state_at_time_step(xu, docp, i) +
+                    get_OCP_state_at_time_step(xu, docp, i+1)
+                )
+            ui = get_OCP_control_at_time_step(xu, docp, i)
+            value +=  hi * f(ts, xs, ui, v)
+        end
+    else
+        # loop over time steps
+        for i in 1:docp.time.steps
+            hi = (time_grid[i + 1] - time_grid[i]) / docp.time.control_steps
+            xs = 0.5 * (
+                    get_OCP_state_at_time_step(xu, docp, i) +
+                    get_OCP_state_at_time_step(xu, docp, i+1)
+                )
+            # loop over control steps
+            for j in 1:docp.time.control_steps
+                tij = time_grid[i] + (j - 0.5) * hi
+                uij = get_OCP_control_at_time_step(xu, docp, i; j=j)
+                value +=  hi * f(tij, xs, uij, v)
+            end
+        end
     end
 
     return value

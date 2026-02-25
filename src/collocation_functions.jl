@@ -99,7 +99,6 @@ function __constraints!(c, xu, docp::DOCP)
     # path constraints at final time
     stepPathConstraints!(docp, c, xu, v, time_grid, docp.time.steps+1, work)
 
-    
     # boundary constraints
     if docp.dims.boundary_cons > 0
         offset = docp.dim_NLP_constraints - docp.dims.boundary_cons

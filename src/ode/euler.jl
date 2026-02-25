@@ -116,7 +116,6 @@ function integral(docp::DOCP{Euler}, xu, v, time_grid, f)
 
     # loop over time steps
     for i in 1:docp.time.steps
-        offset = (i-1) * dims.NLP_x
         # get variables at t_i or t_i+1
         if disc._explicit
             index = i

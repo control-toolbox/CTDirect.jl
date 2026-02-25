@@ -91,7 +91,6 @@ function integral(docp::DOCP{Trapeze}, xu, v, time_grid, f)
 
     # loop over time steps
     for i in 2:docp.time.steps
-        offset = (i-1) * dims.NLP_x
         ti = time_grid[i]
         xi = get_OCP_state_at_time_step(xu, docp, i)
         ui = get_OCP_control_at_time_step(xu, docp, i)

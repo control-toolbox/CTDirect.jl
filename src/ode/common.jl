@@ -123,13 +123,20 @@ Retrieve control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
 Vector output
 """
-function get_OCP_control_at_time_step(xu, docp::DOCP, i)
+function get_OCP_control_at_time_step(xu, docp::DOCP, i; j=1)
     disc = disc_model(docp)
+
     # final time case, pick U_N unless U_N+1 is present  
     if !disc._final_control && i == docp.time.steps + 1
         i = docp.time.steps
     end
+    
+    # skip previous time steps
     offset = (i-1) * disc._step_variables_block + docp.dims.NLP_x
+    
+    # skip previous controls for this time step
+    offset += (j-1) * docp.dims.NLP_u
+    
     return @view xu[(offset + 1):(offset + docp.dims.NLP_u)]
 end
 
