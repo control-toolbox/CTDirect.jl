@@ -194,11 +194,15 @@ $(TYPEDSIGNATURES)
 Set initial guess for control variables at given time step
 Convention: 1 <= i <= dim_NLP_steps(+1)
 """
-function set_control_at_time_step!(xu, u_init, docp::DOCP, i)
+function set_control_at_time_step!(xu, u_init, docp::DOCP, i; j=1)
     if !isnothing(u_init)
         disc = disc_model(docp)
+        # NB ignore control at final time if not handled by scheme
         if i <= docp.time.steps || (disc._final_control && i <= docp.time.steps + 1)
+            # skip: previous stepsand state for this step
             offset = (i-1) * disc._step_variables_block + docp.dims.NLP_x
+            # skip previous controls for this stpe
+            offset += (j-1) * docp.dims.NLP_u
             xu[(offset + 1):(offset + docp.dims.NLP_u)] .= u_init
         end
     end

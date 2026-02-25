@@ -13,7 +13,7 @@ __direct_shooting_grid_size()::Int = 100
 __direct_shooting_scheme()::Symbol = :midpoint # later use variable step ode solver
 __direct_shooting_control_steps() = 10 # ie number of controls per time step
 
-function Strategies.metadata(::Type{<:Collocation})
+function Strategies.metadata(::Type{<:DirectShooting})
     return Strategies.StrategyMetadata(
         Options.OptionDefinition(
         name = :grid_size,

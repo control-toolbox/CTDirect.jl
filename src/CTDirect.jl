@@ -60,6 +60,9 @@ abstract type Scheme end
 
 # includes
 include("DOCP_data.jl")
+include("DOCP_variables.jl")
+include("DOCP_functions.jl")
+
 include("ode/common.jl")
 include("ode/euler.jl")
 include("ode/irk.jl")
@@ -67,11 +70,6 @@ include("ode/midpoint.jl")
 include("ode/trapeze.jl")
 
 include("collocation.jl")
-include("collocation_variables.jl")
-include("collocation_functions.jl")
-
-# ode/variable_step
-#include("direct_shooting.jl")
-#include("direct_shooting_core.jl")
+include("direct_shooting.jl")
 
 end
