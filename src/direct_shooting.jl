@@ -9,9 +9,9 @@ end
 Strategies.id(::Type{<:DirectShooting}) = :direct_shooting
 
 # default options
-__direct_shooting_grid_size()::Int = 100
+__direct_shooting_grid_size()::Int = 250
+__direct_shooting_control_steps()::Int = 1 # ie number of controls per time step
 __direct_shooting_scheme()::Symbol = :midpoint # later use variable step ode solver
-__direct_shooting_control_steps() = 10 # ie number of controls per time step
 
 function Strategies.metadata(::Type{<:DirectShooting})
     return Strategies.StrategyMetadata(
@@ -45,6 +45,8 @@ end
 
 Strategies.options(c::DirectShooting) = c.options
 
+# +++ todo if possible: unify get_docp for Collocation / directshooting and move to DOCP_data.jl ?
+
 # ==========================================================================================
 # Build core DOCP structure with discretization information (ADNLP)
 # ==========================================================================================
@@ -56,11 +58,12 @@ function get_docp(discretizer::DirectShooting, ocp::AbstractModel)
     control_steps = Strategies.options(discretizer)[:control_steps]
 
     # initialize DOCP
-    docp = DOCP(ocp, grid_size, control_steps, scheme)
+    time_grid = nothing
+    docp = DOCP(ocp, grid_size, control_steps, scheme, time_grid)
 
     # set bounds in DOCP
-    variables_bounds!(docp)
-    constraints_bounds!(docp)
+    __variables_bounds!(docp)
+    __constraints_bounds!(docp)
 
     return docp
 end
@@ -85,26 +88,12 @@ function (discretizer::DirectShooting)(ocp::AbstractModel)
         kwargs...
     )::ADNLPModels.ADNLPModel
 
-        docp = 
-
         # functions for objective and constraints
-        f = x -> CTDirect.DirectShooting_objective(x, docp)
-        c! = (c, x) -> CTDirect.DirectShooting_constraints!(c, x, docp)
+        f = x -> CTDirect.__objective(x, docp)
+        c! = (c, x) -> CTDirect.__constraints!(c, x, docp)
 
         # build initial guess
-        init = get_docp_initial_guess(:adnlp, docp, initial_guess)
-
-        # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
-        unused_backends = (
-        hprod_backend=ADNLPModels.EmptyADbackend,
-        jtprod_backend=ADNLPModels.EmptyADbackend,
-        jprod_backend=ADNLPModels.EmptyADbackend,
-        ghjvprod_backend=ADNLPModels.EmptyADbackend,
-        )
-
-
-        # use backend preset
-        backend_options = (backend=backend,)
+        init = ones(docp.dim_NLP_variables)
 
         # build NLP
         nlp = ADNLPModel!(
@@ -116,8 +105,7 @@ function (discretizer::DirectShooting)(ocp::AbstractModel)
             docp.bounds.con_l,
             docp.bounds.con_u;
             minimize=(!docp.flags.max),
-            backend_options...,
-            unused_backends...,
+            backend=:optimized,
             kwargs...,
         )
 

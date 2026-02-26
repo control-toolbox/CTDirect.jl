@@ -48,7 +48,7 @@ end
 
 Strategies.options(c::Collocation) = c.options
 
-# +++ move to collocation_core ?
+# +++ todo if possible: unify get_docp for Collocation / directshooting and move to DOCP_data.jl ?
 
 # ==========================================================================================
 # Build core DOCP structure with discretization information (ADNLP)
@@ -61,7 +61,8 @@ function get_docp(discretizer::Collocation, ocp::AbstractModel)
     time_grid = Strategies.options(discretizer)[:time_grid]
 
     # initialize DOCP
-    docp = DOCP(ocp, grid_size, time_grid, scheme)
+    control_steps = 1
+    docp = DOCP(ocp, grid_size, control_steps, scheme, time_grid)
 
     # set bounds in DOCP
     __variables_bounds!(docp)

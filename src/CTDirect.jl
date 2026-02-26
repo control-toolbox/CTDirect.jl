@@ -10,28 +10,18 @@ using SparseArrays
 using SolverCore
 using NLPModels
 
-# ----------------------------------------------------------------------
-# TYPES
-const AbstractModel = CTModels.AbstractModel
-
 # ---------------------------------------------------------------------------
 # Abstract discretizer type
 # ---------------------------------------------------------------------------
+const AbstractModel = CTModels.AbstractModel
 abstract type AbstractDiscretizer <: Strategies.AbstractStrategy end
-
-function discretize(
-    ocp::AbstractModel, 
-    discretizer::AbstractDiscretizer
-)
-    return discretizer(ocp)
-end
 
 __discretizer()::AbstractDiscretizer = Collocation()
 
-function discretize(
-    ocp::AbstractModel;
-    discretizer::AbstractDiscretizer=__discretizer(),
-)
+function discretize(ocp::AbstractModel, discretizer::AbstractDiscretizer)
+    return discretizer(ocp)
+end
+function discretize(ocp::AbstractModel; discretizer::AbstractDiscretizer=__discretizer())
     return discretize(ocp, discretizer)
 end
 

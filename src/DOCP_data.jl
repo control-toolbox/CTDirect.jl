@@ -290,7 +290,7 @@ mutable struct DOCP{
     dim_NLP_constraints::Int
 
     # constructor
-    function DOCP(ocp::CTModels.Model, grid_size, time_grid, scheme)
+    function DOCP(ocp::CTModels.Model, grid_size::Int, control_steps::Int, scheme::Symbol, time_grid)
 
         # boolean flags
         flags = DOCPFlags(ocp)
@@ -299,7 +299,6 @@ mutable struct DOCP{
         dims = DOCPdims(ocp)
 
         # time grid
-        control_steps = 1
         time = DOCPtime(ocp, grid_size, control_steps, time_grid)
 
         # discretization method 
