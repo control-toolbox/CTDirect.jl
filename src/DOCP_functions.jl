@@ -20,7 +20,7 @@ julia> DOCP_objective(xu, docp)
 12.34
 ```
 """
-function DOCP_objective(xu, docp::DOCP)
+function __objective(xu, docp::DOCP)
 
     # initialization
     if docp.flags.freet0 || docp.flags.freetf
@@ -77,7 +77,7 @@ julia> DOCP_constraints!(zeros(docp.dim_NLP_constraints), xu, docp)
 [0.0, 0.1, …]
 ```
 """
-function DOCP_constraints!(c, xu, docp::DOCP)
+function __constraints!(c, xu, docp::DOCP)
 
     # initialization
     if docp.flags.freet0 || docp.flags.freetf
@@ -89,10 +89,16 @@ function DOCP_constraints!(c, xu, docp::DOCP)
     work = setWorkArray(docp, xu, time_grid, v)
 
     # main loop on time steps
-    for i in 1:(docp.time.steps + 1)
-        setStepConstraints!(docp, c, xu, v, time_grid, i, work)
+    for i in 1:docp.time.steps
+        # state equation (includes stage equation depending on scheme)
+        stepStateConstraints!(docp, c, xu, v, time_grid, i, work)
+        
+        #path constraints
+        (docp.dims.path_cons > 0) && stepPathConstraints!(docp, c, xu, v, time_grid, i)
     end
-   
+    # path constraints at final time
+    (docp.dims.path_cons > 0) && stepPathConstraints!(docp, c, xu, v, time_grid, docp.time.steps+1)
+
     # boundary constraints
     if docp.dims.boundary_cons > 0
         offset = docp.dim_NLP_constraints - docp.dims.boundary_cons
@@ -106,6 +112,31 @@ function DOCP_constraints!(c, xu, docp::DOCP)
 
     # NB. the function *needs* to return c for ADNLPModels
     return c
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+Set path constraints at given time step
+"""
+function stepPathConstraints!(docp, c, xu, v, time_grid, i)
+
+    ocp = ocp_model(docp)
+    disc = disc_model(docp)
+
+    # skip previous steps
+    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block) 
+    # skip state equation except at final time
+    (i <= docp.time.steps) && (offset += disc._state_stage_eqs_block)
+    
+    # set constraint
+    ti = time_grid[i]
+    xi = get_OCP_state_at_time_step(xu, docp, i)
+    ui = get_OCP_control_at_time_step(xu, docp, i)
+    CTModels.path_constraints_nl(ocp)[2](
+    (@view c[(offset + 1):(offset + docp.dims.path_cons)]), ti, xi, ui, v
+    )
+    return
 end
 
 
@@ -129,7 +160,7 @@ julia> constraints_bounds!(docp)
 ([-1.0, …], [1.0, …])
 ```
 """
-function constraints_bounds!(docp::DOCP)
+function __constraints_bounds!(docp::DOCP)
     lb = docp.bounds.con_l
     ub = docp.bounds.con_u
     disc = disc_model(docp)

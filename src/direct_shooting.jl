@@ -1,0 +1,155 @@
+# ---------------------------------------------------------------------------
+# Implementation of Direct shooting discretizer
+# ---------------------------------------------------------------------------
+struct DirectShooting <: AbstractDiscretizer
+    options::Strategies.StrategyOptions
+end
+
+# useful for OptimalControl
+Strategies.id(::Type{<:DirectShooting}) = :direct_shooting
+
+# default options
+__direct_shooting_grid_size()::Int = 250
+__direct_shooting_control_steps()::Int = 1 # ie number of controls per time step
+__direct_shooting_scheme()::Symbol = :midpoint # later use variable step ode solver
+
+function Strategies.metadata(::Type{<:DirectShooting})
+    return Strategies.StrategyMetadata(
+        Options.OptionDefinition(
+        name = :grid_size,
+        type = Int,
+        default = __direct_shooting_grid_size(),
+        description = "Number of time steps for the direct shooting grid",
+        ),
+        Options.OptionDefinition(
+        name = :control_steps,
+        type = Int,
+        default = __direct_shooting_control_steps(),
+        description = "Number of controls per time step for the direct shooting",
+        ),
+        Options.OptionDefinition(
+        name = :scheme,
+        type = Symbol,
+        default = __direct_shooting_scheme(),
+        description = "Time integration scheme (e.g., :midpoint, :trapeze)",
+        ),
+
+    )
+end
+
+# constructor: kwargs contains the options values
+function DirectShooting(; mode::Symbol = :strict, kwargs...)
+    opts = Strategies.build_strategy_options(DirectShooting; mode = mode, kwargs...)
+    return DirectShooting(opts)
+end
+
+Strategies.options(c::DirectShooting) = c.options
+
+# +++ todo if possible: unify get_docp for Collocation / directshooting and move to DOCP_data.jl ?
+
+# ==========================================================================================
+# Build core DOCP structure with discretization information (ADNLP)
+# ==========================================================================================
+function get_docp(discretizer::DirectShooting, ocp::AbstractModel)
+    
+    # recover discretization scheme and options
+    scheme = Strategies.options(discretizer)[:scheme]
+    grid_size = Strategies.options(discretizer)[:grid_size]
+    control_steps = Strategies.options(discretizer)[:control_steps]
+
+    # initialize DOCP
+    time_grid = nothing
+    docp = DOCP(ocp, grid_size, control_steps, scheme, time_grid)
+
+    # set bounds in DOCP
+    __variables_bounds!(docp)
+    __constraints_bounds!(docp)
+
+    return docp
+end
+
+# ==========================================================================================
+# Build discretizer API (return sets of model/solution builders)
+# ==========================================================================================
+function (discretizer::DirectShooting)(ocp::AbstractModel)
+
+    # common parts for builders
+    docp = get_docp(discretizer, ocp)
+    exa_getter = nothing # will be set in build_exa_model
+
+    # ==========================================================================================
+    # The needed builders for the construction of the final DiscretizedModel
+    # ==========================================================================================
+    
+    # NLP builder for ADNLPModels
+    function build_adnlp_model(
+        initial_guess::CTModels.AbstractInitialGuess;
+        backend,
+        kwargs...
+    )::ADNLPModels.ADNLPModel
+
+        # functions for objective and constraints
+        f = x -> CTDirect.__objective(x, docp)
+        c! = (c, x) -> CTDirect.__constraints!(c, x, docp)
+
+        # build initial guess
+        functional_init = CTModels.build_initial_guess(ocp, initial_guess)
+        x0 = __initial_guess(docp, functional_init)
+        
+        # build NLP
+        nlp = ADNLPModel!(
+            f,
+            x0,
+            docp.bounds.var_l,
+            docp.bounds.var_u,
+            c!,
+            docp.bounds.con_l,
+            docp.bounds.con_u;
+            minimize=(!docp.flags.max),
+            backend=:optimized,
+            kwargs...,
+        )
+
+        return nlp
+    end
+
+    # Solution builder for ADNLPModels
+    function build_adnlp_solution(nlp_solution::SolverCore.AbstractExecutionStats)
+        
+        # retrieve data from NLP solver
+        minimize = !docp.flags.max
+        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution, minimize)
+
+        # retrieve time grid
+        T = get_time_grid(nlp_solution.solution, docp)
+
+        # build OCP solution from NLP solution
+        sol = CTDirect.build_OCP_solution(docp, nlp_solution, T, 
+        objective, iterations, constraints_violation, message, status, successful)
+        
+        return sol
+    end
+
+    # NLP builder for ExaModels
+    function build_exa_model(
+        ::Type{BaseType}, 
+        initial_guess::CTModels.AbstractInitialGuess; 
+        backend
+    )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
+    
+        # try to call constructor here with constraints component wise ?
+    end
+
+    # Solution builder for ExaModels
+    function build_exa_solution(nlp_solution::SolverCore.AbstractExecutionStats)
+    end
+
+    #NB. it would be better to return builders as model/solution pairs since they are linked
+    return CTSolvers.DiscretizedModel(
+        ocp,
+        CTSolvers.ADNLPModelBuilder(build_adnlp_model),
+        CTSolvers.ExaModelBuilder(build_exa_model),
+        CTSolvers.ADNLPSolutionBuilder(build_adnlp_solution),
+        CTSolvers.ExaSolutionBuilder(build_exa_solution),
+    )
+end

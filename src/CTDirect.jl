@@ -10,63 +10,56 @@ using SparseArrays
 using SolverCore
 using NLPModels
 
-# ----------------------------------------------------------------------
-# TYPES
-const AbstractModel = CTModels.AbstractModel
-
 # ---------------------------------------------------------------------------
 # Abstract discretizer type
 # ---------------------------------------------------------------------------
+const AbstractModel = CTModels.AbstractModel
 abstract type AbstractDiscretizer <: Strategies.AbstractStrategy end
-
-function discretize(
-    ocp::AbstractModel, 
-    discretizer::AbstractDiscretizer
-)
-    return discretizer(ocp)
-end
 
 __discretizer()::AbstractDiscretizer = Collocation()
 
-function discretize(
-    ocp::AbstractModel;
-    discretizer::AbstractDiscretizer=__discretizer(),
-)
+function discretize(ocp::AbstractModel, discretizer::AbstractDiscretizer)
+    return discretizer(ocp)
+end
+function discretize(ocp::AbstractModel; discretizer::AbstractDiscretizer=__discretizer())
     return discretize(ocp, discretizer)
 end
 
 # ---------------------------------------------------------------------------
-# Discretization schemes: see disc/
+# Discretization schemes: see ode/
 # ---------------------------------------------------------------------------
 """
 $(TYPEDEF)
 
-Abstract type representing a discretization strategy for an optimal
+Abstract type representing a discretization scheme strategy for an optimal
 control problem.  
 
-Concrete subtypes of `Discretization` define specific schemes for
+Concrete subtypes of `Scheme` define specific schemes for
 transforming a continuous-time problem into a discrete-time
 representation suitable for numerical solution.
 
 # Example
 
 ```julia-repl
-julia> struct MyDiscretization <: Discretization end
-MyDiscretization
+julia> struct MyScheme <: Scheme end
+MyScheme
 ```
 """
-abstract type Discretization end
+abstract type Scheme end
 
 
 # includes
+include("DOCP_data.jl")
+include("DOCP_variables.jl")
+include("DOCP_functions.jl")
+
+include("ode/common.jl")
+include("ode/euler.jl")
+include("ode/irk.jl")
+include("ode/midpoint.jl")
+include("ode/trapeze.jl")
+
 include("collocation.jl")
-include("collocation_core.jl")
-include("collocation_variables.jl")
-include("collocation_functions.jl")
-include("disc/common.jl")
-include("disc/euler.jl")
-include("disc/irk.jl")
-include("disc/midpoint.jl")
-include("disc/trapeze.jl")
+include("direct_shooting.jl")
 
 end

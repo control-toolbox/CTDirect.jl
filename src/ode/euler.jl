@@ -7,7 +7,7 @@ with the convention
 Note that both the explicit and implicit versions therefore use the same variables layout.
 =#
 
-struct Euler <: Discretization
+struct Euler <: Scheme
     info::String
     _step_variables_block::Int
     _state_stage_eqs_block::Int
@@ -16,29 +16,20 @@ struct Euler <: Discretization
     _explicit::Bool
 
     # constructor
-    function Euler(
-        dim_NLP_steps,
-        dim_NLP_x,
-        dim_NLP_u,
-        dim_NLP_v,
-        dim_path_cons,
-        dim_boundary_cons;
-        explicit=true,
-    )
+    function Euler(dims::DOCPdims, time::DOCPtime; explicit=true)
 
         # aux variables
-        step_variables_block = dim_NLP_x + dim_NLP_u
-        state_stage_eqs_block = dim_NLP_x
-        step_pathcons_block = dim_path_cons
+        step_variables_block = dims.NLP_x + dims.NLP_u * time.control_steps 
+        state_stage_eqs_block = dims.NLP_x
+        step_pathcons_block = dims.path_cons
 
         # NLP variables size ([state, control]_1..N, final state, variable)
-        dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
+        dim_NLP_variables = time.steps * step_variables_block + dims.NLP_x + dims.NLP_v
 
         # NLP constraints size ([dynamics, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints =
-            dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) +
-            step_pathcons_block +
-            dim_boundary_cons
+            time.steps * (state_stage_eqs_block + step_pathcons_block) +
+            step_pathcons_block + dims.boundary_cons
 
         if explicit
             info = "Euler (explicit), 1st order"
@@ -65,7 +56,7 @@ Retrieve control variables at given time step from the NLP variables.
 Convention: see above for explicit / implicit versions
 Vector output
 """
-function get_OCP_control_at_time_step(xu, docp::DOCP{Euler}, i)
+function get_OCP_control_at_time_step(xu, docp::DOCP{Euler}, i; j=1)
     disc = disc_model(docp)
     dims = docp.dims
     if disc._explicit
@@ -118,15 +109,13 @@ $(TYPEDSIGNATURES)
 
 Compute the running cost
 """
-function runningCost(docp::DOCP{Euler}, xu, v, time_grid)
-    ocp = ocp_model(docp)
+function integral(docp::DOCP{Euler}, xu, v, time_grid, f)
     disc = disc_model(docp)
     dims = docp.dims
-    obj_lagrange = 0.0
+    value = 0.0
 
     # loop over time steps
     for i in 1:docp.time.steps
-        offset = (i-1) * dims.NLP_x
         # get variables at t_i or t_i+1
         if disc._explicit
             index = i
@@ -137,10 +126,10 @@ function runningCost(docp::DOCP{Euler}, xu, v, time_grid)
         xi = get_OCP_state_at_time_step(xu, docp, index)
         ui = get_OCP_control_at_time_step(xu, docp, index)
         hi = time_grid[i + 1] - time_grid[i]
-        obj_lagrange = obj_lagrange + hi * CTModels.lagrange(ocp)(ti, xi, ui, v)
+        value += hi * f(ti, xi, ui, v)
     end
 
-    return obj_lagrange
+    return value
 end
 
 """
@@ -149,39 +138,24 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
-function setStepConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
+function stepStateConstraints!(docp::DOCP{Euler}, c, xu, v, time_grid, i, work)
     ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
 
-    # offset for previous steps
-    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
-
-    # 0. variables
+    # compute state variables at next step: euler rule
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
+    tip1 = time_grid[i + 1]
+    xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
+    hi = tip1 - ti
+    offset_dyn_i = (i-1)*dims.NLP_x
 
-    # 1. state equation
-    if i <= docp.time.steps
-        # more variables
-        tip1 = time_grid[i + 1]
-        xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
-        hi = tip1 - ti
-        offset_dyn_i = (i-1)*dims.NLP_x
+    # set state equation as constraints (equal to 0)
+    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
+    @views @. c[(offset + 1):(offset + dims.NLP_x)] =
+        xip1 - (xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + dims.NLP_x)])
 
-        # state equation: euler rule
-        @views @. c[(offset + 1):(offset + dims.NLP_x)] =
-            xip1 - (xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + dims.NLP_x)])
-        offset += dims.NLP_x
-    end
-
-    # 2. path constraints
-    if disc._step_pathcons_block > 0
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(ocp)[2](
-            (@view c[(offset + 1):(offset + dims.path_cons)]), ti, xi, ui, v
-        )
-    end
 end
 
 """

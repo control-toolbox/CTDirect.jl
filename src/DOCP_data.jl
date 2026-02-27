@@ -1,4 +1,4 @@
-# Discretized Optimal Control Problem DOCP
+# Data for iscretized Optimal Control Problem DOCP
 
 """
 $(TYPEDEF)
@@ -146,6 +146,7 @@ DOCPtime(10, [0.0, 0.1, …, 1.0], [0.0, 0.1, …, 1.0])
 """
 struct DOCPtime
     steps::Int
+    control_steps::Int
     normalized_grid::Vector{Float64}
     fixed_grid::Vector{Float64}
 end
@@ -172,7 +173,7 @@ julia> DOCPtime(ocp, 10, nothing)
 DOCPtime(10, [0.0, 0.1, …, 1.0], [0.0, 0.1, …, 1.0])
 ```
 """
-function DOCPtime(ocp::CTModels.Model, grid_size::Int, time_grid)
+function DOCPtime(ocp::CTModels.Model, grid_size::Int, control_steps::Int, time_grid)
 
     # 1. build/recover normalized time grid
     if time_grid === nothing
@@ -209,7 +210,7 @@ function DOCPtime(ocp::CTModels.Model, grid_size::Int, time_grid)
         NLP_fixed_time_grid = @. t0 + (NLP_normalized_time_grid * (tf - t0))
     end
 
-    return DOCPtime(dim_NLP_steps, NLP_normalized_time_grid, NLP_fixed_time_grid)
+    return DOCPtime(dim_NLP_steps, control_steps, NLP_normalized_time_grid, NLP_fixed_time_grid)
 end
 
 """
@@ -262,7 +263,7 @@ DOCP{...}(...)
 ```
 """
 mutable struct DOCP{
-    D<:CTDirect.Discretization, O<:CTModels.Model
+    D<:CTDirect.Scheme, O<:CTModels.Model
     }
 
     # discretization scheme
@@ -289,12 +290,7 @@ mutable struct DOCP{
     dim_NLP_constraints::Int
 
     # constructor
-    function DOCP(
-        ocp::CTModels.Model;
-        grid_size=__grid_size(),
-        time_grid=__time_grid(),
-        scheme=__scheme(),
-        )
+    function DOCP(ocp::CTModels.Model, grid_size::Int, control_steps::Int, scheme::Symbol, time_grid)
 
         # boolean flags
         flags = DOCPFlags(ocp)
@@ -303,10 +299,10 @@ mutable struct DOCP{
         dims = DOCPdims(ocp)
 
         # time grid
-        time = DOCPtime(ocp, grid_size, time_grid)
+        time = DOCPtime(ocp, grid_size, control_steps, time_grid)
 
         # discretization method 
-        disc_args = [time.steps, dims.NLP_x, dims.NLP_u, dims.NLP_v, dims.path_cons, dims.boundary_cons]
+        disc_args = [dims, time]
         
         if scheme == :trapeze
             discretization, dim_NLP_variables, dim_NLP_constraints = 
