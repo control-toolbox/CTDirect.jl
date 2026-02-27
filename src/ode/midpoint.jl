@@ -125,24 +125,34 @@ function stepStateConstraints!(docp::DOCP{Midpoint}, c, xu, v, time_grid, i, wor
     ocp = ocp_model(docp)
     disc = disc_model(docp)
 
-    # compute state variables at next step: midpoint rule
+    # set state equation as constraints (equal to 0)
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
     tip1 = time_grid[i + 1]
     xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
     hi = (tip1 - ti) / docp.time.control_steps
     offset_dyn_i = (i-1) * docp.dims.NLP_x * docp.time.control_steps
-    # +++ allocations here ?
-    x_next = xi
-    for j in 1:docp.time.control_steps
-        x_next += hi * work[(offset_dyn_i + 1):(offset_dyn_i + docp.dims.NLP_x)]
-        offset_dyn_i += docp.dims.NLP_x
+    offset_c = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
+
+    if docp.time.control_steps == 1
+        # use c directly to avoid allocations
+        @views @. c[(offset_c + 1):(offset_c + docp.dims.NLP_x)] = xip1 - (xi + hi * work[(offset_dyn_i + 1):(offset_dyn_i + docp.dims.NLP_x)])
+        return
+        # NB. benchmark is close with version below for 1 step
+        #    SUCCESS 30/30      0.61(107)   1.44(117)   3.76(121)
+        # vs SUCCESS 30/30      0.67(107)   1.50(117)   4.00(121)
+        # +++recheck vs on the fly dynamics instead of work array
+    else
+        # NB. the dynamics in work use only the x values at time steps
+        # +++update: recompute dynamics here instead of using work array ? 
+        x_next = xi
+        for j in 1:docp.time.control_steps
+            x_next += hi * work[(offset_dyn_i + 1):(offset_dyn_i + docp.dims.NLP_x)]
+            offset_dyn_i += docp.dims.NLP_x
+        end
+        @views @. c[(offset_c + 1):(offset_c + docp.dims.NLP_x)] = xip1 - x_next
+        return
     end
-
-    # set state equation as constraints (equal to 0)
-    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
-    @views @. c[(offset + 1):(offset + docp.dims.NLP_x)] = xip1 - x_next
-
 end
 
 """

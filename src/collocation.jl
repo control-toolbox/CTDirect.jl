@@ -71,46 +71,6 @@ function get_docp(discretizer::Collocation, ocp::AbstractModel)
     return docp
 end
 
-# ==========================================================================================
-# Build initial guess for discretized problem
-# ==========================================================================================
-function get_docp_initial_guess(modeler::Symbol, docp,
-        initial_guess::Union{CTModels.AbstractInitialGuess,Nothing},
-        )
-
-        ocp = ocp_model(docp)
-
-        # build functional initial guess
-        functional_init = CTModels.build_initial_guess(ocp, initial_guess)
-
-        # build discretized initial guess
-        x0 = __initial_guess(docp, functional_init)
-   
-        if modeler == :adnlp
-            return x0
-        elseif modeler == :exa
-            # reshape initial guess for ExaModel variables layout
-            # - do not broadcast, apparently fails on GPU arrays
-            # - unused final control in examodel / euler, hence the different x0 sizes
-            n = CTModels.state_dimension(ocp)
-            m = CTModels.control_dimension(ocp)
-            q = CTModels.variable_dimension(ocp)
-            N = docp.time.steps
-            # N + 1 states, N controls
-            state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] 
-            for i in 0:N]...)
-            control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] 
-            for i in 0:(N - 1)]...,)
-            # see with JB: pass indeed to grid_size only for euler(_b), trapeze and midpoint
-            control = [control control[:, end]] 
-            variable = x0[(end - q + 1):end]
-            
-            return (variable, state, control)
-        else
-            error("unknown modeler in get_docp_initial_guess: ", modeler)
-        end
-    end
-
 
 # ==========================================================================================
 # Build discretizer API (return sets of model/solution builders)
@@ -137,7 +97,8 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         c! = (c, x) -> CTDirect.__constraints!(c, x, docp)
 
         # build initial guess
-        init = get_docp_initial_guess(:adnlp, docp, initial_guess)
+        functional_init = CTModels.build_initial_guess(ocp, initial_guess)
+        x0 = __initial_guess(docp, functional_init)
 
         # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
         unused_backends = (
@@ -174,7 +135,7 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         # build NLP
         nlp = ADNLPModel!(
             f,
-            init,
+            x0,
             docp.bounds.var_l,
             docp.bounds.var_u,
             c!,
@@ -218,7 +179,24 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         grid_size = Strategies.options(discretizer)[:grid_size]
 
         # build initial guess
-        init = get_docp_initial_guess(:exa, docp, initial_guess)
+        functional_init = CTModels.build_initial_guess(ocp, initial_guess)
+        x0 = __initial_guess(docp, functional_init)
+        # reshape initial guess for ExaModel variables layout
+        # - do not broadcast, apparently fails on GPU arrays
+        # - unused final control in examodel / euler, hence the different x0 sizes
+        n = CTModels.state_dimension(ocp)
+        m = CTModels.control_dimension(ocp)
+        q = CTModels.variable_dimension(ocp)
+        N = docp.time.steps
+        # N + 1 states, N controls
+        state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] 
+        for i in 0:N]...)
+        control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] 
+        for i in 0:(N - 1)]...,)
+        # see with JB: pass indeed to grid_size only for euler(_b), trapeze and midpoint
+        control = [control control[:, end]] 
+        variable = x0[(end - q + 1):end]
+        init = (variable, state, control)
 
         # build Exa model and getters
         # see with JB. later try to call Exa constructor here if possible, reusing existing functions...

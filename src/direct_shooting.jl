@@ -93,12 +93,13 @@ function (discretizer::DirectShooting)(ocp::AbstractModel)
         c! = (c, x) -> CTDirect.__constraints!(c, x, docp)
 
         # build initial guess
-        init = ones(docp.dim_NLP_variables)
-
+        functional_init = CTModels.build_initial_guess(ocp, initial_guess)
+        x0 = __initial_guess(docp, functional_init)
+        
         # build NLP
         nlp = ADNLPModel!(
             f,
-            init,
+            x0,
             docp.bounds.var_l,
             docp.bounds.var_u,
             c!,

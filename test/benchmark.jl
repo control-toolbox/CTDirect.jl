@@ -142,7 +142,7 @@ end
 # verbose <= 1: no output
 # verbose > 1: print summary (iter, obj, time)
 # verbose > 2: print NLP iterations also
-function bench_problem(problem; verbose=1, solver, grid_size, timer=false, kwargs...)
+function bench_problem(problem; verbose=1, solver, grid_size, timer=true, kwargs...)
     if verbose > 2
         display = true
     else
@@ -206,6 +206,7 @@ function bench(;
     solver=:ipopt,
     return_sols=false,
     save_sols=false,
+    timer=false,
     kwargs...,
 )
 
@@ -239,6 +240,7 @@ function bench(;
                 grid_size=grid_size,
                 verbose=verbose-1,
                 solver=solver,
+                timer=timer,
                 kwargs...,
             )
             t_bench[i, j] = time
