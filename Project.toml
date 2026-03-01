@@ -32,7 +32,7 @@ CTDirectExtMadNLP = ["MadNLP"]
 
 [compat]
 ADNLPModels = "0.8"
-CTBase = "0.16"
+CTBase = "0.17"
 CTModels = "0.6"
 CTParser = "0.7"
 CUDA = "5"
