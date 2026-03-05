@@ -404,33 +404,6 @@ DiscretizationModel(...)
 """
 disc_model(docp::DOCP) = docp.discretization
 
-
-"""
-$(TYPEDSIGNATURES)
-
-Check if an OCP is solvable by [`solve`](@ref).
-
-# Arguments
-
-- `ocp`: The OCP model.
-
-# Returns
-
-- `solvable::Bool`: Always returns `true` in the current implementation.
-
-# Example
-
-```julia-repl
-julia> is_solvable(ocp)
-true
-```
-"""
-function is_solvable(ocp)
-    solvable = true
-    return solvable
-end
-
-
 """
 $(TYPEDSIGNATURES)
 
@@ -506,7 +479,6 @@ true
 ```
 """
 is_empty(t) = (isnothing(t) || length(t) == 0)
-
 
 """
 $(TYPEDSIGNATURES)
