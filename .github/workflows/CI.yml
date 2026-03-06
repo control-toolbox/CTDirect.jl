@@ -10,3 +10,8 @@ on:
 jobs:
   call:
     uses: control-toolbox/CTActions/.github/workflows/ci.yml@main
+    with:
+      runs_on: '["ubuntu-latest","macos-latest"]'
+      use_ct_registry: true
+    secrets:
+      SSH_KEY: ${{ secrets.SSH_KEY }}

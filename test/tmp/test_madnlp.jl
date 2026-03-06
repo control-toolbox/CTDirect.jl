@@ -3,7 +3,7 @@ Pkg.activate(joinpath(@__DIR__))
 
 using NLPModels
 using ExaModels
-using MadNLPMumps
+using MadNLP
 using ADNLPModels
 using Ipopt
 using NLPModelsIpopt

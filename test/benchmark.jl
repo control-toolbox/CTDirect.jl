@@ -1,22 +1,15 @@
 # Benchmark and profiling
-using CTBase #? still needed ?
-using CTParser: CTParser, @def
-using CTModels:
-    CTModels, objective, state, control, variable, costate, time_grid, iterations
-using CTDirect: CTDirect, solve, direct_transcription, set_initial_guess, build_OCP_solution
+include("test_common.jl")
 
-using ADNLPModels
-using NLPModelsIpopt
-using MadNLPMumps
-
-using LinearAlgebra
+#using LinearAlgebra
 using Printf
 using Plots
 
 using BenchmarkTools
-using JET
-using Profile
-using PProf
+#using Profile
+#using PProf
+#using JET
+
 using Test # to run individual test scripts if needed
 
 #######################################################
@@ -26,16 +19,68 @@ for problem_file in filter(contains(r".jl$"), readdir(problem_path; join=true))
     include(problem_file)
 end
 
+# predefined problem lists
+target_dict = Dict{Symbol, Vector{String}}()
+target_dict[:easy] = [
+    "beam",
+    "double_integrator_mintf",
+    "double_integrator_minenergy",
+    "electric_vehicle",
+    "fuller",
+    "goddard",
+    "goddard_all",
+    "jackson",
+    "simple_integrator",
+    "vanderpol",
+]
+
+target_dict[:hard] = [
+    "algal_bacterial",
+    "bioreactor_1day",
+    "bioreactor_Ndays",
+    "bolza_freetf",
+    "glider",
+    #"insurance", # requires distinct u(tf)
+    "moonlander",
+    "quadrotor",
+    "space_shuttle",
+    "swimmer",
+    "truck_trailer"
+]
+
+target_dict[:lagrange_easy] = [
+    "beam",
+    "double_integrator_minenergy",
+    "fuller",
+    "simple_integrator",
+    "vanderpol",
+]
+
+target_dict[:lagrange_hard] = [
+    "bioreactor_1day",
+    "bioreactor_Ndays",
+    "bolza_freetf",
+    #"insurance", #only converge when final control is present (mixed path constraint) 
+    "parametric",
+    "quadrotor",
+    "robbins",
+    "truck_trailer"
+]
+
+target_dict[:all] = [ target_dict[:easy] ; target_dict[:hard] ]
+
+target_dict[:lagrange_all] = [ target_dict[:lagrange_easy] ; target_dict[:lagrange_hard] ]
+
 # check a specific example
 function check_problem(prob; kwargs...)
-    sol = solve(prob.ocp; init=prob.init, kwargs...)
+    sol = solve_problem(prob; kwargs...)
     @test sol.objective ≈ prob.obj rtol = 1e-2
 end
 
 # tests to check allocations in particular
-function init(ocp; grid_size, disc_method)
+function init(ocp; grid_size, scheme)
     docp = CTDirect.DOCP(
-        ocp; grid_size=grid_size, time_grid=CTDirect.__time_grid(), disc_method=disc_method
+        ocp; grid_size=grid_size, time_grid=CTDirect.__time_grid(), scheme=scheme
     )
     xu = CTDirect.DOCP_initial_guess(docp)
     return docp, xu
@@ -45,20 +90,18 @@ function test_unit(
     ocp;
     test_obj=true,
     test_cons=true,
-    test_trans=true,
-    test_solve=true,
     warntype=false,
     jet=false,
     profile=false,
     grid_size=100,
-    disc_method=:trapeze,
+    scheme=:trapeze,
 )
-    if profile
-        Profile.Allocs.clear()
-    end
+    #if profile
+    #    Profile.Allocs.clear()
+    #end
 
     # define problem and variables
-    docp, xu = init(ocp; grid_size=grid_size, disc_method=disc_method)
+    docp, xu = init(ocp; grid_size=grid_size, scheme=scheme)
     disc = docp.discretization
     c = fill(666.666, docp.dim_NLP_constraints)
     work = similar(xu, docp.dims.NLP_x)
@@ -68,12 +111,12 @@ function test_unit(
         print("Objective");
         @btime CTDirect.DOCP_objective($xu, $docp)
         warntype && @code_warntype CTDirect.DOCP_objective(xu, docp)
-        jet && display(@report_opt CTDirect.DOCP_objective(xu, docp))
-        if profile
-            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
-            results = Profile.Allocs.fetch()
-            PProf.Allocs.pprof()
-        end
+        #jet && display(@report_opt CTDirect.DOCP_objective(xu, docp))
+        #if profile
+        #    Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_objective(xu, docp)
+        #    results = Profile.Allocs.fetch()
+        #    PProf.Allocs.pprof()
+        #end
     end
 
     # DOCP_constraints
@@ -82,29 +125,15 @@ function test_unit(
         @btime CTDirect.DOCP_constraints!($c, $xu, $docp)
         any(c .== 666.666) && error("undefined values in constraints ", c)
         warntype && @code_warntype CTDirect.DOCP_constraints!(c, xu, docp)
-        jet && display(@report_opt CTDirect.DOCP_constraints!(c, xu, docp))
-        if profile
-            Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints!(c, xu, docp)
-            results = Profile.Allocs.fetch()
-            PProf.Allocs.pprof()
-        end
+        #jet && display(@report_opt CTDirect.DOCP_constraints!(c, xu, docp))
+        #if profile
+        #    Profile.Allocs.@profile sample_rate=1.0 CTDirect.DOCP_constraints!(c, xu, docp)
+        #    results = Profile.Allocs.fetch()
+        #    PProf.Allocs.pprof()
+        #end
     end
 
-    # transcription
-    if test_trans
-        print("Transcription");
-        @btime direct_transcription(
-            $ocp, grid_size=($grid_size), disc_method=($disc_method)
-        )
-    end
-
-    # solve
-    if test_solve
-        print("Solve");
-        @btime solve(
-            $ocp, display=false, grid_size=($grid_size), disc_method=($disc_method)
-        )
-    end
+    # collocation build ?
 
     return nothing
 end
@@ -113,7 +142,7 @@ end
 # verbose <= 1: no output
 # verbose > 1: print summary (iter, obj, time)
 # verbose > 2: print NLP iterations also
-function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
+function bench_problem(problem; verbose=1, solver, grid_size, timer=false, kwargs...)
     if verbose > 2
         display = true
     else
@@ -121,10 +150,9 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
     end
 
     # check (will also precompile)
-    time = @elapsed sol = solve(
-        problem[:ocp],
-        nlp_solver;
-        init=problem[:init],
+    time = @elapsed sol = solve_problem(
+        problem;
+        solver=solver,
         display=display,
         grid_size=grid_size,
         kwargs...,
@@ -155,14 +183,15 @@ function bench_problem(problem; verbose=1, nlp_solver, grid_size, kwargs...)
             objective(sol)
         )
         # time
-        time = @belapsed solve(
-            $problem[:ocp],
-            $nlp_solver;
-            init=$problem[:init],
+        if timer
+        time = @belapsed solve_problem(
+            $problem;
+            solver=($solver),
             display=false,
             grid_size=($grid_size),
             $kwargs...,
         )
+        end
         verbose > 1 && @printf("%7.2f s\n", time)
     end
 
@@ -174,7 +203,7 @@ function bench(;
     verbose=1,
     target_list=:all,
     grid_size_list=[250, 500, 1000],
-    nlp_solver=:ipopt,
+    solver=:ipopt,
     return_sols=false,
     save_sols=false,
     kwargs...,
@@ -182,77 +211,8 @@ function bench(;
 
     # load problems for benchmark
     # Note that problems may vary significantly in convergence times...  
-    if target_list == :lagrange_easy
-        target_list = [
-            "beam",
-            "double_integrator_minenergy",
-            "fuller",
-            "simple_integrator",
-            "vanderpol",
-        ]
-    elseif target_list == :lagrange_hard
-        target_list = [
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "insurance", #only converge when final control is present (mixed path constraint) 
-            "parametric",
-            "robbins",
-        ]
-    elseif target_list == :lagrange_all
-        target_list = [
-            "beam",
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "double_integrator_e",
-            "fuller",
-            "parametric",
-            "robbins",
-            "simple_integrator",
-            "vanderpol",
-        ]
-    elseif target_list == :hard
-        target_list = [
-            "action",
-            "glider",
-            "moonlander",
-            "quadrotor",
-            "schlogl",
-            "space_shuttle",
-            "truck_trailer",
-        ]
-
-    elseif target_list == :all
-        target_list = [
-            "algal_bacterial",
-            "beam",
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "double_integrator_mintf",
-            "double_integrator_minenergy",
-            "double_integrator_freet0tf",
-            "fuller",
-            "goddard",
-            "goddard_all",
-            #"insurance", fail unless final control
-            "jackson",
-            "parametric",
-            "robbins",
-            "simple_integrator",
-            #"swimmer", #much slower then others #fail for madnlpmumps
-            "vanderpol",
-        ]
-    elseif target_list == :hard
-        target_list = [
-            "algal_bacterial",
-            "bioreactor_1day",
-            "bioreactor_Ndays",
-            "bolza_freetf",
-            "insurance",
-            "swimmer",
-        ]
+    if target_list isa Symbol
+        target_list = target_dict[target_list]
     end
     verbose > 1 && println("Problem list: ", target_list)
     problem_list = []
@@ -269,7 +229,7 @@ function bench(;
     solutions = Array{Any}(undef, (length(problem_list), length(grid_size_list)))
     i = 1
     for problem in problem_list
-        verbose > 1 && @printf("Testing problem %-22s for grid size ", problem[:name])
+        verbose > 1 && @printf("Testing problem %-20s: grid ", problem[:name])
         j = 1
         for grid_size in grid_size_list
             verbose > 1 && @printf("%d ", grid_size)
@@ -278,7 +238,7 @@ function bench(;
                 problem;
                 grid_size=grid_size,
                 verbose=verbose-1,
-                nlp_solver=nlp_solver,
+                solver=solver,
                 kwargs...,
             )
             t_bench[i, j] = time
@@ -337,38 +297,48 @@ function bench_custom()
     target_list = ["goddard"] #:hard
     grid_size_list=[250] #, 500, 1000]
     verbose = 1
+    draw_plots = false
 
     solutions = Dict{Symbol,Any}()
 
     for disc in disc_list
-        lagrange_to_mayer=true
-        @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
-        println(lagrange_to_mayer, " Grid ", grid_size_list)
+        @printf("Bench %s / %s ", target_list, disc)
+        println(" Grid ", grid_size_list)
         solutions[disc] = bench(;
             target_list=target_list,
             grid_size_list=grid_size_list,
-            disc_method=disc,
+            scheme=disc,
             verbose=verbose,
-            lagrange_to_mayer=lagrange_to_mayer,
         )
         flush(stdout)
         println("")
-
-        # plot
-        if disc == disc_list[1]
-            p = plot(solutions[disc][1, 1], :control; label=String(disc))
-        else
-            p = plot!(solutions[disc][1, 1], :control; label=String(disc))
-        end
-        display(p)
-
-        #=
-        lagrange_to_mayer=false
-        @printf("Bench %s / %s Lag2Mayer ", target_list, disc)
-        println(lagrange_to_mayer, " Grid ", grid_size_list)
-        sol2 = bench(target_list=target_list, grid_size_list=grid_size_list, disc_method=disc, verbose=verbose, lagrange_to_mayer=lagrange_to_mayer)
-        flush(stdout)
-        println("")
-        =#
     end
+
+    # plot
+    if target_list isa Symbol
+        problem_list = target_dict[target_list]
+    else
+        problem_list = target_list
+    end
+    if draw_plots
+        i = 1
+        for problem in problem_list
+            j = 1
+            for size in grid_size_list
+                # plot all discretizations for given problem / size
+                for disc in disc_list
+                    if disc == disc_list[1]
+                        plot(solutions[disc][i,j], :control, label=String(disc))
+                    else
+                        plot!(solutions[disc][i,j], :control, label=String(disc))
+                    end
+                end
+                # save figure
+                savefig(string(problem)*"-"*string(size))
+                j = j + 1
+            end
+            i = i + 1
+        end
+    end
+
 end
