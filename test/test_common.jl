@@ -15,7 +15,7 @@ using ExaModels
 # NLP solvers
 using NLPModels
 using NLPModelsIpopt
-using MadNLPMumps
+using MadNLP
 
 # misc
 using SplitApplyCombine # for flatten in some tests
