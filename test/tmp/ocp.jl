@@ -30,5 +30,4 @@ sol = solve(ocp, :adnlp, :ipopt);
 # 
 using ExaModels
 using MadNLP
-#using MadNLPMumps
 sol = solve(ocp, :exa, :madnlp);

@@ -1,0 +1,49 @@
+# Unit tests for the discretization API (discretize with custom and default discretizers).
+struct DummyOCPDiscretize <: CTModels.AbstractModel end
+
+struct DummyDiscretizer <: CTDirect.AbstractDiscretizer
+    calls::Base.RefValue{Int}
+    tag::Symbol
+end
+
+function (d::DummyDiscretizer)(ocp::CTModels.AbstractModel)
+    d.calls[] += 1
+    return (ocp, d.tag)
+end
+
+function test_ctdirect_discretization_api()
+
+    # ========================================================================
+    # discretize(ocp, discretizer)
+    # ========================================================================
+
+    Test.@testset "discretize(ocp, discretizer)" verbose=VERBOSE showtiming=SHOWTIMING begin
+        ocp = DummyOCPDiscretize()
+        calls = Ref(0)
+        discretizer = DummyDiscretizer(calls, :dummy)
+
+        result = CTDirect.discretize(ocp, discretizer)
+
+        Test.@test result == (ocp, :dummy)
+        Test.@test calls[] == 1
+    end
+
+    # ========================================================================
+    # discretize(ocp; discretizer=__discretizer())
+    # ========================================================================
+
+    Test.@testset "default discretizer" verbose=VERBOSE showtiming=SHOWTIMING begin
+        ocp = DummyOCPDiscretize()
+
+        docp = CTDirect.discretize(ocp)
+
+        # The default discretizer should produce a DiscretizedModel
+        Test.@test docp isa CTModels.DiscretizedModel
+        Test.@test CTModels.ocp_model(docp) === ocp
+
+        # And the low-level __discretizer() helper should return a Collocation
+        disc = CTDirect.__discretizer()
+        Test.@test disc isa CTDirect.AbstractDiscretizer
+        Test.@test disc isa CTDirect.Collocation
+    end
+end

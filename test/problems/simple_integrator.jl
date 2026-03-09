@@ -13,5 +13,5 @@ function simple_integrator()
         ∫((u[1](t)+u[2](t))^2) → min
     end
 
-    return ((ocp=ocp, obj=3.13e-1, name="simple_integrator", init=nothing))
+    return ((ocp=ocp, obj=3.13e-1, name="simple_integrator", init=()))
 end
