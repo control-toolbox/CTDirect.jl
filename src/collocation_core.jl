@@ -32,7 +32,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Construct a [`DOCPFlags`](@ref) struct from an OCP model.
+Construct a `DOCPFlags` struct from an OCP model.
 
 # Arguments
 
@@ -96,7 +96,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Construct a [`DOCPdims`](@ref) struct from an OCP model.
+Construct a `DOCPdims` struct from an OCP model.
 
 # Arguments
 
@@ -153,7 +153,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Construct a [`DOCPtime`](@ref) struct from an OCP model.
+Construct a `DOCPtime` struct from an OCP model.
 
 # Arguments
 

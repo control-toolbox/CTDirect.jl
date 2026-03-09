@@ -36,3 +36,6 @@ Manifest.toml
 
 # Mac
 .DS_Store
+
+#
+.windsurf/
