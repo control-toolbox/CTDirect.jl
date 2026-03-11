@@ -150,6 +150,14 @@ function get_OCP_control_at_time_step(xu, docp::DOCP, i, j=1)
     return @view xu[(offset + 1):(offset + docp.dims.NLP_u)]
 end
 
+#+++ add for variable step ode solver (direct shooting)
+# get control at any given time (use piecewise constant or linear parametrization)
+#function get_OCP_control_at_time(xu, docp::DOCP, t)
+# first: piecewise constant, compute index and call getter at time step
+# later: linear interpolation between the two adjacent controls nodes
+#end
+
+
 """
 $(TYPEDSIGNATURES)
 
