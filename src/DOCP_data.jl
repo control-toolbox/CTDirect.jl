@@ -543,7 +543,7 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     # state and control variables (allocs seem needed here)
     N = docp.time.steps
     X = zeros(N + 1, docp.dims.NLP_x)
-    U = zeros(N + 1, docp.dims.NLP_u)
+    U = zeros(N*docp.time.control_steps + 1, docp.dims.NLP_u)
     v = zeros(docp.dims.NLP_v)
 
     # multipliers for box constraints
@@ -563,9 +563,23 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     end
 
     # retrieve state, control and optimization variables
+    T_state = T
     X[:] = getter(nlp_solution; val=:state)'
     U[:] = getter(nlp_solution; val=:control)'
     v[:] = getter(nlp_solution; val=:variable)
+
+    # NB. later, use function in control parametrization
+    # collocation case: T_control = T
+    T_control = zeros(N*docp.time.control_steps + 1)
+    k = 1
+    for i=1:N
+        h_i = T[i+1] - T[i]
+        for j=1:docp.time.control_steps
+            T_control[k] = T[i] + (j-1) * h_i / docp.time.control_steps
+            k += 1
+        end  
+    end
+    T_control[end] = T[end]
 
     # lower bounds multiplier
     if !is_empty(multipliers_L)
@@ -581,15 +595,17 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
         mult_variable_box_upper[:] = getter(nlp_solution; val=:variable_u)
     end
 
-    # costate and constraints multipliers
+    # costate
+    P = zeros(N, docp.dims.NLP_x)
+    P[:] = getter(nlp_solution; val=:costate)'
+    T_costate = T[1:end-1]
+
+    # constraints multipliers
     dpc = docp.dims.path_cons
     dbc = docp.dims.boundary_cons
-    P = zeros(N, docp.dims.NLP_x)
     mult_path_constraints = zeros(N + 1, dpc)
     mult_boundary_constraints = zeros(dbc)
-
-    # costate
-    P[:] = getter(nlp_solution; val=:costate)'
+    T_path = T
 
     # path constraints multipliers (+++ not yet implemented for exa)
     # NB. normalize wrt time step
@@ -604,9 +620,13 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     # boundary constraints multipliers (+++ not yet implemented for exa)
     isnothing(exa_getter) && (mult_boundary_constraints = getter(nlp_solution; val=:mult_boundary_constraints))
 
+    # use method with separate time grids
     return CTModels.build_solution(
         ocp_model(docp),
-        T,
+        T_state,
+        T_control,
+        T_costate,
+        T_path,
         X,
         U,
         v,

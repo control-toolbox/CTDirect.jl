@@ -59,7 +59,7 @@ function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
             )
         # loop over control steps
         for j in 1:docp.time.control_steps
-            uij = get_OCP_control_at_time_step(xu, docp, i; j=j)
+            uij = get_OCP_control_at_time_step(xu, docp, i, j)
             # OCP dynamics
             CTModels.dynamics(ocp)(
             (@view work[(offset + 1):(offset + docp.dims.NLP_x)]), ts, xs, uij, v
@@ -106,7 +106,7 @@ function integral(docp::DOCP{Midpoint}, xu, v, time_grid, f)
             # loop over control steps
             for j in 1:docp.time.control_steps
                 tij = time_grid[i] + (j - 0.5) * hi
-                uij = get_OCP_control_at_time_step(xu, docp, i; j=j)
+                uij = get_OCP_control_at_time_step(xu, docp, i, j)
                 value +=  hi * f(tij, xs, uij, v)
             end
         end

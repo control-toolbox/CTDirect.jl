@@ -80,10 +80,19 @@ function getter(nlp_solution, docp::DOCP; val::Symbol)
     
     # control
     elseif val == :control || val == :control_l || val == :control_u
-        V = zeros(docp.dims.NLP_u, N + 1)
-        for i in 1:(N + 1)
-            V[:, i] .= get_OCP_control_at_time_step(data, docp, i)
+        V = zeros(docp.dims.NLP_u, N*docp.time.control_steps + 1)
+        k = 1
+        for i in 1:N
+            for j in 1:docp.time.control_steps
+                V[:, k] .= get_OCP_control_at_time_step(data, docp, i, j)
+                k += 1
+            end
         end
+        # NB. always set final control for dims consistency 
+        # handled at scheme level: will duplicate last actual control if needed
+        # +++ new build solution method with separate time grids will make this unnecessary
+        V[:, k] .= get_OCP_control_at_time_step(data, docp, N+1)
+
         return V
 
     else
@@ -121,9 +130,10 @@ $(TYPEDSIGNATURES)
 
 Retrieve control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
+Extension to the case of multiple controls per time step: index j
 Vector output
 """
-function get_OCP_control_at_time_step(xu, docp::DOCP, i; j=1)
+function get_OCP_control_at_time_step(xu, docp::DOCP, i, j=1)
     disc = disc_model(docp)
 
     # final time case, pick U_N unless U_N+1 is present  
