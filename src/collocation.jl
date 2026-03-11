@@ -133,7 +133,7 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         end
 
         # build NLP
-        nlp = ADNLPModel!(
+        nlp = ADNLPModels.ADNLPModel!(
             f,
             x0,
             docp.bounds.var_l,
@@ -154,8 +154,7 @@ function (discretizer::Collocation)(ocp::AbstractModel)
     function build_adnlp_solution(nlp_solution::SolverCore.AbstractExecutionStats)
         
         # retrieve data from NLP solver
-        minimize = !docp.flags.max
-        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution, minimize)
+        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
 
         # retrieve time grid
         T = get_time_grid(nlp_solution.solution, docp)
@@ -221,8 +220,7 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         end
 
         # retrieve data from NLP solver
-        minimize = !docp.flags.max
-        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution, minimize)
+        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
   
         # retrieve time grid
         T = get_time_grid_exa(nlp_solution, docp, exa_getter)

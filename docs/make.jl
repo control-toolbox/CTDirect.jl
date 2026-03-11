@@ -1,34 +1,57 @@
 using Documenter
 using DocumenterMermaid
 using CTDirect
+using CTBase
+using Markdown
+using MarkdownAST: MarkdownAST
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+draft = false  # Draft mode: if true, @example blocks in markdown are not executed
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Load extensions
+# ═══════════════════════════════════════════════════════════════════════════════
+const DocumenterReference = Base.get_extension(CTBase, :DocumenterReference)
+
+if !isnothing(DocumenterReference)
+    DocumenterReference.reset_config!()
+end
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Paths
+# ═══════════════════════════════════════════════════════════════════════════════
 repo_url = "github.com/control-toolbox/CTDirect.jl"
+src_dir = abspath(joinpath(@__DIR__, "..", "src"))
+ext_dir = abspath(joinpath(@__DIR__, "..", "ext"))
 
-API_PAGES = [    
-    "collocation.md",
-    "collocation_functions.md",
-    "collocation_variables.md",
-    "collocation_core.md",    
-    "common.md",
-    "docp.md",
-    "euler.md",
-    "irk.md",
-    "midpoint.md",
-    "trapeze.md",
-]
+# Include the API reference manager
+include("api_reference.jl")
 
-makedocs(;
-    warnonly=[:cross_references, :autodocs_block],
-    sitename="CTDirect.jl",
-    format=Documenter.HTML(;
-        repolink="https://" * repo_url,
-        prettyurls=false,
-        assets=[
-            asset("https://control-toolbox.org/assets/css/documentation.css"),
-            asset("https://control-toolbox.org/assets/js/documentation.js"),
+# ═══════════════════════════════════════════════════════════════════════════════
+# Build documentation
+# ═══════════════════════════════════════════════════════════════════════════════
+with_api_reference(src_dir, ext_dir) do api_pages
+    makedocs(;
+        draft=draft,
+        remotes=nothing, # Disable remote links. Needed for DocumenterReference
+        warnonly=true,
+        sitename="CTDirect.jl",
+        format=Documenter.HTML(;
+            repolink="https://" * repo_url,
+            prettyurls=false,
+            assets=[
+                asset("https://control-toolbox.org/assets/css/documentation.css"),
+                asset("https://control-toolbox.org/assets/js/documentation.js"),
+            ],
+        ),
+        pages=[
+            "Introduction" => "index.md",
+            "API Reference" => api_pages,
         ],
-    ),
-    pages=["Introduction" => "index.md", "API" => API_PAGES],
-)
+    )
+end
 
+# ═══════════════════════════════════════════════════════════════════════════════
 deploydocs(; repo=repo_url * ".git", devbranch="main")

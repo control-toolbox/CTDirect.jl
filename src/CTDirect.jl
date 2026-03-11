@@ -1,14 +1,14 @@
 module CTDirect
 
-using ADNLPModels
-using ExaModels
-using CTBase
-using CTModels
-import CTSolvers, CTSolvers.Strategies, CTSolvers.Options
 using DocStringExtensions
-using SparseArrays
-using SolverCore
-using NLPModels
+import ADNLPModels
+import ExaModels
+import CTModels
+import CTSolvers, CTSolvers.Strategies, CTSolvers.Options
+import SolverCore
+import SparseArrays
+# using CTBase
+# using NLPModels
 
 # ---------------------------------------------------------------------------
 # Abstract discretizer type

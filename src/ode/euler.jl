@@ -261,7 +261,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{Euler})
     # build and return sparse matrix
     nnzj = length(Is)
     Vs = ones(Bool, nnzj)
-    return sparse(Is, Js, Vs, docp.dim_NLP_constraints, docp.dim_NLP_variables)
+    return SparseArrays.sparse(Is, Js, Vs, docp.dim_NLP_constraints, docp.dim_NLP_variables)
 end
 
 """
@@ -351,5 +351,5 @@ function DOCP_Hessian_pattern(docp::DOCP{Euler})
     # build and return sparse matrix
     nnzj = length(Is)
     Vs = ones(Bool, nnzj)
-    return sparse(Is, Js, Vs, docp.dim_NLP_variables, docp.dim_NLP_variables)
+    return SparseArrays.sparse(Is, Js, Vs, docp.dim_NLP_variables, docp.dim_NLP_variables)
 end
