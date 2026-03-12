@@ -327,6 +327,10 @@ mutable struct DOCP{
             discretization, dim_NLP_variables, dim_NLP_constraints = 
             CTDirect.Gauss_Legendre_3(disc_args...)
 
+        elseif scheme == :variable
+            discretization, dim_NLP_variables, dim_NLP_constraints = 
+            CTDirect.VariableStepODE(disc_args...)
+        
         else
             error(
                 "Unknown discretization method: ",

@@ -96,6 +96,17 @@ function (discretizer::DirectShooting)(ocp::AbstractModel)
         functional_init = CTModels.build_initial_guess(ocp, initial_guess)
         x0 = __initial_guess(docp, functional_init)
         
+        # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
+        unused_backends = (
+        hprod_backend=ADNLPModels.EmptyADbackend,
+        jtprod_backend=ADNLPModels.EmptyADbackend,
+        jprod_backend=ADNLPModels.EmptyADbackend,
+        ghjvprod_backend=ADNLPModels.EmptyADbackend,
+        )
+
+        # backend options
+        backend_options = (backend=backend,)
+
         # build NLP
         nlp = ADNLPModels.ADNLPModel!(
             f,
@@ -106,7 +117,8 @@ function (discretizer::DirectShooting)(ocp::AbstractModel)
             docp.bounds.con_l,
             docp.bounds.con_u;
             minimize=(!docp.flags.max),
-            backend=:optimized,
+            backend_options...,
+            unused_backends...,
             kwargs...,
         )
 

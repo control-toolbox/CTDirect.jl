@@ -34,6 +34,7 @@ struct VariableStepODE <: Scheme
 end
 
 # +++ move later to state parametrization
+# just define an interpolated function for each xu ? AD ?
 # get state at any given time (use piecewise constant and later linear parametrization)
 function get_OCP_state_at_time(xu, docp::DOCP{VariableStepODE}, t; mode=:constant)
 
@@ -41,13 +42,17 @@ function get_OCP_state_at_time(xu, docp::DOCP{VariableStepODE}, t; mode=:constan
     time_grid = get_time_grid(xu, docp)
 
     # find index i such that t is in [t_i, t_i+1]
-    i = searchsortedlast(t, time_grid)
+    i = searchsortedlast(time_grid, t)
 
     return get_OCP_state_at_time_step(xu, docp, i)
 
 end
 
 # +++ move later to control parametrization
+# just define an interpolated function for each xu ? AD ?
+# itp = interpolate(a, BSpline(Constant(Previous)))
+# itp = interpolate(A, BSpline(Linear()))
+# nb: x and u values are currently interlaced in xu, we may want to change that when using state/control parametrization
 # get control at any given time (use piecewise constant and later linear parametrization)
 function get_OCP_control_at_time(xu, docp::DOCP{VariableStepODE}, t; mode=:constant)
     
@@ -55,7 +60,7 @@ function get_OCP_control_at_time(xu, docp::DOCP{VariableStepODE}, t; mode=:const
     time_grid = get_time_grid(xu, docp)
 
     # find index i such that t is in [t_i, t_i+1]
-    i = searchsortedlast(t, time_grid)
+    i = searchsortedlast(time_grid, t)
 
     if (i == docp.time.steps + 1) || (docp.time.control_steps == 1)
         return get_OCP_control_at_time_step(xu, docp, i)
