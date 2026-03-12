@@ -13,7 +13,6 @@ using ADNLPModels
 using ExaModels
 
 # NLP solvers
-using NLPModels
 using NLPModelsIpopt
 using MadNLP
 

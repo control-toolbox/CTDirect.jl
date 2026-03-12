@@ -7,8 +7,6 @@ import CTModels
 import CTSolvers, CTSolvers.Strategies, CTSolvers.Options
 import SolverCore
 import SparseArrays
-# using CTBase
-# using NLPModels
 
 # ---------------------------------------------------------------------------
 # Abstract discretizer type

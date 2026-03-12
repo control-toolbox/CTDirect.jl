@@ -156,7 +156,7 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         # retrieve data from NLP solver
         objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
 
-        # retrieve time grid
+        # retrieve time grid  +++ put in build_OCP_solution
         T = get_time_grid(nlp_solution.solution, docp)
 
         # build OCP solution from NLP solution
