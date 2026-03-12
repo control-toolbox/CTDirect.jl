@@ -151,28 +151,6 @@ function get_OCP_control_at_time_step(xu, docp::DOCP, i, j=1)
     return @view xu[(offset + 1):(offset + docp.dims.NLP_u)]
 end
 
-# +++ move later to control parametrization
-# get control at any given time (use piecewise constant and later linear parametrization)
-function get_OCP_control_at_time(xu, docp::DOCP, t; mode=:constant)
-    
-    # retrieve actual time grid (needed for variable time case)
-    time_grid = get_time_grid(xu, docp)
-
-    # find index i such that t is in [t_i, t_i+1]
-    i = searchsortedlast(t, control_time_grid)
-
-    if (i == docp.time.steps + 1) || (docp.time.control_steps == 1)
-        return get_OCP_control_at_time_step(xu, docp, i)
-    else
-        # find index j for piecewise constant control over [t_i, t_i+1]
-        # nb control getter will later use single index instead of i,j pair
-        control_step = (time_grid[i+1] - time_grid[i]) / docp.time.control_steps
-        j = floor((t - t[i]) / control_step) + 1
-        (j > docp.time.control_steps) && (j = docp.time.control_steps)
-        return get_OCP_control_at_time_step(xu, docp, i, j)
-    end
-
-end
 
 """
 $(TYPEDSIGNATURES)
