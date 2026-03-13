@@ -204,7 +204,6 @@ function bench(;
     target_list=:all,
     grid_size_list=[250, 500, 1000],
     solver=:ipopt,
-    timer=false,
     return_sols=false,
     save_sols=false,
     timer=false,

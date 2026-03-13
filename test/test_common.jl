@@ -1,5 +1,4 @@
 # CT packages
-#using CTBase
 using CTParser: CTParser, @def, @init
 using CTModels: CTModels, objective, time_grid, iterations, state, control, variable, costate
 using CTDirect
@@ -11,6 +10,7 @@ using CommonSolve
 # NLP modelers
 using ADNLPModels
 using ExaModels
+using Enzyme
 
 # NLP solvers
 using NLPModelsIpopt
