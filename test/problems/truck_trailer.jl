@@ -111,6 +111,7 @@ function truck_trailer(; data=[0.4 0.1 0.2; 1.1 0.2 0.2; 0.8 0.1 0.2])
 
     # initial guess
     tf_init = 10
+    #init = (state=[0.1,0.2,0.3,0.4,0.5,0.6,0.7], control=[0.1,0.2], variable=[tf_init],)
     init = (variable=[tf_init],)
 
     return ((ocp=ocp, obj=59.28, name="truck_trailer", init=init))

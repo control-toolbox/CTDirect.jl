@@ -18,7 +18,7 @@ end
 @testset verbose = true showtiming = true ":non_uniform_grid" begin
     grid = [0, 0.1, 0.3, 0.6, 0.98, 0.99, 1]
     sol = solve_problem(prob; time_grid=grid)
-    @test time_grid(sol) ≈ grid
+    @test time_grid(sol, :state) ≈ grid
 end
 
 # 2. integrator free times with explicit / non-uniform grid
@@ -36,7 +36,7 @@ end
 @testset verbose = true showtiming = true ":max_t0 :non_uniform_grid" begin
     grid = [0, 0.1, 0.6, 0.95, 1]
     sol = solve_problem(prob; time_grid=grid)
-    @test normalize_grid(time_grid(sol)) ≈ grid
+    @test normalize_grid(time_grid(sol, :state)) ≈ grid
 end
 
 # 3. double integrator min energy (T=2) with explicit / non-uniform grid
@@ -54,7 +54,7 @@ end
 @testset verbose = true showtiming = true ":non_uniform_grid" begin
     grid = [0, 0.3, 1, 1.9, 2]
     sol = solve_problem(prob; time_grid=grid)
-    @test time_grid(sol) ≈ grid
+    @test time_grid(sol, :state) ≈ grid
 end
 
 

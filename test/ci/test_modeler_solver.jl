@@ -58,7 +58,7 @@ p_opt = t -> [24, 12 - 24 * t]
 
 @testset verbose = true showtiming = true ":analytic_solution :ipopt :adnlp" begin
     sol = solve_problem(prob)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(x_opt.(T), state(sol).(T), rtol=1e-2)
     @test isapprox(u_opt.(T), control(sol).(T), rtol=1e-2)
     @test isapprox(p_opt.(T), costate(sol).(T), rtol=1e-2)
@@ -66,7 +66,7 @@ end
 
 @testset verbose = true showtiming = true ":analytic_solution :madnlp :adnlp" begin
     sol = solve_problem(prob; solver=:madnlp)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(x_opt.(T), state(sol).(T), rtol=1e-2)
     @test isapprox(u_opt.(T), control(sol).(T), rtol=1e-2)
     @test isapprox(p_opt.(T), costate(sol).(T), rtol=1e-2)
@@ -74,7 +74,7 @@ end
 
 @testset verbose = true showtiming = true ":analytic_solution :ipopt :exa" begin
     sol = solve_problem(prob2; modeler=:exa)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(x_opt.(T), state(sol).(T), rtol=1e-2)
     @test isapprox(u_opt.(T[1:end-1]), control(sol).(T[1:end-1]), rtol=1e-2)
     @test isapprox(p_opt.(T), costate(sol).(T), rtol=1e-2)
@@ -82,7 +82,7 @@ end
 
 @testset verbose = true showtiming = true ":analytic_solution :madnlp :exa" begin
     sol = solve_problem(prob2; solver=:madnlp, modeler=:exa)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(x_opt.(T), state(sol).(T), rtol=1e-2)
     @test isapprox(u_opt.(T[1:end-1]), control(sol).(T[1:end-1]), rtol=1e-2)
     @test isapprox(p_opt.(T), costate(sol).(T), rtol=1e-2)

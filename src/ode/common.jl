@@ -80,10 +80,19 @@ function getter(nlp_solution, docp::DOCP; val::Symbol)
     
     # control
     elseif val == :control || val == :control_l || val == :control_u
-        V = zeros(docp.dims.NLP_u, N + 1)
-        for i in 1:(N + 1)
-            V[:, i] .= get_OCP_control_at_time_step(data, docp, i)
+        V = zeros(docp.dims.NLP_u, N*docp.time.control_steps + 1)
+        k = 1
+        for i in 1:N
+            for j in 1:docp.time.control_steps
+                V[:, k] .= get_OCP_control_at_time_step(data, docp, i, j)
+                k += 1
+            end
         end
+        # NB. always set final control for dims consistency 
+        # handled at scheme level: will duplicate last actual control if needed
+        # +++ new build solution method with separate time grids will make this unnecessary
+        V[:, k] .= get_OCP_control_at_time_step(data, docp, N+1)
+
         return V
 
     else
@@ -116,22 +125,32 @@ function get_OCP_state_at_time_step(xu, docp::DOCP, i)
 end
 
 
+# nb control getter will use single index instead of i,j pair
 """
 $(TYPEDSIGNATURES)
 
 Retrieve control variables at given time step from the NLP variables.
 Convention: 1 <= i <= dim_NLP_steps(+1), with convention u(tf) = U_N
+Extension to the case of multiple controls per time step: index j
 Vector output
 """
-function get_OCP_control_at_time_step(xu, docp::DOCP, i)
+function get_OCP_control_at_time_step(xu, docp::DOCP, i, j=1)
     disc = disc_model(docp)
+
     # final time case, pick U_N unless U_N+1 is present  
     if !disc._final_control && i == docp.time.steps + 1
         i = docp.time.steps
     end
+    
+    # skip previous time steps
     offset = (i-1) * disc._step_variables_block + docp.dims.NLP_x
+    
+    # skip previous controls for this time step
+    offset += (j-1) * docp.dims.NLP_u
+    
     return @view xu[(offset + 1):(offset + docp.dims.NLP_u)]
 end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -187,11 +206,15 @@ $(TYPEDSIGNATURES)
 Set initial guess for control variables at given time step
 Convention: 1 <= i <= dim_NLP_steps(+1)
 """
-function set_control_at_time_step!(xu, u_init, docp::DOCP, i)
+function set_control_at_time_step!(xu, u_init, docp::DOCP, i; j=1)
     if !isnothing(u_init)
         disc = disc_model(docp)
+        # NB ignore control at final time if not handled by scheme
         if i <= docp.time.steps || (disc._final_control && i <= docp.time.steps + 1)
+            # skip: previous stepsand state for this step
             offset = (i-1) * disc._step_variables_block + docp.dims.NLP_x
+            # skip previous controls for this stpe
+            offset += (j-1) * docp.dims.NLP_u
             xu[(offset + 1):(offset + docp.dims.NLP_u)] .= u_init
         end
     end
@@ -203,7 +226,7 @@ $(TYPEDSIGNATURES)
 
 Set work array for all dynamics evaluations
 """
-function setWorkArray(docp::DOCP{<: Discretization}, xu, time_grid, v)
+function setWorkArray(docp::DOCP{<: Scheme}, xu, time_grid, v)
     return nothing
 end
 
@@ -213,8 +236,8 @@ $(TYPEDSIGNATURES)
 
 Compute the running cost (must be implemented for each discretization scheme)
 """
-function runningCost(docp::DOCP{D}, xu, v, time_grid) where {(D<:Discretization)}
-    error("running_cost not implemented for discretization ", D)
+function runningCost(docp::DOCP{D}, xu, v, time_grid) where {(D<:Scheme)}
+    return integral(docp, xu, v, time_grid, CTModels.lagrange(ocp_model(docp)))
 end
 
 """
@@ -223,7 +246,7 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Jacobian of constraints
 (to be implemented for each discretization scheme)
 """
-function DOCP_Jacobian_pattern(docp::DOCP{D}) where {(D<:Discretization)}
+function DOCP_Jacobian_pattern(docp::DOCP{D}) where {(D<:Scheme)}
     error(
         "DOCP_Jacobian_pattern not implemented for discretization ",
         D,
@@ -237,7 +260,7 @@ $(TYPEDSIGNATURES)
 Build sparsity pattern for Hessian of Lagrangian
 (to be implemented for each discretization scheme)
 """
-function DOCP_Hessian_pattern(docp::DOCP{D}) where {(D<:Discretization)}
+function DOCP_Hessian_pattern(docp::DOCP{D}) where {(D<:Scheme)}
     error(
         "DOCP_Hessian_pattern not implemented for discretization ",
         D,

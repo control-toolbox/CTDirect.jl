@@ -3,7 +3,7 @@ Internal layout for NLP variables:
 [X_1,U_1, .., X_N+1,U_N+1, V]
 =#
 
-struct Trapeze <: Discretization
+struct Trapeze <: Scheme
     info::String
     _step_variables_block::Int
     _state_stage_eqs_block::Int
@@ -11,27 +11,24 @@ struct Trapeze <: Discretization
     _final_control::Bool
 
     # constructor
-    function Trapeze(
-        dim_NLP_steps, dim_NLP_x, dim_NLP_u, dim_NLP_v, dim_path_cons, dim_boundary_cons
-    )
+    function Trapeze(dims::DOCPdims, time::DOCPtime)
 
         # Trapeze is better with final control (used in final dynamics)
         final_control = true #false about 10% slower
 
         # aux variables
-        step_variables_block = dim_NLP_x + dim_NLP_u
-        state_stage_eqs_block = dim_NLP_x
-        step_pathcons_block = dim_path_cons
+        step_variables_block = dims.NLP_x + dims.NLP_u * time.control_steps
+        state_stage_eqs_block = dims.NLP_x
+        step_pathcons_block = dims.path_cons
 
         # NLP variables size ([state, control]_1..N+1, variable)
-        dim_NLP_variables = dim_NLP_steps * step_variables_block + dim_NLP_x + dim_NLP_v
-        final_control && (dim_NLP_variables += dim_NLP_u)
+        dim_NLP_variables = time.steps * step_variables_block + dims.NLP_x + dims.NLP_v
+        final_control && (dim_NLP_variables += dims.NLP_u)
 
         # NLP constraints size ([dynamics, stage, path]_1..N, final path, boundary, variable)
         dim_NLP_constraints =
-            dim_NLP_steps * (state_stage_eqs_block + step_pathcons_block) +
-            step_pathcons_block +
-            dim_boundary_cons
+            time.steps * (state_stage_eqs_block + step_pathcons_block) +
+            step_pathcons_block + dims.boundary_cons
 
         disc = new(
             "Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable",
@@ -78,10 +75,9 @@ $(TYPEDSIGNATURES)
 
 Compute the running cost
 """
-function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
-    ocp = ocp_model(docp)
+function integral(docp::DOCP{Trapeze}, xu, v, time_grid, f)
     dims = docp.dims
-    obj_lagrange = 0.0
+    value = 0.0
 
     # sum_i=1..N h_i * (l_i + l_i+1) / 2 = (h_1 / 2) l_1 + sum_i=2..N (h_i-1+h_i)/2 * l_i + (h_N / 2) l_N+1 
 
@@ -90,17 +86,16 @@ function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
     ui = get_OCP_control_at_time_step(xu, docp, i)
-    h = time_grid[i + 1] - time_grid[i]
-    obj_lagrange = obj_lagrange + h / 2.0 * CTModels.lagrange(ocp)(ti, xi, ui, v)
+    hi = time_grid[i + 1] - time_grid[i]
+    value += hi / 2.0 * f(ti, xi, ui, v)
 
     # loop over time steps
     for i in 2:docp.time.steps
-        offset = (i-1) * dims.NLP_x
         ti = time_grid[i]
         xi = get_OCP_state_at_time_step(xu, docp, i)
         ui = get_OCP_control_at_time_step(xu, docp, i)
-        h2 = time_grid[i + 1] - time_grid[i - 1]
-        obj_lagrange = obj_lagrange + h2 / 2.0 * CTModels.lagrange(ocp)(ti, xi, ui, v)
+        hi2 = time_grid[i + 1] - time_grid[i - 1]
+        value += hi2 / 2.0 * f(ti, xi, ui, v)
     end
 
     # last term
@@ -108,10 +103,10 @@ function runningCost(docp::DOCP{Trapeze}, xu, v, time_grid)
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
     ui = get_OCP_control_at_time_step(xu, docp, i)
-    h = time_grid[i] - time_grid[i - 1]
-    obj_lagrange = obj_lagrange + h / 2.0 * CTModels.lagrange(ocp)(ti, xi, ui, v)
+    hi = time_grid[i] - time_grid[i - 1]
+    value += hi / 2.0 * f(ti, xi, ui, v)
 
-    return obj_lagrange
+    return value
 end
 
 """
@@ -120,47 +115,30 @@ $(TYPEDSIGNATURES)
 Set the constraints corresponding to the state equation
 Convention: 1 <= i <= dim_NLP_steps+1
 """
-function setStepConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
+function stepStateConstraints!(docp::DOCP{Trapeze}, c, xu, v, time_grid, i, work)
     ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
 
-    # offset for previous steps
-    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
-
-    # 0. variables
+    # compute state variables at next step: trapeze rule
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
-
-    # 1. state equation
-    if i <= docp.time.steps
-        # more variables
-        tip1 = time_grid[i + 1]
-        xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
-        half_hi = 0.5 * (tip1 - ti)
-        offset_dyn_i = (i-1)*dims.NLP_x
-        offset_dyn_ip1 = i*dims.NLP_x
-
-        # trapeze rule (no allocations ^^)
-        @views @. c[(offset + 1):(offset + dims.NLP_x)] =
-            xip1 - (
-                xi +
-                half_hi * (
-                    work[(offset_dyn_i + 1):(offset_dyn_i + dims.NLP_x)] +
-                    work[(offset_dyn_ip1 + 1):(offset_dyn_ip1 + dims.NLP_x)]
-                )
+    tip1 = time_grid[i + 1]
+    xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
+    half_hi = 0.5 * (tip1 - ti)
+    offset_dyn_i = (i-1)*dims.NLP_x
+    offset_dyn_ip1 = i*dims.NLP_x
+    # +++ allocations here ?
+    x_next = xi
+    x_next += half_hi * (
+                work[(offset_dyn_i + 1):(offset_dyn_i + dims.NLP_x)] +
+                work[(offset_dyn_ip1 + 1):(offset_dyn_ip1 + dims.NLP_x)]
             )
 
-        offset += dims.NLP_x
-    end
+    # set state equation as constraints (equal to 0)
+    offset = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
+    @views @. c[(offset + 1):(offset + dims.NLP_x)] = xip1 - x_next
 
-    # 2. path constraints
-    if dims.path_cons > 0
-        ui = get_OCP_control_at_time_step(xu, docp, i)
-        CTModels.path_constraints_nl(ocp)[2](
-            (@view c[(offset + 1):(offset + dims.path_cons)]), ti, xi, ui, v
-        )
-    end
 end
 
 """

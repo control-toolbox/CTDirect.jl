@@ -1,4 +1,4 @@
-# Discretized Optimal Control Problem DOCP
+# Data for iscretized Optimal Control Problem DOCP
 
 """
 $(TYPEDEF)
@@ -146,6 +146,7 @@ DOCPtime(10, [0.0, 0.1, …, 1.0], [0.0, 0.1, …, 1.0])
 """
 struct DOCPtime
     steps::Int
+    control_steps::Int
     normalized_grid::Vector{Float64}
     fixed_grid::Vector{Float64}
 end
@@ -172,7 +173,7 @@ julia> DOCPtime(ocp, 10, nothing)
 DOCPtime(10, [0.0, 0.1, …, 1.0], [0.0, 0.1, …, 1.0])
 ```
 """
-function DOCPtime(ocp::CTModels.Model, grid_size::Int, time_grid)
+function DOCPtime(ocp::CTModels.Model, grid_size::Int, control_steps::Int, time_grid)
 
     # 1. build/recover normalized time grid
     if time_grid === nothing
@@ -209,7 +210,7 @@ function DOCPtime(ocp::CTModels.Model, grid_size::Int, time_grid)
         NLP_fixed_time_grid = @. t0 + (NLP_normalized_time_grid * (tf - t0))
     end
 
-    return DOCPtime(dim_NLP_steps, NLP_normalized_time_grid, NLP_fixed_time_grid)
+    return DOCPtime(dim_NLP_steps, control_steps, NLP_normalized_time_grid, NLP_fixed_time_grid)
 end
 
 """
@@ -262,7 +263,7 @@ DOCP{...}(...)
 ```
 """
 mutable struct DOCP{
-    D<:CTDirect.Discretization, O<:CTModels.Model
+    D<:CTDirect.Scheme, O<:CTModels.Model
     }
 
     # discretization scheme
@@ -289,12 +290,7 @@ mutable struct DOCP{
     dim_NLP_constraints::Int
 
     # constructor
-    function DOCP(
-        ocp::CTModels.Model;
-        grid_size=__grid_size(),
-        time_grid=__time_grid(),
-        scheme=__scheme(),
-        )
+    function DOCP(ocp::CTModels.Model, grid_size::Int, control_steps::Int, scheme::Symbol, time_grid)
 
         # boolean flags
         flags = DOCPFlags(ocp)
@@ -303,10 +299,10 @@ mutable struct DOCP{
         dims = DOCPdims(ocp)
 
         # time grid
-        time = DOCPtime(ocp, grid_size, time_grid)
+        time = DOCPtime(ocp, grid_size, control_steps, time_grid)
 
         # discretization method 
-        disc_args = [time.steps, dims.NLP_x, dims.NLP_u, dims.NLP_v, dims.path_cons, dims.boundary_cons]
+        disc_args = [dims, time]
         
         if scheme == :trapeze
             discretization, dim_NLP_variables, dim_NLP_constraints = 
@@ -331,6 +327,10 @@ mutable struct DOCP{
             discretization, dim_NLP_variables, dim_NLP_constraints = 
             CTDirect.Gauss_Legendre_3(disc_args...)
 
+        elseif scheme == :variable
+            discretization, dim_NLP_variables, dim_NLP_constraints = 
+            CTDirect.VariableStepODE(disc_args...)
+        
         else
             error(
                 "Unknown discretization method: ",
@@ -519,7 +519,7 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     # state and control variables (allocs seem needed here)
     N = docp.time.steps
     X = zeros(N + 1, docp.dims.NLP_x)
-    U = zeros(N + 1, docp.dims.NLP_u)
+    U = zeros(N*docp.time.control_steps + 1, docp.dims.NLP_u)
     v = zeros(docp.dims.NLP_v)
 
     # multipliers for box constraints
@@ -539,9 +539,23 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     end
 
     # retrieve state, control and optimization variables
+    T_state = T
     X[:] = getter(nlp_solution; val=:state)'
     U[:] = getter(nlp_solution; val=:control)'
     v[:] = getter(nlp_solution; val=:variable)
+
+    # NB. later, use function in control parametrization
+    # collocation case: T_control = T
+    T_control = zeros(N*docp.time.control_steps + 1)
+    k = 1
+    for i=1:N
+        h_i = T[i+1] - T[i]
+        for j=1:docp.time.control_steps
+            T_control[k] = T[i] + (j-1) * h_i / docp.time.control_steps
+            k += 1
+        end  
+    end
+    T_control[end] = T[end]
 
     # lower bounds multiplier
     if !is_empty(multipliers_L)
@@ -557,15 +571,17 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
         mult_variable_box_upper[:] = getter(nlp_solution; val=:variable_u)
     end
 
-    # costate and constraints multipliers
+    # costate
+    P = zeros(N, docp.dims.NLP_x)
+    P[:] = getter(nlp_solution; val=:costate)'
+    T_costate = T[1:end-1]
+
+    # constraints multipliers
     dpc = docp.dims.path_cons
     dbc = docp.dims.boundary_cons
-    P = zeros(N, docp.dims.NLP_x)
     mult_path_constraints = zeros(N + 1, dpc)
     mult_boundary_constraints = zeros(dbc)
-
-    # costate
-    P[:] = getter(nlp_solution; val=:costate)'
+    T_path = T
 
     # path constraints multipliers (+++ not yet implemented for exa)
     # NB. normalize wrt time step
@@ -580,9 +596,13 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     # boundary constraints multipliers (+++ not yet implemented for exa)
     isnothing(exa_getter) && (mult_boundary_constraints = getter(nlp_solution; val=:mult_boundary_constraints))
 
+    # use method with separate time grids
     return CTModels.build_solution(
         ocp_model(docp),
-        T,
+        T_state,
+        T_control,
+        T_costate,
+        T_path,
         X,
         U,
         v,

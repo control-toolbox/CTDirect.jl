@@ -1,67 +1,66 @@
 # ---------------------------------------------------------------------------
-# Implementation of Collocation discretizer
+# Implementation of Direct shooting discretizer
 # ---------------------------------------------------------------------------
+import SparseConnectivityTracer.TracerLocalSparsityDetector
 
-# ---------------------------------------------------------------------------
-# Collocation discretizer
-# ---------------------------------------------------------------------------
-struct Collocation <: AbstractDiscretizer
+struct DirectShooting <: AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
 
 # useful for OptimalControl
-Strategies.id(::Type{<:Collocation}) = :collocation
+Strategies.id(::Type{<:DirectShooting}) = :direct_shooting
 
 # default options
-__collocation_grid_size()::Int = 250
-__collocation_scheme()::Symbol = :midpoint
-__collocation_time_grid() = nothing
+__direct_shooting_grid_size()::Int = 250
+__direct_shooting_control_steps()::Int = 1 # ie number of controls per time step
+__direct_shooting_scheme()::Symbol = :midpoint # later use variable step ode solver
 
-function Strategies.metadata(::Type{<:Collocation})
+function Strategies.metadata(::Type{<:DirectShooting})
     return Strategies.StrategyMetadata(
         Options.OptionDefinition(
         name = :grid_size,
         type = Int,
-        default = __collocation_grid_size(),
-        description = "Number of time steps for the collocation grid",
+        default = __direct_shooting_grid_size(),
+        description = "Number of time steps for the direct shooting grid",
+        ),
+        Options.OptionDefinition(
+        name = :control_steps,
+        type = Int,
+        default = __direct_shooting_control_steps(),
+        description = "Number of controls per time step for the direct shooting",
         ),
         Options.OptionDefinition(
         name = :scheme,
         type = Symbol,
-        default = __collocation_scheme(),
+        default = __direct_shooting_scheme(),
         description = "Time integration scheme (e.g., :midpoint, :trapeze)",
         ),
-        Options.OptionDefinition(
-        name = :time_grid,
-        type = Union{Nothing,AbstractVector},
-        default = __collocation_time_grid(),
-        description = "Explicit time grid (possibly non uniform) for the collocation",
-        ),
+
     )
 end
 
 # constructor: kwargs contains the options values
-function Collocation(; mode::Symbol = :strict, kwargs...)
-    opts = Strategies.build_strategy_options(Collocation; mode = mode, kwargs...)
-    return Collocation(opts)
+function DirectShooting(; mode::Symbol = :strict, kwargs...)
+    opts = Strategies.build_strategy_options(DirectShooting; mode = mode, kwargs...)
+    return DirectShooting(opts)
 end
 
-Strategies.options(c::Collocation) = c.options
+Strategies.options(c::DirectShooting) = c.options
 
 # +++ todo if possible: unify get_docp for Collocation / directshooting and move to DOCP_data.jl ?
 
 # ==========================================================================================
 # Build core DOCP structure with discretization information (ADNLP)
 # ==========================================================================================
-function get_docp(discretizer::Collocation, ocp::AbstractModel)
+function get_docp(discretizer::DirectShooting, ocp::AbstractModel)
     
     # recover discretization scheme and options
     scheme = Strategies.options(discretizer)[:scheme]
     grid_size = Strategies.options(discretizer)[:grid_size]
-    time_grid = Strategies.options(discretizer)[:time_grid]
+    control_steps = Strategies.options(discretizer)[:control_steps]
 
     # initialize DOCP
-    control_steps = 1
+    time_grid = nothing
     docp = DOCP(ocp, grid_size, control_steps, scheme, time_grid)
 
     # set bounds in DOCP
@@ -71,11 +70,10 @@ function get_docp(discretizer::Collocation, ocp::AbstractModel)
     return docp
 end
 
-
 # ==========================================================================================
 # Build discretizer API (return sets of model/solution builders)
 # ==========================================================================================
-function (discretizer::Collocation)(ocp::AbstractModel)
+function (discretizer::DirectShooting)(ocp::AbstractModel)
 
     # common parts for builders
     docp = get_docp(discretizer, ocp)
@@ -99,7 +97,7 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         # build initial guess
         functional_init = CTModels.build_initial_guess(ocp, initial_guess)
         x0 = __initial_guess(docp, functional_init)
-
+        
         # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
         unused_backends = (
         hprod_backend=ADNLPModels.EmptyADbackend,
@@ -108,29 +106,21 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         ghjvprod_backend=ADNLPModels.EmptyADbackend,
         )
 
-        # set adnlp backends
-        if backend == :manual
-
-            # build sparsity patterns for Jacobian and Hessian
-            J_backend = ADNLPModels.SparseADJacobian(
-                docp.dim_NLP_variables, f,
-                docp.dim_NLP_constraints, c!,
-                CTDirect.DOCP_Jacobian_pattern(docp),
-            )
-            H_backend = ADNLPModels.SparseReverseADHessian(
-                docp.dim_NLP_variables, f,
-                docp.dim_NLP_constraints, c!,
-                CTDirect.DOCP_Hessian_pattern(docp),
-            )
-            backend_options = (
-                gradient_backend=ADNLPModels.ReverseDiffADGradient,
-                jacobian_backend=J_backend,
-                hessian_backend=H_backend,
-            )
-        else
-            # use backend preset
-            backend_options = (backend=backend,)
-        end
+        # use backend preset
+        # NB. problems with variable step, even with :generic (also, dense...)
+        backend_options = (backend=backend,)
+        
+        #= error
+        backend_options = (
+        jacobian_backend = ADNLPModels.SparseADJacobian(
+            docp.dim_NLP_variables, f, 
+            docp.dim_NLP_constraints, c!, 
+            detector=TracerLocalSparsityDetector()),
+        hessian_backend = ADNLPModels.SparseADHessian(
+            docp.dim_NLP_variables, f, 
+            docp.dim_NLP_constraints, c!, 
+            detector=TracerLocalSparsityDetector()),
+        )=#
 
         # build NLP
         nlp = ADNLPModels.ADNLPModel!(
@@ -148,7 +138,6 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         )
 
         return nlp
-
     end
 
     # Solution builder for ADNLPModels
@@ -157,7 +146,7 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         # retrieve data from NLP solver
         objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
 
-        # retrieve time grid  +++ put in build_OCP_solution
+        # retrieve time grid +++ put in build_OCP_solution
         T = get_time_grid(nlp_solution.solution, docp)
 
         # build OCP solution from NLP solution
@@ -173,65 +162,12 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         initial_guess::CTModels.AbstractInitialGuess; 
         backend
     )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
-
-        # recover discretization scheme and size
-        scheme = Strategies.options(discretizer)[:scheme]
-        grid_size = Strategies.options(discretizer)[:grid_size]
-
-        # build initial guess
-        functional_init = CTModels.build_initial_guess(ocp, initial_guess)
-        x0 = __initial_guess(docp, functional_init)
-        # reshape initial guess for ExaModel variables layout
-        # - do not broadcast, apparently fails on GPU arrays
-        # - unused final control in examodel / euler, hence the different x0 sizes
-        n = CTModels.state_dimension(ocp)
-        m = CTModels.control_dimension(ocp)
-        q = CTModels.variable_dimension(ocp)
-        N = docp.time.steps
-        # N + 1 states, N controls
-        state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] 
-        for i in 0:N]...)
-        control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] 
-        for i in 0:(N - 1)]...,)
-        # see with JB: pass indeed to grid_size only for euler(_b), trapeze and midpoint
-        control = [control control[:, end]] 
-        variable = x0[(end - q + 1):end]
-        init = (variable, state, control)
-
-        # build Exa model and getters
-        # see with JB. later try to call Exa constructor here if possible, reusing existing functions...
-        build_exa = CTModels.get_build_examodel(ocp)
-        nlp, exa_getter = build_exa(;
-            grid_size=grid_size,
-            backend=backend,
-            scheme=scheme,
-            init=init,
-            base_type=BaseType,
-        )
-
-        return nlp
+    
+        # try to call constructor here with constraints component wise ?
     end
 
     # Solution builder for ExaModels
     function build_exa_solution(nlp_solution::SolverCore.AbstractExecutionStats)
-
-        # NB exa_getter is set during build_exa_model call !
-        if isnothing(exa_getter)
-            error("build_exa_solution: exa_getter is nothing")
-        end
-
-        # retrieve data from NLP solver
-        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
-  
-        # retrieve time grid
-        T = get_time_grid_exa(nlp_solution, docp, exa_getter)
-
-        # build OCP solution from NLP solution
-        sol = CTDirect.build_OCP_solution(docp, nlp_solution, T,
-        objective, iterations, constraints_violation, message, status, successful; 
-        exa_getter=exa_getter)
-        
-        return sol
     end
 
     #NB. it would be better to return builders as model/solution pairs since they are linked

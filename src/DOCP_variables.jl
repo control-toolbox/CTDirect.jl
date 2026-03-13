@@ -1,48 +1,3 @@
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Build an initial guess vector for the discretized OCP.
-
-# Arguments
-
-- `docp::DOCP`: The discretized OCP.
-- `init::CTModels.Init`: Initialization settings (default: `CTModels.Init()`).
-
-# Returns
-
-- `NLP_X::Vector{Float64}`: Initial guess vector.
-
-# Example
-
-```julia-repl
-julia> DOCP_initial_guess(docp)
-[0.1, 0.1, …]
-```
-"""
-function DOCP_initial_guess(docp::DOCP, init::CTModels.InitialGuess)
-
-    # default initialization (including internal variables such as k_i for RK schemes)
-    # NB. passing nothing to the setters below will leave this default values 
-    NLP_X = 0.1 * ones(docp.dim_NLP_variables)
-
-    # set variables if provided (needed first in case of free times !)
-    set_optim_variable!(NLP_X, init.variable, docp)
-
-    # set state / control variables if provided 
-    # NB. setter handles the final control case
-    time_grid = get_time_grid(NLP_X, docp)
-    for i in 1:(docp.time.steps + 1)
-        ti = time_grid[i]
-        set_state_at_time_step!(NLP_X, init.state(ti), docp, i)
-        set_control_at_time_step!(NLP_X, init.control(ti), docp, i)
-    end
-
-    return NLP_X
-end
-
-
 """
 $(TYPEDSIGNATURES)
 
@@ -63,8 +18,8 @@ julia> variables_bounds!(docp)
 ([-Inf, …], [Inf, …])
 ```
 """
-function variables_bounds!(docp::DOCP)
-    N = docp.time.steps
+function __variables_bounds!(docp::DOCP)
+
     var_l = docp.bounds.var_l
     var_u = docp.bounds.var_u
     ocp = ocp_model(docp)
@@ -82,11 +37,13 @@ function variables_bounds!(docp::DOCP)
     )
 
     # set state / control box along time steps
-    for i in 1:(N + 1)
+    for i in 1:(docp.time.steps + 1)
         set_state_at_time_step!(var_l, x_lb, docp, i)
         set_state_at_time_step!(var_u, x_ub, docp, i)
-        set_control_at_time_step!(var_l, u_lb, docp, i)
-        set_control_at_time_step!(var_u, u_ub, docp, i)
+        for j in 1:docp.time.control_steps
+            set_control_at_time_step!(var_l, u_lb, docp, i; j=j)
+            set_control_at_time_step!(var_u, u_ub, docp, i; j=j)
+        end
     end
 
     # variable box
@@ -138,3 +95,47 @@ function build_bounds_block(dim_var, dim_box, box_triplet)
     return x_lb, x_ub
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Build an initial guess vector for the discretized OCP.
+
+# Arguments
+
+- `docp::DOCP`: The discretized OCP.
+- `init::CTModels.Init`: Initialization settings (default: `CTModels.Init()`).
+
+# Returns
+
+- `NLP_X::Vector{Float64}`: Initial guess vector.
+
+# Example
+
+```julia-repl
+julia> DOCP_initial_guess(docp)
+[0.1, 0.1, …]
+```
+"""
+function __initial_guess(docp::DOCP, init::CTModels.InitialGuess)
+
+    # default initialization (including internal variables such as k_i for RK schemes)
+    # NB. passing nothing to the setters below will leave this default values 
+    NLP_X = 0.1 * ones(docp.dim_NLP_variables)
+
+    # set variables if provided (needed first in case of free times !)
+    set_optim_variable!(NLP_X, init.variable, docp)
+
+    # set state / control variables if provided 
+    # NB. setter handles the final control case
+    time_grid = get_time_grid(NLP_X, docp)
+    for i in 1:(docp.time.steps + 1)
+        ti = time_grid[i]
+        set_state_at_time_step!(NLP_X, init.state(ti), docp, i)
+        for j in 1:docp.time.control_steps
+            set_control_at_time_step!(NLP_X, init.control(ti), docp, i; j=j)
+        end
+    end
+
+    return NLP_X
+end

@@ -31,14 +31,14 @@ u_vec = [0, 0.3, 0.1]
 # 1.a default initial guess
 @testset verbose = true showtiming = true ":default_init_no_arg" begin
     sol = solve_problem(prob; max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), (t -> [0.1, 0.1]).(T), rtol=1e-2)
     @test isapprox(control(sol).(T), (t -> 0.1).(T), rtol=1e-2)
     @test isapprox(variable(sol), 0.1, rtol=1e-2)
 end
 @testset verbose = true showtiming = true ":default_init_()" begin
     sol = solve_problem(prob; init=(), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), (t -> [0.1, 0.1]).(T), rtol=1e-2)
     @test isapprox(control(sol).(T), (t -> 0.1).(T), rtol=1e-2)
     @test isapprox(variable(sol), 0.1, rtol=1e-2)
@@ -47,7 +47,7 @@ end
 # but this is the behaviour of local solve_problem, check vs OptimalControl solve !
 @testset verbose = true showtiming = true ":default_init_nothing" begin
     sol = solve_problem(prob; init=nothing, max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), (t -> [0.1, 0.1]).(T), rtol=1e-2)
     @test isapprox(control(sol).(T), (t -> 0.1).(T), rtol=1e-2)
     @test variable(sol) == 0.1
@@ -56,12 +56,12 @@ end
 # 1.b constant initial guess
 @testset verbose = true showtiming = true ":constant_x" begin
     sol = solve_problem(prob; init=(state=x_const,), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), (t -> x_const).(T), rtol=1e-2)
 end
 @testset verbose = true showtiming = true ":constant_u" begin
     sol = solve_problem(prob; init=(control=u_const,), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(control(sol).(T), (t -> u_const).(T), rtol=1e-2)
 end
 @testset verbose = true showtiming = true ":constant_v" begin
@@ -70,25 +70,25 @@ end
 end
 @testset verbose = true showtiming = true ":constant_xu" begin
     sol = solve_problem(prob; init=(state=x_const, control=u_const), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), (t -> x_const).(T), rtol=1e-2)
     @test isapprox(control(sol).(T), (t -> u_const).(T), rtol=1e-2)
 end
 @testset verbose = true showtiming = true ":constant_xu" begin
     sol = solve_problem(prob2; init=(state=x_const, control=u_const), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), (t -> x_const).(T), rtol=1e-2)
     @test isapprox(control(sol).(T), (t -> u_const).(T), rtol=1e-2)
 end
 @testset verbose = true showtiming = true ":constant_xv" begin
     sol = solve_problem(prob; init=(state=x_const, variable=v_const), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), (t -> x_const).(T), rtol=1e-2)
     @test variable(sol) == v_const
 end
 @testset verbose = true showtiming = true ":constant_uv" begin
     sol = solve_problem(prob; init=(control=u_const, variable=v_const), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(control(sol).(T), (t -> u_const).(T), rtol=1e-2)
     @test variable(sol) == v_const
 end
@@ -96,7 +96,7 @@ end
     sol = solve_problem(prob;
         init=(state=x_const, control=u_const, variable=v_const),
         max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), (t -> x_const).(T), rtol=1e-2)
     @test isapprox(control(sol).(T), (t -> u_const).(T), rtol=1e-2)
     @test variable(sol) == v_const
@@ -105,23 +105,23 @@ end
 # 1. functional initial guess
 @testset verbose = true showtiming = true ":functional_x" begin
     sol = solve_problem(prob; init=(state=x_func,), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), x_func.(T), rtol=1e-2)
 end
 @testset verbose = true showtiming = true ":functional_u" begin
     sol = solve_problem(prob; init=(control=u_func,), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)
 end
 @testset verbose = true showtiming = true ":functional_xu" begin
     sol = solve_problem(prob; init=(state=x_func, control=u_func), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), x_func.(T), rtol=1e-2)
     @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)
 end
 @testset verbose = true showtiming = true ":functional_xu" begin
     sol = solve_problem(prob2; init=(state=x_func, control=u_func), max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), x_func.(T), rtol=1e-2)
     @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)
 end
@@ -155,7 +155,7 @@ end
 @testset verbose = true showtiming = true ":vector_tx :functional_u :constant_v" begin
     init = (state=(t_vec, x_vec), control=u_func, variable=v_const)
     sol = solve_problem(prob; init=init, max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(t_vec), x_vec, rtol=1e-2)
     @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)
     @test variable(sol) == v_const
@@ -169,7 +169,7 @@ end
         tf := v_const
     end
     sol = solve_problem(prob; init=init, max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(t_vec), x_vec, rtol=1e-2)
     @test isapprox(control(sol).(T), u_func.(T), rtol=1e-2)
     @test variable(sol) == v_const
@@ -178,7 +178,7 @@ end
 # 1.f warm start
 @testset verbose = true showtiming = true ":warm_start" begin
     sol = solve_problem(prob; init=sol0, max_iter=maxiter)
-    T = time_grid(sol)
+    T = time_grid(sol, :state)
     @test isapprox(state(sol).(T), state(sol0).(T), rtol=1e-2)
     @test isapprox(control(sol).(T), control(sol0).(T), rtol=1e-2)
     @test variable(sol) == variable(sol0)

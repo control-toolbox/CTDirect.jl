@@ -1,5 +1,5 @@
 # CT packages
-using CTBase
+#using CTBase
 using CTParser: CTParser, @def, @init
 using CTModels: CTModels, objective, time_grid, iterations, state, control, variable, costate
 using CTDirect
@@ -13,7 +13,6 @@ using ADNLPModels
 using ExaModels
 
 # NLP solvers
-using NLPModels
 using NLPModelsIpopt
 using MadNLP
 
@@ -25,6 +24,7 @@ using SplitApplyCombine # for flatten in some tests
 function solve_problem(prob;
     max_iter=1000,
     tol=1e-6,
+    discretizer=:collocation,
     modeler=:adnlp, #+++exa
     solver=:ipopt, #+++madnlp
     display=false,
@@ -37,8 +37,14 @@ function solve_problem(prob;
     kwargs...)
 
     # discretized problem (model and solution builders)
-    discretizer = CTDirect.Collocation(; kwargs...) # kwargs here
-    docp = CTDirect.discretize(prob.ocp, discretizer)
+    if discretizer == :collocation
+        my_discretizer = CTDirect.Collocation(; kwargs...)
+    elseif discretizer == :direct_shooting
+        my_discretizer = CTDirect.DirectShooting(; kwargs...)
+    else
+        error("Unknown discretizer: ", discretizer)
+    end
+    docp = CTDirect.discretize(prob.ocp, my_discretizer)
     
     # initial guess for model builders
     if isnothing(init)
