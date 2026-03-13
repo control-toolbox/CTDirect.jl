@@ -7,6 +7,7 @@ struct VariableStepODE <: Scheme
     _state_stage_eqs_block::Int
     _step_pathcons_block::Int
     _final_control::Bool
+    _reltol::Float64
 
     function VariableStepODE(dims::DOCPdims, time::DOCPtime)
         
@@ -27,6 +28,7 @@ struct VariableStepODE <: Scheme
             state_stage_eqs_block,
             step_pathcons_block,
             false,
+            1e-3
         )
 
         return disc, dim_NLP_variables, dim_NLP_constraints
@@ -83,16 +85,21 @@ end
 # this is not equivalent to reformulating lagrange as mayer if lagrange depends on x !
 function runningCost(docp::DOCP{VariableStepODE}, xu, v, time_grid)
 
+    disc = disc_model(docp)
+
+    # +++ todo: inplace
+    # ? use xu as parameter for the ODE instead of just v ?
     function lagrange_closure(value, v, t)
         x = get_OCP_state_at_time(xu, docp, t)
         u = get_OCP_control_at_time(xu, docp, t)
-        return CTModels.lagrange(ocp_model(docp))(t,x,u,v)
+        l = CTModels.lagrange(ocp_model(docp))
+        return l(t,x,u,v)
     end
 
-    prob = DE.ODEProblem(lagrange_closure, 0.0, (time_grid[1], time_grid[end]))
-    sol = DE.solve(prob)
+    prob = DE.ODEProblem(lagrange_closure, 0.0, (time_grid[1], time_grid[end]), v)
+    sol = DE.solve(prob; save_everystep = false, reltol=disc._reltol)
 
-    return sol
+    return sol[end]
 end
 
 # +++ we could also solve once over [t0,tf] and use dense output for state constraints ?
@@ -107,17 +114,22 @@ function stepStateConstraints!(docp::DOCP{VariableStepODE}, c, xu, v, time_grid,
     xip1 = get_OCP_state_at_time_step(xu, docp, i+1)
     offset_c = (i-1)*(disc._state_stage_eqs_block + disc._step_pathcons_block)
 
-    function dynamics_closure(x, v, t)
+    # +++ todo: inplace
+    # ? use xu as parameter for the ODE instead of just v ?
+    function f!(dx, x, v, t)
         u = get_OCP_control_at_time(xu, docp, t)
-        return CTModels.dynamics(ocp_model(docp))(t,x,u,v)
+        CTModels.dynamics(ocp_model(docp))(dx, t, x, u, v)
+        return
     end
 
     # integrate dynamics from t_i to t_i+1     +++ later try to use c directly for x_next ?
-    prob = DE.ODEProblem(dynamics_closure, xi, (ti, tip1))
-    x_next = DE.solve(prob)
+    prob = DE.ODEProblem(f!, xi, (ti, tip1), v)
+    sol = DE.solve(prob; save_everystep = false, reltol=disc._reltol)
+    println(sol[end])
+    error("type ?")
 
     # set constraint
-    @views @. c[(offset_c + 1):(offset_c + docp.dims.NLP_x)] = xip1 - x_next
+    @views @. c[(offset_c + 1):(offset_c + docp.dims.NLP_x)] = xip1 - sol[end]
     return
 end
 

@@ -1,6 +1,8 @@
 # ---------------------------------------------------------------------------
 # Implementation of Direct shooting discretizer
 # ---------------------------------------------------------------------------
+import SparseConnectivityTracer.TracerLocalSparsityDetector
+
 struct DirectShooting <: AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
@@ -104,8 +106,21 @@ function (discretizer::DirectShooting)(ocp::AbstractModel)
         ghjvprod_backend=ADNLPModels.EmptyADbackend,
         )
 
-        # backend options
+        # use backend preset
+        # NB. problems with variable step, even with :generic (also, dense...)
         backend_options = (backend=backend,)
+        
+        #= error
+        backend_options = (
+        jacobian_backend = ADNLPModels.SparseADJacobian(
+            docp.dim_NLP_variables, f, 
+            docp.dim_NLP_constraints, c!, 
+            detector=TracerLocalSparsityDetector()),
+        hessian_backend = ADNLPModels.SparseADHessian(
+            docp.dim_NLP_variables, f, 
+            docp.dim_NLP_constraints, c!, 
+            detector=TracerLocalSparsityDetector()),
+        )=#
 
         # build NLP
         nlp = ADNLPModels.ADNLPModel!(
