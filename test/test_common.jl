@@ -1,5 +1,4 @@
 # CT packages
-#using CTBase
 using CTParser: CTParser, @def, @init
 using CTModels: CTModels, objective, time_grid, iterations, state, control, variable, costate
 using CTDirect
@@ -15,6 +14,7 @@ using ExaModels
 # NLP solvers
 using NLPModelsIpopt
 using MadNLP
+using UnoSolver
 
 # misc
 using SplitApplyCombine # for flatten in some tests
@@ -25,8 +25,8 @@ function solve_problem(prob;
     max_iter=1000,
     tol=1e-6,
     discretizer=:collocation,
-    modeler=:adnlp, #+++exa
-    solver=:ipopt, #+++madnlp
+    modeler=:adnlp,
+    solver=:ipopt, 
     display=false,
     graph=false,
     init=nothing,
@@ -89,6 +89,10 @@ function solve_problem(prob;
             madnlp_options[:mode] = :permissive
         end
         my_solver = CTSolvers.MadNLP(; madnlp_options...)
+    elseif solver == :uno
+        uno_options = Dict( 
+        )
+        my_solver = CTSolvers.Uno(; uno_options...)
     else
         error("Unknown solver: ", solver)
     end

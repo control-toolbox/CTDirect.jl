@@ -9,6 +9,8 @@ function swimmer(tf=25)
         u ∈ R^2, control
 
         # bounds
+        -1 ≤ x[1](t) ≤ Inf
+        -1 ≤ x[2](t) ≤ 1
         -3.15 ≤ x[3](t) ≤ 3.15
         [-1.5, -1.5] ≤ x[4:5](t) ≤ [1.5, 1.5]
         [-1, -1] ≤ u(t) ≤ [1, 1]
@@ -136,7 +138,7 @@ function swimmer(tf=25)
     end
 
     if tf == 25.0
-        objective = 0.984273
+        objective = 1.005
     else
         objective = nothing
     end

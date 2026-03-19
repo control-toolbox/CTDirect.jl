@@ -48,36 +48,10 @@ target_dict[:hard] = [
     "truck_trailer"
 ]
 
-target_dict[:lagrange_easy] = [
-    "beam",
-    "double_integrator_minenergy",
-    "fuller",
-    "simple_integrator",
-    "vanderpol",
-]
-
-target_dict[:lagrange_hard] = [
-    "bioreactor_1day",
-    "bioreactor_Ndays",
-    "bolza_freetf",
-    #"insurance", #only converge when final control is present (mixed path constraint) 
-    "parametric",
-    "quadrotor",
-    "robbins",
-    "truck_trailer"
-]
-
 target_dict[:all] = [ target_dict[:easy] ; target_dict[:hard] ]
 
-target_dict[:lagrange_all] = [ target_dict[:lagrange_easy] ; target_dict[:lagrange_hard] ]
 
-# check a specific example
-function check_problem(prob; kwargs...)
-    sol = solve_problem(prob; kwargs...)
-    @test sol.objective ≈ prob.obj rtol = 1e-2
-end
-
-# tests to check allocations in particular
+#= tests to check allocations in particular
 function init(ocp; grid_size, scheme)
     docp = CTDirect.DOCP(
         ocp; grid_size=grid_size, time_grid=CTDirect.__time_grid(), scheme=scheme
@@ -136,13 +110,13 @@ function test_unit(
     # collocation build ?
 
     return nothing
-end
+end=#
 
 # solve given problem, return convergence data and solution
 # verbose <= 1: no output
 # verbose > 1: print summary (iter, obj, time)
 # verbose > 2: print NLP iterations also
-function bench_problem(problem; verbose=1, solver, grid_size, timer=true, kwargs...)
+function bench_problem(problem; verbose=1, solver, grid_size, timer=false, kwargs...)
     if verbose > 2
         display = true
     else
@@ -204,7 +178,7 @@ function bench(;
     target_list=:all,
     grid_size_list=[250, 500, 1000],
     solver=:ipopt,
-    timer=false,
+    tol=1e-8,
     return_sols=false,
     save_sols=false,
     timer=false,

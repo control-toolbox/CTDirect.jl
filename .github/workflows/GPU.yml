@@ -29,7 +29,7 @@ jobs:
         with:
           version: ${{ matrix.julia-version }}
           arch: ${{ matrix.julia-arch }}
-      - uses: julia-actions/add-julia-registry@v2
+      - uses: julia-actions/add-julia-registry@v1
         with:
           key: ${{ secrets.SSH_KEY }}
           registry: control-toolbox/ct-registry
