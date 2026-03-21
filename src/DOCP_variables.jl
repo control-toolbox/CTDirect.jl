@@ -40,9 +40,11 @@ function __variables_bounds!(docp::DOCP)
     for i in 1:(docp.time.steps + 1)
         set_state_at_time_step!(var_l, x_lb, docp, i)
         set_state_at_time_step!(var_u, x_ub, docp, i)
-        for j in 1:docp.time.control_steps
-            set_control_at_time_step!(var_l, u_lb, docp, i; j=j)
-            set_control_at_time_step!(var_u, u_ub, docp, i; j=j)
+        if docp.dims.NLP_u > 0
+            for j in 1:docp.time.control_steps
+                set_control_at_time_step!(var_l, u_lb, docp, i; j=j)
+                set_control_at_time_step!(var_u, u_ub, docp, i; j=j)
+            end
         end
     end
 
@@ -132,8 +134,10 @@ function __initial_guess(docp::DOCP, init::CTModels.InitialGuess)
     for i in 1:(docp.time.steps + 1)
         ti = time_grid[i]
         set_state_at_time_step!(NLP_X, init.state(ti), docp, i)
-        for j in 1:docp.time.control_steps
-            set_control_at_time_step!(NLP_X, init.control(ti), docp, i; j=j)
+        if docp.dims.NLP_u > 0
+            for j in 1:docp.time.control_steps
+                set_control_at_time_step!(NLP_X, init.control(ti), docp, i; j=j)
+            end
         end
     end
 
