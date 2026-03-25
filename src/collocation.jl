@@ -191,10 +191,15 @@ function (discretizer::Collocation)(ocp::AbstractModel)
         # N + 1 states, N controls
         state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] 
         for i in 0:N]...)
-        control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] 
-        for i in 0:(N - 1)]...,)
-        # see with JB: pass indeed to grid_size only for euler(_b), trapeze and midpoint
-        control = [control control[:, end]] 
+        if m > 0
+            control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] 
+            for i in 0:(N - 1)]...,)
+            # see with JB: pass indeed to grid_size only for euler(_b), trapeze and midpoint
+            control = [control control[:, end]]
+        else
+            # zero control dimension: create empty matrix with correct type
+            control = similar(x0, 0, N + 1)
+        end
         variable = x0[(end - q + 1):end]
         init = (variable, state, control)
 

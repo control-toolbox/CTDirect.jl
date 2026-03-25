@@ -80,6 +80,9 @@ function getter(nlp_solution, docp::DOCP; val::Symbol)
     
     # control
     elseif val == :control || val == :control_l || val == :control_u
+        if docp.dims.NLP_u == 0
+            return similar(data, 0, N*docp.time.control_steps + 1)
+        end
         V = zeros(docp.dims.NLP_u, N*docp.time.control_steps + 1)
         k = 1
         for i in 1:N
