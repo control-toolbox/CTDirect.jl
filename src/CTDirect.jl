@@ -56,7 +56,7 @@ include("ode/euler.jl")
 include("ode/irk.jl")
 include("ode/midpoint.jl")
 include("ode/trapeze.jl")
-include("ode/variable.jl")
+#include("ode/variable.jl")
 
 include("collocation.jl")
 include("direct_shooting.jl")

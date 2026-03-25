@@ -1,3 +1,4 @@
+# LATER: put this in test_all_ocp instead ?
 println("testing: zero control dimension - parameter estimation")
 
 # Load test problems
