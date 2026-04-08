@@ -10,12 +10,27 @@
 #  X_N-1, U_N-1^1, U_N-1^2, K_N-1^1, K_N-1^2,
 #  X_N, V]
 #
+# Internal layout for NLP constraints (vecteur c):
+# [C_0^x, C_0^{k,1}, C_0^{k,2}, G_0,
+#  C_1^x, C_1^{k,1}, C_1^{k,2}, G_1,
+#  ...
+#  C_{N-1}^x, C_{N-1}^{k,1}, C_{N-1}^{k,2}, G_{N-1},
+#  G_N,
+#  B]
 #
+# avec :
+# C_i^x      = contrainte d'état sur le pas i
+#              X_{i+1} - (X_i + h_i * sum_j b_j K_i^j)
 #
+# C_i^{k,1}  = contrainte de stage 1 sur le pas i
+#              K_i^1 - f(t_i^1, X_i^1, U_i^1, V)
 #
+# C_i^{k,2}  = contrainte de stage 2 sur le pas i
+#              K_i^2 - f(t_i^2, X_i^2, U_i^2, V)
 #
-#
-# ============================================================================
+# G_i        = contraintes de chemin au temps t_i   (si path_cons > 0)
+# G_N        = contraintes de chemin au temps final (si path_cons > 0)
+# B          = contraintes de bord /terminale 
 
 abstract type GenericIRKStagewise <: Scheme end
 
