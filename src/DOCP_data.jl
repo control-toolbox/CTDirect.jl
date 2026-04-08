@@ -326,6 +326,10 @@ mutable struct DOCP{
         elseif scheme == :gauss_legendre_3
             discretization, dim_NLP_variables, dim_NLP_constraints = 
             CTDirect.Gauss_Legendre_3(disc_args...)
+        
+        elseif scheme == :gauss_legendre_2_stagewise
+            discretization, dim_NLP_variables, dim_NLP_constraints = 
+            CTDirect.Gauss_Legendre_2_Stagewise(disc_args...)
 
         elseif scheme == :variable
             discretization, dim_NLP_variables, dim_NLP_constraints = 

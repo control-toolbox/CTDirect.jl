@@ -56,6 +56,8 @@ include("ode/euler.jl")
 include("ode/irk.jl")
 include("ode/midpoint.jl")
 include("ode/trapeze.jl")
+include("ode/gausslegendre2_stagewise.jl")
+
 #include("ode/variable.jl")
 
 include("collocation.jl")
