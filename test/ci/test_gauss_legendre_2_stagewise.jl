@@ -41,6 +41,11 @@ function build_exact_stagewise_xu(docp::CTDirect.DOCP{<:CTDirect.Gauss_Legendre_
     return xu
 end
 
+function solve_problem_timed(prob; kwargs...)
+    elapsed = @elapsed sol = solve_problem(prob; kwargs...)
+    return sol, elapsed
+end
+
 function test_gauss_legendre_2_stagewise()
     prob = stagewise_scalar_problem()
     grid = [0.0, 0.2, 0.6, 1.0]
@@ -104,5 +109,57 @@ function test_gauss_legendre_2_stagewise()
         @test last(T) ≈ 1.0 atol = 1e-12
         @test only(state(sol)(first(T))) ≈ 0.0 atol = 1e-8
         @test only(state(sol)(last(T))) ≈ 1.0 atol = 1e-4
+    end
+
+    @testset verbose = true showtiming = true ":gauss_legendre_2_stagewise :compare_with_gauss_legendre_2" begin
+        compare_grid = collect(LinRange(0.0, 1.0, 21))
+        warmup_grid = collect(LinRange(0.0, 1.0, 5))
+        docp_gl2 = CTDirect.DOCP(prob.ocp, length(compare_grid) - 1, 1, :gauss_legendre_2, compare_grid)
+        docp_stagewise = CTDirect.DOCP(
+            prob.ocp,
+            length(compare_grid) - 1,
+            1,
+            :gauss_legendre_2_stagewise,
+            compare_grid,
+        )
+
+        @test docp_gl2.time.fixed_grid ≈ docp_stagewise.time.fixed_grid
+        @test docp_gl2.dim_NLP_constraints == docp_stagewise.dim_NLP_constraints
+        @test docp_stagewise.dim_NLP_variables ==
+            docp_gl2.dim_NLP_variables +
+            docp_stagewise.time.steps * docp_stagewise.dims.NLP_u * docp_stagewise.time.control_steps
+
+        solve_problem(prob; scheme=:gauss_legendre_2, time_grid=warmup_grid, max_iter=1)
+        solve_problem(prob; scheme=:gauss_legendre_2_stagewise, time_grid=warmup_grid, max_iter=1)
+
+        sol_gl2, elapsed_gl2 = solve_problem_timed(
+            prob;
+            scheme=:gauss_legendre_2,
+            time_grid=compare_grid,
+            max_iter=200,
+        )
+        sol_stagewise, elapsed_stagewise = solve_problem_timed(
+            prob;
+            scheme=:gauss_legendre_2_stagewise,
+            time_grid=compare_grid,
+            max_iter=200,
+        )
+
+        println(
+            "gauss_legendre_2: vars=$(docp_gl2.dim_NLP_variables), cons=$(docp_gl2.dim_NLP_constraints), " *
+            "iters=$(iterations(sol_gl2)), elapsed=$(round(elapsed_gl2; digits=3))s",
+        )
+        println(
+            "gauss_legendre_2_stagewise: vars=$(docp_stagewise.dim_NLP_variables), cons=$(docp_stagewise.dim_NLP_constraints), " *
+            "iters=$(iterations(sol_stagewise)), elapsed=$(round(elapsed_stagewise; digits=3))s",
+        )
+
+        @test CTModels.successful(sol_gl2)
+        @test CTModels.successful(sol_stagewise)
+        @test objective(sol_gl2) ≈ prob.obj rtol = 1e-2
+        @test objective(sol_stagewise) ≈ prob.obj rtol = 1e-2
+        @test objective(sol_stagewise) ≈ objective(sol_gl2) rtol = 1e-4 atol = 1e-6
+        @test time_grid(sol_gl2, :state) ≈ time_grid(sol_stagewise, :state)
+        @test only(state(sol_gl2)(1.0)) ≈ only(state(sol_stagewise)(1.0)) atol = 1e-4
     end
 end
