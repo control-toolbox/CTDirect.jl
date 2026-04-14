@@ -29,7 +29,8 @@ function Strategies.metadata(::Type{<:Collocation})
         name = :scheme,
         type = Symbol,
         default = __collocation_scheme(),
-        description = "Time integration scheme (e.g., :midpoint, :trapeze)",
+        aliases=(:disc_method,),
+        description = "Time integration scheme (:trapeze, :midpoint, :euler (or :euler_explicit, :euler_forward), :euler_implicit (or :euler_backward), :gauss_legendre_2, :gauss_legendre_3, :variable)",
         ),
         Options.OptionDefinition(
         name = :time_grid,
