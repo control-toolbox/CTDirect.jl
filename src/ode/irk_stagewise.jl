@@ -1,20 +1,20 @@
 # ============================================================================
-# src/ode/irk_gl2_stagewise.jl
+# src/ode/irk_stagewise.jl
 #
-# Minimal specialized stagewise version of Gauss-Legendre 2 collocation.
+# Generic stagewise version of implicit Runge-Kutta collocation.
 #
 # Internal layout for NLP variables (vector xu):
-# [X_0, U_0^1, U_0^2, K_0^1, K_0^2,
-#  X_1, U_1^1, U_1^2, K_1^1, K_1^2,
+# [X_0, U_0^1, ..., U_0^s, K_0^1, ..., K_0^s,
+#  X_1, U_1^1, ..., U_1^s, K_1^1, ..., K_1^s,
 #  ...
-#  X_N-1, U_N-1^1, U_N-1^2, K_N-1^1, K_N-1^2,
+#  X_N-1, U_N-1^1, ..., U_N-1^s, K_N-1^1, ..., K_N-1^s,
 #  X_N, V]
 #
 # Internal layout for NLP constraints (vector c):
-# [C_0^x, C_0^{k,1}, C_0^{k,2}, G_0,
-#  C_1^x, C_1^{k,1}, C_1^{k,2}, G_1,
+# [C_0^x, C_0^{k,1}, ..., C_0^{k,s}, G_0,
+#  C_1^x, C_1^{k,1}, ..., C_1^{k,s}, G_1,
 #  ...
-#  C_{N-1}^x, C_{N-1}^{k,1}, C_{N-1}^{k,2}, G_{N-1},
+#  C_{N-1}^x, C_{N-1}^{k,1}, ..., C_{N-1}^{k,s}, G_{N-1},
 #  G_N,
 #  B]
 #
@@ -22,11 +22,8 @@
 # C_i^x      = state constraint on step i
 #              X_{i+1} - (X_i + h_i * sum_j b_j K_i^j)
 #
-# C_i^{k,1}  = stage-1 constraint on step i
-#              K_i^1 - f(t_i^1, X_i^1, U_i^1, V)
-#
-# C_i^{k,2}  = stage-2 constraint on step i
-#              K_i^2 - f(t_i^2, X_i^2, U_i^2, V)
+# C_i^{k,j}  = stage-j constraint on step i
+#              K_i^j - f(t_i^j, X_i^j, U_i^j, V)
 #
 # G_i        = path constraints at time t_i   (if path_cons > 0)
 # G_N        = path constraints at final time (if path_cons > 0)
@@ -50,16 +47,17 @@ struct Gauss_Legendre_2_Stagewise <: GenericIRKStagewise
     _final_control::Bool
 
     function Gauss_Legendre_2_Stagewise(dims::DOCPdims, time::DOCPtime)
+        stage = 2
         control_block,
         step_variables_block,
         state_stage_eqs_block,
         step_pathcons_block,
         dim_NLP_variables,
-        dim_NLP_constraints = GL2_stagewise_dims(dims, time)
+        dim_NLP_constraints = IRK_stagewise_dims(dims, time, stage)
 
         disc = new(
             "Implicit Gauss-Legendre collocation for s=2, 4th order, stagewise controls",
-            2,
+            stage,
             [0.25 (0.25 - sqrt(3) / 6);
              (0.25 + sqrt(3) / 6) 0.25],
             [0.5, 0.5],
@@ -76,7 +74,52 @@ struct Gauss_Legendre_2_Stagewise <: GenericIRKStagewise
 end
 
 """
-Dimensions for the specialized Gauss-Legendre-2 stagewise scheme.
+Implicit Gauss-Legendre collocation for s=3 with stagewise controls.
+"""
+struct Gauss_Legendre_3_Stagewise <: GenericIRKStagewise
+    info::String
+    stage::Int
+    butcher_a::Matrix{Float64}
+    butcher_b::Vector{Float64}
+    butcher_c::Vector{Float64}
+    _control_block::Int
+    _step_variables_block::Int
+    _state_stage_eqs_block::Int
+    _step_pathcons_block::Int
+    _final_control::Bool
+
+    function Gauss_Legendre_3_Stagewise(dims::DOCPdims, time::DOCPtime)
+        stage = 3
+        control_block,
+        step_variables_block,
+        state_stage_eqs_block,
+        step_pathcons_block,
+        dim_NLP_variables,
+        dim_NLP_constraints = IRK_stagewise_dims(dims, time, stage)
+
+        disc = new(
+            "Implicit Gauss-Legendre collocation for s=3, 6th order, stagewise controls",
+            stage,
+            [
+                (5.0 / 36.0) (2 / 9 - sqrt(15) / 15) (5 / 36 - sqrt(15) / 30);
+                (5.0 / 36.0 + sqrt(15) / 24) (2.0 / 9.0) (5.0 / 36.0 - sqrt(15) / 24);
+                (5 / 36 + sqrt(15) / 30) (2 / 9 + sqrt(15) / 15) (5.0 / 36.0)
+            ],
+            [5.0 / 18.0, 4.0 / 9.0, 5.0 / 18.0],
+            [0.5 - 0.1 * sqrt(15), 0.5, 0.5 + 0.1 * sqrt(15)],
+            control_block,
+            step_variables_block,
+            state_stage_eqs_block,
+            step_pathcons_block,
+            false,
+        )
+
+        return disc, dim_NLP_variables, dim_NLP_constraints
+    end
+end
+
+"""
+Dimensions for the specialized IRK stagewise scheme.
     reminder:
     dims.NLP_x : number of state variables
     dims.NLP_u : number of control variables
@@ -85,21 +128,20 @@ Dimensions for the specialized Gauss-Legendre-2 stagewise scheme.
 
     returns:
     step_variables_block : number of variables stored for a single time step
-    state_stage_eqs_block : how many state-vector-sized blocks are stored for the equations, i.e. the state equation and the two stages
+    state_stage_eqs_block : how many state-vector-sized blocks are stored for the equations, i.e. the state equation and the stages
     dim_NLP_variables : total number of optimization variables in the problem, all steps plus the final step
     dim_NLP_constraints : for each time step, ((state + stage constraints) + path constraints) + path constraints at final time + boundary constraints
 
 """
-function GL2_stagewise_dims(dims::DOCPdims, time::DOCPtime)
-    stage = 2
+function IRK_stagewise_dims(dims::DOCPdims, time::DOCPtime, stage::Int)
 
     control_block = dims.NLP_u * time.control_steps
 
     # per step:
-    # x_i + U_i^1 + U_i^2 + K_i^1 + K_i^2
-    step_variables_block = dims.NLP_x + 2 * control_block + stage * dims.NLP_x
+    # x_i + U_i^1 + ... + U_i^s + K_i^1 + ... + K_i^s
+    step_variables_block = dims.NLP_x + stage * control_block + stage * dims.NLP_x
 
-    # state equation + 2 stage equations
+    # state equation + stage equations
     state_stage_eqs_block = dims.NLP_x * (1 + stage)
 
     # same convention as irk.jl: path constraints at time steps
@@ -126,17 +168,17 @@ end
 
 """
 Return control at stage j on time step i.
-Convention: 1 <= i <= time.steps, j in {1,2}.
+Convention: 1 <= i <= time.steps, j in {1,...,s}.
 """
-function get_stagecontrol_at_time_step(xu, docp::DOCP{<:Gauss_Legendre_2_Stagewise}, i::Int, j::Int)
+function get_stagecontrol_at_time_step(xu, docp::DOCP{<:GenericIRKStagewise}, i::Int, j::Int)
     disc = disc_model(docp)
     dims = docp.dims
 
-    @assert 1 <= j <= 2
+    @assert 1 <= j <= disc.stage
     # offset to move to the start of the block
-    # X_i, U_i^1, U_i^2, K_i^1, K_i^2,
+    # X_i, U_i^1, ..., U_i^s, K_i^1, ..., K_i^s,
     var_offset = (i - 1) * disc._step_variables_block
-    # we now are here: U_i^1, U_i^2, K_i^1, K_i^2
+    # we now are here: U_i^1, ..., U_i^s, K_i^1, ..., K_i^s
     x_block_end = var_offset + dims.NLP_x
     # define start and end as a function of the control size
     ctrl0 = x_block_end + (j - 1) * disc._control_block + 1
@@ -154,7 +196,7 @@ we return control j=1.
 # handle the last time step
 function get_OCP_control_at_time_step(
     xu,
-    docp::DOCP{<:Gauss_Legendre_2_Stagewise},
+    docp::DOCP{<:GenericIRKStagewise},
     i::Int,
     j::Int,
 )
@@ -164,24 +206,25 @@ function get_OCP_control_at_time_step(
 
     return get_stagecontrol_at_time_step(xu, docp, i, j)
 end
+
 # multiple dispatch if j is not specified
-function get_OCP_control_at_time_step(xu, docp::DOCP{<:Gauss_Legendre_2_Stagewise}, i::Int)
+function get_OCP_control_at_time_step(xu, docp::DOCP{<:GenericIRKStagewise}, i::Int)
     return get_OCP_control_at_time_step(xu, docp, i, 1)
 end
 
 """
 Return stage variables K_i^j on time step i.
-Convention: 1 <= i <= time.steps, j in {1,2}.
+Convention: 1 <= i <= time.steps, j in {1,...,s}.
 We extract K_i^j.
 """
-function get_stagevars_at_time_step(xu, docp::DOCP{<:Gauss_Legendre_2_Stagewise}, i::Int, j::Int)
+function get_stagevars_at_time_step(xu, docp::DOCP{<:GenericIRKStagewise}, i::Int, j::Int)
     disc = disc_model(docp)
     dims = docp.dims
 
-    @assert 1 <= j <= 2
+    @assert 1 <= j <= disc.stage
 
     var_offset = (i - 1) * disc._step_variables_block
-    stage_block_start = var_offset + dims.NLP_x + 2 * disc._control_block
+    stage_block_start = var_offset + dims.NLP_x + disc.stage * disc._control_block
     k0 = stage_block_start + (j - 1) * dims.NLP_x + 1
     k1 = stage_block_start + j * dims.NLP_x
 
@@ -197,7 +240,7 @@ Set work array for dynamics and lagrange cost evaluations.
 Layout:
 - [x_i^j ; sum_bk]
 """
-function setWorkArray(docp::DOCP{<:Gauss_Legendre_2_Stagewise}, xu, time_grid, v)
+function setWorkArray(docp::DOCP{<:GenericIRKStagewise}, xu, time_grid, v)
     dims = docp.dims
     work = similar(xu, dims.NLP_x + dims.NLP_x)
     return work
@@ -212,11 +255,12 @@ var_l <= xu <= var_u
 var_l and var_u have the same structure as xu, so we can
 reuse the same functions to access the correct location.
 """
-function __variables_bounds!(docp::DOCP{<:Gauss_Legendre_2_Stagewise})
+function __variables_bounds!(docp::DOCP{<:GenericIRKStagewise})
     # retrieve the bounds and the continuous model
     var_l = docp.bounds.var_l
     var_u = docp.bounds.var_u
     ocp = ocp_model(docp)
+    disc = disc_model(docp)
     #
     x_lb, x_ub = build_bounds_block(
         docp.dims.NLP_x,
@@ -228,18 +272,18 @@ function __variables_bounds!(docp::DOCP{<:Gauss_Legendre_2_Stagewise})
         CTModels.dim_control_constraints_box(ocp),
         CTModels.control_constraints_box(ocp),
     )
-    #we change var_l and var_u at every time step with the 
-    #right bound 
+    # we change var_l and var_u at every time step with the
+    # right bound
     for i in 1:(docp.time.steps + 1)
         set_state_at_time_step!(var_l, x_lb, docp, i)
         set_state_at_time_step!(var_u, x_ub, docp, i)
     end
     # if there is a control variable (change in the new zero-control version)
     if docp.dims.NLP_u > 0
-        #for each timestep 
+        # for each timestep
         for i in 1:docp.time.steps
-            #for each control stage 
-            for j in 1:2
+            # for each control stage
+            for j in 1:disc.stage
                 # access the correct index and use the view to set it
                 # should later be replaced with a proper setter
                 get_stagecontrol_at_time_step(var_l, docp, i, j) .= u_lb
@@ -247,7 +291,7 @@ function __variables_bounds!(docp::DOCP{<:Gauss_Legendre_2_Stagewise})
             end
         end
     end
-    #same thing for supplementary variables 
+    # same thing for supplementary variables
     if docp.dims.NLP_v > 0
         v_lb, v_ub = build_bounds_block(
             docp.dims.NLP_v,
@@ -264,9 +308,9 @@ function __variables_bounds!(docp::DOCP{<:Gauss_Legendre_2_Stagewise})
 end
 
 function __initial_guess(
-    docp::DOCP{<:Gauss_Legendre_2_Stagewise},
+    docp::DOCP{<:GenericIRKStagewise},
     init::CTModels.InitialGuess,
-)   
+)
     # initialize everything to 0.1
     NLP_X = 0.1 * ones(docp.dim_NLP_variables)
     disc = disc_model(docp)
@@ -305,7 +349,7 @@ end
 """
 Compute running cost using Gauss quadrature and stagewise controls.
 """
-function integral(docp::DOCP{<:Gauss_Legendre_2_Stagewise}, xu, v, time_grid, f)
+function integral(docp::DOCP{<:GenericIRKStagewise}, xu, v, time_grid, f)
     disc = disc_model(docp)
     dims = docp.dims
 
@@ -322,7 +366,7 @@ function integral(docp::DOCP{<:Gauss_Legendre_2_Stagewise}, xu, v, time_grid, f)
 
         local_sum = 0.0
         # for each stage
-        for j in 1:2
+        for j in 1:disc.stage
             # compute the stage time
             tij = ti + disc.butcher_c[j] * hi
             # retrieve the stage control uij
@@ -331,7 +375,7 @@ function integral(docp::DOCP{<:Gauss_Legendre_2_Stagewise}, xu, v, time_grid, f)
             # copy x_i into work_xij
             @views @. work_xij = xi
             # for each stage (implicit)
-            for l in 1:2
+            for l in 1:disc.stage
                 # retrieve K_i^l
                 kil = get_stagevars_at_time_step(xu, docp, i, l)
                 # update work_xij
@@ -356,7 +400,7 @@ Set state and stage constraints.
 Convention: 1 <= i <= docp.time.steps
 """
 function stepStateConstraints!(
-    docp::DOCP{<:Gauss_Legendre_2_Stagewise},
+    docp::DOCP{<:GenericIRKStagewise},
     c,
     xu,
     v,
@@ -385,7 +429,7 @@ function stepStateConstraints!(
     # first dimensions reserved for the state equation
     offset_stage_eqs = dims.NLP_x
     # for the stages
-    for j in 1:2
+    for j in 1:disc.stage
         tij = ti + disc.butcher_c[j] * hi
         kij = get_stagevars_at_time_step(xu, docp, i, j)
         uij = get_stagecontrol_at_time_step(xu, docp, i, j)
@@ -397,7 +441,7 @@ function stepStateConstraints!(
         end
         # x_i^j = x_i + h_i Σ_l a_{j,l} K_i^l
         @views @. work_xij = xi
-        for l in 1:2
+        for l in 1:disc.stage
             kil = get_stagevars_at_time_step(xu, docp, i, l)
             @views @. work_xij = work_xij + hi * disc.butcher_a[j, l] * kil
         end

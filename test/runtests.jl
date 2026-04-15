@@ -26,9 +26,6 @@ const SHOWTIMING = true
     else
         # CPU: run all scripts in subfolder ci/
         include.(filter(contains(r".jl$"), readdir("./ci"; join=true)))
+        test_stagewise()
     end
 end
-
-# new tests for stagewise discretization
-include(joinpath("ci", "test_gauss_legendre_2_stagewise.jl"))
-test_gauss_legendre_2_stagewise()
