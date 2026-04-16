@@ -26,6 +26,5 @@ const SHOWTIMING = true
     else
         # CPU: run all scripts in subfolder ci/
         include.(filter(contains(r".jl$"), readdir("./ci"; join=true)))
-        test_stagewise()
     end
 end

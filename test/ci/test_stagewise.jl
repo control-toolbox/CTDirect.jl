@@ -201,3 +201,6 @@ function test_stagewise()
         test_gauss_legendre_stagewise_scheme(spec)
     end
 end
+
+test_stagewise()
+
