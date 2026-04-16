@@ -86,7 +86,7 @@ function test_gauss_legendre_stagewise_scheme(spec)
         t2s = grid[2] + disc.butcher_c[disc.stage] * (grid[3] - grid[2])
 
         @test u11 != u1s
-        @test only(CTDirect.get_OCP_control_at_time_step(xu, docp, 1)) ≈ u11 atol = 1e-12
+        @test only(CTDirect.get_stagecontrol_at_time_step(xu, docp, 1)) ≈ u11 atol = 1e-12
         @test only(CTDirect.get_OCP_state_at_time_step(xu, docp, 2)) ≈ grid[2]^2 atol = 1e-12
         @test only(CTDirect.get_stagevars_at_time_step(xu, docp, 2, disc.stage)) ≈ 2 * t2s atol = 1e-12
 
