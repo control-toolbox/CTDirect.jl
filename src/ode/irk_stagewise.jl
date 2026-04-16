@@ -135,11 +135,11 @@ Dimensions for the specialized IRK stagewise scheme.
 """
 function IRK_stagewise_dims(dims::DOCPdims, time::DOCPtime, stage::Int)
 
-    control_block = dims.NLP_u * time.control_steps
+    control_block = dims.NLP_u * stage
 
     # per step:
     # x_i + U_i^1 + ... + U_i^s + K_i^1 + ... + K_i^s
-    step_variables_block = dims.NLP_x + stage * control_block + stage * dims.NLP_x
+    step_variables_block = dims.NLP_x + control_block + stage * dims.NLP_x
 
     # state equation + stage equations
     state_stage_eqs_block = dims.NLP_x * (1 + stage)
@@ -181,35 +181,27 @@ function get_stagecontrol_at_time_step(xu, docp::DOCP{<:GenericIRKStagewise}, i:
     # we now are here: U_i^1, ..., U_i^s, K_i^1, ..., K_i^s
     x_block_end = var_offset + dims.NLP_x
     # define start and end as a function of the control size
-    ctrl0 = x_block_end + (j - 1) * disc._control_block + 1
-    ctrl1 = x_block_end + j * disc._control_block
+    ctrl0 = x_block_end + (j - 1) * dims.NLP_u + 1
+    ctrl1 = x_block_end + j * dims.NLP_u
     # return the view
     return @view xu[ctrl0:ctrl1]
 end
 
 """
-Compatibility accessor: return a "control at time step".
-By default we return U_i^1.
-We return control N at N+1; if j is not specified,
-we return control j=1.
+Compatibility accessor: return an averaged control at time step.
+Note that j is here ignored. See generic control getter in common.jl:90
++++ update: return actual stage controls for solution ?
++++ nb incompatibility between control.steps ans stage for j...
++++ would require a new getter for control block ?
 """
-# handle the last time step
-function get_OCP_control_at_time_step(
-    xu,
-    docp::DOCP{<:GenericIRKStagewise},
-    i::Int,
-    j::Int,
-)
-    if i == docp.time.steps + 1
-        i = docp.time.steps
+function get_OCP_control_at_time_step(xu, docp::DOCP{<:GenericIRKStagewise}, i::Int, j::Int)
+    (i == docp.time.steps +  1) && (i = docp.time.steps) 
+    disc = disc_model(docp)
+    ui = disc.butcher_b[1] .* get_stagecontrol_at_time_step(xu, docp, i, 1)
+    for j=2:disc.stage
+        ui += disc.butcher_b[j] .* get_stagecontrol_at_time_step(xu, docp, i, j)
     end
-
-    return get_stagecontrol_at_time_step(xu, docp, i, j)
-end
-
-# multiple dispatch if j is not specified
-function get_OCP_control_at_time_step(xu, docp::DOCP{<:GenericIRKStagewise}, i::Int)
-    return get_OCP_control_at_time_step(xu, docp, i, 1)
+    return ui
 end
 
 """
@@ -224,7 +216,7 @@ function get_stagevars_at_time_step(xu, docp::DOCP{<:GenericIRKStagewise}, i::In
     @assert 1 <= j <= disc.stage
 
     var_offset = (i - 1) * disc._step_variables_block
-    stage_block_start = var_offset + dims.NLP_x + disc.stage * disc._control_block
+    stage_block_start = var_offset + dims.NLP_x + disc._control_block
     k0 = stage_block_start + (j - 1) * dims.NLP_x + 1
     k1 = stage_block_start + j * dims.NLP_x
 

@@ -62,7 +62,7 @@ function test_gauss_legendre_stagewise_scheme(spec)
         @test docp.dims.NLP_v == 0
         @test docp.dims.boundary_cons == 2
         @test disc.stage == spec.stage
-        @test disc._control_block == docp.dims.NLP_u
+        @test disc._control_block == docp.dims.NLP_u * spec.stage
         @test disc._step_variables_block == spec.expected_step_variables_block
         @test disc._state_stage_eqs_block == spec.expected_state_stage_eqs_block
         @test disc._step_pathcons_block == 0
@@ -176,8 +176,8 @@ end
 function test_stagewise()
     specs = (
         (
-            scheme=:gauss_legendre_2_stagewise,
-            reference_scheme=:gauss_legendre_2,
+            scheme=:gauss_legendre_2,
+            reference_scheme=:gauss_legendre_2_constant_control,
             disc_type=CTDirect.Gauss_Legendre_2_Stagewise,
             stage=2,
             expected_step_variables_block=5,
@@ -186,8 +186,8 @@ function test_stagewise()
             expected_dim_NLP_constraints=11,
         ),
         (
-            scheme=:gauss_legendre_3_stagewise,
-            reference_scheme=:gauss_legendre_3,
+            scheme=:gauss_legendre_3,
+            reference_scheme=:gauss_legendre_3_constant_control,
             disc_type=CTDirect.Gauss_Legendre_3_Stagewise,
             stage=3,
             expected_step_variables_block=7,
