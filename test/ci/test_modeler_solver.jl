@@ -42,7 +42,7 @@ end
     test_problem(prob; adnlp_backend=:default)
     test_problem(prob; adnlp_backend=:manual)
     test_problem(prob; scheme=:midpoint, adnlp_backend=:manual)
-    test_problem(prob; scheme=:gauss_legendre_2, adnlp_backend=:manual)
+    test_problem(prob; scheme=:gauss_legendre_2_constant_control, adnlp_backend=:manual)
 end
 
 

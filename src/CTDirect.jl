@@ -54,8 +54,10 @@ include("DOCP_functions.jl")
 include("ode/common.jl")
 include("ode/euler.jl")
 include("ode/irk.jl")
+include("ode/irk_stagewise.jl")
 include("ode/midpoint.jl")
 include("ode/trapeze.jl")
+
 #include("ode/variable.jl")
 
 include("collocation.jl")
