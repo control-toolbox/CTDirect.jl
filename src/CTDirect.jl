@@ -16,9 +16,35 @@ abstract type AbstractDiscretizer <: Strategies.AbstractStrategy end
 
 __discretizer()::AbstractDiscretizer = Collocation()
 
+"""
+$(TYPEDSIGNATURES)
+
+Discretize an optimal control problem using the specified discretizer.
+
+# Arguments
+- `ocp::AbstractModel`: The optimal control problem to discretize
+- `discretizer::AbstractDiscretizer`: The discretization strategy to apply
+
+# Returns
+- The discretized problem representation
+"""
 function discretize(ocp::AbstractModel, discretizer::AbstractDiscretizer)
     return discretizer(ocp)
 end
+"""
+$(TYPEDSIGNATURES)
+
+Discretize an optimal control problem using the default discretizer.
+
+This is a convenience method that uses the default discretizer (Collocation).
+
+# Arguments
+- `ocp::AbstractModel`: The optimal control problem to discretize
+- `discretizer::AbstractDiscretizer`: Optional discretization strategy (default: Collocation)
+
+# Returns
+- The discretized problem representation
+"""
 function discretize(ocp::AbstractModel; discretizer::AbstractDiscretizer=__discretizer())
     return discretize(ocp, discretizer)
 end
