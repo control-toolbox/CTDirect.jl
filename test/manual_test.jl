@@ -9,7 +9,9 @@ include("./problems/double_integrator.jl")
 include("./problems/truck_trailer.jl")
 
 sol = solve_problem(goddard(); display=true, scheme=:gauss_legendre_2)
-plot(sol)
+sol1 = solve_problem(goddard(); display=true, scheme=:gauss_legendre_2, adnlp_backend=:manual)
+sol2 = solve_problem(goddard(); display=true, scheme=:gauss_legendre_2_constant_control, adnlp_backend=:manual)
+
 
 #=sol0 = solve_problem(truck_trailer(); display=false)
 println("J ", objective(sol0), " tf ", variable(sol0), " iter ", iterations(sol0))
