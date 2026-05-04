@@ -341,7 +341,7 @@ function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRK})
         path_end = c_offset + c_block
 
         # contiguous variables blocks will be used when possible
-        # x_i (l_i) u_i k_i x_i+1 (l_i+1)
+        # x_i u_i k_ij x_i+1
         var_offset = (i-1)*disc._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + dims.NLP_x
@@ -350,16 +350,14 @@ function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRK})
         ki_start = var_offset + dims.NLP_x + dims.NLP_u + 1
         ki_end = var_offset + disc._step_variables_block
         xip1_end = var_offset + disc._step_variables_block + dims.NLP_x
-        li = var_offset + dims.NLP_x
-        lip1 = var_offset + disc._step_variables_block + dims.NLP_x
 
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i sum_j b_j k_ij)
         # depends on x_i, k_ij, x_i+1, and v for h_i in variable times case !
-        # skip l_i, u_i; should skip k_i[n+1] also but annoying...
+        # skip u_i; should skip k_i[n+1] also but annoying...
         add_nonzero_block!(Is, Js, dyn_start, dyn_end, xi_start, xi_end)
         add_nonzero_block!(Is, Js, dyn_start, dyn_end, ki_start, xip1_end)
         add_nonzero_block!(Is, Js, dyn_start, dyn_end, v_start, v_end)
-        # 1.2 lagrange part l_i+1 = l_i + h_i (sum_j b_j k_ij)[n+1]
+        #= 1.2 lagrange part l_i+1 = l_i + h_i (sum_j b_j k_ij)[n+1]
         # depends on l_i, k_ij[n+1], l_i+1, and v for h_i in variable times case !
         if docp.flags.lagrange
             add_nonzero_block!(Is, Js, dyn_lag, li)
@@ -369,19 +367,17 @@ function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRK})
                 add_nonzero_block!(Is, Js, dyn_lag, kij_l)
             end
             add_nonzero_block!(Is, Js, dyn_lag, dyn_lag, v_start, v_end)
-        end
+        end=#
 
-        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_i, v) (with lagrange part)
+        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_i, v)
         # with x_ij = x_i + sum_l a_il k_jl
-        # depends on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1] too...)
-        add_nonzero_block!(Is, Js, stage_start, stage_end, xi_start, xi_end)
-        add_nonzero_block!(Is, Js, stage_start, stage_end, ui_start, ki_end)
+        # depends on x_i, u_i, k_ij, and v; (could skip k_ij[n+1] too...)
+        add_nonzero_block!(Is, Js, stage_start, stage_end, xi_start, ki_end)
         add_nonzero_block!(Is, Js, stage_start, stage_end, v_start, v_end)
 
         # 1.4 path constraint g(t_i, x_i, u_i, v)
-        # depends on x_i, u_i, v; skip l_i
-        add_nonzero_block!(Is, Js, path_start, path_end, xi_start, xi_end)
-        add_nonzero_block!(Is, Js, path_start, path_end, ui_start, ui_end)
+        # depends on x_i, u_i, v
+        add_nonzero_block!(Is, Js, path_start, path_end, xi_start, ui_end)
         add_nonzero_block!(Is, Js, path_start, path_end, v_start, v_end)
     end
 
@@ -408,10 +404,10 @@ function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRK})
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, x0_start, x0_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
     add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
-    # 3.4 null initial condition for lagrangian cost state l0
+    #= 3.4 null initial condition for lagrangian cost state l0
     if docp.flags.lagrange
         add_nonzero_block!(Is, Js, docp.dim_NLP_constraints, dims.NLP_x)
-    end
+    end=#
 
     # build and return sparse matrix
     nnzj = length(Is)
@@ -441,8 +437,8 @@ function DOCP_Hessian_pattern(docp::DOCP{<: GenericIRK})
     # 0. objective
     # 0.1 mayer cost (x0, xf, v) 
     # -> grouped with term 3. for boundary conditions
-    # 0.2 lagrange case (lf)
-    # -> 2nd order term is zero
+    # 0.2 lagrange case sum h_i l(ti, xi, ui, v)
+    # -> included in stage equations terms see 1.2
 
     # 1. main loop over steps
     # 1.0 v / v term
@@ -451,7 +447,7 @@ function DOCP_Hessian_pattern(docp::DOCP{<: GenericIRK})
     for i in 1:docp.time.steps
 
         # contiguous variables blocks will be used when possible
-        # x_i (l_i) u_i k_i x_i+1 (l_i+1)
+        # x_i u_i k_i x_i+1
         var_offset = (i-1)*disc._step_variables_block
         xi_start = var_offset + 1
         xi_end = var_offset + dims.NLP_x
@@ -462,19 +458,14 @@ function DOCP_Hessian_pattern(docp::DOCP{<: GenericIRK})
 
         # 1.1 state eq 0 = x_i+1 - (x_i + h_i sum_j b_j k_ij)
         # -> 2nd order terms are zero
-        # 1.2 lagrange part 0 = l_i+1 - (l_i + h_i (sum_j b_j k_ij[n+1]))
-        # -> 2nd order terms are zero
 
-        # 1.3 stage equations 0 = k_ij - f(t_ij, x_ij, u_i, v) (with lagrange part)
+        # 1.2 stage equations 0 = k_ij - f(t_ij, x_ij, u_i, v)
         # with x_ij = x_i + sum_l a_il k_jl
-        # 2nd order terms depend on x_i, u_i, k_i, and v; skip l_i (could skip k_ij[n+1]...)
-        add_nonzero_block!(Is, Js, xi_start, xi_end, xi_start, xi_end)
-        add_nonzero_block!(Is, Js, ui_start, ki_end, ui_start, ki_end)
-        add_nonzero_block!(Is, Js, xi_start, xi_end, ui_start, ki_end; sym=true)
-        add_nonzero_block!(Is, Js, xi_start, xi_end, v_start, v_end; sym=true)
-        add_nonzero_block!(Is, Js, ui_start, ki_end, v_start, v_end; sym=true)
+        # 2nd order terms depend on x_i, u_i, k_i, and v; (could distinguish each j...)
+        add_nonzero_block!(Is, Js, xi_start, ki_end, xi_start, ki_end)
+        add_nonzero_block!(Is, Js, xi_start, ki_end, v_start, v_end; sym=true)
 
-        # 1.4 path constraint g(t_i, x_i, u_i, v)
+        # 1.3 path constraint g(t_i, x_i, u_i, v)
         # -> included in 1.3
     end
 
@@ -497,9 +488,6 @@ function DOCP_Hessian_pattern(docp::DOCP{<: GenericIRK})
     x0_start = 1
     x0_end = dims.NLP_x
     add_nonzero_block!(Is, Js, x0_start, x0_end, xf_start, xf_end; sym=true)
-
-    # 3.1 null initial condition for lagrangian cost state l0
-    # -> 2nd order term is zero
 
     # build and return sparse matrix
     nnzj = length(Is)

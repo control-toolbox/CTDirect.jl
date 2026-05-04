@@ -458,3 +458,181 @@ function stepStateConstraints!(
 
     return nothing
 end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Build sparsity pattern for Jacobian of constraints
+"""
+function DOCP_Jacobian_pattern(docp::DOCP{<: GenericIRKStagewise})
+    disc = disc_model(docp)
+    dims = docp.dims
+
+    # vector format for sparse matrix
+    Is = Vector{Int}(undef, 0)
+    Js = Vector{Int}(undef, 0)
+
+    s = disc.stage
+
+    # index alias for v
+    v_start = docp.dim_NLP_variables - dims.NLP_v + 1
+    v_end = docp.dim_NLP_variables
+
+    # 1. main loop over steps
+    for i in 1:docp.time.steps
+
+        # constraints block and offset: state equation, stage equations, path constraints
+        c_block = disc._state_stage_eqs_block + disc._step_pathcons_block
+        c_offset = (i-1)*c_block
+        dyn_start = c_offset + 1
+        dyn_end = c_offset + dims.NLP_x
+        dyn_lag = c_offset + dims.NLP_x
+        stage_start = c_offset + dims.NLP_x + 1
+        stage_end = c_offset + (s+1) * dims.NLP_x
+        path_start = c_offset + (s+1) * dims.NLP_x + 1
+        path_end = c_offset + c_block
+
+        # contiguous variables blocks will be used when possible
+        # x_i u_ij k_ij x_i+1 
+        var_offset = (i-1)*disc._step_variables_block
+        xi_start = var_offset + 1
+        xi_end = var_offset + dims.NLP_x
+        ui_start = var_offset + dims.NLP_x + 1
+        ui_end = var_offset + dims.NLP_x + dims.NLP_u*s
+        ki_start = var_offset + dims.NLP_x + dims.NLP_u*s + 1
+        ki_end = var_offset + disc._step_variables_block
+        xip1_end = var_offset + disc._step_variables_block + dims.NLP_x
+
+        # 1.1 state eq 0 = x_i+1 - (x_i + h_i sum_j b_j k_ij)
+        # depends on x_i, k_ij, x_i+1, and v for h_i in variable times case !
+        # skip u_ij; should skip k_i[n+1] also but annoying...
+        add_nonzero_block!(Is, Js, dyn_start, dyn_end, xi_start, xi_end)
+        add_nonzero_block!(Is, Js, dyn_start, dyn_end, ki_start, xip1_end)
+        add_nonzero_block!(Is, Js, dyn_start, dyn_end, v_start, v_end)
+
+        # 1.3 stage equations k_ij = f(t_ij, x_ij, u_ij, v)
+        # with x_ij = x_i + sum_l a_il k_jl
+        # depends on x_i, u_ij, k_ij, and v; (we could distinguish each j...)
+        add_nonzero_block!(Is, Js, stage_start, stage_end, xi_start, ki_end)
+        add_nonzero_block!(Is, Js, stage_start, stage_end, v_start, v_end)
+
+        # 1.4 path constraint g(t_i, x_i, u_i, v)
+        # depends on x_i, u_i (check actual value used), v;
+        add_nonzero_block!(Is, Js, path_start, path_end, xi_start, ui_end)
+        add_nonzero_block!(Is, Js, path_start, path_end, v_start, v_end)
+    end
+
+    # 2. final path constraints (xf, uf, v)
+    c_offset = docp.time.steps * (disc._state_stage_eqs_block + disc._step_pathcons_block)
+    c_block = disc._step_pathcons_block
+    var_offset = docp.time.steps*disc._step_variables_block
+    xf_start = var_offset + 1
+    xf_end = var_offset + dims.NLP_x
+    # NB convention u(tf) = U_N-1
+    uf_start = var_offset - disc._step_variables_block + dims.NLP_x + 1
+    uf_end = var_offset - disc._step_variables_block + dims.NLP_x + dims.NLP_u*s
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, uf_start, uf_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
+
+    # 3. boundary constraints (x0, xf, v)
+    c_offset =
+        docp.time.steps * (disc._state_stage_eqs_block + disc._step_pathcons_block) +
+        disc._step_pathcons_block
+    c_block = dims.boundary_cons
+    x0_start = 1
+    x0_end = dims.NLP_x
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, x0_start, x0_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, xf_start, xf_end)
+    add_nonzero_block!(Is, Js, c_offset+1, c_offset+c_block, v_start, v_end)
+    # 3.4 null initial condition for lagrangian cost state l0
+    if docp.flags.lagrange
+        add_nonzero_block!(Is, Js, docp.dim_NLP_constraints, dims.NLP_x)
+    end
+
+    # build and return sparse matrix
+    nnzj = length(Is)
+    Vs = ones(Bool, nnzj)
+    return SparseArrays.sparse(Is, Js, Vs, docp.dim_NLP_constraints, docp.dim_NLP_variables)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Build sparsity pattern for Hessian of Lagrangian
+"""
+function DOCP_Hessian_pattern(docp::DOCP{<: GenericIRKStagewise})
+    disc = disc_model(docp)
+    dims = docp.dims
+
+    # NB. need to provide full pattern for coloring, not just upper/lower part
+    Is = Vector{Int}(undef, 0)
+    Js = Vector{Int}(undef, 0)
+
+    s = disc.stage
+
+    # index alias for v
+    v_start = docp.dim_NLP_variables - dims.NLP_v + 1
+    v_end = docp.dim_NLP_variables
+
+    # 0. objective
+    # 0.1 mayer cost (x0, xf, v) 
+    # -> grouped with term 3. for boundary conditions
+    # 0.2 lagrange case sum h_i l(ti, xi, ui, v)
+    # -> included in stage equations terms see 1.2
+
+    # 1. main loop over steps
+    # 1.0 v / v term
+    add_nonzero_block!(Is, Js, v_start, v_end, v_start, v_end)
+
+    for i in 1:docp.time.steps
+
+        # contiguous variables blocks will be used when possible
+        # x_i u_ij k_ij x_i+1
+        var_offset = (i-1)*disc._step_variables_block
+        xi_start = var_offset + 1
+        xi_end = var_offset + dims.NLP_x
+        ui_start = var_offset + dims.NLP_x + 1
+        ui_end = var_offset + dims.NLP_x + dims.NLP_u*s
+        ki_start = var_offset + dims.NLP_x + dims.NLP_u*s + 1
+        ki_end = var_offset + disc._step_variables_block
+
+        # 1.1 state eq 0 = x_i+1 - (x_i + h_i sum_j b_j k_ij)
+        # -> 2nd order terms are zero
+
+        # 1.2 stage equations 0 = k_ij - f(t_ij, x_ij, u_ij, v)
+        # with x_ij = x_i + sum_l a_il k_jl
+        # 2nd order terms depend on x_i, u_ij, k_ij, and v; (we could distinguish each j...)
+        add_nonzero_block!(Is, Js, xi_start, ki_end, xi_start, ki_end)
+        add_nonzero_block!(Is, Js, xi_start, ki_end, v_start, v_end; sym=true)
+
+        # 1.3 path constraint g(t_i, x_i, u_i, v)
+        # -> included in 1.3
+    end
+
+    # 2. final path constraints (xf, uf, v) (assume present) +++ done in 1.4 above ?
+    var_offset = docp.time.steps * disc._step_variables_block
+    xf_start = var_offset + 1
+    xf_end = var_offset + dims.NLP_x
+    # NB convention u(tf) = U_N-1
+    uf_start = var_offset - disc._step_variables_block + dims.NLP_x + 1
+    uf_end = var_offset - disc._step_variables_block + dims.NLP_x + dims.NLP_u*s
+    add_nonzero_block!(Is, Js, xf_start, xf_end, xf_start, xf_end)
+    add_nonzero_block!(Is, Js, uf_start, uf_end, uf_start, uf_end)
+    add_nonzero_block!(Is, Js, xf_start, xf_end, uf_start, uf_end; sym=true)
+    add_nonzero_block!(Is, Js, xf_start, uf_end, v_start, v_end; sym=true)
+    add_nonzero_block!(Is, Js, uf_start, uf_end, v_start, v_end; sym=true)
+
+    # 3. boundary constraints (x0, xf, v) or mayer cost g0(x0, xf, v) (assume present)
+    # -> x0 / x0, x0 / v terms included in first loop iteration
+    # -> xf / xf, xf / v terms included in 2.
+    x0_start = 1
+    x0_end = dims.NLP_x
+    add_nonzero_block!(Is, Js, x0_start, x0_end, xf_start, xf_end; sym=true)
+
+    # build and return sparse matrix
+    nnzj = length(Is)
+    Vs = ones(Bool, nnzj)
+    return SparseArrays.sparse(Is, Js, Vs, docp.dim_NLP_variables, docp.dim_NLP_variables)
+end
