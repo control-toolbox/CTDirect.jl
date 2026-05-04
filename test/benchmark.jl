@@ -201,10 +201,9 @@ end
 # perform benchmark
 function bench(;
     verbose=1,
-    target_list=:all,
+    target_list=:easy,
     grid_size_list=[250, 500, 1000],
     solver=:ipopt,
-    timer=false,
     return_sols=false,
     save_sols=false,
     timer=false,
