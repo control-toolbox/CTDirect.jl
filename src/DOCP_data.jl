@@ -671,3 +671,33 @@ function get_time_grid_exa(
     @. grid = t0 + docp.time.normalized_grid * (tf - t0)
     return grid
 end
+
+# ==========================================================================================
+# Build core DOCP structure with discretization information.
+# Unified for all discretizers; each reads only the options it defines
+# (Collocation: time_grid; DirectShooting: control_steps).
+# ==========================================================================================
+"""
+$(TYPEDSIGNATURES)
+
+Build the core [`DOCP`](@ref) structure from a discretizer and an OCP, setting
+variable and constraint bounds. Shared by all discretizer types.
+"""
+function get_docp(discretizer::CTSolvers.AbstractDiscretizer, ocp::AbstractModel)
+
+    # recover discretization scheme and options
+    opts = Strategies.options(discretizer)
+    grid_size = opts[:grid_size]
+    scheme = opts[:scheme]
+    control_steps = haskey(discretizer, :control_steps) ? opts[:control_steps] : 1
+    time_grid = haskey(discretizer, :time_grid) ? opts[:time_grid] : nothing
+
+    # initialize DOCP
+    docp = DOCP(ocp, grid_size, control_steps, scheme, time_grid)
+
+    # set bounds in DOCP
+    __variables_bounds!(docp)
+    __constraints_bounds!(docp)
+
+    return docp
+end

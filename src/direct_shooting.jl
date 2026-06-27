@@ -1,9 +1,13 @@
 # ---------------------------------------------------------------------------
-# Implementation of Direct shooting discretizer
+# Direct shooting discretizer
+#
+# Implements the CTSolvers contract (discretize / build_model / build_solution)
+# for the DirectShooting transcription, for the ADNLP backend only. The Exa
+# backend is not implemented: the CTSolvers NotImplemented stub applies.
 # ---------------------------------------------------------------------------
 import SparseConnectivityTracer.TracerLocalSparsityDetector
 
-struct DirectShooting <: AbstractDiscretizer
+struct DirectShooting <: CTSolvers.AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
 
@@ -47,135 +51,112 @@ end
 
 Strategies.options(c::DirectShooting) = c.options
 
-# +++ todo if possible: unify get_docp for Collocation / directshooting and move to DOCP_data.jl ?
-
 # ==========================================================================================
-# Build core DOCP structure with discretization information (ADNLP)
+# CTSolvers contract: discretize
 # ==========================================================================================
-function get_docp(discretizer::DirectShooting, ocp::AbstractModel)
-    
-    # recover discretization scheme and options
-    scheme = Strategies.options(discretizer)[:scheme]
-    grid_size = Strategies.options(discretizer)[:grid_size]
-    control_steps = Strategies.options(discretizer)[:control_steps]
+"""
+$(TYPEDSIGNATURES)
 
-    # initialize DOCP
-    time_grid = nothing
-    docp = DOCP(ocp, grid_size, control_steps, scheme, time_grid)
-
-    # set bounds in DOCP
-    __variables_bounds!(docp)
-    __constraints_bounds!(docp)
-
-    return docp
+Discretize an OCP with the DirectShooting strategy into a `CTSolvers.DiscretizedModel`
+holding a [`DOCPCache`](@ref) with the precomputed DOCP.
+"""
+function CTSolvers.discretize(ocp::AbstractModel, discretizer::DirectShooting)
+    docp = get_docp(discretizer, ocp)
+    return CTSolvers.DiscretizedModel(ocp, discretizer, DOCPCache(docp))
 end
 
 # ==========================================================================================
-# Build discretizer API (return sets of model/solution builders)
+# CTSolvers contract: ADNLP backend
 # ==========================================================================================
-function (discretizer::DirectShooting)(ocp::AbstractModel)
+"""
+$(TYPEDSIGNATURES)
 
-    # common parts for builders
-    docp = get_docp(discretizer, ocp)
-    exa_getter = nothing # will be set in build_exa_model
+Build an `ADNLPModel` for a DirectShooting-discretized problem.
+"""
+function CTSolvers.build_model(
+    dm::CTSolvers.DiscretizedModel{<:Any,<:DirectShooting},
+    initial_guess::CTModels.AbstractInitialGuess,
+    modeler::CTSolvers.Modelers.ADNLP,
+)::ADNLPModels.ADNLPModel
 
-    # ==========================================================================================
-    # The needed builders for the construction of the final DiscretizedModel
-    # ==========================================================================================
-    
-    # NLP builder for ADNLPModels
-    function build_adnlp_model(
-        initial_guess::CTModels.AbstractInitialGuess;
-        backend,
-        kwargs...
-    )::ADNLPModels.ADNLPModel
+    docp = dm.cache.docp
+    ocp = dm.ocp
 
-        # functions for objective and constraints
-        f = x -> CTDirect.__objective(x, docp)
-        c! = (c, x) -> CTDirect.__constraints!(c, x, docp)
+    # modeler options; backend is consumed here, the rest is forwarded to ADNLPModel!
+    options = Strategies.options_dict(modeler)
+    backend = pop!(options, :backend)
 
-        # build initial guess
-        functional_init = CTModels.build_initial_guess(ocp, initial_guess)
-        x0 = __initial_guess(docp, functional_init)
-        
-        # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
-        unused_backends = (
-        hprod_backend=ADNLPModels.EmptyADbackend,
-        jtprod_backend=ADNLPModels.EmptyADbackend,
-        jprod_backend=ADNLPModels.EmptyADbackend,
-        ghjvprod_backend=ADNLPModels.EmptyADbackend,
-        )
+    # functions for objective and constraints
+    f = x -> __objective(x, docp)
+    c! = (c, x) -> __constraints!(c, x, docp)
 
-        # use backend preset
-        # NB. problems with variable step, even with :generic (also, dense...)
-        backend_options = (backend=backend,)
-        
-        #= error
-        backend_options = (
-        jacobian_backend = ADNLPModels.SparseADJacobian(
-            docp.dim_NLP_variables, f, 
-            docp.dim_NLP_constraints, c!, 
-            detector=TracerLocalSparsityDetector()),
-        hessian_backend = ADNLPModels.SparseADHessian(
-            docp.dim_NLP_variables, f, 
-            docp.dim_NLP_constraints, c!, 
-            detector=TracerLocalSparsityDetector()),
-        )=#
+    # build initial guess
+    functional_init = CTModels.build_initial_guess(ocp, initial_guess)
+    x0 = __initial_guess(docp, functional_init)
 
-        # build NLP
-        nlp = ADNLPModels.ADNLPModel!(
-            f,
-            x0,
-            docp.bounds.var_l,
-            docp.bounds.var_u,
-            c!,
-            docp.bounds.con_l,
-            docp.bounds.con_u;
-            minimize=(!docp.flags.max),
-            backend_options...,
-            unused_backends...,
-            kwargs...,
-        )
-
-        return nlp
-    end
-
-    # Solution builder for ADNLPModels
-    function build_adnlp_solution(nlp_solution::SolverCore.AbstractExecutionStats)
-        
-        # retrieve data from NLP solver
-        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
-
-        # retrieve time grid +++ put in build_OCP_solution
-        T = get_time_grid(nlp_solution.solution, docp)
-
-        # build OCP solution from NLP solution
-        sol = CTDirect.build_OCP_solution(docp, nlp_solution, T, 
-        objective, iterations, constraints_violation, message, status, successful)
-        
-        return sol
-    end
-
-    # NLP builder for ExaModels
-    function build_exa_model(
-        ::Type{BaseType}, 
-        initial_guess::CTModels.AbstractInitialGuess; 
-        backend
-    )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
-    
-        # try to call constructor here with constraints component wise ?
-    end
-
-    # Solution builder for ExaModels
-    function build_exa_solution(nlp_solution::SolverCore.AbstractExecutionStats)
-    end
-
-    #NB. it would be better to return builders as model/solution pairs since they are linked
-    return CTSolvers.DiscretizedModel(
-        ocp,
-        CTSolvers.ADNLPModelBuilder(build_adnlp_model),
-        CTSolvers.ExaModelBuilder(build_exa_model),
-        CTSolvers.ADNLPSolutionBuilder(build_adnlp_solution),
-        CTSolvers.ExaSolutionBuilder(build_exa_solution),
+    # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
+    unused_backends = (
+    hprod_backend=ADNLPModels.EmptyADbackend,
+    jtprod_backend=ADNLPModels.EmptyADbackend,
+    jprod_backend=ADNLPModels.EmptyADbackend,
+    ghjvprod_backend=ADNLPModels.EmptyADbackend,
     )
+
+    # use backend preset
+    # NB. problems with variable step, even with :generic (also, dense...)
+    backend_options = (backend=backend,)
+
+    #= error
+    backend_options = (
+    jacobian_backend = ADNLPModels.SparseADJacobian(
+        docp.dim_NLP_variables, f,
+        docp.dim_NLP_constraints, c!,
+        detector=TracerLocalSparsityDetector()),
+    hessian_backend = ADNLPModels.SparseADHessian(
+        docp.dim_NLP_variables, f,
+        docp.dim_NLP_constraints, c!,
+        detector=TracerLocalSparsityDetector()),
+    )=#
+
+    # build NLP
+    nlp = ADNLPModels.ADNLPModel!(
+        f,
+        x0,
+        docp.bounds.var_l,
+        docp.bounds.var_u,
+        c!,
+        docp.bounds.con_l,
+        docp.bounds.con_u;
+        minimize=(!docp.flags.max),
+        backend_options...,
+        unused_backends...,
+        options...,
+    )
+
+    return nlp
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Build an OCP solution from an ADNLP solver result for a DirectShooting-discretized problem.
+"""
+function CTSolvers.build_solution(
+    dm::CTSolvers.DiscretizedModel{<:Any,<:DirectShooting},
+    nlp_solution::SolverCore.AbstractExecutionStats,
+    ::CTSolvers.Modelers.ADNLP,
+)
+    docp = dm.cache.docp
+
+    # retrieve data from NLP solver
+    objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
+
+    # retrieve time grid +++ put in build_OCP_solution
+    T = get_time_grid(nlp_solution.solution, docp)
+
+    # build OCP solution from NLP solution
+    sol = build_OCP_solution(docp, nlp_solution, T,
+    objective, iterations, constraints_violation, message, status, successful)
+
+    return sol
 end
