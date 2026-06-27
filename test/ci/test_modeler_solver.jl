@@ -33,7 +33,7 @@ end
     discretizer = CTDirect.Collocation()
     docp = CTSolvers.discretize(prob.ocp, discretizer)
     my_init = CTModels.build_initial_guess(prob.ocp, prob.init)
-    nlp = CTSolvers.build_model(docp, my_init, CTSolvers.ADNLP(; backend=:manual))
+    nlp = CTSolvers.nlp_model(docp, my_init, CTSolvers.ADNLP(; backend=:manual))
     @test (nlp.meta.nnzj == 6028 && nlp.meta.nnzh == 6519)
     # + add other schemes...
 

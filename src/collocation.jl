@@ -68,14 +68,14 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Build an `ADNLPModel` for a Collocation-discretized problem.
+Build a `CTSolvers.BuiltModel` wrapping an `ADNLPModel` for a Collocation-discretized
+problem. The ADNLP backend needs no build-time auxiliary, hence `CTSolvers.NoCache`.
 """
 function CTSolvers.build_model(
     dm::CTSolvers.DiscretizedModel{<:Any,<:Collocation},
     initial_guess::CTModels.AbstractInitialGuess,
     modeler::CTSolvers.Modelers.ADNLP,
-)::ADNLPModels.ADNLPModel
-
+)
     docp = dm.cache.docp
     ocp = dm.ocp
 
@@ -138,7 +138,7 @@ function CTSolvers.build_model(
         options...,
     )
 
-    return nlp
+    return CTSolvers.BuiltModel(dm, nlp, CTSolvers.NoCache())
 end
 
 """
@@ -147,11 +147,11 @@ $(TYPEDSIGNATURES)
 Build an OCP solution from an ADNLP solver result for a Collocation-discretized problem.
 """
 function CTSolvers.build_solution(
-    dm::CTSolvers.DiscretizedModel{<:Any,<:Collocation},
+    built::CTSolvers.BuiltModel{<:CTSolvers.DiscretizedModel{<:Any,<:Collocation}},
     nlp_solution::SolverCore.AbstractExecutionStats,
     ::CTSolvers.Modelers.ADNLP,
 )
-    docp = dm.cache.docp
+    docp = built.problem.cache.docp
 
     # retrieve data from NLP solver
     objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
@@ -172,16 +172,15 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Build an `ExaModel` for a Collocation-discretized problem.
-
-Mutates `dm.cache.exa_getter` so that `build_solution` can reuse it.
+Build a `CTSolvers.BuiltModel` wrapping an `ExaModel` for a Collocation-discretized
+problem. The getter produced together with the model is carried in an
+[`ExaBuildCache`](@ref) so that `build_solution` can reuse it (no mutation).
 """
 function CTSolvers.build_model(
     dm::CTSolvers.DiscretizedModel{<:Any,<:Collocation},
     initial_guess::CTModels.AbstractInitialGuess,
     modeler::CTSolvers.Modelers.Exa,
-)::ExaModels.ExaModel
-
+)
     docp = dm.cache.docp
     ocp = dm.ocp
 
@@ -228,10 +227,8 @@ function CTSolvers.build_model(
         base_type=BaseType,
     )
 
-    # store getter in the cache for build_solution -- explicit, no captured closure
-    dm.cache.exa_getter = exa_getter
-
-    return nlp
+    # carry the getter in an immutable build-time cache -- no mutation, no closure
+    return CTSolvers.BuiltModel(dm, nlp, ExaBuildCache(exa_getter))
 end
 
 """
@@ -239,26 +236,16 @@ $(TYPEDSIGNATURES)
 
 Build an OCP solution from an Exa solver result for a Collocation-discretized problem.
 
-# Precondition
-`build_model` must have been called first (it populates `dm.cache.exa_getter`).
+The getter is read from the `ExaBuildCache` carried by `built` (populated by
+`build_model`).
 """
 function CTSolvers.build_solution(
-    dm::CTSolvers.DiscretizedModel{<:Any,<:Collocation},
+    built::CTSolvers.BuiltModel{<:CTSolvers.DiscretizedModel{<:Any,<:Collocation},<:Any,<:ExaBuildCache},
     nlp_solution::SolverCore.AbstractExecutionStats,
     ::CTSolvers.Modelers.Exa,
 )
-    docp = dm.cache.docp
-    exa_getter = dm.cache.exa_getter
-
-    isnothing(exa_getter) && throw(
-        CTBase.Exceptions.IncorrectArgument(
-            "build_solution (Exa): exa_getter is not set";
-            got="dm.cache.exa_getter === nothing",
-            expected="a getter populated by build_model",
-            suggestion="Call build_model with an Exa modeler before build_solution",
-            context="CTDirect.build_solution for Collocation/Exa",
-        ),
-    )
+    docp = built.problem.cache.docp
+    exa_getter = built.cache.exa_getter
 
     # retrieve data from NLP solver
     objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)

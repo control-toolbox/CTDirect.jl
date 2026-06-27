@@ -71,14 +71,14 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Build an `ADNLPModel` for a DirectShooting-discretized problem.
+Build a `CTSolvers.BuiltModel` wrapping an `ADNLPModel` for a DirectShooting-discretized
+problem. The ADNLP backend needs no build-time auxiliary, hence `CTSolvers.NoCache`.
 """
 function CTSolvers.build_model(
     dm::CTSolvers.DiscretizedModel{<:Any,<:DirectShooting},
     initial_guess::CTModels.AbstractInitialGuess,
     modeler::CTSolvers.Modelers.ADNLP,
-)::ADNLPModels.ADNLPModel
-
+)
     docp = dm.cache.docp
     ocp = dm.ocp
 
@@ -133,7 +133,7 @@ function CTSolvers.build_model(
         options...,
     )
 
-    return nlp
+    return CTSolvers.BuiltModel(dm, nlp, CTSolvers.NoCache())
 end
 
 """
@@ -142,11 +142,11 @@ $(TYPEDSIGNATURES)
 Build an OCP solution from an ADNLP solver result for a DirectShooting-discretized problem.
 """
 function CTSolvers.build_solution(
-    dm::CTSolvers.DiscretizedModel{<:Any,<:DirectShooting},
+    built::CTSolvers.BuiltModel{<:CTSolvers.DiscretizedModel{<:Any,<:DirectShooting}},
     nlp_solution::SolverCore.AbstractExecutionStats,
     ::CTSolvers.Modelers.ADNLP,
 )
-    docp = dm.cache.docp
+    docp = built.problem.cache.docp
 
     # retrieve data from NLP solver
     objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)

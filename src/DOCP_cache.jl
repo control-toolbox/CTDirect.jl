@@ -5,23 +5,32 @@
 """
 $(TYPEDEF)
 
-Mutable cache attached to a `CTSolvers.DiscretizedModel`.
+Immutable discretize-time cache attached to a `CTSolvers.DiscretizedModel`.
 
-Created by `CTSolvers.discretize`, then partially mutated by
-`CTSolvers.build_model` for the Exa backend (which sets `exa_getter`). Making
-the `build_model` → `build_solution` coupling explicit through this cache
-replaces the previously captured closure variable.
+Created by `CTSolvers.discretize`, it holds the precomputed [`DOCP`](@ref) reused
+across model/solution builds. It is never mutated: any build-time auxiliary (e.g.
+the ExaModels getter) is carried by the [`ExaBuildCache`](@ref) inside the
+`CTSolvers.BuiltModel` returned by `CTSolvers.build_model`.
 
 # Fields
 - `docp::D`: The internal discretized OCP structure (bounds, dimensions, ...).
-- `exa_getter`: Getter produced by the ExaModels constructor; `nothing` before an
-  Exa model is built. Typed `Any` because the cache is created (with `nothing`) by
-  `discretize`, then reassigned to a backend-specific getter by `build_model`; a
-  concrete field parameter would freeze it to `Nothing` and forbid the reassignment.
 """
-mutable struct DOCPCache{D<:DOCP} <: Core.AbstractCache
+struct DOCPCache{D<:DOCP} <: Core.AbstractCache
     docp::D
-    exa_getter::Any
 end
 
-DOCPCache(docp::DOCP) = DOCPCache(docp, nothing)
+"""
+$(TYPEDEF)
+
+Immutable build-time cache produced by `CTSolvers.build_model` for the Exa backend.
+
+Carries the getter produced together with the `ExaModel` so that
+`CTSolvers.build_solution` can reconstruct the OCP solution. Stored in the
+`cache` field of the `CTSolvers.BuiltModel`; never mutated.
+
+# Fields
+- `exa_getter::G`: Getter produced by the ExaModels constructor.
+"""
+struct ExaBuildCache{G} <: Core.AbstractCache
+    exa_getter::G
+end
