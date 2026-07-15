@@ -13,6 +13,7 @@ end
 
 # useful for OptimalControl
 Strategies.id(::Type{<:DirectShooting}) = :direct_shooting
+Strategies.parameter(::Type{<:DirectShooting}) = nothing
 
 # default options
 __direct_shooting_grid_size()::Int = 250

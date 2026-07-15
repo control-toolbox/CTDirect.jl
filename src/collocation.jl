@@ -10,6 +10,7 @@ end
 
 # useful for OptimalControl
 Strategies.id(::Type{<:Collocation}) = :collocation
+Strategies.parameter(::Type{<:Collocation}) = nothing
 
 # default options
 __collocation_grid_size()::Int = 250

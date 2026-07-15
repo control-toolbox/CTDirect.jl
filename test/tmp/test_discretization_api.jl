@@ -5,6 +5,7 @@ struct DummyDiscretizer <: CTDirect.AbstractDiscretizer
     calls::Base.RefValue{Int}
     tag::Symbol
 end
+CTBase.Strategies.parameter(::Type{<:DummyDiscretizer}) = nothing
 
 function (d::DummyDiscretizer)(ocp::CTModels.AbstractModel)
     d.calls[] += 1
