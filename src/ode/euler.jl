@@ -81,6 +81,8 @@ function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
     disc = disc_model(docp)
     dims = docp.dims
     work = similar(xu, dims.NLP_x * docp.time.steps)
+    cx = coerce_state(docp)
+    cu = coerce_control(docp)
 
     # loop over time steps
     for i in 1:docp.time.steps
@@ -93,8 +95,8 @@ function setWorkArray(docp::DOCP{Euler}, xu, time_grid, v)
             index = i+1
         end
         t = time_grid[index]
-        x = get_OCP_state_at_time_step(xu, docp, index)
-        u = get_OCP_control_at_time_step(xu, docp, index)
+        x = cx(get_OCP_state_at_time_step(xu, docp, index))
+        u = cu(get_OCP_control_at_time_step(xu, docp, index))
 
         # OCP dynamics
         CTModels.dynamics(ocp)(
@@ -113,6 +115,8 @@ function integral(docp::DOCP{Euler}, xu, v, time_grid, f)
     disc = disc_model(docp)
     dims = docp.dims
     value = 0.0
+    cx = coerce_state(docp)
+    cu = coerce_control(docp)
 
     # loop over time steps
     for i in 1:docp.time.steps
@@ -123,8 +127,8 @@ function integral(docp::DOCP{Euler}, xu, v, time_grid, f)
             index = i+1
         end
         ti = time_grid[index]
-        xi = get_OCP_state_at_time_step(xu, docp, index)
-        ui = get_OCP_control_at_time_step(xu, docp, index)
+        xi = cx(get_OCP_state_at_time_step(xu, docp, index))
+        ui = cu(get_OCP_control_at_time_step(xu, docp, index))
         hi = time_grid[i + 1] - time_grid[i]
         value += hi * f(ti, xi, ui, v)
     end

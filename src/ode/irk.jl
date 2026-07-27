@@ -180,6 +180,8 @@ function integral(docp::DOCP{<: GenericIRK}, xu, v, time_grid, f)
     disc = disc_model(docp)
     dims = docp.dims
     value = 0.0
+    cx = coerce_state(docp)
+    cu = coerce_control(docp)
 
     # work array layout: [x_ij ; sum_bk]
     work_xij = similar(xu, dims.NLP_x)
@@ -189,7 +191,7 @@ function integral(docp::DOCP{<: GenericIRK}, xu, v, time_grid, f)
     for i in 1:docp.time.steps
         ti = time_grid[i]
         xi = get_OCP_state_at_time_step(xu, docp, i)
-        ui = get_OCP_control_at_time_step(xu, docp, i)
+        ui = cu(get_OCP_control_at_time_step(xu, docp, i))
         hi = time_grid[i + 1] - ti
 
         # loop over stages
@@ -208,15 +210,15 @@ function integral(docp::DOCP{<: GenericIRK}, xu, v, time_grid, f)
                     work_xij[1:dims.NLP_x] + hi * disc.butcher_a[j, l] * kil[1:dims.NLP_x]
             end
 
-            # update sum b_j k_i^j (lagrange term) 
+            # update sum b_j k_i^j (lagrange term)
             # split to avoid dual tag ordering error in AD
             if j == 1
                 work_sumbk[1] =
-                    disc.butcher_b[j] * f(tij, work_xij, ui, v)
+                    disc.butcher_b[j] * f(tij, cx(work_xij), ui, v)
             else
                 work_sumbk[1] =
                     work_sumbk[1] +
-                    disc.butcher_b[j] * f(tij, work_xij, ui, v)
+                    disc.butcher_b[j] * f(tij, cx(work_xij), ui, v)
             end
         end
 
@@ -237,6 +239,8 @@ function stepStateConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i
     ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
+    cx = coerce_state(docp)
+    cu = coerce_control(docp)
 
     # work array layout: [x_ij ; sum_bk]
     work_xij = @view work[1:dims.NLP_x]
@@ -248,7 +252,7 @@ function stepStateConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i
     # 0. variables
     ti = time_grid[i]
     xi = get_OCP_state_at_time_step(xu, docp, i)
-    ui = get_OCP_control_at_time_step(xu, docp, i)
+    ui = cu(get_OCP_control_at_time_step(xu, docp, i))
 
     # 1. state and stage equations
 
@@ -291,7 +295,7 @@ function stepStateConstraints!(docp::DOCP{<: GenericIRK}, c, xu, v, time_grid, i
         CTModels.dynamics(ocp)(
             (@view c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)]),
             tij,
-            work_xij,
+            cx(work_xij),
             ui,
             v,
         )

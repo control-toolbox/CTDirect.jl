@@ -47,19 +47,22 @@ Set work array for all dynamics cost evaluations
 function setWorkArray(docp::DOCP{Midpoint}, xu, time_grid, v)
     work = similar(xu, docp.dims.NLP_x * docp.time.steps * docp.time.control_steps)
     ocp = ocp_model(docp)
+    cx = coerce_state(docp)
+    cu = coerce_control(docp)
 
     # loop over time steps
     offset = 0
     for i in 1:docp.time.steps
         ts = 0.5 * (time_grid[i] + time_grid[i + 1])
-        xs =
+        xs = cx(
             0.5 * (
                 get_OCP_state_at_time_step(xu, docp, i) +
                 get_OCP_state_at_time_step(xu, docp, i+1)
             )
+        )
         # loop over control steps
         for j in 1:docp.time.control_steps
-            uij = get_OCP_control_at_time_step(xu, docp, i, j)
+            uij = cu(get_OCP_control_at_time_step(xu, docp, i, j))
             # OCP dynamics
             CTModels.dynamics(ocp)(
             (@view work[(offset + 1):(offset + docp.dims.NLP_x)]), ts, xs, uij, v
@@ -78,6 +81,8 @@ Compute the running cost
 """
 function integral(docp::DOCP{Midpoint}, xu, v, time_grid, f)
     value = 0.0
+    cx = coerce_state(docp)
+    cu = coerce_control(docp)
 
     # Collocation: 1 control per step
     # Direct shooting: >=1 controls per step
@@ -87,26 +92,29 @@ function integral(docp::DOCP{Midpoint}, xu, v, time_grid, f)
         for i in 1:docp.time.steps
             hi = time_grid[i + 1] - time_grid[i]
             ts = 0.5 * (time_grid[i] + time_grid[i + 1])
-            xs =
+            xs = cx(
                 0.5 * (
                     get_OCP_state_at_time_step(xu, docp, i) +
                     get_OCP_state_at_time_step(xu, docp, i+1)
                 )
-            ui = get_OCP_control_at_time_step(xu, docp, i)
+            )
+            ui = cu(get_OCP_control_at_time_step(xu, docp, i))
             value +=  hi * f(ts, xs, ui, v)
         end
     else
         # loop over time steps
         for i in 1:docp.time.steps
             hi = (time_grid[i + 1] - time_grid[i]) / docp.time.control_steps
-            xs = 0.5 * (
+            xs = cx(
+                0.5 * (
                     get_OCP_state_at_time_step(xu, docp, i) +
                     get_OCP_state_at_time_step(xu, docp, i+1)
                 )
+            )
             # loop over control steps
             for j in 1:docp.time.control_steps
                 tij = time_grid[i] + (j - 0.5) * hi
-                uij = get_OCP_control_at_time_step(xu, docp, i, j)
+                uij = cu(get_OCP_control_at_time_step(xu, docp, i, j))
                 value +=  hi * f(tij, xs, uij, v)
             end
         end
