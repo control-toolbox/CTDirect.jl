@@ -28,7 +28,9 @@ jobs:
     secrets:
       SSH_KEY: ${{ secrets.SSH_KEY }}
 
-  # Job for the self-hosted kkt runner (GPU/CUDA)
+  # Job for the self-hosted kkt runner (GPU/CUDA). Runs CTDirect's GPU-specific test
+  # suite (test/test_gpu.jl, selected via test_args=GPU — see test/runtests.jl), not
+  # the plain suite: replaces the former dedicated GPU.yml workflow.
   test-gpu-kkt:
     # See the comment on test-cpu-github above.
     if: >
@@ -41,5 +43,6 @@ jobs:
       runs_on: '[["kkt"]]'
       runner_type: 'self-hosted'
       use_ct_registry: true
+      test_args: 'GPU'
     secrets:
       SSH_KEY: ${{ secrets.SSH_KEY }}
