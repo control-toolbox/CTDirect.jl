@@ -44,7 +44,7 @@ function solve_problem(prob;
     else
         error("Unknown discretizer: ", discretizer)
     end
-    docp = CTDirect.discretize(prob.ocp, my_discretizer)
+    docp = CTSolvers.discretize(prob.ocp, my_discretizer)
     
     # initial guess for model builders
     if isnothing(init)

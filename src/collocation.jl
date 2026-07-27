@@ -1,16 +1,16 @@
 # ---------------------------------------------------------------------------
-# Implementation of Collocation discretizer
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
 # Collocation discretizer
+#
+# Implements the CTSolvers contract (discretize / build_model / build_solution)
+# for the Collocation transcription, for the ADNLP and Exa backends.
 # ---------------------------------------------------------------------------
-struct Collocation <: AbstractDiscretizer
+struct Collocation <: CTSolvers.AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
 
 # useful for OptimalControl
 Strategies.id(::Type{<:Collocation}) = :collocation
+Strategies.parameter(::Type{<:Collocation}) = nothing
 
 # default options
 __collocation_grid_size()::Int = 250
@@ -49,203 +49,215 @@ end
 
 Strategies.options(c::Collocation) = c.options
 
-# +++ todo if possible: unify get_docp for Collocation / directshooting and move to DOCP_data.jl ?
-
 # ==========================================================================================
-# Build core DOCP structure with discretization information (ADNLP)
+# CTSolvers contract: discretize
 # ==========================================================================================
-function get_docp(discretizer::Collocation, ocp::AbstractModel)
-    
-    # recover discretization scheme and options
-    scheme = Strategies.options(discretizer)[:scheme]
-    grid_size = Strategies.options(discretizer)[:grid_size]
-    time_grid = Strategies.options(discretizer)[:time_grid]
+"""
+$(TYPEDSIGNATURES)
 
-    # initialize DOCP
-    control_steps = 1
-    docp = DOCP(ocp, grid_size, control_steps, scheme, time_grid)
-
-    # set bounds in DOCP
-    __variables_bounds!(docp)
-    __constraints_bounds!(docp)
-
-    return docp
+Discretize an OCP with the Collocation strategy into a `CTSolvers.DiscretizedModel`
+holding a [`DOCPCache`](@ref) with the precomputed DOCP.
+"""
+function CTSolvers.discretize(ocp::AbstractModel, discretizer::Collocation)
+    docp = get_docp(discretizer, ocp)
+    return CTSolvers.DiscretizedModel(ocp, discretizer, DOCPCache(docp))
 end
 
-
 # ==========================================================================================
-# Build discretizer API (return sets of model/solution builders)
+# CTSolvers contract: ADNLP backend
 # ==========================================================================================
-function (discretizer::Collocation)(ocp::AbstractModel)
+"""
+$(TYPEDSIGNATURES)
 
-    # common parts for builders
-    docp = get_docp(discretizer, ocp)
-    exa_getter = nothing # will be set in build_exa_model
+Build a `CTSolvers.BuiltModel` wrapping an `ADNLPModel` for a Collocation-discretized
+problem. The ADNLP backend needs no build-time auxiliary, hence `CTSolvers.NoCache`.
+"""
+function CTSolvers.build_model(
+    dm::CTSolvers.DiscretizedModel{<:Any,<:Collocation},
+    initial_guess::CTModels.AbstractInitialGuess,
+    modeler::CTSolvers.Modelers.ADNLP,
+)
+    docp = dm.cache.docp
+    ocp = dm.ocp
 
-    # ==========================================================================================
-    # The needed builders for the construction of the final DiscretizedModel
-    # ==========================================================================================
-    
-    # NLP builder for ADNLPModels
-    function build_adnlp_model(
-        initial_guess::CTModels.AbstractInitialGuess;
-        backend,
-        kwargs...
-    )::ADNLPModels.ADNLPModel
+    # modeler options; backend is consumed here, the rest is forwarded to ADNLPModel!
+    options = Strategies.options_dict(modeler)
+    backend = pop!(options, :backend)
 
-        # functions for objective and constraints
-        f = x -> CTDirect.__objective(x, docp)
-        c! = (c, x) -> CTDirect.__constraints!(c, x, docp)
+    # functions for objective and constraints
+    f = x -> __objective(x, docp)
+    c! = (c, x) -> __constraints!(c, x, docp)
 
-        # build initial guess
-        functional_init = CTModels.build_initial_guess(ocp, initial_guess)
-        x0 = __initial_guess(docp, functional_init)
+    # build initial guess
+    functional_init = CTModels.build_initial_guess(ocp, initial_guess)
+    x0 = __initial_guess(docp, functional_init)
 
-        # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
-        unused_backends = (
-        hprod_backend=ADNLPModels.EmptyADbackend,
-        jtprod_backend=ADNLPModels.EmptyADbackend,
-        jprod_backend=ADNLPModels.EmptyADbackend,
-        ghjvprod_backend=ADNLPModels.EmptyADbackend,
-        )
-
-        # set adnlp backends
-        if backend == :manual
-
-            # build sparsity patterns for Jacobian and Hessian
-            J_backend = ADNLPModels.SparseADJacobian(
-                docp.dim_NLP_variables, f,
-                docp.dim_NLP_constraints, c!,
-                CTDirect.DOCP_Jacobian_pattern(docp),
-            )
-            H_backend = ADNLPModels.SparseReverseADHessian(
-                docp.dim_NLP_variables, f,
-                docp.dim_NLP_constraints, c!,
-                CTDirect.DOCP_Hessian_pattern(docp),
-            )
-            backend_options = (
-                gradient_backend=ADNLPModels.ReverseDiffADGradient,
-                jacobian_backend=J_backend,
-                hessian_backend=H_backend,
-            )
-        else
-            # use backend preset
-            backend_options = (backend=backend,)
-        end
-
-        # build NLP
-        nlp = ADNLPModels.ADNLPModel!(
-            f,
-            x0,
-            docp.bounds.var_l,
-            docp.bounds.var_u,
-            c!,
-            docp.bounds.con_l,
-            docp.bounds.con_u;
-            minimize=(!docp.flags.max),
-            backend_options...,
-            unused_backends...,
-            kwargs...,
-        )
-
-        return nlp
-
-    end
-
-    # Solution builder for ADNLPModels
-    function build_adnlp_solution(nlp_solution::SolverCore.AbstractExecutionStats)
-        
-        # retrieve data from NLP solver
-        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
-
-        # retrieve time grid  +++ put in build_OCP_solution
-        T = get_time_grid(nlp_solution.solution, docp)
-
-        # build OCP solution from NLP solution
-        sol = CTDirect.build_OCP_solution(docp, nlp_solution, T, 
-        objective, iterations, constraints_violation, message, status, successful)
-        
-        return sol
-    end
-
-    # NLP builder for ExaModels
-    function build_exa_model(
-        ::Type{BaseType}, 
-        initial_guess::CTModels.AbstractInitialGuess; 
-        backend
-    )::ExaModels.ExaModel where {BaseType<:AbstractFloat}
-
-        # recover discretization scheme and size
-        scheme = Strategies.options(discretizer)[:scheme]
-        grid_size = Strategies.options(discretizer)[:grid_size]
-
-        # build initial guess
-        functional_init = CTModels.build_initial_guess(ocp, initial_guess)
-        x0 = __initial_guess(docp, functional_init)
-        # reshape initial guess for ExaModel variables layout
-        # - do not broadcast, apparently fails on GPU arrays
-        # - unused final control in examodel / euler, hence the different x0 sizes
-        n = CTModels.state_dimension(ocp)
-        m = CTModels.control_dimension(ocp)
-        q = CTModels.variable_dimension(ocp)
-        N = docp.time.steps
-        # N + 1 states, N controls
-        state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)] 
-        for i in 0:N]...)
-        if m > 0
-            control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)] 
-            for i in 0:(N - 1)]...,)
-            # see with JB: pass indeed to grid_size only for euler(_b), trapeze and midpoint
-            control = [control control[:, end]]
-        else
-            # zero control dimension: create empty matrix with correct type
-            control = similar(x0, 0, N + 1)
-        end
-        variable = x0[(end - q + 1):end]
-        init = (variable, state, control)
-
-        # build Exa model and getters
-        # see with JB. later try to call Exa constructor here if possible, reusing existing functions...
-        build_exa = CTModels.get_build_examodel(ocp)
-        nlp, exa_getter = build_exa(;
-            grid_size=grid_size,
-            backend=backend,
-            scheme=scheme,
-            init=init,
-            base_type=BaseType,
-        )
-
-        return nlp
-    end
-
-    # Solution builder for ExaModels
-    function build_exa_solution(nlp_solution::SolverCore.AbstractExecutionStats)
-
-        # NB exa_getter is set during build_exa_model call !
-        if isnothing(exa_getter)
-            error("build_exa_solution: exa_getter is nothing")
-        end
-
-        # retrieve data from NLP solver
-        objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
-  
-        # retrieve time grid
-        T = get_time_grid_exa(nlp_solution, docp, exa_getter)
-
-        # build OCP solution from NLP solution
-        sol = CTDirect.build_OCP_solution(docp, nlp_solution, T,
-        objective, iterations, constraints_violation, message, status, successful; 
-        exa_getter=exa_getter)
-        
-        return sol
-    end
-
-    #NB. it would be better to return builders as model/solution pairs since they are linked
-    return CTSolvers.DiscretizedModel(
-        ocp,
-        CTSolvers.ADNLPModelBuilder(build_adnlp_model),
-        CTSolvers.ExaModelBuilder(build_exa_model),
-        CTSolvers.ADNLPSolutionBuilder(build_adnlp_solution),
-        CTSolvers.ExaSolutionBuilder(build_exa_solution),
+    # unused backends (option excluded_backend = [:jprod_backend, :jtprod_backend, :hprod_backend, :ghjvprod_backend] does not seem to work)
+    unused_backends = (
+    hprod_backend=ADNLPModels.EmptyADbackend,
+    jtprod_backend=ADNLPModels.EmptyADbackend,
+    jprod_backend=ADNLPModels.EmptyADbackend,
+    ghjvprod_backend=ADNLPModels.EmptyADbackend,
     )
+
+    # set adnlp backends
+    if backend == :manual
+
+        # build sparsity patterns for Jacobian and Hessian
+        J_backend = ADNLPModels.SparseADJacobian(
+            docp.dim_NLP_variables, f,
+            docp.dim_NLP_constraints, c!,
+            DOCP_Jacobian_pattern(docp),
+        )
+        H_backend = ADNLPModels.SparseReverseADHessian(
+            docp.dim_NLP_variables, f,
+            docp.dim_NLP_constraints, c!,
+            DOCP_Hessian_pattern(docp),
+        )
+        backend_options = (
+            gradient_backend=ADNLPModels.ReverseDiffADGradient,
+            jacobian_backend=J_backend,
+            hessian_backend=H_backend,
+        )
+    else
+        # use backend preset
+        backend_options = (backend=backend,)
+    end
+
+    # build NLP
+    nlp = ADNLPModels.ADNLPModel!(
+        f,
+        x0,
+        docp.bounds.var_l,
+        docp.bounds.var_u,
+        c!,
+        docp.bounds.con_l,
+        docp.bounds.con_u;
+        minimize=(!docp.flags.max),
+        backend_options...,
+        unused_backends...,
+        options...,
+    )
+
+    return CTSolvers.BuiltModel(dm, nlp, CTSolvers.NoCache())
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Build an OCP solution from an ADNLP solver result for a Collocation-discretized problem.
+"""
+function CTSolvers.build_solution(
+    built::CTSolvers.BuiltModel{<:CTSolvers.DiscretizedModel{<:Any,<:Collocation}},
+    nlp_solution::SolverCore.AbstractExecutionStats,
+    ::CTSolvers.Modelers.ADNLP,
+)
+    docp = built.problem.cache.docp
+
+    # retrieve data from NLP solver
+    objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
+
+    # retrieve time grid  +++ put in build_OCP_solution
+    T = get_time_grid(nlp_solution.solution, docp)
+
+    # build OCP solution from NLP solution
+    sol = build_OCP_solution(docp, nlp_solution, T,
+    objective, iterations, constraints_violation, message, status, successful)
+
+    return sol
+end
+
+# ==========================================================================================
+# CTSolvers contract: Exa backend
+# ==========================================================================================
+"""
+$(TYPEDSIGNATURES)
+
+Build a `CTSolvers.BuiltModel` wrapping an `ExaModel` for a Collocation-discretized
+problem. The getter produced together with the model is carried in an
+[`ExaBuildCache`](@ref) so that `build_solution` can reuse it (no mutation).
+"""
+function CTSolvers.build_model(
+    dm::CTSolvers.DiscretizedModel{<:Any,<:Collocation},
+    initial_guess::CTModels.AbstractInitialGuess,
+    modeler::CTSolvers.Modelers.Exa,
+)
+    docp = dm.cache.docp
+    ocp = dm.ocp
+
+    BaseType = modeler[:base_type]
+    backend = modeler[:backend]
+
+    # recover discretization scheme and size
+    scheme = Strategies.options(dm.discretizer)[:scheme]
+    grid_size = Strategies.options(dm.discretizer)[:grid_size]
+
+    # build initial guess
+    functional_init = CTModels.build_initial_guess(ocp, initial_guess)
+    x0 = __initial_guess(docp, functional_init)
+    # reshape initial guess for ExaModel variables layout
+    # - do not broadcast, apparently fails on GPU arrays
+    # - unused final control in examodel / euler, hence the different x0 sizes
+    n = CTModels.state_dimension(ocp)
+    m = CTModels.control_dimension(ocp)
+    q = CTModels.variable_dimension(ocp)
+    N = docp.time.steps
+    # N + 1 states, N controls
+    state = hcat([x0[(1 + i * (n + m)):(1 + i * (n + m) + n - 1)]
+    for i in 0:N]...)
+    if m > 0
+        control = hcat([x0[(n + 1 + i * (n + m)):(n + 1 + i * (n + m) + m - 1)]
+        for i in 0:(N - 1)]...,)
+        # see with JB: pass indeed to grid_size only for euler(_b), trapeze and midpoint
+        control = [control control[:, end]]
+    else
+        # zero control dimension: create empty matrix with correct type
+        control = similar(x0, 0, N + 1)
+    end
+    variable = x0[(end - q + 1):end]
+    init = (variable, state, control)
+
+    # build Exa model and getters
+    # see with JB. later try to call Exa constructor here if possible, reusing existing functions...
+    build_exa = CTModels.get_build_examodel(ocp)
+    nlp, exa_getter = build_exa(;
+        grid_size=grid_size,
+        backend=backend,
+        scheme=scheme,
+        init=init,
+        base_type=BaseType,
+    )
+
+    # carry the getter in an immutable build-time cache -- no mutation, no closure
+    return CTSolvers.BuiltModel(dm, nlp, ExaBuildCache(exa_getter))
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Build an OCP solution from an Exa solver result for a Collocation-discretized problem.
+
+The getter is read from the `ExaBuildCache` carried by `built` (populated by
+`build_model`).
+"""
+function CTSolvers.build_solution(
+    built::CTSolvers.BuiltModel{<:CTSolvers.DiscretizedModel{<:Any,<:Collocation},<:Any,<:ExaBuildCache},
+    nlp_solution::SolverCore.AbstractExecutionStats,
+    ::CTSolvers.Modelers.Exa,
+)
+    docp = built.problem.cache.docp
+    exa_getter = built.cache.exa_getter
+
+    # retrieve data from NLP solver
+    objective, iterations, constraints_violation, message, status, successful = CTSolvers.extract_solver_infos(nlp_solution)
+
+    # retrieve time grid
+    T = get_time_grid_exa(nlp_solution, docp, exa_getter)
+
+    # build OCP solution from NLP solution
+    sol = build_OCP_solution(docp, nlp_solution, T,
+    objective, iterations, constraints_violation, message, status, successful;
+    exa_getter=exa_getter)
+
+    return sol
 end

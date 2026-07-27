@@ -4,50 +4,25 @@ using DocStringExtensions
 import ADNLPModels
 import ExaModels
 import CTModels
-import CTSolvers, CTSolvers.Strategies, CTSolvers.Options
+import CTSolvers
+import CTBase
+import CTBase.Strategies
+import CTBase.Options
+import CTBase.Core
+import CTBase.Exceptions
 import SolverCore
 import SparseArrays
 
 # ---------------------------------------------------------------------------
-# Abstract discretizer type
+# Discretizers
+#
+# `AbstractDiscretizer` is owned by CTSolvers (CTSolvers.DOCP). Concrete
+# discretizers (Collocation, DirectShooting) implement the CTSolvers contract:
+# `CTSolvers.discretize`, `CTSolvers.build_model`, `CTSolvers.build_solution`.
 # ---------------------------------------------------------------------------
 const AbstractModel = CTModels.AbstractModel
-abstract type AbstractDiscretizer <: Strategies.AbstractStrategy end
 
-__discretizer()::AbstractDiscretizer = Collocation()
-
-"""
-$(TYPEDSIGNATURES)
-
-Discretize an optimal control problem using the specified discretizer.
-
-# Arguments
-- `ocp::AbstractModel`: The optimal control problem to discretize
-- `discretizer::AbstractDiscretizer`: The discretization strategy to apply
-
-# Returns
-- The discretized problem representation
-"""
-function discretize(ocp::AbstractModel, discretizer::AbstractDiscretizer)
-    return discretizer(ocp)
-end
-"""
-$(TYPEDSIGNATURES)
-
-Discretize an optimal control problem using the default discretizer.
-
-This is a convenience method that uses the default discretizer (Collocation).
-
-# Arguments
-- `ocp::AbstractModel`: The optimal control problem to discretize
-- `discretizer::AbstractDiscretizer`: Optional discretization strategy (default: Collocation)
-
-# Returns
-- The discretized problem representation
-"""
-function discretize(ocp::AbstractModel; discretizer::AbstractDiscretizer=__discretizer())
-    return discretize(ocp, discretizer)
-end
+__discretizer()::CTSolvers.AbstractDiscretizer = Collocation()
 
 # ---------------------------------------------------------------------------
 # Discretization schemes: see ode/
@@ -74,6 +49,7 @@ abstract type Scheme end
 
 # includes
 include("DOCP_data.jl")
+include("DOCP_cache.jl")
 include("DOCP_variables.jl")
 include("DOCP_functions.jl")
 
