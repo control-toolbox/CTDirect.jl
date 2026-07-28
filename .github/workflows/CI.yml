@@ -22,7 +22,7 @@ jobs:
       (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'run ci cpu'))
     uses: control-toolbox/CTActions/.github/workflows/ci.yml@fix/windows-ct-registry
     with:
-      runs_on: '["windows-latest"]'
+      runs_on: '["ubuntu-latest", "windows-latest"]'
       runner_type: 'github'
       use_ct_registry: true
     secrets:
