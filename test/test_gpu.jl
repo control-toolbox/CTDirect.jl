@@ -1,6 +1,7 @@
 # GPU only tests (do not run on CPU)
 using MadNLPGPU
 using CUDA
+using CUDSS  # required so MadNLPGPU's CUDA sparse KKT extension actually loads
 using AMDGPU
 
 # load problems
