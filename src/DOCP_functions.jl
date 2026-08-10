@@ -28,13 +28,14 @@ function __objective(xu, docp::DOCP)
     else
         time_grid = docp.time.fixed_grid
     end
-    v = get_OCP_variable(xu, docp)
+    v = coerce_variable(docp)(get_OCP_variable(xu, docp))
     ocp = ocp_model(docp)
 
     # mayer cost
     if docp.flags.mayer
-        x0 = get_OCP_state_at_time_step(xu, docp, 1)
-        xf = get_OCP_state_at_time_step(xu, docp, docp.time.steps+1)
+        cx = coerce_state(docp)
+        x0 = cx(get_OCP_state_at_time_step(xu, docp, 1))
+        xf = cx(get_OCP_state_at_time_step(xu, docp, docp.time.steps+1))
         obj_mayer = CTModels.mayer(ocp)(x0, xf, v)
     else
         obj_mayer = 0.0
@@ -85,14 +86,14 @@ function __constraints!(c, xu, docp::DOCP)
     else
         time_grid = docp.time.fixed_grid
     end
-    v = get_OCP_variable(xu, docp)
+    v = coerce_variable(docp)(get_OCP_variable(xu, docp))
     work = setWorkArray(docp, xu, time_grid, v)
 
     # main loop on time steps
     for i in 1:docp.time.steps
         # state equation (includes stage equation depending on scheme)
         stepStateConstraints!(docp, c, xu, v, time_grid, i, work)
-        
+
         #path constraints
         (docp.dims.path_cons > 0) && stepPathConstraints!(docp, c, xu, v, time_grid, i)
     end
@@ -103,8 +104,9 @@ function __constraints!(c, xu, docp::DOCP)
     if docp.dims.boundary_cons > 0
         offset = docp.dim_NLP_constraints - docp.dims.boundary_cons
         ocp = ocp_model(docp)
-        x0 = get_OCP_state_at_time_step(xu, docp, 1)
-        xf = get_OCP_state_at_time_step(xu, docp, docp.time.steps+1)
+        cx = coerce_state(docp)
+        x0 = cx(get_OCP_state_at_time_step(xu, docp, 1))
+        xf = cx(get_OCP_state_at_time_step(xu, docp, docp.time.steps+1))
         CTModels.boundary_constraints_nl(ocp)[2](
             (@view c[(offset + 1):(offset + docp.dims.boundary_cons)]), x0, xf, v
         )
@@ -131,8 +133,8 @@ function stepPathConstraints!(docp, c, xu, v, time_grid, i)
     
     # set constraint
     ti = time_grid[i]
-    xi = get_OCP_state_at_time_step(xu, docp, i)
-    ui = get_OCP_control_at_time_step(xu, docp, i)
+    xi = coerce_state(docp)(get_OCP_state_at_time_step(xu, docp, i))
+    ui = coerce_control(docp)(get_OCP_control_at_time_step(xu, docp, i))
     CTModels.path_constraints_nl(ocp)[2](
     (@view c[(offset + 1):(offset + docp.dims.path_cons)]), ti, xi, ui, v
     )

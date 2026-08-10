@@ -344,6 +344,8 @@ Compute running cost using Gauss quadrature and stagewise controls.
 function integral(docp::DOCP{<:GenericIRKStagewise}, xu, v, time_grid, f)
     disc = disc_model(docp)
     dims = docp.dims
+    cx = coerce_state(docp)
+    cu = coerce_control(docp)
 
     value = 0.0
     work_xij = similar(xu, dims.NLP_x)
@@ -362,7 +364,7 @@ function integral(docp::DOCP{<:GenericIRKStagewise}, xu, v, time_grid, f)
             # compute the stage time
             tij = ti + disc.butcher_c[j] * hi
             # retrieve the stage control uij
-            uij = get_stagecontrol_at_time_step(xu, docp, i, j)
+            uij = cu(get_stagecontrol_at_time_step(xu, docp, i, j))
             # reconstruct the stage state xij
             # copy x_i into work_xij
             @views @. work_xij = xi
@@ -374,7 +376,7 @@ function integral(docp::DOCP{<:GenericIRKStagewise}, xu, v, time_grid, f)
                 @views @. work_xij = work_xij + hi * disc.butcher_a[j, l] * kil
             end
             # evaluate the cost f(tij,xij,uij,v) and add it weighted by b_j
-            local_sum += disc.butcher_b[j] * f(tij, work_xij, uij, v)
+            local_sum += disc.butcher_b[j] * f(tij, cx(work_xij), uij, v)
         end
         # add hi * local_sum to the total value
         value += hi * local_sum
@@ -403,6 +405,8 @@ function stepStateConstraints!(
     ocp = ocp_model(docp)
     disc = disc_model(docp)
     dims = docp.dims
+    cx = coerce_state(docp)
+    cu = coerce_control(docp)
 
     # work layout: [x_ij ; sum_bk]
     # allocate from the work vector defined in setWorkArray
@@ -424,7 +428,7 @@ function stepStateConstraints!(
     for j in 1:disc.stage
         tij = ti + disc.butcher_c[j] * hi
         kij = get_stagevars_at_time_step(xu, docp, i, j)
-        uij = get_stagecontrol_at_time_step(xu, docp, i, j)
+        uij = cu(get_stagecontrol_at_time_step(xu, docp, i, j))
         # build Σ b_j K_i^j
         if j == 1
             @views @. work_sumbk = disc.butcher_b[j] * kij
@@ -441,7 +445,7 @@ function stepStateConstraints!(
         CTModels.dynamics(ocp)(
             @view(c[(offset + offset_stage_eqs + 1):(offset + offset_stage_eqs + dims.NLP_x)]),
             tij,
-            work_xij,
+            cx(work_xij),
             uij,
             v,
         )

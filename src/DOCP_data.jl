@@ -240,6 +240,43 @@ struct DOCPbounds
 end
 
 """
+$(TYPEDSIGNATURES)
+
+Coercion to apply to a quantity of *declared* dimension `dim` before handing it to a user
+OCP function: `only` collapses a 1-D quantity to a scalar, `identity` leaves every other
+dimension untouched — including `dim == 0` (control-free problems), for which `only` would
+throw on the empty view.
+"""
+_dim_coerce(dim::Int) = dim == 1 ? only : identity
+
+"""
+$(TYPEDEF)
+
+Internal struct holding the per-quantity coercions (`only` or `identity`) applied at the
+boundary of every call into a user OCP function, driven by the *declared* dimension of
+state, control and optimization variable (never by the runtime type of the value).
+
+# Fields
+
+- `x`: coercion for state / boundary states.
+- `u`: coercion for control.
+- `v`: coercion for the optimization variable.
+"""
+struct DOCPshape{CX,CU,CV}
+    x::CX
+    u::CU
+    v::CV
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Build a `DOCPshape` from the problem dimensions.
+"""
+DOCPshape(dims::DOCPdims) =
+    DOCPshape(_dim_coerce(dims.NLP_x), _dim_coerce(dims.NLP_u), _dim_coerce(dims.NLP_v))
+
+"""
 $(TYPEDEF)
 
 Struct representing a discretized optimal control problem (DOCP).
@@ -252,6 +289,7 @@ Struct representing a discretized optimal control problem (DOCP).
 - `dims::DOCPdims`: Problem dimensions.
 - `time::DOCPtime`: Time discretization.
 - `bounds::DOCPbounds`: Variable and constraint bounds.
+- `shape::S`: Per-quantity coercions applied at user-function call boundaries.
 - `dim_NLP_variables::Int`: Number of NLP variables.
 - `dim_NLP_constraints::Int`: Number of NLP constraints.
 
@@ -263,7 +301,7 @@ DOCP{...}(...)
 ```
 """
 mutable struct DOCP{
-    D<:CTDirect.Scheme, O<:CTModels.Model
+    D<:CTDirect.Scheme, O<:CTModels.Model, S<:DOCPshape
     }
 
     # discretization scheme
@@ -285,6 +323,9 @@ mutable struct DOCP{
     # lower and upper bounds for variables and constraints
     bounds::DOCPbounds
 
+    # per-quantity coercions (only | identity) for user-function call boundaries
+    shape::S
+
     # NLP variables and constraints
     dim_NLP_variables::Int
     dim_NLP_constraints::Int
@@ -297,6 +338,9 @@ mutable struct DOCP{
 
         # dimensions
         dims = DOCPdims(ocp)
+
+        # shape (per-quantity coercions for user-function call boundaries)
+        shape = DOCPshape(dims)
 
         # time grid
         time = DOCPtime(ocp, grid_size, control_steps, time_grid)
@@ -357,13 +401,34 @@ mutable struct DOCP{
         )
 
         # call constructor with const fields
-        docp = new{typeof(discretization),typeof(ocp)}(
-            discretization, ocp, flags, dims, time, bounds, dim_NLP_variables, dim_NLP_constraints,
+        docp = new{typeof(discretization),typeof(ocp),typeof(shape)}(
+            discretization, ocp, flags, dims, time, bounds, shape, dim_NLP_variables, dim_NLP_constraints,
         )
 
         return docp
     end
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Coercion to apply to a state value before handing it to a user OCP function.
+"""
+coerce_state(docp::DOCP) = docp.shape.x
+
+"""
+$(TYPEDSIGNATURES)
+
+Coercion to apply to a control value before handing it to a user OCP function.
+"""
+coerce_control(docp::DOCP) = docp.shape.u
+
+"""
+$(TYPEDSIGNATURES)
+
+Coercion to apply to the optimization variable before handing it to a user OCP function.
+"""
+coerce_variable(docp::DOCP) = docp.shape.v
 
 # getters for high level structs
 """
