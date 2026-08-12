@@ -21,7 +21,7 @@ SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 [compat]
 ADNLPModels = "0.8"
 AMDGPU = "2"
-CTBase = "0.28"
+CTBase = "0.28, 0.29"
 CTModels = "0.15"
 CTParser = "0.8"
 CTSolvers = "0.4"
