@@ -379,15 +379,11 @@ mutable struct DOCP{
             discretization, dim_NLP_variables, dim_NLP_constraints =
             CTDirect.Gauss_Legendre_3_Stagewise(disc_args...)
 
-        elseif scheme == :variable
-            discretization, dim_NLP_variables, dim_NLP_constraints = 
-            CTDirect.VariableStepODE(disc_args...)
-        
         else
             error(
                 "Unknown discretization method: ",
                 scheme,
-                "\nValid options are scheme={:trapeze, :midpoint, :euler | :euler_explicit | :euler_forward, :euler_implicit | :euler_backward, :gauss_legendre_2, :gauss_legendre_3, :gauss_legendre_2_stagewise, :gauss_legendre_3_stagewise}\n",
+                "\nValid options are scheme={:trapeze, :midpoint, :euler | :euler_explicit | :euler_forward, :euler_implicit | :euler_backward, :gauss_legendre_2, :gauss_legendre_3, :gauss_legendre_2_constant_control, :gauss_legendre_3_constant_control}\n",
                 typeof(scheme),
             )
         end

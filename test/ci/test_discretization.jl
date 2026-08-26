@@ -78,3 +78,9 @@ end
         test_problem(double_integrator_freet0tf(); scheme=scheme, grid_size=50)
     end
 end
+
+# the :variable scheme was never compiled and has been removed (issue #624):
+# it must now raise the ordinary "unknown scheme" error, not an UndefVarError
+@testset verbose = true showtiming = true ":variable scheme removed" begin
+    @test_throws Exception solve_problem(beam(); scheme=:variable)
+end
