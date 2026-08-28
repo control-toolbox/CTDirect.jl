@@ -50,7 +50,14 @@ function getter(nlp_solution, docp::DOCP; val::Symbol)
         elseif val == :mult_boundary_constraints
             return mult_boundary_constraints
         else
-            error("you should not be here: getter with val ", val)
+            throw(Exceptions.IncorrectArgument(
+                "unknown value requested from getter";
+                got=":$(val)",
+                expected=":costate, :mult_path_constraints, :mult_boundary_constraints, " *
+                    ":variable, :state, :control (with _l / _u box-multiplier variants)",
+                suggestion="request one of the supported quantities",
+                context="post-optimization getter",
+            ))
         end
     end
 
@@ -99,7 +106,14 @@ function getter(nlp_solution, docp::DOCP; val::Symbol)
         return V
 
     else
-        error("Unknown val for getter: ", val)
+        throw(Exceptions.IncorrectArgument(
+            "unknown value requested from getter";
+            got=":$(val)",
+            expected=":costate, :mult_path_constraints, :mult_boundary_constraints, " *
+                ":variable, :state, :control (with _l / _u box-multiplier variants)",
+            suggestion="request one of the supported quantities",
+            context="post-optimization getter",
+        ))
     end
 end
 
@@ -250,11 +264,12 @@ Build sparsity pattern for Jacobian of constraints
 (to be implemented for each discretization scheme)
 """
 function DOCP_Jacobian_pattern(docp::DOCP{D}) where {(D<:Scheme)}
-    error(
-        "DOCP_Jacobian_pattern not implemented for discretization ",
-        D,
-        " Use option solve(...; adnlp_backend=:optimized)",
-    )
+    throw(Exceptions.NotImplemented(
+        "DOCP_Jacobian_pattern is not implemented for discretization $(D)";
+        required_method="DOCP_Jacobian_pattern(::DOCP{$(D)})",
+        suggestion="use solve(...; adnlp_backend=:optimized)",
+        context="manual Jacobian sparsity pattern",
+    ))
 end
 
 """
@@ -264,11 +279,12 @@ Build sparsity pattern for Hessian of Lagrangian
 (to be implemented for each discretization scheme)
 """
 function DOCP_Hessian_pattern(docp::DOCP{D}) where {(D<:Scheme)}
-    error(
-        "DOCP_Hessian_pattern not implemented for discretization ",
-        D,
-        " Use option solve(...; adnlp_backend=:optimized)",
-    )
+    throw(Exceptions.NotImplemented(
+        "DOCP_Hessian_pattern is not implemented for discretization $(D)";
+        required_method="DOCP_Hessian_pattern(::DOCP{$(D)})",
+        suggestion="use solve(...; adnlp_backend=:optimized)",
+        context="manual Hessian sparsity pattern",
+    ))
 end
 
 # utility functions for manual sparsity patterns

@@ -184,8 +184,17 @@ function DOCPtime(ocp::CTModels.Model, grid_size::Int, control_steps::Int, time_
     else
         # check strictly increasing
         if !issorted(time_grid; lt=<=)
-            throw(ArgumentError("given time grid is not strictly increasing. Aborting..."))
-            return nothing
+            k = findfirst(
+                i -> time_grid[i] >= time_grid[i + 1],
+                firstindex(time_grid):(lastindex(time_grid) - 1),
+            )
+            throw(Exceptions.IncorrectArgument(
+                "time grid is not strictly increasing";
+                got="time_grid[$k] = $(time_grid[k]), time_grid[$(k + 1)] = $(time_grid[k + 1])",
+                expected="strictly increasing values",
+                suggestion="pass a strictly increasing vector of time points",
+                context="DOCP time grid construction",
+            ))
         end
         # normalize input grid if needed
         if (time_grid[1] != 0) || (time_grid[end] != 1)
@@ -380,12 +389,16 @@ mutable struct DOCP{
             CTDirect.Gauss_Legendre_3_Stagewise(disc_args...)
 
         else
-            error(
-                "Unknown discretization method: ",
-                scheme,
-                "\nValid options are scheme={:trapeze, :midpoint, :euler | :euler_explicit | :euler_forward, :euler_implicit | :euler_backward, :gauss_legendre_2, :gauss_legendre_3, :gauss_legendre_2_constant_control, :gauss_legendre_3_constant_control}\n",
-                typeof(scheme),
-            )
+            throw(Exceptions.IncorrectArgument(
+                "unknown discretization scheme";
+                got=string(scheme),
+                expected=":trapeze, :midpoint, :euler (:euler_explicit, :euler_forward), " *
+                    ":euler_implicit (:euler_backward), :gauss_legendre_2, :gauss_legendre_3, " *
+                    ":gauss_legendre_2_constant_control or :gauss_legendre_3_constant_control",
+                suggestion="pass one of the supported schemes (see the :scheme option of Collocation); " *
+                    "the :exa modeler backend supports only :euler, :euler_implicit, :midpoint and :trapeze",
+                context="DOCP construction (Collocation transcription, :adnlp modeler backend)",
+            ))
         end
 
         # lower and upper bounds for variables and constraints

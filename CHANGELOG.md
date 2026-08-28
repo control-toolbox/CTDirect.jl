@@ -8,9 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.2-beta] - 2026-08-27
 
-Drops a discretization scheme that was advertised but never functional, and adds the
-`CHANGELOG.md` / `BREAKING.md` pair the Handbook requires. Dependency-wise it is
-identical to 1.1.1-beta.
+Drops a discretization scheme that was advertised but never functional, aligns every
+error site in `src/` on the CTBase exception types, and adds the `CHANGELOG.md` /
+`BREAKING.md` pair the Handbook requires. Dependency-wise it is identical to 1.1.1-beta.
 
 ### 🐛 Bug Fixes
 
@@ -29,9 +29,25 @@ identical to 1.1.1-beta.
   accepts, and omitted `:gauss_legendre_2_constant_control` /
   `:gauss_legendre_3_constant_control`, which are accepted.
 
+### 🔧 Changed
+
+- **Every error site in `src/` now raises a typed `CTBase.Exceptions` subtype**
+  ([#627](https://github.com/control-toolbox/CTDirect.jl/issues/627)), the same alignment
+  CTParser did in 0.9.0. Six untyped `error(...)` / `ArgumentError` throws in
+  `src/DOCP_data.jl` and `src/ode/common.jl` become `IncorrectArgument` (non-strictly-increasing
+  `time_grid`, unknown discretization scheme, unknown getter value) and `NotImplemented`
+  (the `DOCP_Jacobian_pattern` / `DOCP_Hessian_pattern` interface stubs), each with
+  `got` / `expected` / `suggestion` / `context` fields so callers can `catch` precisely and
+  the user gets the structured `Reason / Context / Hint` block. The unknown-scheme
+  `expected` is derived from the real dispatch branches rather than a hand-written list
+  (the string that drifted in [#624](https://github.com/control-toolbox/CTDirect.jl/issues/624)).
+  See the non-breaking note in [BREAKING.md](BREAKING.md).
+
 ### 🧪 Testing
 
-- Regression test for the removed `:variable` scheme (`test/ci/test_discretization.jl`).
+- Regression test for the removed `:variable` scheme (`test/ci/test_discretization.jl`),
+  tightened to `@test_throws Exceptions.IncorrectArgument`; new `@test_throws` for a
+  non-increasing `time_grid`.
 - The `:moonlander` and `:quadrotor` `:manual`-backend ADNLP tests are disabled pending
   [JuliaSmoothOptimizers/ADNLPModels.jl#383](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl/issues/383)
   — `SparseReverseADHessian` records its tape on uninitialised memory, and moonlander's
