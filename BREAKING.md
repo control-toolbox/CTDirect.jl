@@ -4,6 +4,22 @@
 Breaking changes in CTDirect releases, and how to migrate. Tracked from the 1.0.12
 baseline onward; see [CHANGELOG.md](CHANGELOG.md) for the full record.
 
+## [1.1.3-beta] - 2026-08-28
+
+No breaking changes in this release.
+
+## Non-breaking note (1.1.3-beta)
+
+- **Error types in `src/` changed to `CTBase.Exceptions` subtypes**
+  ([#627](https://github.com/control-toolbox/CTDirect.jl/issues/627)). Six error sites
+  that threw `Base.ArgumentError` or a bare `error(...)` (`ErrorException`) now throw
+  `CTBase.Exceptions.IncorrectArgument` (bad `time_grid`, unknown scheme, unknown getter
+  value) or `CTBase.Exceptions.NotImplemented` (the `DOCP_*_pattern` stubs). **No
+  breaking change**: these throws fire only on invalid input, so no working code can
+  depend on them, and the messages are unchanged in intent. Code that catches
+  `ArgumentError` / `ErrorException` on these paths should catch
+  `CTBase.Exceptions.CTException` (or the specific subtype) instead.
+
 ## [1.1.2-beta] - 2026-08-27
 
 No breaking changes in this release.
@@ -15,18 +31,9 @@ No breaking changes in this release.
   dispatch branch, but its implementation was never compiled — every
   `solve(...; scheme=:variable)` raised `UndefVarError(:VariableStepODE, …, CTDirect)`.
   **No breaking change**: no working code can have depended on it. `scheme=:variable` now
-  raises the standard unknown-scheme error. The `src/ode/variable.jl` WIP file and its
-  commented `#include` are kept for a future variable-step implementation.
-
-- **Error types in `src/` changed to `CTBase.Exceptions` subtypes**
-  ([#627](https://github.com/control-toolbox/CTDirect.jl/issues/627)). Six error sites
-  that threw `Base.ArgumentError` or a bare `error(...)` (`ErrorException`) now throw
-  `CTBase.Exceptions.IncorrectArgument` (bad `time_grid`, unknown scheme, unknown getter
-  value) or `CTBase.Exceptions.NotImplemented` (the `DOCP_*_pattern` stubs). **No
-  breaking change**: these throws fire only on invalid input, so no working code can
-  depend on them, and the messages are unchanged in intent. Code that catches
-  `ArgumentError` / `ErrorException` on these paths should catch
-  `CTBase.Exceptions.CTException` (or the specific subtype) instead.
+  raises the standard `"Unknown discretization method"` error. The `src/ode/variable.jl`
+  WIP file and its commented `#include` are kept for a future variable-step
+  implementation.
 
 ## [1.1.1-beta] - 2026-08-26
 

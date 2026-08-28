@@ -7,6 +7,29 @@
 # ---------------------------------------------------------------------------
 import SparseConnectivityTracer.TracerLocalSparsityDetector
 
+"""
+$(TYPEDEF)
+
+Discretizer for the direct (sequential) shooting transcription of an optimal control
+problem.
+
+`DirectShooting` discretizes only the control on a time grid and recovers the state by
+integrating the dynamics, yielding a smaller nonlinear program than
+[`CTDirect.Collocation`](@ref) at the cost of denser derivatives and more sensitivity to
+the initial guess. Only the `ADNLP` modeler backend is supported; the `Exa` backend
+falls through to the CTSolvers `NotImplemented` stub.
+
+Select it from OptimalControl's explicit-mode API with `discretizer =
+CTDirect.DirectShooting()`, or set options directly, e.g.
+`CTDirect.DirectShooting(; grid_size = 100, control_steps = 2)`.
+
+# Fields
+- `options::CTBase.Strategies.StrategyOptions`: the resolved option set — `grid_size`,
+  `control_steps` and `scheme`; see the strategy metadata for defaults and accepted
+  values.
+
+See also: [`CTDirect.Collocation`](@ref), [`CTDirect.Scheme`](@ref).
+"""
 struct DirectShooting <: CTSolvers.AbstractDiscretizer
     options::Strategies.StrategyOptions
 end

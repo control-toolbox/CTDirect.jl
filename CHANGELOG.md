@@ -6,11 +6,57 @@ All notable changes to CTDirect will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3-beta] - 2026-08-28
+
+Aligns every error site in `src/` on the CTBase exception types and adds the missing
+`Collocation` / `DirectShooting` docstrings. Dependency-wise it is identical to
+1.1.1-beta.
+
+### 🔧 Changed
+
+- **Every error site in `src/` now raises a typed `CTBase.Exceptions` subtype**
+  ([#627](https://github.com/control-toolbox/CTDirect.jl/issues/627)), the same alignment
+  CTParser did in 0.9.0. Six untyped `error(...)` / `ArgumentError` throws in
+  `src/DOCP_data.jl` and `src/ode/common.jl` become `IncorrectArgument` (non-strictly-increasing
+  `time_grid`, unknown discretization scheme, unknown getter value) and `NotImplemented`
+  (the `DOCP_Jacobian_pattern` / `DOCP_Hessian_pattern` interface stubs), each with
+  `got` / `expected` / `suggestion` / `context` fields so callers can `catch` precisely and
+  the user gets the structured `Reason / Context / Hint` block. The unknown-scheme
+  `expected` is derived from the real dispatch branches rather than a hand-written list
+  (the string that drifted in [#624](https://github.com/control-toolbox/CTDirect.jl/issues/624)),
+  and the `suggestion` points at the smaller `:exa` set, which CTParser validates
+  separately. See the non-breaking note in [BREAKING.md](BREAKING.md).
+
+### 🧪 Testing
+
+- The `:variable`-scheme regression test (`test/ci/test_discretization.jl`) is tightened
+  to `@test_throws Exceptions.IncorrectArgument`; new `@test_throws` for a non-increasing
+  `time_grid`; `Exceptions` imported in `test/test_common.jl`.
+- The `:truck_trailer` `:manual`-backend ADNLP test is disabled, same
+  [ADNLPModels.jl#383](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl/issues/383)
+  root cause as `:moonlander` / `:quadrotor` in 1.1.2-beta. Re-enable tracked by
+  [#626](https://github.com/control-toolbox/CTDirect.jl/issues/626).
+
+### 📚 Documentation
+
+- **`Collocation` and `DirectShooting` now carry docstrings**
+  ([#623](https://github.com/control-toolbox/CTDirect.jl/issues/623)). Both discretizer
+  structs were undocumented, so OptimalControl.jl's API reference produced a "no docs
+  found" warning when transcluding `CTDirect.Collocation`. Each now states what the
+  transcription is, when to prefer it over the other, its supported modeler backends, and
+  how to select it from the explicit-mode API.
+
+### ✅ Compatibility
+
+- **No breaking changes.** The error *types* change from `ArgumentError` / `ErrorException`
+  to `CTException` subtypes, but the throws fire only on invalid input, so no working code
+  can depend on them. See the non-breaking note in [BREAKING.md](BREAKING.md).
+
 ## [1.1.2-beta] - 2026-08-27
 
-Drops a discretization scheme that was advertised but never functional, aligns every
-error site in `src/` on the CTBase exception types, and adds the `CHANGELOG.md` /
-`BREAKING.md` pair the Handbook requires. Dependency-wise it is identical to 1.1.1-beta.
+Drops a discretization scheme that was advertised but never functional, and adds the
+`CHANGELOG.md` / `BREAKING.md` pair the Handbook requires. Dependency-wise it is
+identical to 1.1.1-beta.
 
 ### 🐛 Bug Fixes
 
@@ -29,25 +75,9 @@ error site in `src/` on the CTBase exception types, and adds the `CHANGELOG.md` 
   accepts, and omitted `:gauss_legendre_2_constant_control` /
   `:gauss_legendre_3_constant_control`, which are accepted.
 
-### 🔧 Changed
-
-- **Every error site in `src/` now raises a typed `CTBase.Exceptions` subtype**
-  ([#627](https://github.com/control-toolbox/CTDirect.jl/issues/627)), the same alignment
-  CTParser did in 0.9.0. Six untyped `error(...)` / `ArgumentError` throws in
-  `src/DOCP_data.jl` and `src/ode/common.jl` become `IncorrectArgument` (non-strictly-increasing
-  `time_grid`, unknown discretization scheme, unknown getter value) and `NotImplemented`
-  (the `DOCP_Jacobian_pattern` / `DOCP_Hessian_pattern` interface stubs), each with
-  `got` / `expected` / `suggestion` / `context` fields so callers can `catch` precisely and
-  the user gets the structured `Reason / Context / Hint` block. The unknown-scheme
-  `expected` is derived from the real dispatch branches rather than a hand-written list
-  (the string that drifted in [#624](https://github.com/control-toolbox/CTDirect.jl/issues/624)).
-  See the non-breaking note in [BREAKING.md](BREAKING.md).
-
 ### 🧪 Testing
 
-- Regression test for the removed `:variable` scheme (`test/ci/test_discretization.jl`),
-  tightened to `@test_throws Exceptions.IncorrectArgument`; new `@test_throws` for a
-  non-increasing `time_grid`.
+- Regression test for the removed `:variable` scheme (`test/ci/test_discretization.jl`).
 - The `:moonlander` and `:quadrotor` `:manual`-backend ADNLP tests are disabled pending
   [JuliaSmoothOptimizers/ADNLPModels.jl#383](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl/issues/383)
   — `SparseReverseADHessian` records its tape on uninitialised memory, and moonlander's

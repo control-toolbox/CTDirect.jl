@@ -4,6 +4,28 @@
 # Implements the CTSolvers contract (discretize / build_model / build_solution)
 # for the Collocation transcription, for the ADNLP and Exa backends.
 # ---------------------------------------------------------------------------
+"""
+$(TYPEDEF)
+
+Discretizer for the direct collocation transcription of an optimal control problem.
+
+`Collocation` turns the continuous OCP into a nonlinear program by discretizing the
+state and control on a time grid and enforcing the dynamics with a collocation scheme
+(`:trapeze`, `:midpoint`, `:euler`, `:euler_implicit`, `:gauss_legendre_2`,
+`:gauss_legendre_3`, ...). It is the general-purpose direct transcription and works with
+both the `ADNLP` and `Exa` NLP modeler backends.
+
+Select it from OptimalControl's explicit-mode API with `discretizer =
+CTDirect.Collocation()`, or set options directly, e.g.
+`CTDirect.Collocation(; grid_size = 100, scheme = :trapeze)`. Use
+[`CTDirect.DirectShooting`](@ref) instead for a sequential (shooting) transcription.
+
+# Fields
+- `options::CTBase.Strategies.StrategyOptions`: the resolved option set — `grid_size`,
+  `scheme` and `time_grid`; see the strategy metadata for defaults and accepted values.
+
+See also: [`CTDirect.DirectShooting`](@ref), [`CTDirect.Scheme`](@ref).
+"""
 struct Collocation <: CTSolvers.AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
