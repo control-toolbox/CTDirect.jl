@@ -8,9 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.3-beta] - 2026-08-28
 
-Aligns every error site in `src/` on the CTBase exception types and adds the missing
-`Collocation` / `DirectShooting` docstrings. Dependency-wise it is identical to
-1.1.1-beta.
+Aligns every error site in `src/` on the CTBase exception types and documents every
+undocumented `src/` symbol. Dependency-wise it is identical to 1.1.1-beta.
 
 ### 🔧 Changed
 
@@ -45,6 +44,18 @@ Aligns every error site in `src/` on the CTBase exception types and adds the mis
   found" warning when transcluding `CTDirect.Collocation`. Each now states what the
   transcription is, when to prefer it over the other, its supported modeler backends, and
   how to select it from the explicit-mode API.
+- **The remaining 24 undocumented `src/` symbols now carry docstrings**
+  ([#628](https://github.com/control-toolbox/CTDirect.jl/issues/628)): the `CTDirect`
+  module, `Scheme` subtypes `Euler` / `Midpoint` / `Trapeze` and the `GenericIRK` /
+  `GenericIRKStagewise` abstract types, the `Strategies.id` / `parameter` / `options` /
+  `metadata` methods and kwarg constructors of both discretizers, the `getter` /
+  `add_nonzero_block!` helpers and a few internal defaults. `src/ode/variable.jl` is left
+  as-is (WIP, not compiled).
+- **`docs/api_reference.jl` file lists resynced with the current `src/` layout.** They
+  named files that no longer exist (`collocation_core.jl`, `disc/*.jl`) and omitted
+  `direct_shooting.jl`, `DOCP_cache/data/functions/variables.jl` and
+  `ode/irk_stagewise.jl`; since the generator silently ignores missing paths, those
+  symbols were absent from the generated API reference.
 
 ### ✅ Compatibility
 

@@ -34,15 +34,37 @@ struct DirectShooting <: CTSolvers.AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
 
-# useful for OptimalControl
+"""
+$(TYPEDSIGNATURES)
+
+Strategy id of the direct-shooting discretizer, `:direct_shooting` — how OptimalControl
+selects it by symbol.
+"""
 Strategies.id(::Type{<:DirectShooting}) = :direct_shooting
+
+"""
+$(TYPEDSIGNATURES)
+
+Strategy parameter for [`CTDirect.DirectShooting`](@ref): `nothing` (the discretizer is
+not parametrized).
+"""
 Strategies.parameter(::Type{<:DirectShooting}) = nothing
 
-# default options
+"Default [`CTDirect.DirectShooting`](@ref) grid size (number of time steps)."
 __direct_shooting_grid_size()::Int = 250
-__direct_shooting_control_steps()::Int = 1 # ie number of controls per time step
-__direct_shooting_scheme()::Symbol = :midpoint # later use variable step ode solver
 
+"Default [`CTDirect.DirectShooting`](@ref) number of controls per time step."
+__direct_shooting_control_steps()::Int = 1
+
+"Default [`CTDirect.DirectShooting`](@ref) time integration scheme."
+__direct_shooting_scheme()::Symbol = :midpoint
+
+"""
+$(TYPEDSIGNATURES)
+
+Option schema for [`CTDirect.DirectShooting`](@ref): `grid_size`, `control_steps` and
+`scheme`, with their defaults and descriptions.
+"""
 function Strategies.metadata(::Type{<:DirectShooting})
     return Strategies.StrategyMetadata(
         Options.OptionDefinition(
@@ -67,12 +89,24 @@ function Strategies.metadata(::Type{<:DirectShooting})
     )
 end
 
-# constructor: kwargs contains the options values
+"""
+$(TYPEDSIGNATURES)
+
+Build a [`CTDirect.DirectShooting`](@ref) discretizer. Keyword arguments set the strategy
+options (`grid_size`, `control_steps`, `scheme`); `mode` (`:strict` by default) controls
+how unknown options are handled.
+"""
 function DirectShooting(; mode::Symbol = :strict, kwargs...)
     opts = Strategies.build_strategy_options(DirectShooting; mode = mode, kwargs...)
     return DirectShooting(opts)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Resolved `CTBase.Strategies.StrategyOptions` of a [`CTDirect.DirectShooting`](@ref)
+instance.
+"""
 Strategies.options(c::DirectShooting) = c.options
 
 # ==========================================================================================

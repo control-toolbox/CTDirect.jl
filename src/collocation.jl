@@ -30,15 +30,37 @@ struct Collocation <: CTSolvers.AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
 
-# useful for OptimalControl
+"""
+$(TYPEDSIGNATURES)
+
+Strategy id of the collocation discretizer, `:collocation` — how OptimalControl selects
+it by symbol.
+"""
 Strategies.id(::Type{<:Collocation}) = :collocation
+
+"""
+$(TYPEDSIGNATURES)
+
+Strategy parameter for [`CTDirect.Collocation`](@ref): `nothing` (the discretizer is not
+parametrized).
+"""
 Strategies.parameter(::Type{<:Collocation}) = nothing
 
-# default options
+"Default [`CTDirect.Collocation`](@ref) grid size (number of time steps)."
 __collocation_grid_size()::Int = 250
+
+"Default [`CTDirect.Collocation`](@ref) discretization scheme."
 __collocation_scheme()::Symbol = :midpoint
+
+"Default [`CTDirect.Collocation`](@ref) explicit time grid (`nothing`: uniform grid)."
 __collocation_time_grid() = nothing
 
+"""
+$(TYPEDSIGNATURES)
+
+Option schema for [`CTDirect.Collocation`](@ref): `grid_size`, `scheme` (alias
+`disc_method`) and `time_grid`, with their defaults and descriptions.
+"""
 function Strategies.metadata(::Type{<:Collocation})
     return Strategies.StrategyMetadata(
         Options.OptionDefinition(
@@ -63,12 +85,24 @@ function Strategies.metadata(::Type{<:Collocation})
     )
 end
 
-# constructor: kwargs contains the options values
+"""
+$(TYPEDSIGNATURES)
+
+Build a [`CTDirect.Collocation`](@ref) discretizer. Keyword arguments set the strategy
+options (`grid_size`, `scheme`, `time_grid`); `mode` (`:strict` by default) controls how
+unknown options are handled.
+"""
 function Collocation(; mode::Symbol = :strict, kwargs...)
     opts = Strategies.build_strategy_options(Collocation; mode = mode, kwargs...)
     return Collocation(opts)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Resolved `CTBase.Strategies.StrategyOptions` of a [`CTDirect.Collocation`](@ref)
+instance.
+"""
 Strategies.options(c::Collocation) = c.options
 
 # ==========================================================================================
