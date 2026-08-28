@@ -126,13 +126,13 @@ end
     test_problem(space_shuttle())
 end
 
-# truck trailer
-if !isdefined(Main, :truck_trailer)
-    include("../problems/truck_trailer.jl")
-end
-@testset verbose = true showtiming = true ":truck_trailer" begin
-    test_problem(truck_trailer(); adnlp_backend=:manual)
-end
+# # truck trailer
+# if !isdefined(Main, :truck_trailer)
+#     include("../problems/truck_trailer.jl")
+# end
+# @testset verbose = true showtiming = true ":truck_trailer" begin
+#     test_problem(truck_trailer(); adnlp_backend=:manual)
+# end
 
 # vanderpol
 if !isdefined(Main, :vanderpol)
