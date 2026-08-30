@@ -28,19 +28,20 @@ jobs:
     secrets:
       SSH_KEY: ${{ secrets.SSH_KEY }}
 
-  # Job for the self-hosted kkt runner (GPU/CUDA). Runs CTDirect's GPU-specific test
+  # Job for the self-hosted occidata runner (GPU/CUDA). Runs CTDirect's GPU-specific test
   # suite (test/test_gpu.jl, selected via test_args=GPU — see test/runtests.jl), not
-  # the plain suite: replaces the former dedicated GPU.yml workflow.
-  test-gpu-kkt:
+  # the plain suite: replaces the former dedicated GPU.yml workflow. Replaces the retired
+  # kkt runner (cf. CTParser.jl, CTFlows.jl).
+  test-gpu-occidata:
     # See the comment on test-cpu-github above.
     if: >
       github.event_name != 'pull_request' ||
-      (github.event.action == 'labeled' && github.event.label.name == 'run ci kkt-runner') ||
-      (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'run ci kkt-runner'))
+      (github.event.action == 'labeled' && github.event.label.name == 'run ci occidata-runner') ||
+      (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'run ci occidata-runner'))
     uses: control-toolbox/CTActions/.github/workflows/ci.yml@main
     with:
       versions: '["1"]'
-      runs_on: '[["kkt"]]'
+      runs_on: '[["occidata"]]'
       runner_type: 'self-hosted'
       use_ct_registry: true
       test_args: 'GPU'

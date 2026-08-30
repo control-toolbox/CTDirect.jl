@@ -1,8 +1,26 @@
 #= Functions for trapeze discretization scheme
-Internal layout for NLP variables: 
+Internal layout for NLP variables:
 [X_1,U_1, .., X_N+1,U_N+1, V]
 =#
 
+"""
+$(TYPEDEF)
+
+Second-order trapezoidal (Crank–Nicolson) discretization scheme.
+
+Selected with `scheme = :trapeze`. Unlike the other one-step schemes it stores a control
+at every time step including the final one, hence the NLP variable layout
+`[X_1, U_1, …, X_N+1, U_N+1, V]`.
+
+# Fields
+- `info::String`: human-readable scheme description.
+- `_step_variables_block::Int`: number of NLP variables per time step (state + controls).
+- `_state_stage_eqs_block::Int`: number of state/stage equality constraints per step.
+- `_step_pathcons_block::Int`: number of path constraints per step.
+- `_final_control::Bool`: whether a distinct control is stored at the final time (`true`).
+
+See also: [`CTDirect.Scheme`](@ref), [`CTDirect.Euler`](@ref), [`CTDirect.Midpoint`](@ref).
+"""
 struct Trapeze <: Scheme
     info::String
     _step_variables_block::Int

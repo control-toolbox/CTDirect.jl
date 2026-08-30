@@ -21,6 +21,11 @@ end
     @test time_grid(sol, :state) ≈ grid
 end
 
+@testset verbose = true showtiming = true ":non_increasing_grid" begin
+    grid = [0, 0.3, 0.2, 0.6, 1]
+    @test_throws Exceptions.IncorrectArgument solve_problem(prob; time_grid=grid)
+end
+
 # 2. integrator free times with explicit / non-uniform grid
 if !isdefined(Main, :double_integrator_freet0tf)
     include("../problems/double_integrator.jl")
@@ -77,4 +82,10 @@ end
     for scheme in scheme_list
         test_problem(double_integrator_freet0tf(); scheme=scheme, grid_size=50)
     end
+end
+
+# the :variable scheme was never compiled and has been removed (issue #624):
+# it must now raise the ordinary "unknown scheme" error, not an UndefVarError
+@testset verbose = true showtiming = true ":variable scheme removed" begin
+    @test_throws Exceptions.IncorrectArgument solve_problem(beam(); scheme=:variable)
 end

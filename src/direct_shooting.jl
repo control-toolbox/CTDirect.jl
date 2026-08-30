@@ -7,19 +7,64 @@
 # ---------------------------------------------------------------------------
 import SparseConnectivityTracer.TracerLocalSparsityDetector
 
+"""
+$(TYPEDEF)
+
+Discretizer for the direct (sequential) shooting transcription of an optimal control
+problem.
+
+`DirectShooting` discretizes only the control on a time grid and recovers the state by
+integrating the dynamics, yielding a smaller nonlinear program than
+`CTDirect.Collocation` at the cost of denser derivatives and more sensitivity to
+the initial guess. Only the `ADNLP` modeler backend is supported; the `Exa` backend
+falls through to the CTSolvers `NotImplemented` stub.
+
+Select it from OptimalControl's explicit-mode API with `discretizer =
+CTDirect.DirectShooting()`, or set options directly, e.g.
+`CTDirect.DirectShooting(; grid_size = 100, control_steps = 2)`.
+
+# Fields
+- `options::CTBase.Strategies.StrategyOptions`: the resolved option set — `grid_size`,
+  `control_steps` and `scheme`; see the strategy metadata for defaults and accepted
+  values.
+
+See also: `CTDirect.Collocation`, [`CTDirect.Scheme`](@ref).
+"""
 struct DirectShooting <: CTSolvers.AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
 
-# useful for OptimalControl
+"""
+$(TYPEDSIGNATURES)
+
+Strategy id of the direct-shooting discretizer, `:direct_shooting` — how OptimalControl
+selects it by symbol.
+"""
 Strategies.id(::Type{<:DirectShooting}) = :direct_shooting
+
+"""
+$(TYPEDSIGNATURES)
+
+Strategy parameter for `CTDirect.DirectShooting`: `nothing` (the discretizer is
+not parametrized).
+"""
 Strategies.parameter(::Type{<:DirectShooting}) = nothing
 
-# default options
+"Default `CTDirect.DirectShooting` grid size (number of time steps)."
 __direct_shooting_grid_size()::Int = 250
-__direct_shooting_control_steps()::Int = 1 # ie number of controls per time step
-__direct_shooting_scheme()::Symbol = :midpoint # later use variable step ode solver
 
+"Default `CTDirect.DirectShooting` number of controls per time step."
+__direct_shooting_control_steps()::Int = 1
+
+"Default `CTDirect.DirectShooting` time integration scheme."
+__direct_shooting_scheme()::Symbol = :midpoint
+
+"""
+$(TYPEDSIGNATURES)
+
+Option schema for `CTDirect.DirectShooting`: `grid_size`, `control_steps` and
+`scheme`, with their defaults and descriptions.
+"""
 function Strategies.metadata(::Type{<:DirectShooting})
     return Strategies.StrategyMetadata(
         Options.OptionDefinition(
@@ -44,12 +89,24 @@ function Strategies.metadata(::Type{<:DirectShooting})
     )
 end
 
-# constructor: kwargs contains the options values
+"""
+$(TYPEDSIGNATURES)
+
+Build a `CTDirect.DirectShooting` discretizer. Keyword arguments set the strategy
+options (`grid_size`, `control_steps`, `scheme`); `mode` (`:strict` by default) controls
+how unknown options are handled.
+"""
 function DirectShooting(; mode::Symbol = :strict, kwargs...)
     opts = Strategies.build_strategy_options(DirectShooting; mode = mode, kwargs...)
     return DirectShooting(opts)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Resolved `CTBase.Strategies.StrategyOptions` of a `CTDirect.DirectShooting`
+instance.
+"""
 Strategies.options(c::DirectShooting) = c.options
 
 # ==========================================================================================
@@ -59,7 +116,7 @@ Strategies.options(c::DirectShooting) = c.options
 $(TYPEDSIGNATURES)
 
 Discretize an OCP with the DirectShooting strategy into a `CTSolvers.DiscretizedModel`
-holding a [`DOCPCache`](@ref) with the precomputed DOCP.
+holding a `DOCPCache` with the precomputed DOCP.
 """
 function CTSolvers.discretize(ocp::AbstractModel, discretizer::DirectShooting)
     docp = get_docp(discretizer, ocp)

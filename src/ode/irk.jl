@@ -9,6 +9,25 @@ with s the stage number and U piecewise constant equal to U_i in [t_i, t_i+1]
 Path constraints are all evaluated at time steps, including final time.
 =#
 
+"""
+$(TYPEDEF)
+
+Abstract supertype for implicit Runge–Kutta collocation schemes with a **single control
+per time step** (non-stagewise), parametrized by a Butcher tableau. Stage derivatives
+`K_i^j` are extra NLP variables; layout
+`[X_0, U_0, K_0^1…K_0^s, …, X_N-1, U_N-1, K_N-1^1…K_N-1^s, X_N, V]`.
+
+# Interface Requirements
+
+Concrete subtypes are built from `(dims::DOCPdims, time::DOCPtime)` (via
+[`CTDirect.IRK_dims`](@ref)), carry the Butcher fields `stage`, `butcher_a`, `butcher_b`,
+`butcher_c`, and rely on the shared `DOCP{<:GenericIRK}` methods `setWorkArray`,
+`integral`, `stepStateConstraints!`, `DOCP_Jacobian_pattern` and `DOCP_Hessian_pattern`
+defined in `src/ode/irk.jl`.
+
+See also: [`CTDirect.Scheme`](@ref), [`CTDirect.GenericIRKStagewise`](@ref),
+[`CTDirect.Gauss_Legendre_2`](@ref), [`CTDirect.Gauss_Legendre_3`](@ref).
+"""
 abstract type GenericIRK <: Scheme end
 
 """

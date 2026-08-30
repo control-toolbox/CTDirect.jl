@@ -4,19 +4,63 @@
 # Implements the CTSolvers contract (discretize / build_model / build_solution)
 # for the Collocation transcription, for the ADNLP and Exa backends.
 # ---------------------------------------------------------------------------
+"""
+$(TYPEDEF)
+
+Discretizer for the direct collocation transcription of an optimal control problem.
+
+`Collocation` turns the continuous OCP into a nonlinear program by discretizing the
+state and control on a time grid and enforcing the dynamics with a collocation scheme
+(`:trapeze`, `:midpoint`, `:euler`, `:euler_implicit`, `:gauss_legendre_2`,
+`:gauss_legendre_3`, ...). It is the general-purpose direct transcription and works with
+both the `ADNLP` and `Exa` NLP modeler backends.
+
+Select it from OptimalControl's explicit-mode API with `discretizer =
+CTDirect.Collocation()`, or set options directly, e.g.
+`CTDirect.Collocation(; grid_size = 100, scheme = :trapeze)`. Use
+`CTDirect.DirectShooting` instead for a sequential (shooting) transcription.
+
+# Fields
+- `options::CTBase.Strategies.StrategyOptions`: the resolved option set — `grid_size`,
+  `scheme` and `time_grid`; see the strategy metadata for defaults and accepted values.
+
+See also: `CTDirect.DirectShooting`, [`CTDirect.Scheme`](@ref).
+"""
 struct Collocation <: CTSolvers.AbstractDiscretizer
     options::Strategies.StrategyOptions
 end
 
-# useful for OptimalControl
+"""
+$(TYPEDSIGNATURES)
+
+Strategy id of the collocation discretizer, `:collocation` — how OptimalControl selects
+it by symbol.
+"""
 Strategies.id(::Type{<:Collocation}) = :collocation
+
+"""
+$(TYPEDSIGNATURES)
+
+Strategy parameter for `CTDirect.Collocation`: `nothing` (the discretizer is not
+parametrized).
+"""
 Strategies.parameter(::Type{<:Collocation}) = nothing
 
-# default options
+"Default `CTDirect.Collocation` grid size (number of time steps)."
 __collocation_grid_size()::Int = 250
+
+"Default `CTDirect.Collocation` discretization scheme."
 __collocation_scheme()::Symbol = :midpoint
+
+"Default `CTDirect.Collocation` explicit time grid (`nothing`: uniform grid)."
 __collocation_time_grid() = nothing
 
+"""
+$(TYPEDSIGNATURES)
+
+Option schema for `CTDirect.Collocation`: `grid_size`, `scheme` (alias
+`disc_method`) and `time_grid`, with their defaults and descriptions.
+"""
 function Strategies.metadata(::Type{<:Collocation})
     return Strategies.StrategyMetadata(
         Options.OptionDefinition(
@@ -30,7 +74,7 @@ function Strategies.metadata(::Type{<:Collocation})
         type = Symbol,
         default = __collocation_scheme(),
         aliases=(:disc_method,),
-        description = "Time integration scheme (:trapeze, :midpoint, :euler (or :euler_explicit, :euler_forward), :euler_implicit (or :euler_backward), :gauss_legendre_2, :gauss_legendre_3, :variable)",
+        description = "Time integration scheme (:trapeze, :midpoint, :euler (or :euler_explicit, :euler_forward), :euler_implicit (or :euler_backward), :gauss_legendre_2, :gauss_legendre_3)",
         ),
         Options.OptionDefinition(
         name = :time_grid,
@@ -41,12 +85,24 @@ function Strategies.metadata(::Type{<:Collocation})
     )
 end
 
-# constructor: kwargs contains the options values
+"""
+$(TYPEDSIGNATURES)
+
+Build a `CTDirect.Collocation` discretizer. Keyword arguments set the strategy
+options (`grid_size`, `scheme`, `time_grid`); `mode` (`:strict` by default) controls how
+unknown options are handled.
+"""
 function Collocation(; mode::Symbol = :strict, kwargs...)
     opts = Strategies.build_strategy_options(Collocation; mode = mode, kwargs...)
     return Collocation(opts)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Resolved `CTBase.Strategies.StrategyOptions` of a `CTDirect.Collocation`
+instance.
+"""
 Strategies.options(c::Collocation) = c.options
 
 # ==========================================================================================
@@ -56,7 +112,7 @@ Strategies.options(c::Collocation) = c.options
 $(TYPEDSIGNATURES)
 
 Discretize an OCP with the Collocation strategy into a `CTSolvers.DiscretizedModel`
-holding a [`DOCPCache`](@ref) with the precomputed DOCP.
+holding a `DOCPCache` with the precomputed DOCP.
 """
 function CTSolvers.discretize(ocp::AbstractModel, discretizer::Collocation)
     docp = get_docp(discretizer, ocp)
