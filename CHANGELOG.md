@@ -6,6 +6,19 @@ All notable changes to CTDirect will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6-beta] - 2026-08-30
+
+Fixes two more unresolved cross-references in inherited discretization docstrings, same shape
+as 1.1.4-beta's `DOCPCache` fix.
+
+### Documentation
+
+- Replace the local `@ref` links to `CTDirect.Collocation` / `CTDirect.DirectShooting` in the
+  `default_parameter` / `available_parameters` docstrings (and a handful of others) with inline
+  code, so they remain valid when only those docstrings — not the type docstrings themselves —
+  are transcluded by a downstream package's docs build
+  ([#631](https://github.com/control-toolbox/CTDirect.jl/issues/631)).
+
 ## [1.1.5-beta] - 2026-08-30
 
 Widens compatibility with the current CTBase, CTModels, and CTParser beta releases.

@@ -18,13 +18,13 @@ both the `ADNLP` and `Exa` NLP modeler backends.
 Select it from OptimalControl's explicit-mode API with `discretizer =
 CTDirect.Collocation()`, or set options directly, e.g.
 `CTDirect.Collocation(; grid_size = 100, scheme = :trapeze)`. Use
-[`CTDirect.DirectShooting`](@ref) instead for a sequential (shooting) transcription.
+`CTDirect.DirectShooting` instead for a sequential (shooting) transcription.
 
 # Fields
 - `options::CTBase.Strategies.StrategyOptions`: the resolved option set — `grid_size`,
   `scheme` and `time_grid`; see the strategy metadata for defaults and accepted values.
 
-See also: [`CTDirect.DirectShooting`](@ref), [`CTDirect.Scheme`](@ref).
+See also: `CTDirect.DirectShooting`, [`CTDirect.Scheme`](@ref).
 """
 struct Collocation <: CTSolvers.AbstractDiscretizer
     options::Strategies.StrategyOptions
@@ -41,24 +41,24 @@ Strategies.id(::Type{<:Collocation}) = :collocation
 """
 $(TYPEDSIGNATURES)
 
-Strategy parameter for [`CTDirect.Collocation`](@ref): `nothing` (the discretizer is not
+Strategy parameter for `CTDirect.Collocation`: `nothing` (the discretizer is not
 parametrized).
 """
 Strategies.parameter(::Type{<:Collocation}) = nothing
 
-"Default [`CTDirect.Collocation`](@ref) grid size (number of time steps)."
+"Default `CTDirect.Collocation` grid size (number of time steps)."
 __collocation_grid_size()::Int = 250
 
-"Default [`CTDirect.Collocation`](@ref) discretization scheme."
+"Default `CTDirect.Collocation` discretization scheme."
 __collocation_scheme()::Symbol = :midpoint
 
-"Default [`CTDirect.Collocation`](@ref) explicit time grid (`nothing`: uniform grid)."
+"Default `CTDirect.Collocation` explicit time grid (`nothing`: uniform grid)."
 __collocation_time_grid() = nothing
 
 """
 $(TYPEDSIGNATURES)
 
-Option schema for [`CTDirect.Collocation`](@ref): `grid_size`, `scheme` (alias
+Option schema for `CTDirect.Collocation`: `grid_size`, `scheme` (alias
 `disc_method`) and `time_grid`, with their defaults and descriptions.
 """
 function Strategies.metadata(::Type{<:Collocation})
@@ -88,7 +88,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Build a [`CTDirect.Collocation`](@ref) discretizer. Keyword arguments set the strategy
+Build a `CTDirect.Collocation` discretizer. Keyword arguments set the strategy
 options (`grid_size`, `scheme`, `time_grid`); `mode` (`:strict` by default) controls how
 unknown options are handled.
 """
@@ -100,7 +100,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Resolved `CTBase.Strategies.StrategyOptions` of a [`CTDirect.Collocation`](@ref)
+Resolved `CTBase.Strategies.StrategyOptions` of a `CTDirect.Collocation`
 instance.
 """
 Strategies.options(c::Collocation) = c.options

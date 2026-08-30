@@ -15,7 +15,7 @@ problem.
 
 `DirectShooting` discretizes only the control on a time grid and recovers the state by
 integrating the dynamics, yielding a smaller nonlinear program than
-[`CTDirect.Collocation`](@ref) at the cost of denser derivatives and more sensitivity to
+`CTDirect.Collocation` at the cost of denser derivatives and more sensitivity to
 the initial guess. Only the `ADNLP` modeler backend is supported; the `Exa` backend
 falls through to the CTSolvers `NotImplemented` stub.
 
@@ -28,7 +28,7 @@ CTDirect.DirectShooting()`, or set options directly, e.g.
   `control_steps` and `scheme`; see the strategy metadata for defaults and accepted
   values.
 
-See also: [`CTDirect.Collocation`](@ref), [`CTDirect.Scheme`](@ref).
+See also: `CTDirect.Collocation`, [`CTDirect.Scheme`](@ref).
 """
 struct DirectShooting <: CTSolvers.AbstractDiscretizer
     options::Strategies.StrategyOptions
@@ -45,24 +45,24 @@ Strategies.id(::Type{<:DirectShooting}) = :direct_shooting
 """
 $(TYPEDSIGNATURES)
 
-Strategy parameter for [`CTDirect.DirectShooting`](@ref): `nothing` (the discretizer is
+Strategy parameter for `CTDirect.DirectShooting`: `nothing` (the discretizer is
 not parametrized).
 """
 Strategies.parameter(::Type{<:DirectShooting}) = nothing
 
-"Default [`CTDirect.DirectShooting`](@ref) grid size (number of time steps)."
+"Default `CTDirect.DirectShooting` grid size (number of time steps)."
 __direct_shooting_grid_size()::Int = 250
 
-"Default [`CTDirect.DirectShooting`](@ref) number of controls per time step."
+"Default `CTDirect.DirectShooting` number of controls per time step."
 __direct_shooting_control_steps()::Int = 1
 
-"Default [`CTDirect.DirectShooting`](@ref) time integration scheme."
+"Default `CTDirect.DirectShooting` time integration scheme."
 __direct_shooting_scheme()::Symbol = :midpoint
 
 """
 $(TYPEDSIGNATURES)
 
-Option schema for [`CTDirect.DirectShooting`](@ref): `grid_size`, `control_steps` and
+Option schema for `CTDirect.DirectShooting`: `grid_size`, `control_steps` and
 `scheme`, with their defaults and descriptions.
 """
 function Strategies.metadata(::Type{<:DirectShooting})
@@ -92,7 +92,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Build a [`CTDirect.DirectShooting`](@ref) discretizer. Keyword arguments set the strategy
+Build a `CTDirect.DirectShooting` discretizer. Keyword arguments set the strategy
 options (`grid_size`, `control_steps`, `scheme`); `mode` (`:strict` by default) controls
 how unknown options are handled.
 """
@@ -104,7 +104,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Resolved `CTBase.Strategies.StrategyOptions` of a [`CTDirect.DirectShooting`](@ref)
+Resolved `CTBase.Strategies.StrategyOptions` of a `CTDirect.DirectShooting`
 instance.
 """
 Strategies.options(c::DirectShooting) = c.options

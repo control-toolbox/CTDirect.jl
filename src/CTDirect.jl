@@ -2,8 +2,8 @@
 Direct transcription methods for optimal control problems.
 
 CTDirect turns a continuous OCP into a nonlinear program by discretizing the state and
-control on a time grid — [`CTDirect.Collocation`](@ref) (collocation schemes, `ADNLP` and
-`Exa` backends) or [`CTDirect.DirectShooting`](@ref) (sequential shooting, `ADNLP` only) —
+control on a time grid — `CTDirect.Collocation` (collocation schemes, `ADNLP` and
+`Exa` backends) or `CTDirect.DirectShooting` (sequential shooting, `ADNLP` only) —
 and implements the CTSolvers `discretize` / `build_model` / `build_solution` contract so
 the resulting NLP can be handed to a CTSolvers modeler and solver.
 """
@@ -38,7 +38,7 @@ const AbstractModel = CTModels.AbstractModel
 """
 $(TYPEDSIGNATURES)
 
-Default discretizer used when none is given: [`CTDirect.Collocation`](@ref)`()`.
+Default discretizer used when none is given: `CTDirect.Collocation()`.
 """
 __discretizer()::CTSolvers.AbstractDiscretizer = Collocation()
 
