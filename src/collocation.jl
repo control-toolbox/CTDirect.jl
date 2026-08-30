@@ -112,7 +112,7 @@ Strategies.options(c::Collocation) = c.options
 $(TYPEDSIGNATURES)
 
 Discretize an OCP with the Collocation strategy into a `CTSolvers.DiscretizedModel`
-holding a [`DOCPCache`](@ref) with the precomputed DOCP.
+holding a `DOCPCache` with the precomputed DOCP.
 """
 function CTSolvers.discretize(ocp::AbstractModel, discretizer::Collocation)
     docp = get_docp(discretizer, ocp)

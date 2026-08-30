@@ -6,6 +6,15 @@ All notable changes to CTDirect will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4-beta] - 2026-08-30
+
+Fixes the unresolved `DOCPCache` cross-reference in inherited discretization docstrings.
+
+### Documentation
+
+- Replace the local `@ref` links to the internal `DOCPCache` type with inline code so the
+  docstrings remain valid when rendered by downstream packages ([#630](https://github.com/control-toolbox/CTDirect.jl/issues/630)).
+
 ## [1.1.3-beta] - 2026-08-28
 
 Aligns every error site in `src/` on the CTBase exception types and documents every
