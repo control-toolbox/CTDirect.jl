@@ -6,6 +6,19 @@ All notable changes to CTDirect will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5-beta] - 2026-08-30
+
+Widens compatibility with the current CTBase, CTModels, and CTParser beta releases.
+
+### ✅ Compatibility
+
+- **CTBase** compatibility now includes `0.29` and `0.30`, and **CTModels** compatibility now
+  includes `0.18` and `0.19` ([#629](https://github.com/control-toolbox/CTDirect.jl/issues/629)).
+- CTParser remains at the `0.9` compatibility range and is verified with `0.9.4-beta`, which
+  supports CTBase 0.30.
+- **No breaking changes.** This release only widens accepted dependency versions; no CTDirect
+  source or public API changes are included.
+
 ## [1.1.4-beta] - 2026-08-30
 
 Fixes the unresolved `DOCPCache` cross-reference in inherited discretization docstrings.

@@ -4,6 +4,17 @@
 Breaking changes in CTDirect releases, and how to migrate. Tracked from the 1.0.12
 baseline onward; see [CHANGELOG.md](CHANGELOG.md) for the full record.
 
+## [1.1.5-beta] - 2026-08-30
+
+No breaking changes in this release.
+
+## Non-breaking note (1.1.5-beta)
+
+- **Dependency compatibility widened**: CTBase `0.29` / `0.30` and CTModels `0.18` / `0.19` are
+  now accepted ([#629](https://github.com/control-toolbox/CTDirect.jl/issues/629)). CTParser remains
+  in the `0.9` compatibility range and was verified with `0.9.4-beta`.
+- No CTDirect source or public API changes are included in this release.
+
 ## [1.1.3-beta] - 2026-08-28
 
 No breaking changes in this release.
