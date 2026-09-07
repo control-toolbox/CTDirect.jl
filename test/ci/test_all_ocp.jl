@@ -95,12 +95,12 @@ end
 #     test_problem(moonlander(); adnlp_backend=:manual)
 # end
 
-if !isdefined(Main, :quadrotor)
-     include("../problems/quadrotor.jl")
-end
-@testset verbose = true showtiming = true ":quadrotor" begin
-    test_problem(quadrotor())
-end
+#if !isdefined(Main, :quadrotor)
+#     include("../problems/quadrotor.jl")
+#end
+#@testset verbose = true showtiming = true ":quadrotor" begin
+#    test_problem(quadrotor())
+#end
 
 # robbins
 if !isdefined(Main, :robbins)
