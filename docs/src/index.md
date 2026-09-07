@@ -75,7 +75,7 @@ Solving the (NLP) problem is done using packages from [JuliaSmoothOptimizers](ht
 
 On the input side of this package, we use a `Model` structure from CTModels to define the (OCP).
 
-The direct transcription to build the (NLP) can use discretization schemes such as trapeze (default), midpoint, or Gauss-Legendre collocations.
+The direct transcription to build the (NLP) can use discretization schemes such as midpoint (default), trapeze, or Gauss-Legendre collocations.
 
 !!! note "Related packages"
 

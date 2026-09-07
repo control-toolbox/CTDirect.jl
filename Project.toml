@@ -1,6 +1,6 @@
 name = "CTDirect"
 uuid = "790bbbee-bee9-49ee-8912-a9de031322d5"
-version = "1.1.0"
+version = "1.1.6-beta"
 authors = ["Pierre Martinon <pierrecmartinon@gmail.com>"]
 
 [workspace]
@@ -21,15 +21,15 @@ SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 [compat]
 ADNLPModels = "0.8"
 AMDGPU = "2"
-CTBase = "0.28"
-CTModels = "0.15"
-CTParser = "0.8"
-CTSolvers = "0.4"
+CTBase = "0.29, 0.30"
+CTModels = "0.18, 0.19"
+CTParser = "0.9"
+CTSolvers = "0.5"
 CUDA = "5, 6"
 CUDSS = "0.6, 0.7, 0.8"
 CommonSolve = "0.2"
 DocStringExtensions = "0.9"
-ExaModels = "0.11"
+ExaModels = "0.12"
 MadNLP = "0.9, 0.10"
 MadNLPGPU = "0.8, 0.10"
 NLPModels = "0.21"

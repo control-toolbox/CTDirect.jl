@@ -29,6 +29,27 @@
 # G_N        = path constraints at final time (if path_cons > 0)
 # B          = boundary / terminal constraints
 
+"""
+$(TYPEDEF)
+
+Abstract supertype for implicit Runge–Kutta collocation schemes with **stagewise
+controls** (one control per stage per step), parametrized by a Butcher tableau. Both the
+stage derivatives `K_i^j` and the stage controls `U_i^j` are NLP variables; layout
+`[X_0, U_0^1…U_0^s, K_0^1…K_0^s, …, X_N, V]` (full layout in the header of
+`src/ode/irk_stagewise.jl`).
+
+# Interface Requirements
+
+Concrete subtypes are built from `(dims::DOCPdims, time::DOCPtime)` (via
+[`CTDirect.IRK_stagewise_dims`](@ref)), carry the Butcher fields `stage`, `butcher_a`,
+`butcher_b`, `butcher_c`, and rely on the `DOCP{<:GenericIRKStagewise}` methods in
+`src/ode/irk_stagewise.jl` (`setWorkArray`, `integral`, `stepStateConstraints!`,
+`__variables_bounds!`, `__initial_guess`, `DOCP_Jacobian_pattern`,
+`DOCP_Hessian_pattern`, and the stagewise control/variable getters).
+
+See also: [`CTDirect.Scheme`](@ref), [`CTDirect.GenericIRK`](@ref),
+[`CTDirect.Gauss_Legendre_2_Stagewise`](@ref), [`CTDirect.Gauss_Legendre_3_Stagewise`](@ref).
+"""
 abstract type GenericIRKStagewise <: Scheme end
 
 """
@@ -299,6 +320,23 @@ function __variables_bounds!(docp::DOCP{<:GenericIRKStagewise})
     return var_l, var_u
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Build the NLP initial-guess vector for a stagewise-IRK–discretized OCP.
+
+Specialises the generic [`CTDirect.__initial_guess`](@ref): all entries default to `0.1`
+(including the stage derivatives and stagewise controls), then the user
+`init.variable` / `init.state` / `init.control` values are placed at their layout
+positions.
+
+# Arguments
+- `docp::DOCP{<:GenericIRKStagewise}`: the discretized OCP.
+- `init::CTModels.InitialGuess`: user initialization data.
+
+# Returns
+- `NLP_X::Vector{Float64}`: initial guess vector.
+"""
 function __initial_guess(
     docp::DOCP{<:GenericIRKStagewise},
     init::CTModels.InitialGuess,

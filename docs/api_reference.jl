@@ -3,6 +3,10 @@
 
 Generate the API reference documentation for CTDirect.
 Returns the list of pages.
+
+Keep the file lists below in sync with `src/` when files are added, removed, or renamed:
+only symbols whose source file is listed get documented (a missing path is silently
+ignored, not an error).
 """
 function generate_api_reference(src_dir::String, ext_dir::String)
     # Helper to build absolute paths
@@ -25,6 +29,10 @@ function generate_api_reference(src_dir::String, ext_dir::String)
             primary_modules=[
                 CTDirect => src(
                     "CTDirect.jl",
+                    "DOCP_cache.jl",
+                    "DOCP_data.jl",
+                    "DOCP_functions.jl",
+                    "DOCP_variables.jl",
                 ),
             ],
             exclude=EXCLUDE_SYMBOLS,
@@ -43,9 +51,7 @@ function generate_api_reference(src_dir::String, ext_dir::String)
             primary_modules=[
                 CTDirect => src(
                     "collocation.jl",
-                    "collocation_core.jl",
-                    "collocation_variables.jl",
-                    "collocation_functions.jl",
+                    "direct_shooting.jl",
                 ),
             ],
             exclude=EXCLUDE_SYMBOLS,
@@ -63,11 +69,12 @@ function generate_api_reference(src_dir::String, ext_dir::String)
             subdirectory="api",
             primary_modules=[
                 CTDirect => src(
-                    joinpath("disc", "common.jl"),
-                    joinpath("disc", "euler.jl"),
-                    joinpath("disc", "irk.jl"),
-                    joinpath("disc", "midpoint.jl"),
-                    joinpath("disc", "trapeze.jl"),
+                    joinpath("ode", "common.jl"),
+                    joinpath("ode", "euler.jl"),
+                    joinpath("ode", "irk.jl"),
+                    joinpath("ode", "irk_stagewise.jl"),
+                    joinpath("ode", "midpoint.jl"),
+                    joinpath("ode", "trapeze.jl"),
                 ),
             ],
             exclude=EXCLUDE_SYMBOLS,

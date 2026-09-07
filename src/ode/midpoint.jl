@@ -6,6 +6,25 @@ NB. This version is much faster than the one using stage variables
 Version without work array gives identical performance but is less readable
 =#
 
+"""
+$(TYPEDEF)
+
+Second-order implicit midpoint discretization scheme (the default).
+
+Selected with `scheme = :midpoint`. Control is piecewise constant, `u([t_i, t_i+1[) =
+U_i` and `u(tf) = U_N`; NLP variable layout `[X_1, U_1, …, X_N, U_N, X_N+1, V]`. This is
+the direct formulation (no stage variables), faster than the equivalent
+[`CTDirect.Gauss_Legendre_1`](@ref) IRK form.
+
+# Fields
+- `info::String`: human-readable scheme description.
+- `_step_variables_block::Int`: number of NLP variables per time step (state + controls).
+- `_state_stage_eqs_block::Int`: number of state/stage equality constraints per step.
+- `_step_pathcons_block::Int`: number of path constraints per step.
+- `_final_control::Bool`: whether a distinct control is stored at the final time.
+
+See also: [`CTDirect.Scheme`](@ref), [`CTDirect.Euler`](@ref), [`CTDirect.Trapeze`](@ref).
+"""
 struct Midpoint <: Scheme
     info::String
     _step_variables_block::Int

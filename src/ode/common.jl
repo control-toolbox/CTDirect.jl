@@ -2,8 +2,31 @@
 
 # Getters
 
-# Generic getter for post optimization parsing
-# written for compatibility with examodels getter
+"""
+$(TYPEDSIGNATURES)
+
+Extract a named quantity from an NLP solution, reshaped to the OCP layout.
+
+Generic post-optimization getter for the ADNLP path, written to match the ExaModels
+getter signature. Dispatches on `val`: dual quantities (`:costate`,
+`:mult_path_constraints`, `:mult_boundary_constraints`) are read from
+`nlp_solution.multipliers`; primal quantities (`:variable`, `:state`, `:control`) from
+`nlp_solution.solution`, with `_l` / `_u` suffixes selecting the lower / upper box
+multipliers (`multipliers_L` / `multipliers_U`) using the same layout.
+
+# Arguments
+- `nlp_solution`: the NLP solver result (fields `solution`, `multipliers`,
+  `multipliers_L`, `multipliers_U`).
+- `docp::DOCP`: the discretized OCP giving dimensions and layout.
+- `val::Symbol`: the quantity to extract (see above).
+
+# Returns
+- `Array{Float64}`: the requested quantity, shaped `(dim, n_time_points)` for
+  time-indexed quantities, a vector for `:variable` / `:mult_boundary_constraints`.
+
+# Throws
+- `CTBase.Exceptions.IncorrectArgument`: if `val` is not a supported symbol.
+"""
 function getter(nlp_solution, docp::DOCP; val::Symbol)
 
     N = docp.time.steps
@@ -50,7 +73,14 @@ function getter(nlp_solution, docp::DOCP; val::Symbol)
         elseif val == :mult_boundary_constraints
             return mult_boundary_constraints
         else
-            error("you should not be here: getter with val ", val)
+            throw(Exceptions.IncorrectArgument(
+                "unknown value requested from getter";
+                got=":$(val)",
+                expected=":costate, :mult_path_constraints, :mult_boundary_constraints, " *
+                    ":variable, :state, :control (with _l / _u box-multiplier variants)",
+                suggestion="request one of the supported quantities",
+                context="post-optimization getter",
+            ))
         end
     end
 
@@ -99,7 +129,14 @@ function getter(nlp_solution, docp::DOCP; val::Symbol)
         return V
 
     else
-        error("Unknown val for getter: ", val)
+        throw(Exceptions.IncorrectArgument(
+            "unknown value requested from getter";
+            got=":$(val)",
+            expected=":costate, :mult_path_constraints, :mult_boundary_constraints, " *
+                ":variable, :state, :control (with _l / _u box-multiplier variants)",
+            suggestion="request one of the supported quantities",
+            context="post-optimization getter",
+        ))
     end
 end
 
@@ -250,11 +287,12 @@ Build sparsity pattern for Jacobian of constraints
 (to be implemented for each discretization scheme)
 """
 function DOCP_Jacobian_pattern(docp::DOCP{D}) where {(D<:Scheme)}
-    error(
-        "DOCP_Jacobian_pattern not implemented for discretization ",
-        D,
-        " Use option solve(...; adnlp_backend=:optimized)",
-    )
+    throw(Exceptions.NotImplemented(
+        "DOCP_Jacobian_pattern is not implemented for discretization $(D)";
+        required_method="DOCP_Jacobian_pattern(::DOCP{$(D)})",
+        suggestion="use solve(...; adnlp_backend=:optimized)",
+        context="manual Jacobian sparsity pattern",
+    ))
 end
 
 """
@@ -264,11 +302,12 @@ Build sparsity pattern for Hessian of Lagrangian
 (to be implemented for each discretization scheme)
 """
 function DOCP_Hessian_pattern(docp::DOCP{D}) where {(D<:Scheme)}
-    error(
-        "DOCP_Hessian_pattern not implemented for discretization ",
-        D,
-        " Use option solve(...; adnlp_backend=:optimized)",
-    )
+    throw(Exceptions.NotImplemented(
+        "DOCP_Hessian_pattern is not implemented for discretization $(D)";
+        required_method="DOCP_Hessian_pattern(::DOCP{$(D)})",
+        suggestion="use solve(...; adnlp_backend=:optimized)",
+        context="manual Hessian sparsity pattern",
+    ))
 end
 
 # utility functions for manual sparsity patterns
@@ -276,22 +315,37 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Add block of nonzeros elements to a sparsity pattern 
-Format: boolean matrix (M) or index vectors (Is, Js) 
-Includes a more compact method for single element case
-Option to add the symmetric block also (eg for Hessian)
-Note: independent from discretization scheme
+Mark the rows `i_start:i_end` × columns `j_start:j_end` of the boolean sparsity matrix
+`M` as nonzero; `sym=true` also marks the transposed block (for Hessian patterns).
+Independent from the discretization scheme.
+
+Companion methods: `add_nonzero_block!(M, i, j; sym)` for a single element, and the
+`add_nonzero_block!(Is, Js, ...)` forms that push `(row, col)` pairs into index vectors
+instead of writing a matrix.
 """
 function add_nonzero_block!(M, i_start, i_end, j_start, j_end; sym=false)
     M[i_start:i_end, j_start:j_end] .= true
     sym && (M[j_start:j_end, i_start:i_end] .= true)
     return nothing
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Single-element form: mark `M[i, j]` (and `M[j, i]` if `sym=true`) nonzero.
+"""
 function add_nonzero_block!(M, i, j; sym=false)
     M[i, j] = true
     sym && (M[j, i] = true)
     return nothing
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Index-vector form: push every `(row, col)` of the block `i_start:i_end` × `j_start:j_end`
+onto `(Is, Js)` (and the transposed pairs if `sym=true`).
+"""
 function add_nonzero_block!(Is, Js, i_start, i_end, j_start, j_end; sym=false)
     for i in i_start:i_end
         for j in j_start:j_end
@@ -303,6 +357,13 @@ function add_nonzero_block!(Is, Js, i_start, i_end, j_start, j_end; sym=false)
     end
     return nothing
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Single-element index-vector form: push `(i, j)` onto `(Is, Js)` (and `(j, i)` if
+`sym=true`).
+"""
 function add_nonzero_block!(Is, Js, i, j; sym=false)
     push!(Is, i)
     push!(Js, j)

@@ -7,6 +7,25 @@ with the convention
 Note that both the explicit and implicit versions therefore use the same variables layout.
 =#
 
+"""
+$(TYPEDEF)
+
+First-order Euler discretization scheme, explicit or implicit.
+
+Selected with `scheme = :euler` (explicit; aliases `:euler_explicit`, `:euler_forward`)
+or `scheme = :euler_implicit` (aliases `:euler_backward`). Both variants share the NLP
+variable layout `[X_1, U_1, …, X_N, U_N, X_N+1, V]`.
+
+# Fields
+- `info::String`: human-readable scheme description.
+- `_step_variables_block::Int`: number of NLP variables per time step (state + controls).
+- `_state_stage_eqs_block::Int`: number of state/stage equality constraints per step.
+- `_step_pathcons_block::Int`: number of path constraints per step.
+- `_final_control::Bool`: whether a distinct control is stored at the final time.
+- `_explicit::Bool`: `true` for explicit Euler, `false` for implicit.
+
+See also: [`CTDirect.Scheme`](@ref), [`CTDirect.Midpoint`](@ref), [`CTDirect.Trapeze`](@ref).
+"""
 struct Euler <: Scheme
     info::String
     _step_variables_block::Int
