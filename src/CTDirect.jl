@@ -10,17 +10,13 @@ the resulting NLP can be handed to a CTSolvers modeler and solver.
 module CTDirect
 
 using DocStringExtensions
-import ADNLPModels
-import ExaModels
-import CTModels
-import CTSolvers
-import CTBase
-import CTBase.Strategies
-import CTBase.Options
-import CTBase.Core
-import CTBase.Exceptions
-import SolverCore
-import SparseArrays
+using ADNLPModels: ADNLPModels
+using ExaModels: ExaModels
+using CTModels: CTModels
+using CTSolvers: CTSolvers
+using CTBase: CTBase, Strategies, Options, Core, Exceptions
+using SolverCore: SolverCore
+using SparseArrays: SparseArrays
 
 # ---------------------------------------------------------------------------
 # Discretizers

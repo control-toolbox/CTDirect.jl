@@ -39,11 +39,11 @@ Pkg.instantiate()
 
 using Printf: @printf, @sprintf
 using ForwardDiff: ForwardDiff
-import CommonSolve
-import CTModels
-import CTSolvers
-import CTDirect
-import NLPModelsIpopt
+using CommonSolve: CommonSolve
+using CTModels: CTModels
+using CTSolvers: CTSolvers
+using CTDirect: CTDirect
+using NLPModelsIpopt: NLPModelsIpopt
 
 # =============================================================================
 # Reporting helpers
