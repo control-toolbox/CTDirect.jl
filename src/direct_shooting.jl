@@ -5,7 +5,7 @@
 # for the DirectShooting transcription, for the ADNLP backend only. The Exa
 # backend is not implemented: the CTSolvers NotImplemented stub applies.
 # ---------------------------------------------------------------------------
-import SparseConnectivityTracer.TracerLocalSparsityDetector
+using SparseConnectivityTracer: TracerLocalSparsityDetector
 
 """
 $(TYPEDEF)

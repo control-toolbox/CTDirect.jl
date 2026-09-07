@@ -1,5 +1,5 @@
 # variable step ode solvers for direct shooting
-import DifferentialEquations as DE
+using DifferentialEquations: DifferentialEquations # need to update older DE renaming
 
 struct VariableStepODE <: Scheme
     info::String
