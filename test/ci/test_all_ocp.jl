@@ -75,7 +75,7 @@ end
     test_problem(jackson())
 end
 
-# moonlander / quadrotor -- DISABLED, see control-toolbox/CTDirect.jl#626.
+# moonlander -- DISABLED, see control-toolbox/CTDirect.jl#626.
 #
 # ADNLPModels' SparseReverseADHessian (used by the :manual and :optimized ADNLP
 # backends) records its ReverseDiff tape on an *uninitialised* Vector{Dual} and
@@ -85,12 +85,12 @@ end
 # Deterministic on the Julia 1.12 CI runners, flaky on 1.10.
 # Upstream: JuliaSmoothOptimizers/ADNLPModels.jl#383
 
-if !isdefined(Main, :moonlander)
-    include("../problems/moonlander.jl")
-end
-@testset verbose = true showtiming = true ":moonlander" begin
-    test_problem(moonlander(); adnlp_backend=:manual)
-end
+#if !isdefined(Main, :moonlander)
+#    include("../problems/moonlander.jl")
+#end
+#@testset verbose = true showtiming = true ":moonlander" begin
+#    test_problem(moonlander(); adnlp_backend=:manual)
+#end
 
 # NB: the ":quadrotor" testset below always ran moonlander() (copy-paste slip) --
 # wire it to quadrotor() with adnlp_backend=:default when re-enabling (#626).
