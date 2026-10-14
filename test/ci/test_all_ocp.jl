@@ -92,14 +92,14 @@ end
 #    test_problem(moonlander(); adnlp_backend=:manual)
 #end
 
-# NB: the ":quadrotor" testset below always ran moonlander() (copy-paste slip) --
-# wire it to quadrotor() with adnlp_backend=:default when re-enabling (#626).
 
+# NB: the ":quadrotor" testset below always ran moonlander() (copy-paste slip) --
+# quadrotor
 if !isdefined(Main, :quadrotor)
      include("../problems/quadrotor.jl")
 end
 @testset verbose = true showtiming = true ":quadrotor" begin
-    test_problem(quadrotor())
+    test_problem(quadrotor(); adnlp_backend=:manual)
 end
 
 # robbins
