@@ -6,8 +6,8 @@ in a `CTModels.Model`, and what the cost of each candidate fix would be.
 
 It backs the roadmap item
 [#610 §7 / discussion #609 §7](https://github.com/control-toolbox/CTDirect.jl/discussions/609)
-and the Handbook rule
-[`philosophy/dimension-and-shape.md`](https://github.com/control-toolbox/Handbook/blob/main/philosophy/dimension-and-shape.md):
+and the ct-conventions rule
+[`DIM1`](https://github.com/control-toolbox/ct-conventions/blob/main/rules/dimension.md):
 
 > A one-dimensional quantity is a `scalar`, never a length-1 vector.
 
