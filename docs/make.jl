@@ -54,4 +54,10 @@ with_api_reference(src_dir, ext_dir) do api_pages
 end
 
 # ═══════════════════════════════════════════════════════════════════════════════
-deploydocs(; repo=repo_url * ".git", devbranch="main")
+# PR previews are opt-in: CTActions sets DOCUMENTER_PUSH_PREVIEW to "true" only on a
+# PR carrying the `documentation push preview` label.
+deploydocs(;
+    repo=repo_url * ".git",
+    devbranch="main",
+    push_preview=get(ENV, "DOCUMENTER_PUSH_PREVIEW", "false") == "true",
+)
