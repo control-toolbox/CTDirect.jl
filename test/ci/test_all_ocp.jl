@@ -85,15 +85,14 @@ end
 # Deterministic on the Julia 1.12 CI runners, flaky on 1.10.
 # Upstream: JuliaSmoothOptimizers/ADNLPModels.jl#383
 
-#if !isdefined(Main, :moonlander)
-#    include("../problems/moonlander.jl")
-#end
-#@testset verbose = true showtiming = true ":moonlander" begin
-#    test_problem(moonlander(); adnlp_backend=:manual)
-#end
+if !isdefined(Main, :moonlander)
+    include("../problems/moonlander.jl")
+end
+@testset verbose = true showtiming = true ":moonlander" begin
+    test_problem(moonlander(); display=true)
+end
 
 
-# NB: the ":quadrotor" testset below always ran moonlander() (copy-paste slip) --
 # quadrotor
 if !isdefined(Main, :quadrotor)
      include("../problems/quadrotor.jl")

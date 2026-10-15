@@ -6,11 +6,12 @@ include("test_common.jl")
 include("./problems/beam.jl")
 include("./problems/goddard.jl")
 include("./problems/double_integrator.jl")
+include("./problems/moonlander.jl")
 include("./problems/truck_trailer.jl")
 
-sol = solve_problem(goddard(); display=true, scheme=:gauss_legendre_2)
-sol1 = solve_problem(goddard(); display=true, scheme=:gauss_legendre_2, adnlp_backend=:manual)
-sol2 = solve_problem(goddard(); display=true, scheme=:gauss_legendre_2_constant_control, adnlp_backend=:manual)
+sol = solve_problem(moonlander(); display=true)
+sol1 = solve_problem(moonlander(); display=true, adnlp_backend=:manual)
+
 
 
 #=sol0 = solve_problem(truck_trailer(); display=false)
