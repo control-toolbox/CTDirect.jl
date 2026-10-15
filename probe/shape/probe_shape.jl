@@ -11,7 +11,7 @@
 #     dynamics!(r, t, x, u, v)   lagrange(t, x, u, v)   mayer(x0, xf, v)
 #     path!(r, t, x, u, v)       boundary!(r, x0, xf, v)
 #
-# The Handbook contract (philosophy/dimension-and-shape.md) says a 1-D quantity must
+# The ct-conventions contract (DIM1) says a 1-D quantity must
 # reach the user function as a `Number`, never as a length-1 vector, with the coercion
 # driven by the *declared* dimension (`only` when dim == 1, `identity` otherwise).
 #
@@ -84,7 +84,7 @@ end
 #
 # Every user function records the *types it was handed* into SEEN, and computes with
 # `[1]` indexing so it stays correct whether it receives a scalar or a 1-vector
-# (the Handbook's "safe common denominator").
+# (the "safe common denominator" of ct-conventions DIM3).
 # =============================================================================
 
 const SEEN = Dict{Symbol,Any}()
@@ -507,4 +507,4 @@ println()
 println("Legend for block A cells: <arg1>/<arg2>/<arg3>")
 println("  dynamics / lagrange / path : x / u / v")
 println("  mayer / boundary           : x0 / xf / v")
-println("Contract target (Handbook): 1-D quantity → Number; n-D → Vec(n).")
+println("Contract target (ct-conventions DIM1): 1-D quantity → Number; n-D → Vec(n).")
