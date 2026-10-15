@@ -89,7 +89,7 @@ if !isdefined(Main, :moonlander)
     include("../problems/moonlander.jl")
 end
 @testset verbose = true showtiming = true ":moonlander" begin
-    test_problem(moonlander(); adnlp_backend=:manual, display=true)
+    test_problem(moonlander(); display=true)
 end
 
 
