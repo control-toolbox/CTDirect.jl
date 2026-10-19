@@ -7,6 +7,8 @@ on:
     tags: '*'
   pull_request:
     types: [labeled, synchronize, reopened]
+  # run on a tag by ReleaseTag.yml: a tag it creates triggers no push event
+  workflow_dispatch:
 
 jobs:
   call:
