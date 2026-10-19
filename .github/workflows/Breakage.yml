@@ -1,7 +1,8 @@
 name: Breakage
 
-# The packages that depend on CTDirect, tested against it; one report per run. On push to
-# main and by hand, the run is the baseline the next release PR compares with (REL1); see
+# The packages that depend on CTDirect, derived from the Project.toml files of the
+# organization, tested against it; one report per run. On push to main and by hand, the
+# run is the baseline the next release PR compares with (REL1); see
 # CTActions docs/workflows/breakage-suite.md.
 
 on:
@@ -24,8 +25,6 @@ jobs:
       (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'run breakage'))
     uses: control-toolbox/CTActions/.github/workflows/breakage-suite.yml@main
     with:
-      targets: >-
-        [{"name": "OptimalControl"}]
       use_ct_registry: true
     secrets:
       SSH_KEY: ${{ secrets.SSH_KEY }}
