@@ -5,6 +5,11 @@ baseline onward; see [CHANGELOG.md](CHANGELOG.md) for the full record.
 
 ## Non-breaking note (Unreleased)
 
+- **From `1.0.12`**: this version carries the breaking changes of `1.1.0-beta` (the
+  discretization API follows the CTSolvers dispatch contract) and `1.1.1-beta` (1-D state,
+  control and variable reach user functions as scalars). Their migration blocks are the entries
+  below; nothing else in this release is breaking.
+
 - **Documentation and CI only**: the `Release` caller and the pins of ct-conventions and ct-agents. **No breaking change**; no migration required.
 - **Near-breaking, maximisation problems**: with CTSolvers `0.7` (the new compat bound), the
   multipliers follow the convention of the equivalent minimisation: `min f` and `max -f` give

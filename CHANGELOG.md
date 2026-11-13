@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deprecation warning of CTModels 0.21.1. The duals read with `dual(sol, ocp, :label)` are
   unchanged with `:adnlp` ([#672](https://github.com/control-toolbox/CTDirect.jl/issues/672)).
 
+### 🔄 Refactoring
+
+- `import` is replaced by `using` in `src/` ([#617](https://github.com/control-toolbox/CTDirect.jl/issues/617)); no change for callers.
+
 ### 🧪 Testing
 
 - `test/ci/test_duals.jl`: the duals by label with `:adnlp` (path labels of one and two
@@ -51,6 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 📦 Dependencies
 
+- The bounds of the GPU packages keep only the newest major
+  ([#625](https://github.com/control-toolbox/CTDirect.jl/issues/625)): CUDA `6`, CUDSS `0.8`,
+  MadNLP `0.10`, MadNLPGPU `0.10`.
 - `[compat]` moves to the current releases of the ecosystem, all in General: CTModels
   `0.19` → `0.21`, CTSolvers `0.5` → `0.7`, CTParser `0.9` → `0.9.6` (the first CTParser
   `0.9` in General). CTBase stays at `0.30`.
@@ -63,8 +70,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ✅ Compatibility
 
-- **No breaking changes**: the public API is unchanged. Two near-breaking changes, see
-  [BREAKING.md](BREAKING.md): the sign of the costate and of the path and boundary duals of a
+- **First stable release of the 1.1 line. Breaking relative to `1.0.12`**, through `1.1.0-beta` and `1.1.1-beta` (see their entries
+  and [BREAKING.md](BREAKING.md)); **this entry itself adds no breaking change**: the public API
+  is unchanged. Two near-breaking changes, see [BREAKING.md](BREAKING.md): the sign of the costate and of the path and boundary duals of a
   maximisation problem (CTSolvers 0.7), and, with `:exa`, the dual of a path or boundary
   label throwing instead of returning a wrong `0`.
 
