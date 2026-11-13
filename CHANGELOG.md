@@ -30,9 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `release.jl audit`, which checks the trail the release left.
 - ct-conventions pinned at `v0.13.0` and ct-agents at `v0.5.0` in `AGENTS.md`; the `Release` workflow of CTActions is called from `.github/workflows/Release.yml`.
 
+### 📦 Dependencies
+
+- `[compat]` moves to the current releases of the ecosystem, all in General: CTModels
+  `0.19` → `0.21`, CTSolvers `0.5` → `0.7`, CTParser `0.9` → `0.9.6` (the first CTParser
+  `0.9` in General). CTBase stays at `0.30`. No source change.
+
 ### ✅ Compatibility
 
-- **No breaking changes**: documentation and CI only. See [BREAKING.md](BREAKING.md).
+- **No breaking changes**: only the accepted dependency versions change. See [BREAKING.md](BREAKING.md).
 
 ## [1.1.6-beta] - 2026-08-30
 
