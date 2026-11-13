@@ -7,6 +7,21 @@ baseline onward; see [CHANGELOG.md](CHANGELOG.md) for the full record.
 ## Non-breaking note (Unreleased)
 
 - **Documentation and CI only**: the `Release` caller and the pins of ct-conventions and ct-agents. **No breaking change**; no migration required.
+- **Near-breaking, `:exa` only**: `dual(sol, ocp, :label)` for a path or boundary constraint
+  throws a `PreconditionError` instead of returning `0`. The `:exa` modeler does not return
+  these multipliers yet ([CTParser.jl#414](https://github.com/control-toolbox/CTParser.jl/issues/414)),
+  and the `0` was never computed. Code that needs them solves with the `:adnlp` modeler, or
+  tests first:
+
+  ```julia
+  # Before: a 0 with :exa
+  d = dual(sol, ocp, :c)
+
+  # After
+  CTModels.Solutions.has_dual(sol, ocp, :c) && (d = dual(sol, ocp, :c))
+  ```
+
+  With `:adnlp`, nothing changes ([#672](https://github.com/control-toolbox/CTDirect.jl/issues/672)).
 
 ## [1.1.6-beta] - 2026-08-30
 
