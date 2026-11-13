@@ -1,4 +1,3 @@
-<!-- markdownlint-disable MD024 -->
 # Breaking Changes
 
 Breaking changes in CTDirect releases, and how to migrate. Tracked from the 1.0.12
