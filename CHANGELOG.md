@@ -55,12 +55,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `0.19` → `0.21`, CTSolvers `0.5` → `0.7`, CTParser `0.9` → `0.9.6` (the first CTParser
   `0.9` in General). CTBase stays at `0.30`.
 - CTModels lower bound `0.21.1`: the first version that takes the duals by label.
+- With CTSolvers `0.7`, the multipliers of a **maximisation** problem follow the convention of
+  the equivalent minimisation (`min f` and `max -f` give the same costate and duals): the
+  costate, the path duals and the boundary duals of a `max` problem change sign. A `min`
+  problem is unchanged. CTDirect passes the multipliers on as they are; the change comes from
+  CTSolvers ([BREAKING.md of CTSolvers, v0.7.0](https://github.com/control-toolbox/CTSolvers.jl/blob/main/BREAKING.md)).
 
 ### ✅ Compatibility
 
-- **No breaking changes**: the public API is unchanged. With `:exa`, the dual of a path or
-  boundary label now throws instead of returning a wrong `0` (near-breaking, see
-  [BREAKING.md](BREAKING.md)).
+- **No breaking changes**: the public API is unchanged. Two near-breaking changes, see
+  [BREAKING.md](BREAKING.md): the sign of the costate and of the path and boundary duals of a
+  maximisation problem (CTSolvers 0.7), and, with `:exa`, the dual of a path or boundary
+  label throwing instead of returning a wrong `0`.
 
 ## [1.1.6-beta] - 2026-08-30
 
