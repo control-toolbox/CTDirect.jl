@@ -1,0 +1,116 @@
+# The request of the release of CTDirect v2.0.0, for the release workflow of CTActions.
+# Written by `release.jl facts`, completed by the agent after the human's validation, checked
+# by `release.jl request` and again by the workflow. The proposal is in .releases/v2.0.0.md.
+
+[release]
+package = "CTDirect"
+version = "2.0.0"
+kind = "stable"
+mode = "supervised"  # supervised or autonomous: the human's choice
+requested_by = "ocots"    # the GitHub login of the person who validated the proposal
+reference = "1.0.12"
+base = "0b308c6866b38cb191360c96c4d35ec24762a560"
+
+[versions]
+ct_agents = "v0.5.0"
+ct_conventions = "v0.13.0"
+ctactions = "a9f0450"
+
+[facts]
+expected_version = "2.0.0"
+breaking = true
+feature = false
+rel4 = true
+rel7 = 18
+jump = "none"
+labels = ["run breakage", "run ci github-runner", "run ci kkt-runner", "run documentation", "documentation push preview"]
+
+[[review]]
+id = "pr-601"
+what = "#601 refactor(DOCP): implement the CTSolvers dispatch contract — touches Project.toml, docs, src; not cited in the changelog since `v1.0.12`"
+verdict = "covered"   # covered, added, not-user-facing
+note = "`1.1.0-beta`: the discretization API follows the CTSolvers dispatch contract (💥)."
+
+[[review]]
+id = "pr-614"
+what = "#614 Add shape probe: measure \"1-D = scalar\" boundary compliance — touches src; not cited in the changelog since `v1.0.12`"
+verdict = "covered"   # covered, added, not-user-facing
+note = "`1.1.1-beta`: 1-D state, control and variable passed as scalars (💥)."
+
+[[review]]
+id = "pr-622"
+what = "#622 Deps bump for 1.1.1-beta: CTParser 0.9, CTModels 0.18, ExaModels 0.12; kkt→occidata runner — touches Project.toml, docs, src; not cited in the changelog since `v1.0.12`"
+verdict = "covered"   # covered, added, not-user-facing
+note = "`1.1.1-beta` and `1.1.3-beta`: dependency bumps and typed exceptions."
+
+[[review]]
+id = "pr-635"
+what = "#635 1.1.7-beta — touches src; not cited in the changelog since `v1.0.12`"
+verdict = "added"   # covered, added, not-user-facing
+note = "GPU bounds and `import` → `using` (#617, #625) added to Refactoring and Dependencies of the release entry; 1.1.7-beta and 1.1.8-beta had no entry."
+
+[[review]]
+id = "pr-643"
+what = "#643 ci(docs): gate preview pushes behind label — touches docs; not cited in the changelog since `v1.0.12`"
+verdict = "not-user-facing"   # covered, added, not-user-facing
+note = "Documentation workflow: preview pushes gated behind a label; no change to the content of the documentation."
+
+[[review]]
+id = "pr-647"
+what = "#647 chore(compat): drop [compat] specifiers no supported Julia version selects — touches Project.toml, docs; not cited in the changelog since `v1.0.12`"
+verdict = "added"   # covered, added, not-user-facing
+note = "The compat specifiers dropped are the older GPU bounds, now said in the Dependencies entry (#625)."
+
+[[review]]
+id = "pr-677"
+what = "#677 chore: compat CTModels 0.21, CTSolvers 0.7, CTParser 0.9.6 — touches Project.toml; not cited in the changelog since `v1.0.12`"
+verdict = "covered"   # covered, added, not-user-facing
+note = "Dependencies entry of [Unreleased]: CTModels 0.21, CTSolvers 0.7, CTParser 0.9.6."
+
+[[review]]
+id = "pr-680"
+what = "#680 fix: give the path and boundary duals by label; unknown with :exa — touches Project.toml, src; not cited in the changelog since `v1.0.12`"
+verdict = "covered"   # covered, added, not-user-facing
+note = "Bug Fixes and Enhancements of [Unreleased]; near-breaking notes in BREAKING.md."
+
+[[review]]
+id = "dep-CTBase"
+what = "`CTBase`: absent → deps"
+verdict = "covered"   # covered, added, not-user-facing
+note = "CTBase is a direct dependency since `1.1.0-beta`."
+
+[[review]]
+id = "dep-CTParser"
+what = "`CTParser`: absent → deps"
+verdict = "covered"   # covered, added, not-user-facing
+note = "CTParser is a direct dependency since `1.1.1-beta` (0.9.0-beta), now 0.9.6 in General."
+
+[[review]]
+id = "compat-CTBase"
+what = "`[compat]` of `CTBase`: `none` → `0.30`"
+verdict = "covered"   # covered, added, not-user-facing
+note = "`1.1.0-beta` / `1.1.1-beta`; stays at 0.30 (Dependencies entry)."
+
+[[review]]
+id = "compat-CTModels"
+what = "`[compat]` of `CTModels`: `0.10` → `0.21.1`"
+verdict = "covered"   # covered, added, not-user-facing
+note = "Dependencies entry of [Unreleased], and the betas."
+
+[[review]]
+id = "compat-CTParser"
+what = "`[compat]` of `CTParser`: `none` → `0.9.6`"
+verdict = "covered"   # covered, added, not-user-facing
+note = "Dependencies entry of [Unreleased]."
+
+[[review]]
+id = "compat-CTSolvers"
+what = "`[compat]` of `CTSolvers`: `0.4` → `0.7`"
+verdict = "covered"   # covered, added, not-user-facing
+note = "Dependencies entry of [Unreleased], with the sign change of the max duals in BREAKING.md."
+
+[[review]]
+id = "compat-ExaModels"
+what = "`[compat]` of `ExaModels`: `0.9` → `0.12`"
+verdict = "covered"   # covered, added, not-user-facing
+note = "`1.1.1-beta`: ExaModels 0.12."
