@@ -3,7 +3,7 @@
 Breaking changes in CTDirect releases, and how to migrate. Tracked from the 1.0.12
 baseline onward; see [CHANGELOG.md](CHANGELOG.md) for the full record.
 
-## Non-breaking note (Unreleased)
+## Non-breaking note (2.0.0)
 
 - **From `1.0.12`**: this version carries the breaking changes of `1.1.0-beta` (the
   discretization API follows the CTSolvers dispatch contract) and `1.1.1-beta` (1-D state,

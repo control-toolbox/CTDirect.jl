@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-13
+
 ### 🐛 Bug Fixes
 
 - With the `:exa` modeler, `dual(sol, ocp, :label)` of a path or boundary constraint returned
