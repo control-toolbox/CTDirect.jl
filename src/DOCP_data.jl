@@ -658,25 +658,41 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
     P[:] = getter(nlp_solution; val=:costate)'
     T_costate = T[1:end-1]
 
-    # constraints multipliers
-    dpc = docp.dims.path_cons
-    dbc = docp.dims.boundary_cons
-    mult_path_constraints = zeros(N + 1, dpc)
-    mult_boundary_constraints = zeros(dbc)
+    # constraints multipliers, given to build_solution by label
     T_path = T
+    duals = Dict{Symbol,Any}()
+    infos = Dict{Symbol,Any}()
 
-    # path constraints multipliers (+++ not yet implemented for exa)
-    # NB. normalize wrt time step
     if isnothing(exa_getter)
+        # path constraints multipliers
+        # NB. normalize wrt time step
+        mult_path_constraints = zeros(N + 1, docp.dims.path_cons)
         raw_mult_path = getter(nlp_solution; val=:mult_path_constraints)'
         for i=1:N
             mult_path_constraints[i,:] = raw_mult_path[i,:] / (T[i+1] - T[i])
         end
         mult_path_constraints[N+1,:] = raw_mult_path[N+1,:] / (T[N+1] - T[N])
-    end
 
-    # boundary constraints multipliers (+++ not yet implemented for exa)
-    isnothing(exa_getter) && (mult_boundary_constraints = getter(nlp_solution; val=:mult_boundary_constraints))
+        # boundary constraints multipliers
+        mult_boundary_constraints = getter(nlp_solution; val=:mult_boundary_constraints)
+
+        ocp = ocp_model(docp)
+        for label in unique(CTModels.path_constraints_nl(ocp)[4])
+            _, rows = CTModels.Models.constraint_rows(ocp, label)
+            duals[label] = mult_path_constraints[:, rows]
+        end
+        for label in unique(CTModels.boundary_constraints_nl(ocp)[4])
+            _, rows = CTModels.Models.constraint_rows(ocp, label)
+            duals[label] = length(rows) == 1 ? mult_boundary_constraints[only(rows)] :
+                mult_boundary_constraints[rows]
+        end
+    else
+        # +++ not yet returned by the exa getter: the labels stay unknown, never 0
+        infos[:missing_duals] = "The :exa modeler does not return the multipliers of the " *
+            "path and boundary constraints yet " *
+            "(https://github.com/control-toolbox/CTParser.jl/issues/414); " *
+            "solve with the :adnlp modeler to get them."
+    end
 
     # use method with separate time grids
     return CTModels.build_solution(
@@ -695,8 +711,8 @@ function build_OCP_solution(docp::DOCP, nlp_solution::SolverCore.AbstractExecuti
         message=message,
         status=status,
         successful=successful,
-        path_constraints_dual=mult_path_constraints,
-        boundary_constraints_dual=mult_boundary_constraints,
+        duals=duals,
+        infos=infos,
         state_constraints_lb_dual=mult_state_box_lower,
         state_constraints_ub_dual=mult_state_box_upper,
         control_constraints_lb_dual=mult_control_box_lower,

@@ -6,6 +6,42 @@ baseline onward; see [CHANGELOG.md](CHANGELOG.md) for the full record.
 ## Non-breaking note (Unreleased)
 
 - **Documentation and CI only**: the `Release` caller and the pins of ct-conventions and ct-agents. **No breaking change**; no migration required.
+- **Near-breaking, maximisation problems**: with CTSolvers `0.7` (the new compat bound), the
+  multipliers follow the convention of the equivalent minimisation: `min f` and `max -f` give
+  the same costate and duals. For a `max` problem, the costate and the duals of the path and
+  boundary constraints are the **opposite** of what the previous releases returned; a `min`
+  problem is unchanged. Measured on one problem, written as `min ∫u²` and as `max -∫u²`, with
+  `:adnlp` and Ipopt, CTSolvers 0.5.8 against 0.7.0:
+
+  ```julia
+  # Before (CTSolvers 0.5): the max problem gave the opposite of the min problem
+  costate(sol_max)(t) == -costate(sol_min)(t)
+  CTModels.path_constraints_dual(sol_max)(t) == -CTModels.path_constraints_dual(sol_min)(t)
+
+  # After (CTSolvers 0.7): the same
+  costate(sol_max)(t) == costate(sol_min)(t)
+  CTModels.path_constraints_dual(sol_max)(t) == CTModels.path_constraints_dual(sol_min)(t)
+  ```
+
+  Code that reads these values for a `max` problem, and compensated for the old sign, drops
+  the compensation. The change comes from CTSolvers, where it is documented; CTDirect passes
+  the multipliers on unchanged. The duals of the boxes were not measured (the box was not
+  active in the problem).
+- **Near-breaking, `:exa` only**: `dual(sol, ocp, :label)` for a path or boundary constraint
+  throws a `PreconditionError` instead of returning `0`. The `:exa` modeler does not return
+  these multipliers yet ([CTParser.jl#414](https://github.com/control-toolbox/CTParser.jl/issues/414)),
+  and the `0` was never computed. Code that needs them solves with the `:adnlp` modeler, or
+  tests first:
+
+  ```julia
+  # Before: a 0 with :exa
+  d = dual(sol, ocp, :c)
+
+  # After
+  CTModels.Solutions.has_dual(sol, ocp, :c) && (d = dual(sol, ocp, :c))
+  ```
+
+  With `:adnlp`, nothing changes ([#672](https://github.com/control-toolbox/CTDirect.jl/issues/672)).
 
 ## [1.1.6-beta] - 2026-08-30
 
