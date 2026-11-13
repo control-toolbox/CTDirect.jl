@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🧪 Testing
+
+- Release workflows: `ReleaseGate.yml` (the gate of a release PR, `REL1`–`REL7`) and
+  `ReleaseTag.yml` (tag and GitHub release of a merged release PR) call CTActions;
+  `Breakage.yml` moves to `breakage-suite.yml` (one report, the `REL1` check of a release
+  PR) and also runs on push to `main`; `Documentation.yml` accepts `workflow_dispatch`.
+
 ### 📚 Documentation
 
 - ct-conventions pinned at 0.5.0 in `AGENTS.md` (read from a git-ignored clone in
@@ -21,13 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   conventions is now `.ct-conventions/` (it was `.conventions/`), like `.ct-agents/`.
 - ct-agents pinned at `v0.3.0` in `AGENTS.md`: at the close of a release the agent runs
   `release.jl audit`, which checks the trail the release left.
+- ct-conventions pinned at `v0.13.0` and ct-agents at `v0.5.0` in `AGENTS.md`; the `Release` workflow of CTActions is called from `.github/workflows/Release.yml`.
 
-### 🧪 Testing
+### ✅ Compatibility
 
-- Release workflows: `ReleaseGate.yml` (the gate of a release PR, `REL1`–`REL7`) and
-  `ReleaseTag.yml` (tag and GitHub release of a merged release PR) call CTActions;
-  `Breakage.yml` moves to `breakage-suite.yml` (one report, the `REL1` check of a release
-  PR) and also runs on push to `main`; `Documentation.yml` accepts `workflow_dispatch`.
+- **No breaking changes**: documentation and CI only. See [BREAKING.md](BREAKING.md).
 
 ## [1.1.6-beta] - 2026-08-30
 

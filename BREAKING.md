@@ -4,6 +4,10 @@
 Breaking changes in CTDirect releases, and how to migrate. Tracked from the 1.0.12
 baseline onward; see [CHANGELOG.md](CHANGELOG.md) for the full record.
 
+## Non-breaking note (Unreleased)
+
+- **Documentation and CI only**: the `Release` caller and the pins of ct-conventions and ct-agents. **No breaking change**; no migration required.
+
 ## [1.1.6-beta] - 2026-08-30
 
 No breaking changes in this release. Docstring-only fix — see
