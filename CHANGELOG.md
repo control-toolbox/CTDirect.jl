@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ New Features
+
+- **Readable display of `DOCP`, `DOCPCache` and `ExaBuildCache`**
+  ([#685](https://github.com/control-toolbox/CTDirect.jl/issues/685)). They fell back to
+  Julia's default display, which printed the full `CTModels.Model` type, the time grid and
+  every bound vector. They now show the scheme, the number of steps and the NLP sizes, in
+  a tree (`text/plain`) or on one line, without type parameters; the length no longer
+  depends on the grid size:
+
+  ```text
+  DOCPCache
+  ├─ scheme: Trapeze (Implicit Trapeze aka Crank-Nicolson, 2nd order, A-stable)
+  ├─ steps: 100
+  └─ NLP: 303 variables, 204 constraints
+  ```
+
+  `ExaBuildCache` is shown as `ExaBuildCache(getter)`.
+
+### 🧪 Testing
+
+- Display of `DOCP`, `DOCPCache` and `ExaBuildCache`: exact output on the double
+  integrator, every collocation scheme, direct shooting, the Exa build cache, output size
+  independent of the grid, and colors.
+
 ## [2.0.0] - 2026-11-13
 
 ### 🐛 Bug Fixes

@@ -31,6 +31,7 @@ function generate_api_reference(src_dir::String, ext_dir::String)
                     "CTDirect.jl",
                     "DOCP_cache.jl",
                     "DOCP_data.jl",
+                    "DOCP_display.jl",
                     "DOCP_functions.jl",
                     "DOCP_variables.jl",
                 ),

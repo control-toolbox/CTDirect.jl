@@ -73,6 +73,7 @@ include("ode/irk.jl")
 include("ode/irk_stagewise.jl")
 include("ode/midpoint.jl")
 include("ode/trapeze.jl")
+include("DOCP_display.jl")
 
 #include("ode/variable.jl")
 
